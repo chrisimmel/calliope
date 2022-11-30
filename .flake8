@@ -1,0 +1,20 @@
+[flake8]
+application-import-names = oulipo
+exclude =
+    .env,
+    .git,
+    .venv,
+    __pycache__
+    build,
+    env,
+ignore =
+  # flake8 is too strict, black disagrees.
+  W503, W504
+  # Black disagrees.
+  E203
+  # Let developers use whatever variable names they want
+  E741
+import-order-style = appnexus
+max-line-length = 89
+per-file-ignores =
+  settings.py: F403, F405

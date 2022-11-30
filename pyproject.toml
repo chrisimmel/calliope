@@ -1,0 +1,37 @@
+[tool.black]
+line-length = 89
+target-version = ['py38']
+exclude = '''
+
+(
+  /(
+      \.git          # exclude a few common directories in the
+    | \.mypy_cache   # root of the project
+    | \.env
+    | \.build
+    | \.venv
+  )/
+)
+'''
+
+[tool.isort]
+line_length = 88
+lines_after_imports = 2
+# Use vertical hanging indents
+multi_line_output = 3
+use_parentheses = true
+# Co-mingle "import x" and "from x import y"
+force_sort_within_sections = true
+# Co-mingle constants, classes, and modules
+order_by_type = false
+case_sensitive = false
+# Sort . ahead of .. (primarily to appease flake8-import-order)
+reverse_relative = true
+profile = "black"
+
+[build-system]
+requires = [
+    "setuptools>=42",
+    "wheel"
+]
+build-backend = "setuptools.build_meta"
