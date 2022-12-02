@@ -10,7 +10,8 @@ from requests.models import Response
 
 # from PIL import Image
 # from image_captioning.model import predict
-from formats import rgb565_to_png
+# from calliope.client.formats import rgb565_to_png
+from calliope.inference import caption_to_prompt, image_file_to_text_inference
 
 
 API_TOKEN = "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"
@@ -25,63 +26,7 @@ frame_file = "frame.jpg"
 output_image_file = "output_image.jpg"
 
 
-def _hugging_face_model_to_api_url(model_name: str) -> str:
-    return f"https://api-inference.huggingface.co/models/{model_name}"
-
-
-def hugging_face_request(data: Any, model_name: str) -> Response:
-    api_url = _hugging_face_model_to_api_url(model_name)
-    headers = {"Authorization": f"Bearer {API_TOKEN}"}
-    response = requests.request("POST", api_url, headers=headers, data=data)
-    response.raise_for_status()
-    return response
-
-
-def image_to_text_inference(image_filename: str) -> str:
-    """
-    Takes the filename of an image. Returns a caption.
-    """
-    with open(image_filename, "rb") as f:
-        image_data = f.read()
-
-    if image_data:
-        response = hugging_face_request(image_data, image_to_text_model)
-        predictions = json.loads(response.content.decode("utf-8"))
-        caption = predictions[0]["generated_text"]
-
-    return caption
-
-
-def text_to_image_inference(text: str) -> str:
-    """
-    Interprets a piece of text as an image. Returns the filename of the resulting image.
-    """
-    payload = {"inputs": text}
-    data = json.dumps(payload)
-    response = hugging_face_request(data, text_to_image_model)
-
-    if response.status_code == 200:
-        with open(output_image_file, "wb") as f:
-            for chunk in response:
-                f.write(chunk)
-
-    return output_image_file
-
-
 CAPTION_TOKEN = "{x}"
-
-
-def _caption_to_prompt(caption: str) -> str:
-    prompt = prompt_template.replace(CAPTION_TOKEN, caption)
-
-    """
-    # Try to prevent caching in inference API. Salt the prompt with a timestamp...
-    import datetime
-    timestamp = str(datetime.datetime.now())
-    prompt = f"{prompt} {timestamp}"
-    """
-
-    return prompt
 
 
 def image_loop_inference_api(prompt_template: str) -> None:
@@ -99,13 +44,13 @@ def image_loop_inference_api(prompt_template: str) -> None:
             caption = None
             prompt = None
             try:
-                caption = image_to_text_inference(frame_file)
+                caption = image_file_to_text_inference(frame_file)
             except Exception as e:
                 print(e)
 
             if caption:
-                prompt = prompt_template.replace(CAPTION_TOKEN, caption)
-                # print(caption)
+                prompt = caption_to_prompt(caption)
+                print(caption)
 
             if prompt:
                 try:
@@ -136,7 +81,7 @@ def image_loop_local() -> None:
             pprint(caption)
 
 
-def image_serve_request(filename: str) -> Response:
+def calliope_request(filename: str) -> Response:
     api_url = "http://127.0.0.1:8000/image/"
     # headers = {"Authorization": f"Bearer {API_TOKEN}"}
     headers = {}
@@ -154,7 +99,7 @@ def image_serve_request(filename: str) -> Response:
     return response
 
 
-def image_loop_image_serve() -> None:
+def image_loop_calliope() -> None:
     """
     Read images from the camera, caption them. Run forever.
     This version uses a downloaded image captioning model running locally,
@@ -170,7 +115,7 @@ def image_loop_image_serve() -> None:
             #    image_data = f.read()
 
             try:
-                response = image_serve_request(frame_file)
+                response = calliope_request(frame_file)
                 if response.status_code == 200:
                     with open(output_image_file, "wb") as f:
                         for chunk in response:
@@ -201,6 +146,6 @@ if __name__ == "__main__":
     """
 
     # image_loop_inference_api(prompt_template)
-    image_loop_image_serve()
+    image_loop_calliope()
     # rgb565_to_png("19.260280.173624.png.scaled.png.raw", 256, 256)
     # rgb565_to_png("Back0 (1).raw", 240, 240)

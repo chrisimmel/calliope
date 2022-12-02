@@ -19,6 +19,9 @@ API_TOKEN = "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"
 image_to_text_model = "nlpconnect/vit-gpt2-image-captioning"
 text_to_image_model = "runwayml/stable-diffusion-v1-5"
 text_prediction_model = "EleutherAI/gpt-neo-2.7B"
+# text_prediction_model = "EleutherAI/gpt-neox-20b"
+speech_recognition_model = "facebook/wav2vec2-large-960h-lv60-self"
+# voice_activity_detection_model = "pyannote/voice-activity-detection"
 
 
 def _hugging_face_model_to_api_url(model_name: str) -> str:
