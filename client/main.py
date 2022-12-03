@@ -12,6 +12,7 @@ from requests.models import Response
 # from image_captioning.model import predict
 # from calliope.client.formats import rgb565_to_png
 from calliope.inference import caption_to_prompt, image_file_to_text_inference
+from calliope.settings import CALLIOPE_API_KEY
 
 
 API_TOKEN = "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"
@@ -82,9 +83,8 @@ def image_loop_local() -> None:
 
 
 def calliope_request(filename: str) -> Response:
-    api_url = "http://127.0.0.1:8000/image/"
-    # headers = {"Authorization": f"Bearer {API_TOKEN}"}
-    headers = {}
+    api_url = "http://127.0.0.1:8080/image/"
+    headers = {"X-Api-Key": CALLIOPE_API_KEY}
 
     values = {
         "requested_image_format": "RAW",
@@ -93,7 +93,7 @@ def calliope_request(filename: str) -> Response:
     }
     files = {"image_file": open(filename, "rb")}
     # response = requests.request("POST", api_url, headers=headers, files=files)
-    response = requests.post(api_url, files=files, data=values)
+    response = requests.post(api_url, files=files, data=values, headers=headers)
     # print(response.status_code)
     response.raise_for_status()
     return response
@@ -121,7 +121,7 @@ def image_loop_calliope() -> None:
                         for chunk in response:
                             f.write(chunk)
                     image = cv2.imread(output_image_file)
-                    cv2.imshow("weld", image)
+                    cv2.imshow("Calliope", image)
             except Exception as e:
                 print(e)
 

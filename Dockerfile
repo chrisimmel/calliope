@@ -11,4 +11,4 @@ COPY requirements requirements
 RUN pip install -r requirements/development.txt
 COPY . /app
 ENV PYTHONPATH "$APP_HOME:${PYTHONPATH}"
-CMD exec uvicorn app:app --reload --host 0.0.0.0 --port 8000
+CMD exec uvicorn app:app --reload --host 0.0.0.0 --port $PORT

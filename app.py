@@ -4,7 +4,8 @@ import numpy as np
 
 import cv2
 
-from fastapi import FastAPI, File, UploadFile
+from fastapi import APIRouter, Depends, FastAPI, File, Request, Response, UploadFile
+from fastapi.security.api_key import APIKey
 from starlette.responses import FileResponse, StreamingResponse
 
 from calliope.files import zipfiles
@@ -14,22 +15,22 @@ from calliope.inference import (
     text_to_extended_text_inference,
     text_to_image_file_inference,
 )
+from calliope.utils.authentication import get_api_key
 
 app = FastAPI()
 
+# router = APIRouter(prefix="/v1")
+# app.include_router(router)
+
 
 @app.get("/")
-def read_root():
-    return {"Hello": "World"}
-
-
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: Union[str, None] = None):
-    return {"item_id": item_id, "q": q}
+def read_root(api_key: APIKey = Depends(get_api_key)):
+    return {"message": "Hello!"}
 
 
 @app.post("/image/")
 async def post_image(
+    api_key: APIKey = Depends(get_api_key),
     image_file: bytes = File(default=None),
     requested_image_format: Optional[str] = None,
     requested_image_width: Optional[int] = None,

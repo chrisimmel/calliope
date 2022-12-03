@@ -15,3 +15,10 @@ python -m client.main
 
 Altogether:
 python -m client.story_loop
+
+
+
+# With Docker
+
+docker build -t calliope .
+docker run --env PORT=8080 --publish 127.0.0.1:8080:8080/tcp calliope
