@@ -3,6 +3,17 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Image files
+*.jpg
+*.raw
+*.png
+
+# Mac doodads
+.DS_Store
+
+# Jupyter
+*.ipynb
+
 # C extensions
 *.so
 

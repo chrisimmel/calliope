@@ -1,0 +1,21 @@
+# Compiled Python files
+**/*.pyc
+**/__pycache__/
+
+.git
+.venv
+restart.sh
+start.sh
+uwsgi.ini
+README.md
+
+# Mac doodads
+.DS_Store
+
+# Image files
+*.jpg
+*.raw
+*.png
+
+# Jupyter
+*.ipynb
