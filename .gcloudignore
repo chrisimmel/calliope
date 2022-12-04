@@ -16,6 +16,7 @@ README.md
 *.jpg
 *.raw
 *.png
+media/
 
 # Jupyter
 *.ipynb

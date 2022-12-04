@@ -14,6 +14,7 @@ starlette
 types-python-dateutil
 types-pytz
 types-requests
+urllib3
 uvicorn[standard]
 uvloop
 watchfiles

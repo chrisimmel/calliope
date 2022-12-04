@@ -60,14 +60,13 @@ def image_file_to_text_inference(image_filename: str) -> str:
     return "A long the riverrun"
 
 
-def text_to_image_file_inference(text: str) -> str:
+def text_to_image_file_inference(text: str, output_image_filename: str) -> str:
     """
     Interprets a piece of text as an image. Returns the filename of the resulting image.
     """
     payload = {"inputs": text}
     data = json.dumps(payload)
     response = hugging_face_request(data, text_to_image_model)
-    output_image_filename = "output_image.jpg"
 
     if response.status_code == 200:
         with open(output_image_filename, "wb") as f:

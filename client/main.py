@@ -83,22 +83,50 @@ def image_loop_local() -> None:
 
 
 def calliope_request(filename: str) -> Response:
-    api_url = "http://127.0.0.1:8000/image/"  # local, no Docker
+    api_url = "http://127.0.0.1:8000/v1/story/"  # local, no Docker
+    # api_url = "http://127.0.0.1:8000/image/"  # local, no Docker
     # api_url = "http://127.0.0.1:8080/image/"  # local, Docker
     # api_url = "https://calliope-ugaidvq5sa-uc.a.run.app/image/"  # Google Cloud
     headers = {"X-Api-Key": CALLIOPE_API_KEY}
 
     values = {
-        "requested_image_format": "RAW",
-        "requested_image_width": 320,
-        "requested_image_height": 320,
+        "client_id": "chris",
+        "output_image_format": "jpeg",
+        "output_image_width": 320,
+        "output_image_height": 320,
+        "debug": True,
     }
-    files = {"image_file": open(filename, "rb")}
+    # files = {"image_file": open(filename, "rb")}
+    files = {"input_image": open(filename, "rb")}
+    # files = {"input_image": (filename, open(filename, "rb").read(), "image/jpeg")}
+    # body, content_type = encode_multipart_formdata({**values, **files})
+    # headers["Content-Type"] = content_type
+
     # response = requests.request("POST", api_url, headers=headers, files=files)
     response = requests.post(api_url, files=files, data=values, headers=headers)
+    # response = requests.post(api_url, data=body, headers=headers)
+    if response.status_code != 200:
+        print(f"{response.status_code=}, {response.reason=}, {response.raw=}")
     # print(response.status_code)
     response.raise_for_status()
     return response
+
+
+def calliope_media_request(filename: str) -> str:
+    base_url = "http://127.0.0.1:8000/"  # local, no Docker
+    # base_url = "http://127.0.0.1:8000/"  # local, no Docker
+    # base_url = "http://127.0.0.1:8080/"  # local, Docker
+    # base_url = "https://calliope-ugaidvq5sa-uc.a.run.app/"  # Google Cloud
+    media_url = f"{base_url}{filename}"
+    headers = {"X-Api-Key": CALLIOPE_API_KEY}
+
+    response = requests.get(media_url, headers=headers)
+    response.raise_for_status()
+
+    with open(filename, "wb") as f:
+        f.write(response.content)
+
+    return filename
 
 
 def image_loop_calliope() -> None:
@@ -119,11 +147,23 @@ def image_loop_calliope() -> None:
             try:
                 response = calliope_request(frame_file)
                 if response.status_code == 200:
+                    """
                     with open(output_image_file, "wb") as f:
                         for chunk in response:
                             f.write(chunk)
                     image = cv2.imread(output_image_file)
                     cv2.imshow("Calliope", image)
+                    """
+                    response_json = response.json()
+                    from pprint import pprint
+
+                    pprint(response_json["text"])
+                    image_url = response_json["image_url"]
+                    if image_url:
+                        image_file = calliope_media_request(image_url)
+                        image = cv2.imread(image_file)
+                        cv2.imshow("Calliope", image)
+
             except Exception as e:
                 print(e)
 
