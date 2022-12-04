@@ -83,7 +83,9 @@ def image_loop_local() -> None:
 
 
 def calliope_request(filename: str) -> Response:
-    api_url = "http://127.0.0.1:8080/image/"
+    api_url = "http://127.0.0.1:8000/image/"  # local, no Docker
+    # api_url = "http://127.0.0.1:8080/image/"  # local, Docker
+    # api_url = "https://calliope-ugaidvq5sa-uc.a.run.app/image/"  # Google Cloud
     headers = {"X-Api-Key": CALLIOPE_API_KEY}
 
     values = {
