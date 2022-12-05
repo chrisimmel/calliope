@@ -85,10 +85,10 @@ def image_loop_local() -> None:
 
 
 def calliope_request(filename: str) -> Response:
-    api_url = "http://127.0.0.1:8080/story/"  # local, Docker
-    # api_url = "http://127.0.0.1:8000/image/"  # local, no Docker
-    # api_url = "http://127.0.0.1:8080/image/"  # local, Docker
-    # api_url = "https://calliope-ugaidvq5sa-uc.a.run.app/image/"  # Google Cloud
+    # api_url = "http://127.0.0.1:8080/story/"  # local, Docker
+    # api_url = "http://127.0.0.1:8000/story/"  # local, no Docker
+    # api_url = "http://127.0.0.1:8080/story/"  # local, Docker
+    api_url = "https://calliope-ugaidvq5sa-uc.a.run.app/story/"  # Google Cloud
     headers = {"X-Api-Key": CALLIOPE_API_KEY}
 
     values = {
@@ -115,10 +115,10 @@ def calliope_request(filename: str) -> Response:
 
 
 def calliope_media_request(filename: str) -> str:
-    base_url = "http://127.0.0.1:8080/"  # local, Docker
+    # base_url = "http://127.0.0.1:8080/"  # local, Docker
     # base_url = "http://127.0.0.1:8000/"  # local, no Docker
     # base_url = "http://127.0.0.1:8080/"  # local, Docker
-    # base_url = "https://calliope-ugaidvq5sa-uc.a.run.app/"  # Google Cloud
+    base_url = "https://calliope-ugaidvq5sa-uc.a.run.app/"  # Google Cloud
     media_url = f"{base_url}{filename}"
     headers = {"X-Api-Key": CALLIOPE_API_KEY}
 
