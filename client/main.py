@@ -1,7 +1,6 @@
 import argparse
 import json
 from pprint import pprint
-from typing import Any
 
 import cv2
 
@@ -10,8 +9,11 @@ from requests.models import Response
 
 # from PIL import Image
 # from image_captioning.model import predict
-# from calliope.client.formats import rgb565_to_png
-from calliope.inference import caption_to_prompt, image_file_to_text_inference
+from calliope.inference import (
+    caption_to_prompt,
+    image_file_to_text_inference,
+    text_to_image_file_inference,
+)
 from calliope.settings import CALLIOPE_API_KEY
 
 
@@ -30,7 +32,7 @@ output_image_file = "output_image.jpg"
 CAPTION_TOKEN = "{x}"
 
 
-def image_loop_inference_api(prompt_template: str) -> None:
+def image_loop_inference_api() -> None:
     """
     Read images from the camera, caption them, interpret the captions as images.
     Run forever.
@@ -55,7 +57,7 @@ def image_loop_inference_api(prompt_template: str) -> None:
 
             if prompt:
                 try:
-                    output_image_file = text_to_image_inference(prompt)
+                    output_image_file = text_to_image_file_inference(prompt)
                     image = cv2.imread(output_image_file)
                     cv2.imshow("weld", image)
                 except Exception as e:
@@ -189,5 +191,3 @@ if __name__ == "__main__":
 
     # image_loop_inference_api(prompt_template)
     image_loop_calliope()
-    # rgb565_to_png("19.260280.173624.png.scaled.png.raw", 256, 256)
-    # rgb565_to_png("Back0 (1).raw", 240, 240)
