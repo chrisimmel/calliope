@@ -6,9 +6,6 @@ from PIL import Image
 import numpy as np
 
 
-# Inspired by https://github.com/CommanderRedYT
-
-
 class ImageFormat(Enum):
     # RGB565 doesn't have an official media type, but let's use this:
     RGB565 = "image/rgb565"
@@ -33,6 +30,12 @@ def guess_image_format_from_filename(filename: str) -> ImageFormat:
 
 def image_format_to_media_type(image_format: ImageFormat) -> str:
     return image_format.value
+
+
+# For a good discussion of the RGB565 format,
+# see: http://www.barth-dev.de/online/rgb565-color-picker/#
+
+# The below conversion code was inspired by https://github.com/CommanderRedYT
 
 
 def convert_png_to_rgb565(input_filename: str, output_filename: str):
