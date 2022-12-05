@@ -12,10 +12,6 @@ from calliope.inference import (
     text_to_image_file_inference,
 )
 
-# from PIL import Image
-# from image_captioning.model import predict
-# from .formats import rgb565_to_png
-
 
 API_TOKEN = "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"
 
@@ -40,7 +36,7 @@ def story_loop_inference_api(prompt_template: str) -> None:
         ret, frame = vid.read()
         if frame is not None:
             cv2.imwrite(frame_file, frame)
-            caption = None
+            caption = ""
             prompt = None
             text = None
             fragment_len = 0
@@ -51,28 +47,35 @@ def story_loop_inference_api(prompt_template: str) -> None:
                 print(e)
 
             if last_text:
-                fragment_len = int(len(last_text) / 2)
-                caption = last_text[fragment_len:]
-            else:
+                last_text_tokens = last_text.split()
+                last_text_tokens = last_text_tokens[int(len(last_text_tokens) / 2) :]
+                last_text = " ".join(last_text_tokens)
 
-            if caption:
-                try:
-                    text = text_to_extended_text_inference(caption)
-                except Exception as e:
-                    print(e)
-                text = text[fragment_len + 1 :]
-                print(text)
-                last_text = text
+            text = f"{caption} {last_text}"
+            fragment_len = len(text)
+            try:
+                text = text_to_extended_text_inference(text)
+            except Exception as e:
+                print(e)
 
-            if text:
-                prompt = caption_to_prompt(text, prompt_template)
-                try:
-                    output_image_filename = "output_file.jpg"
-                    text_to_image_file_inference(prompt, output_image_filename)
-                    image = cv2.imread(output_image_filename)
-                    cv2.imshow("Calliope", image)
-                except Exception as e:
-                    print(e)
+            text = text[fragment_len + 1 :]
+            text = " ".join(text.split(" "))
+            text = text.replace("*", "")
+            text = text.replace("_", "")
+            text = text.strip()
+            if not text:
+                text = caption
+            prompt = caption_to_prompt(text, prompt_template)
+
+            last_text = text
+            print(text)
+            try:
+                output_image_filename = "output_file.jpg"
+                text_to_image_file_inference(prompt, output_image_filename)
+                image = cv2.imread(output_image_filename)
+                cv2.imshow("Calliope", image)
+            except Exception as e:
+                print(e)
 
             cv2.waitKey(5000)
 
