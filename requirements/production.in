@@ -4,6 +4,7 @@ ftfy
 mypy
 numpy
 opencv-python-headless
+Pillow
 pydantic
 python-dateutil
 python-dotenv

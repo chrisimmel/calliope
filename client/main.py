@@ -85,7 +85,7 @@ def image_loop_local() -> None:
 
 
 def calliope_request(filename: str) -> Response:
-    api_url = "http://127.0.0.1:8000/v1/story/"  # local, no Docker
+    api_url = "http://127.0.0.1:8080/story/"  # local, Docker
     # api_url = "http://127.0.0.1:8000/image/"  # local, no Docker
     # api_url = "http://127.0.0.1:8080/image/"  # local, Docker
     # api_url = "https://calliope-ugaidvq5sa-uc.a.run.app/image/"  # Google Cloud
@@ -93,7 +93,7 @@ def calliope_request(filename: str) -> Response:
 
     values = {
         "client_id": "chris",
-        "output_image_format": "jpeg",
+        "output_image_format": "image/png",
         "output_image_width": 320,
         "output_image_height": 320,
         "debug": True,
@@ -115,7 +115,7 @@ def calliope_request(filename: str) -> Response:
 
 
 def calliope_media_request(filename: str) -> str:
-    base_url = "http://127.0.0.1:8000/"  # local, no Docker
+    base_url = "http://127.0.0.1:8080/"  # local, Docker
     # base_url = "http://127.0.0.1:8000/"  # local, no Docker
     # base_url = "http://127.0.0.1:8080/"  # local, Docker
     # base_url = "https://calliope-ugaidvq5sa-uc.a.run.app/"  # Google Cloud
