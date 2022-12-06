@@ -87,7 +87,6 @@ def image_loop_local() -> None:
 def calliope_request(filename: str) -> Response:
     # api_url = "http://127.0.0.1:8080/story/"  # local, Docker
     # api_url = "http://127.0.0.1:8000/story/"  # local, no Docker
-    # api_url = "http://127.0.0.1:8080/story/"  # local, Docker
     api_url = "https://calliope-ugaidvq5sa-uc.a.run.app/story/"  # Google Cloud
     headers = {"X-Api-Key": CALLIOPE_API_KEY}
 
@@ -98,18 +97,11 @@ def calliope_request(filename: str) -> Response:
         "output_image_height": 320,
         "debug": True,
     }
-    # files = {"image_file": open(filename, "rb")}
     files = {"input_image": open(filename, "rb")}
-    # files = {"input_image": (filename, open(filename, "rb").read(), "image/jpeg")}
-    # body, content_type = encode_multipart_formdata({**values, **files})
-    # headers["Content-Type"] = content_type
 
-    # response = requests.request("POST", api_url, headers=headers, files=files)
     response = requests.post(api_url, files=files, data=values, headers=headers)
-    # response = requests.post(api_url, data=body, headers=headers)
     if response.status_code != 200:
         print(f"{response.status_code=}, {response.reason=}, {response.raw=}")
-    # print(response.status_code)
     response.raise_for_status()
     return response
 
