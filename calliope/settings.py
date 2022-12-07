@@ -1,2 +1,7 @@
-# TODO: Move to an environment variable or other external secret.
-CALLIOPE_API_KEY = "xyzzy"
+import os
+
+CALLIOPE_API_KEY = os.environ.get("CALLIOPE_API_KEY")
+
+MEDIA_BUCKET_NAME = os.environ.get(
+    "MEDIA_BUCKET_NAME", "artifacts.ardent-course-370411.appspot.com/media"
+)

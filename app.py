@@ -1,7 +1,12 @@
 import datetime
-import io
+from http.client import HTTPException
+import os
 from typing import Any, Dict, List, Optional
-import numpy as np
+from calliope.utils.google import (
+    get_media_file,
+    is_google_cloud_run_environment,
+    stash_media_file,
+)
 
 import cuid
 from fastapi import Depends, FastAPI, File, Form, Query, Request
@@ -13,7 +18,6 @@ from pydantic import BaseModel
 from starlette.responses import FileResponse, JSONResponse, RedirectResponse
 from urllib.parse import urlparse
 
-from calliope.files import zipfiles
 from calliope.inference import (
     caption_to_prompt,
     image_file_to_text_inference,
@@ -21,13 +25,13 @@ from calliope.inference import (
     text_to_image_file_inference,
 )
 from calliope.utils.authentication import get_api_key
-from calliope.utils.string import slugify
-from calliope.utils.image_format import (
+from calliope.utils.image import (
     convert_png_to_rgb565,
     guess_image_format_from_filename,
     image_format_to_media_type,
     ImageFormat,
 )
+from calliope.utils.string import slugify
 
 
 class StoryResponse(BaseModel):
@@ -145,6 +149,9 @@ async def post_story(
             else:
                 output_image_filename = output_image_filename_png
 
+            if is_google_cloud_run_environment():
+                stash_media_file(output_image_filename)
+
         except Exception as e:
             output_image_filename = None
             print(e)
@@ -248,6 +255,9 @@ async def get_story(
             else:
                 output_image_filename = output_image_filename_png
 
+            if is_google_cloud_run_environment():
+                stash_media_file(output_image_filename)
+
         except Exception as e:
             output_image_filename = None
             print(e)
@@ -270,10 +280,18 @@ async def get_media(
     filename: str,
     api_key: APIKey = Depends(get_api_key),
 ) -> Optional[FileResponse]:
-    format = guess_image_format_from_filename(filename)
+    base_filename = filename
+    format = guess_image_format_from_filename(base_filename)
     media_type = image_format_to_media_type(format)
 
-    return FileResponse(f"media/{filename}", media_type=media_type)
+    local_filename = f"media/{base_filename}"
+    if is_google_cloud_run_environment():
+        get_media_file(base_filename, local_filename)
+
+    if not os.path.isfile(local_filename):
+        raise HTTPException(status_code=404, detail="Media file not found")
+
+    return FileResponse(local_filename, media_type=media_type)
 
 
 def _compose_filename(directory: str, client_id: str, base_filename: str) -> str:

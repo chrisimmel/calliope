@@ -1,6 +1,7 @@
 cuid
 fastapi
 ftfy
+google-cloud-storage
 mypy
 numpy
 opencv-python-headless

@@ -5,6 +5,8 @@ import os
 from PIL import Image
 import numpy as np
 
+from calliope.utils.file import get_file_extension
+
 
 class ImageFormat(Enum):
     # RGB565 doesn't have an official media type, but let's use this:
@@ -14,10 +16,7 @@ class ImageFormat(Enum):
 
 
 def guess_image_format_from_filename(filename: str) -> ImageFormat:
-    basename = os.path.basename(filename).rsplit(".", 1)
-    if not basename and len(basename) > 1:
-        raise ValueError(f"Invalid image filename: {filename}")
-    extension = basename[1].lower()
+    extension = get_file_extension(filename)
     if extension in ("raw", "rgb565"):
         return ImageFormat.RGB565
     elif extension in ("jpg", "jpeg"):
