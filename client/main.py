@@ -87,7 +87,8 @@ def image_loop_local() -> None:
 def calliope_request(filename: str) -> Response:
     # api_url = "http://127.0.0.1:8080/story/"  # local, Docker
     # api_url = "http://127.0.0.1:8000/story/"  # local, no Docker
-    api_url = "https://calliope-ugaidvq5sa-uc.a.run.app/story/"  # Google Cloud
+    api_url = "http://127.0.0.1:8000/v1/frames/"  # local, no Docker
+    # api_url = "https://calliope-ugaidvq5sa-uc.a.run.app/story/"  # Google Cloud
     headers = {"X-Api-Key": CALLIOPE_API_KEY}
 
     values = {
@@ -95,6 +96,7 @@ def calliope_request(filename: str) -> Response:
         "output_image_format": "image/png",
         "output_image_width": 320,
         "output_image_height": 320,
+        "strategy": "continuous_v0",
         "debug": True,
     }
     files = {"input_image": open(filename, "rb")}
@@ -108,8 +110,8 @@ def calliope_request(filename: str) -> Response:
 
 def calliope_media_request(filename: str) -> str:
     # base_url = "http://127.0.0.1:8080/"  # local, Docker
-    # base_url = "http://127.0.0.1:8000/"  # local, no Docker
-    base_url = "https://calliope-ugaidvq5sa-uc.a.run.app/"  # Google Cloud
+    base_url = "http://127.0.0.1:8000/"  # local, no Docker
+    # base_url = "https://calliope-ugaidvq5sa-uc.a.run.app/"  # Google Cloud
     media_url = f"{base_url}{filename}"
     headers = {"X-Api-Key": CALLIOPE_API_KEY}
 
@@ -134,8 +136,6 @@ def image_loop_calliope() -> None:
         ret, frame = vid.read()
         if frame is not None:
             cv2.imwrite(frame_file, frame)
-            # with open(frame_file, "rb") as f:
-            #    image_data = f.read()
 
             try:
                 response = calliope_request(frame_file)
@@ -148,10 +148,15 @@ def image_loop_calliope() -> None:
                     cv2.imshow("Calliope", image)
                     """
                     response_json = response.json()
-                    from pprint import pprint
+                    if "frames" in response_json and len(response_json["frames"]):
+                        frame = response_json["frames"][0]
+                        text = frame["text"]
+                        image_url = frame.get("image", {}).get("url")
+                    else:
+                        text = response_json.get("text")
+                        image_url = response_json.get("image_url")
 
-                    pprint(response_json["text"])
-                    image_url = response_json["image_url"]
+                    print(text)
                     if image_url:
                         image_file = calliope_media_request(image_url)
                         image = cv2.imread(image_file)

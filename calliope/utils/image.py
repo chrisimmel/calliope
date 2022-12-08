@@ -1,34 +1,13 @@
 import argparse
 from enum import Enum
 import os
+from typing import Optional
 
 import numpy as np
 from PIL import Image
-from pydantic import BaseModel
 
+from calliope.models import ImageFormat, ImageModel
 from calliope.utils.file import get_file_extension
-
-
-class ImageFormat(Enum):
-    # RGB565 doesn't have an official media type, but let's use this:
-    RGB565 = "image/rgb565"
-    PNG = "image/png"
-    JPEG = "image/jpeg"
-
-    def fromMediaFormat(mediaFormat: str) -> "ImageFormat":
-        if mediaFormat == "image/raw":
-            mediaFormat = "image/rgb565"
-        return ImageFormat(mediaFormat)
-
-
-class ImageAttributes(BaseModel):
-    """
-    The high-level attributes of an image.
-    """
-
-    width: int
-    height: int
-    format: ImageFormat
 
 
 def guess_image_format_from_filename(filename: str) -> ImageFormat:
@@ -53,7 +32,7 @@ def image_format_to_media_type(image_format: ImageFormat) -> str:
 # The below conversion code was inspired by https://github.com/CommanderRedYT
 
 
-def convert_png_to_rgb565(input_filename: str, output_filename: str) -> ImageAttributes:
+def convert_png_to_rgb565(input_filename: str, output_filename: str) -> ImageModel:
     """
     Converts the given PNG file to RGB565/raw format.
     """
@@ -71,24 +50,30 @@ def convert_png_to_rgb565(input_filename: str, output_filename: str) -> ImageAtt
     with open(output_filename, "wb") as output_file:
         output_file.write(output_image_content)
 
-    return ImageAttributes(width=png.width, height=png.height, format=ImageFormat.RGB565)
+    return ImageModel(
+        width=png.width,
+        height=png.height,
+        format=ImageFormat.RGB565,
+        url=output_filename,
+    )
 
 
-def get_image_attributes(image_filename: str) -> ImageAttributes:
+def get_image_attributes(image_filename: str) -> ImageModel:
 
     image = Image.open(image_filename)
     format = guess_image_format_from_filename(image_filename)
 
-    return ImageAttributes(
+    return ImageModel(
         width=image.width,
         height=image.height,
         format=format,
+        url=image_filename,
     )
 
 
 def convert_rgb565_to_png(
     input_filename: str, output_filename: str, width: int, height: int
-) -> ImageAttributes:
+) -> ImageModel:
     """
     Converts the given RGB565/raw file to PNG format.
     """
@@ -105,7 +90,9 @@ def convert_rgb565_to_png(
 
         png.save(output_filename)
 
-        return ImageAttributes(width=width, height=height, format=ImageFormat.PNG)
+        return ImageModel(
+            width=width, height=height, format=ImageFormat.PNG, url=output_filename
+        )
 
 
 class Mode(Enum):

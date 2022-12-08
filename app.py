@@ -1,6 +1,9 @@
 import datetime
 import os
 from typing import Any, Dict, List, Optional
+from calliope.models.story_frame import StoryFrameModel
+from calliope.strategies import StoryParameters, StoryStrategyRegistry
+from calliope.utils.file import compose_filename
 from calliope.utils.google import (
     get_media_file,
     is_google_cloud_run_environment,
@@ -25,7 +28,6 @@ from calliope.inference import (
 )
 from calliope.utils.authentication import get_api_key
 from calliope.utils.image import (
-    ImageAttributes,
     convert_png_to_rgb565,
     get_image_attributes,
     guess_image_format_from_filename,
@@ -35,13 +37,30 @@ from calliope.utils.image import (
 from calliope.utils.string import slugify
 
 
-class StoryResponse(BaseModel):
+class StoryResponseV0(BaseModel):
+    # Optional text to display (deprecated - look instead in 'frames')
     text: Optional[str]
+    # Optional image to display (deprecated - look instead in 'frames')
     image_url: Optional[str]
-    image_attributes: Optional[ImageAttributes]
+
     request_id: str
     generation_date: str
-    debug: Optional[Dict[str, Any]]
+    debug_data: Optional[Dict[str, Any]]
+    errors: List[str]
+
+
+class StoryResponseV1(BaseModel):
+    # Optional text to display (deprecated - look instead in 'frames')
+    text: Optional[str]
+    # Optional image to display (deprecated - look instead in 'frames')
+    image_url: Optional[str]
+
+    # Some frames of the story to display, with optional start/stop times.
+    frames: List[StoryFrameModel]
+
+    request_id: str
+    generation_date: str
+    debug_data: Optional[Dict[str, Any]]
     errors: List[str]
 
 
@@ -52,7 +71,7 @@ app = FastAPI(
 )
 
 
-@app.post("/story/", response_model=StoryResponse)
+@app.post("/story/", response_model=StoryResponseV0)
 async def post_story(
     api_key: APIKey = Depends(get_api_key),
     input_image: bytes = File(
@@ -100,7 +119,7 @@ async def post_story(
     debug: bool = Form(
         False, description="Enables richer diagnostic output in the response."
     ),
-) -> StoryResponse:
+) -> StoryResponseV0:
     """
     Provide some harvested data (image, sound, text). Get a new episode of an
     ongoing story, with text and image.
@@ -111,6 +130,7 @@ async def post_story(
     debug_data = {}
     errors = []
     caption = ""
+    image_attributes = None
 
     if input_image:
         # TODO: Support other input image formats as needed.
@@ -135,13 +155,13 @@ async def post_story(
         prompt = caption_to_prompt(text, prompt_template)
 
         try:
-            output_image_filename_png = _compose_filename(
+            output_image_filename_png = compose_filename(
                 "media", client_id, "output_image.png"
             )
             text_to_image_file_inference(prompt, output_image_filename_png)
 
             if output_image_format == ImageFormat.RGB565:
-                output_image_filename_raw = _compose_filename(
+                output_image_filename_raw = compose_filename(
                     "media", client_id, "output_image.raw"
                 )
                 image_attributes = convert_png_to_rgb565(
@@ -159,13 +179,10 @@ async def post_story(
             output_image_filename = None
             print(e)
             errors.append(str(e))
-    else:
-        image_attributes = None
 
-    response = StoryResponse(
+    response = StoryResponseV0(
         text=text,
-        image_url=output_image_filename,
-        image_attributes=image_attributes,
+        image=image_attributes,
         request_id=cuid.cuid(),
         generation_date=datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ"),
         debug=debug_data if debug else None,
@@ -175,7 +192,7 @@ async def post_story(
     return response
 
 
-@app.get("/story/", response_model=StoryResponse)
+@app.get("/story/", response_model=StoryResponseV0)
 async def get_story(
     api_key: APIKey = Depends(get_api_key),
     client_id: str = Query(
@@ -215,7 +232,7 @@ async def get_story(
     debug: bool = Query(
         False, description="Enables richer diagnostic output in the response."
     ),
-) -> StoryResponse:
+) -> StoryResponseV0:
     """
     Provide some harvested data (image, sound, text). Get a new episode of an
     ongoing story, with text and image.
@@ -226,6 +243,7 @@ async def get_story(
     debug_data = {}
     errors = []
     caption = "Along the riverrun"
+    image_attributes = None
 
     print(f"{input_text=}, {client_id=}, {output_image_format=}")
     if input_text:
@@ -245,13 +263,13 @@ async def get_story(
         prompt = caption_to_prompt(text, prompt_template)
 
         try:
-            output_image_filename_png = _compose_filename(
+            output_image_filename_png = compose_filename(
                 "media", client_id, "output_image.png"
             )
             text_to_image_file_inference(prompt, output_image_filename_png)
 
             if output_image_format == ImageFormat.RGB565:
-                output_image_filename_raw = _compose_filename(
+                output_image_filename_raw = compose_filename(
                     "media", client_id, "output_image.raw"
                 )
                 image_attributes = convert_png_to_rgb565(
@@ -269,10 +287,8 @@ async def get_story(
             output_image_filename = None
             print(e)
             errors.append(str(e))
-    else:
-        image_attributes = None
 
-    response = StoryResponse(
+    response = StoryResponseV0(
         text=text,
         image_url=output_image_filename,
         image_attributes=image_attributes,
@@ -285,7 +301,194 @@ async def get_story(
     return response
 
 
-@app.get("/media/{filename}", response_model=StoryResponse)
+@app.post("/v1/frames/", response_model=StoryResponseV1)
+async def post_frames(
+    api_key: APIKey = Depends(get_api_key),
+    input_image: bytes = File(
+        default=None,
+        description="An image file, optional (harvested image, for now, common web image formats work, jpg, png, etc.)",
+    ),
+    input_audio: bytes = File(
+        default=None,
+        description="An audio file, optional (harvested sound, not quite ready to use it... format?)",
+    ),
+    client_id: str = Form(
+        description="Required. Could be a mac address, or, for testing, any string will do."
+    ),
+    location: str = Form(None, description="The geolocation of the client."),
+    input_text: str = Form(
+        None,
+        description="Harvested text from client environment, not sure where you'd get this, here just in case.",
+    ),
+    output_image_format: Optional[str] = Form(
+        None,
+        description="The requested image format. Default is whatever comes out of the image generator, usually jpg or png",
+    ),
+    output_image_width: Optional[int] = Form(
+        None,
+        description="The requested image width. Default is whatever comes out of the image generator.",
+    ),
+    output_image_height: Optional[int] = Form(
+        None,
+        description="The requested image height. Default is whatever comes out of the image generator.",
+    ),
+    output_image_style: Optional[str] = Form(
+        None, description="Optional description of the desired image style."
+    ),
+    output_text_length: Optional[int] = Form(
+        None,
+        description="Optional, the nominal length of the returned text, advisory, might be ignored.",
+    ),
+    output_text_style: Optional[str] = Form(
+        None, description="Optional description of the desired text style."
+    ),
+    strategy: Optional[str] = Form(
+        None,
+        description="Optional, helps Calliope select what algorithm to use to generate the output. The idea is that we'll be able to build new ones and plug them in easily.",
+    ),
+    debug: bool = Form(
+        False, description="Enables richer diagnostic output in the response."
+    ),
+) -> StoryResponseV0:
+    """
+    Provide some harvested data (image, sound, text). Get a new episode of an
+    ongoing story, with text and image.
+    """
+    strategy = strategy or "simple_one_frame"
+    parameters = StoryParameters(
+        client_id=client_id,
+        input_image=input_image,
+        input_audio=input_audio,
+        location=location,
+        input_text=input_text,
+        output_image_format=output_image_format,
+        output_image_width=output_image_width,
+        output_image_height=output_image_height,
+        output_image_style=output_image_style,
+        output_text_length=output_text_length,
+        output_text_style=output_text_style,
+        strategy=strategy,
+        debug=debug,
+    )
+
+    strategy_class = StoryStrategyRegistry.get_strategy_class(strategy)
+    story_frames_response = strategy_class().get_frame_sequence(parameters)
+
+    prepare_frame_images(parameters, story_frames_response.frames)
+
+    response = StoryResponseV1(
+        frames=story_frames_response.frames,
+        request_id=cuid.cuid(),
+        generation_date=datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ"),
+        debug_data=story_frames_response.debug_data if debug else None,
+        errors=story_frames_response.errors,
+    )
+
+    return response
+
+
+@app.get("/v1/frames/", response_model=StoryResponseV1)
+async def get_frames(
+    api_key: APIKey = Depends(get_api_key),
+    client_id: str = Query(
+        description="Required. Could be a mac address, or, for testing, any string will do."
+    ),
+    location: str = Query(None, description="The geolocation of the client."),
+    input_text: str = Query(
+        None,
+        description="Harvested text from client environment, not sure where you'd get this, here just in case.",
+    ),
+    output_image_format: Optional[str] = Query(
+        None,
+        description="The requested image format. Default is whatever comes out of the image generator, usually jpg or png",
+    ),
+    output_image_width: Optional[int] = Query(
+        None,
+        description="The requested image width. Default is whatever comes out of the image generator.",
+    ),
+    output_image_height: Optional[int] = Query(
+        None,
+        description="The requested image height. Default is whatever comes out of the image generator.",
+    ),
+    output_image_style: Optional[str] = Query(
+        None, description="Optional description of the desired image style."
+    ),
+    output_text_length: Optional[int] = Query(
+        None,
+        description="Optional, the nominal length of the returned text, advisory, might be ignored.",
+    ),
+    output_text_style: Optional[str] = Query(
+        None, description="Optional description of the desired text style."
+    ),
+    strategy: Optional[str] = Query(
+        None,
+        description="Optional, helps Calliope select what algorithm to use to generate the output. The idea is that we'll be able to build new ones and plug them in easily.",
+    ),
+    debug: bool = Query(
+        False, description="Enables richer diagnostic output in the response."
+    ),
+) -> StoryResponseV1:
+    """
+    Provide some harvested data (image, sound, text). Get a new episode of an
+    ongoing story, with text and image.
+    """
+    strategy = strategy or "simple_one_frame"
+    parameters = StoryParameters(
+        client_id=client_id,
+        location=location,
+        input_text=input_text,
+        output_image_format=output_image_format,
+        output_image_width=output_image_width,
+        output_image_height=output_image_height,
+        output_image_style=output_image_style,
+        output_text_length=output_text_length,
+        output_text_style=output_text_style,
+        strategy=strategy,
+        debug=debug,
+    )
+
+    strategy_class = StoryStrategyRegistry.get_strategy_class(strategy)
+    story_frames_response = strategy_class().get_frame_sequence(parameters)
+
+    prepare_frame_images(parameters, story_frames_response.frames)
+
+    response = StoryResponseV1(
+        frames=story_frames_response.frames,
+        request_id=cuid.cuid(),
+        generation_date=datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ"),
+        debug_data=story_frames_response.debug_data if debug else None,
+        errors=story_frames_response.errors,
+    )
+
+    return response
+
+
+def prepare_frame_images(
+    parameters: StoryParameters, frames: List[StoryFrameModel]
+) -> None:
+    is_google_cloud = is_google_cloud_run_environment()
+    client_id = parameters.get("client_id")
+    output_image_format = (
+        ImageFormat.fromMediaFormat(parameters.get("output_image_format"))
+        if "output_image_format" in parameters
+        else None
+    )
+
+    for frame in frames:
+        if frame.image:
+            if output_image_format == ImageFormat.RGB565:
+                output_image_filename_raw = compose_filename(
+                    "media", client_id, "output_image.raw"
+                )
+                frame.image = convert_png_to_rgb565(
+                    frame.image.url, output_image_filename_raw
+                )
+
+            if is_google_cloud:
+                stash_media_file(frame.image.url)
+
+
+@app.get("/media/{filename}")
 async def get_media(
     filename: str,
     api_key: APIKey = Depends(get_api_key),
@@ -296,7 +499,6 @@ async def get_media(
 
     local_filename = f"media/{base_filename}"
     if is_google_cloud_run_environment():
-        print("Running in Google Cloud.")
         try:
             get_media_file(base_filename, local_filename)
         except Exception as e:
@@ -313,10 +515,6 @@ async def get_media(
         )
 
     return FileResponse(local_filename, media_type=media_type)
-
-
-def _compose_filename(directory: str, client_id: str, base_filename: str) -> str:
-    return f"{directory}/{slugify(client_id)}-{base_filename}"
 
 
 @app.post("/image/")
@@ -348,7 +546,7 @@ async def post_image(
         text_file_name = "output_text"
 
         try:
-            output_image_filename = _compose_filename("media", "", "output_image.jpg")
+            output_image_filename = compose_filename("media", "", "output_image.jpg")
             text_to_image_file_inference(prompt, output_image_filename)
             # image_np_array = np.frombuffer(image_data, dtype=np.int32)
             # cv2.imwrite(output_image_file, image_np_array)
