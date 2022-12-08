@@ -74,17 +74,10 @@ class ContinuousStoryV0Strategy(StoryStrategy):
             last_text = " ".join(last_text_tokens)
 
         text = f"{caption} {last_text}"
-        fragment_len = len(text)
-        try:
-            text = text_to_extended_text_inference(text)
-        except Exception as e:
-            print(e)
+        text_1 = self._get_new_story_fragment(text)
+        text_2 = self._get_new_story_fragment(text_1)
+        text = text_1 + " " + text_2
 
-        text = text[fragment_len:]
-        text = " ".join(text.split(" "))
-        text = text.replace("*", "")
-        text = text.replace("_", "")
-        text = text.strip()
         if not text:
             text = caption
 
@@ -115,3 +108,18 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         return StoryFrameSequenceResponseModel(
             frames=[frame], debug_data=debug_data, errors=errors
         )
+
+    def _get_new_story_fragment(self, text: str) -> str:
+        fragment_len = len(text)
+        try:
+            text = text_to_extended_text_inference(text)
+        except Exception as e:
+            print(e)
+
+        text = text[fragment_len:]
+        text = " ".join(text.split(" "))
+        text = text.replace("*", "")
+        text = text.replace("_", "")
+        text = text.strip()
+
+        return text
