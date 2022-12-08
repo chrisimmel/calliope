@@ -50,11 +50,6 @@ class StoryResponseV0(BaseModel):
 
 
 class StoryResponseV1(BaseModel):
-    # Optional text to display (deprecated - look instead in 'frames')
-    text: Optional[str]
-    # Optional image to display (deprecated - look instead in 'frames')
-    image_url: Optional[str]
-
     # Some frames of the story to display, with optional start/stop times.
     frames: List[StoryFrameModel]
 
