@@ -7,18 +7,31 @@
 Client/server:
 
 Start the server (in one terminal):
+```
 uvicorn app:app --reload
+```
 
 Start the client (in another terminal):
+```
 python -m client.main
-
+```
 
 Altogether:
+```
 python -m client.story_loop
-
+```
 
 
 # With Docker
-
+```
 docker build -t calliope .
 docker run --env PORT=8080 --publish 127.0.0.1:8080:8080/tcp calliope
+```
+
+# Building and Deploying to Google Cloud
+
+```
+gcloud auth application-default login
+gcloud builds submit --tag gcr.io/ardent-course-370411/calliope
+gcloud run deploy --image gcr.io/ardent-course-370411/calliope --platform managed
+```

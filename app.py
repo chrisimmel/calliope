@@ -1,5 +1,4 @@
 import datetime
-from http.client import HTTPException
 import os
 from typing import Any, Dict, List, Optional
 from calliope.utils.google import (
@@ -9,7 +8,7 @@ from calliope.utils.google import (
 )
 
 import cuid
-from fastapi import Depends, FastAPI, File, Form, Query, Request
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Query, Request
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.openapi.utils import get_openapi
 from fastapi.security.api_key import APIKey
@@ -26,7 +25,9 @@ from calliope.inference import (
 )
 from calliope.utils.authentication import get_api_key
 from calliope.utils.image import (
+    ImageAttributes,
     convert_png_to_rgb565,
+    get_image_attributes,
     guess_image_format_from_filename,
     image_format_to_media_type,
     ImageFormat,
@@ -37,6 +38,7 @@ from calliope.utils.string import slugify
 class StoryResponse(BaseModel):
     text: Optional[str]
     image_url: Optional[str]
+    image_attributes: Optional[ImageAttributes]
     request_id: str
     generation_date: str
     debug: Optional[Dict[str, Any]]
@@ -105,7 +107,7 @@ async def post_story(
     """
     output_image_style = output_image_style or "A watercolor of"
     if output_image_format:
-        output_image_format = ImageFormat(output_image_format)
+        output_image_format = ImageFormat.fromMediaFormat(output_image_format)
     debug_data = {}
     errors = []
     caption = ""
@@ -142,12 +144,13 @@ async def post_story(
                 output_image_filename_raw = _compose_filename(
                     "media", client_id, "output_image.raw"
                 )
-                convert_png_to_rgb565(
+                image_attributes = convert_png_to_rgb565(
                     output_image_filename_png, output_image_filename_raw
                 )
                 output_image_filename = output_image_filename_raw
             else:
                 output_image_filename = output_image_filename_png
+                image_attributes = get_image_attributes(output_image_filename)
 
             if is_google_cloud_run_environment():
                 stash_media_file(output_image_filename)
@@ -156,10 +159,13 @@ async def post_story(
             output_image_filename = None
             print(e)
             errors.append(str(e))
+    else:
+        image_attributes = None
 
     response = StoryResponse(
         text=text,
         image_url=output_image_filename,
+        image_attributes=image_attributes,
         request_id=cuid.cuid(),
         generation_date=datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ"),
         debug=debug_data if debug else None,
@@ -216,7 +222,7 @@ async def get_story(
     """
     output_image_style = output_image_style or "A watercolor of"
     if output_image_format:
-        output_image_format = ImageFormat(output_image_format)
+        output_image_format = ImageFormat.fromMediaFormat(output_image_format)
     debug_data = {}
     errors = []
     caption = "Along the riverrun"
@@ -248,12 +254,13 @@ async def get_story(
                 output_image_filename_raw = _compose_filename(
                     "media", client_id, "output_image.raw"
                 )
-                convert_png_to_rgb565(
+                image_attributes = convert_png_to_rgb565(
                     output_image_filename_png, output_image_filename_raw
                 )
                 output_image_filename = output_image_filename_raw
             else:
                 output_image_filename = output_image_filename_png
+                image_attributes = get_image_attributes(output_image_filename)
 
             if is_google_cloud_run_environment():
                 stash_media_file(output_image_filename)
@@ -262,10 +269,13 @@ async def get_story(
             output_image_filename = None
             print(e)
             errors.append(str(e))
+    else:
+        image_attributes = None
 
     response = StoryResponse(
         text=text,
         image_url=output_image_filename,
+        image_attributes=image_attributes,
         request_id=cuid.cuid(),
         generation_date=datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ"),
         debug=debug_data if debug else None,
@@ -286,10 +296,21 @@ async def get_media(
 
     local_filename = f"media/{base_filename}"
     if is_google_cloud_run_environment():
-        get_media_file(base_filename, local_filename)
+        print("Running in Google Cloud.")
+        try:
+            get_media_file(base_filename, local_filename)
+        except Exception as e:
+            raise HTTPException(
+                status_code=404, detail=f"Error retrieving file {local_filename}: {e}"
+            )
+
+    else:
+        print("Running locally.")
 
     if not os.path.isfile(local_filename):
-        raise HTTPException(status_code=404, detail="Media file not found")
+        raise HTTPException(
+            status_code=404, detail=f"Media file not found: {local_filename}"
+        )
 
     return FileResponse(local_filename, media_type=media_type)
 

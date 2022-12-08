@@ -2,8 +2,9 @@ import argparse
 from enum import Enum
 import os
 
-from PIL import Image
 import numpy as np
+from PIL import Image
+from pydantic import BaseModel
 
 from calliope.utils.file import get_file_extension
 
@@ -13,6 +14,21 @@ class ImageFormat(Enum):
     RGB565 = "image/rgb565"
     PNG = "image/png"
     JPEG = "image/jpeg"
+
+    def fromMediaFormat(mediaFormat: str) -> "ImageFormat":
+        if mediaFormat == "image/raw":
+            mediaFormat = "image/rgb565"
+        return ImageFormat(mediaFormat)
+
+
+class ImageAttributes(BaseModel):
+    """
+    The high-level attributes of an image.
+    """
+
+    width: int
+    height: int
+    format: ImageFormat
 
 
 def guess_image_format_from_filename(filename: str) -> ImageFormat:
@@ -37,7 +53,7 @@ def image_format_to_media_type(image_format: ImageFormat) -> str:
 # The below conversion code was inspired by https://github.com/CommanderRedYT
 
 
-def convert_png_to_rgb565(input_filename: str, output_filename: str):
+def convert_png_to_rgb565(input_filename: str, output_filename: str) -> ImageAttributes:
     """
     Converts the given PNG file to RGB565/raw format.
     """
@@ -55,10 +71,24 @@ def convert_png_to_rgb565(input_filename: str, output_filename: str):
     with open(output_filename, "wb") as output_file:
         output_file.write(output_image_content)
 
+    return ImageAttributes(width=png.width, height=png.height, format=ImageFormat.RGB565)
+
+
+def get_image_attributes(image_filename: str) -> ImageAttributes:
+
+    image = Image.open(image_filename)
+    format = guess_image_format_from_filename(image_filename)
+
+    return ImageAttributes(
+        width=image.width,
+        height=image.height,
+        format=format,
+    )
+
 
 def convert_rgb565_to_png(
     input_filename: str, output_filename: str, width: int, height: int
-):
+) -> ImageAttributes:
     """
     Converts the given RGB565/raw file to PNG format.
     """
@@ -74,6 +104,8 @@ def convert_rgb565_to_png(
             png.putpixel((i % width, i // width), (r << 3, g << 2, b << 3))
 
         png.save(output_filename)
+
+        return ImageAttributes(width=width, height=height, format=ImageFormat.PNG)
 
 
 class Mode(Enum):
