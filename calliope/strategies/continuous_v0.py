@@ -21,7 +21,9 @@ last_text = ""
 class ContinuousStoryV0Strategy(StoryStrategy):
     """
     Tries to keep a story going, carrying context from a previous frame, if any,
-    to a new frame.
+    to a new frame. This works in the manner of an "Exquisite Corpse" exercise,
+    where each generation blindly adds something new to the story, based only on
+    the step immediately precedent.
 
     Returns a single frame.
     """
@@ -78,7 +80,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         except Exception as e:
             print(e)
 
-        text = text[fragment_len + 1 :]
+        text = text[fragment_len:]
         text = " ".join(text.split(" "))
         text = text.replace("*", "")
         text = text.replace("_", "")

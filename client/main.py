@@ -151,7 +151,8 @@ def image_loop_calliope() -> None:
                     if "frames" in response_json and len(response_json["frames"]):
                         frame = response_json["frames"][0]
                         text = frame["text"]
-                        image_url = frame.get("image", {}).get("url")
+                        image = frame.get("image")
+                        image_url = image.get("url") if image else None
                     else:
                         text = response_json.get("text")
                         image_url = response_json.get("image_url")
