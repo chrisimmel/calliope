@@ -75,16 +75,15 @@ def resize_image_if_needed(
 
             output_image_size = (output_image_width, output_image_height)
             if output_image_size != scaled_image_size:
+                # If the scaled image doesn't match the requested image size,
+                # add black bars to either side of it...
                 new_image = Image.new(
                     "RGB", output_image_size
-                )  ## luckily, this is already black!
+                )  # A blank image, all black.
                 box = (
                     (output_image_width - resized_width) // 2,
                     (output_image_height - resized_height) // 2,
                 )
-                # box = tuple(
-                #    (n - o) // 2 for n, o in zip(output_image_size, scaled_image_size)
-                # )
 
                 # Paste the scaled image into the middle of the black image.
                 new_image.paste(img, box)
