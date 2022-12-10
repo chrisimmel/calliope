@@ -58,8 +58,30 @@ def convert_png_to_rgb565(input_filename: str, output_filename: str) -> ImageMod
     )
 
 
-def get_image_attributes(image_filename: str) -> ImageModel:
+def resize_image_if_needed(
+    input_image: ImageModel, output_image_width: int, output_image_height: int
+) -> ImageModel:
+    if output_image_width and output_image_height:
+        img = Image.open(input_image.url)
+        if img.width != output_image_width or img.height != output_image_height:
+            scaling_factor = min(
+                output_image_width / img.width, output_image_height / img.height
+            )
+            resized_width = int(scaling_factor * img.width)
+            resized_height = int(scaling_factor * img.height)
+            img = img.resize((resized_width, resized_height))
+            img.save(input_image.url)
+            return ImageModel(
+                width=resized_width,
+                height=resized_height,
+                format=input_image.format,
+                url=input_image.url,
+            )
+    else:
+        return input_image
 
+
+def get_image_attributes(image_filename: str) -> ImageModel:
     image = Image.open(image_filename)
     format = guess_image_format_from_filename(image_filename)
 

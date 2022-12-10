@@ -33,6 +33,7 @@ from calliope.utils.image import (
     guess_image_format_from_filename,
     image_format_to_media_type,
     ImageFormat,
+    resize_image_if_needed,
 )
 from calliope.utils.string import slugify
 
@@ -471,6 +472,12 @@ def prepare_frame_images(
 
     for frame in frames:
         if frame.image:
+            output_image_width = parameters.get("output_image_width")
+            output_image_height = parameters.get("output_image_height")
+            frame.image = resize_image_if_needed(
+                frame.image, output_image_width, output_image_height
+            )
+
             if output_image_format == ImageFormat.RGB565:
                 output_image_filename_raw = compose_filename(
                     "media", client_id, "output_image.raw"
