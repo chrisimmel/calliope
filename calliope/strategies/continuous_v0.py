@@ -38,6 +38,9 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         # Get last_text from saved story state.
         global last_text
 
+        if parameters.get("reset_strategy_state", False):
+            last_text = ""
+
         output_image_style = parameters.get("output_image_style") or "A watercolor of"
         debug_data = {}
         errors = []
