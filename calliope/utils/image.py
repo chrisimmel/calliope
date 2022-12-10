@@ -70,8 +70,27 @@ def resize_image_if_needed(
             )
             resized_width = int(scaling_factor * img.width)
             resized_height = int(scaling_factor * img.height)
-            img = img.resize((resized_width, resized_height))
-            img.save(input_image.url)
+            scaled_image_size = (resized_width, resized_height)
+            img = img.resize(scaled_image_size)
+
+            output_image_size = (output_image_width, output_image_height)
+            if output_image_size != scaled_image_size:
+                new_image = Image.new(
+                    "RGB", output_image_size
+                )  ## luckily, this is already black!
+                box = (
+                    (output_image_width - resized_width) // 2,
+                    (output_image_height - resized_height) // 2,
+                )
+                # box = tuple(
+                #    (n - o) // 2 for n, o in zip(output_image_size, scaled_image_size)
+                # )
+
+                # Paste the scaled image into the middle of the black image.
+                new_image.paste(img, box)
+                new_image.save(input_image.url)
+                resized_width = output_image_width
+                resized_height = output_image_height
 
             return ImageModel(
                 width=resized_width,
