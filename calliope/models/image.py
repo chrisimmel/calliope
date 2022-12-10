@@ -11,6 +11,8 @@ class ImageFormat(Enum):
     JPEG = "image/jpeg"
 
     def fromMediaFormat(mediaFormat: str) -> "ImageFormat":
+        if mediaFormat == None:
+            return None
         if mediaFormat == "image/raw":
             mediaFormat = "image/rgb565"
         return ImageFormat(mediaFormat)

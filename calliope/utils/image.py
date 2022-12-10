@@ -1,7 +1,6 @@
 import argparse
 from enum import Enum
 import os
-from typing import Optional
 
 import numpy as np
 from PIL import Image
@@ -64,6 +63,8 @@ def resize_image_if_needed(
     if output_image_width and output_image_height:
         img = Image.open(input_image.url)
         if img.width != output_image_width or img.height != output_image_height:
+            # Fit the image into the bounding box given by (output_image_width,
+            # output_image_height)...
             scaling_factor = min(
                 output_image_width / img.width, output_image_height / img.height
             )
@@ -71,6 +72,7 @@ def resize_image_if_needed(
             resized_height = int(scaling_factor * img.height)
             img = img.resize((resized_width, resized_height))
             img.save(input_image.url)
+
             return ImageModel(
                 width=resized_width,
                 height=resized_height,

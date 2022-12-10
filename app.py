@@ -54,6 +54,9 @@ class StoryResponseV1(BaseModel):
     # Some frames of the story to display, with optional start/stop times.
     frames: List[StoryFrameModel]
 
+    # An optional start time, "Unix time", seconds since epoch.
+    start_time: Optional[int]
+
     request_id: str
     generation_date: str
     debug_data: Optional[Dict[str, Any]]
@@ -107,6 +110,10 @@ async def post_story(
     ),
     output_text_style: Optional[str] = Form(
         None, description="Optional description of the desired text style."
+    ),
+    reset_strategy_state: bool = Query(
+        False,
+        description="If set, instructs the strategy to reset its state, if any.",
     ),
     strategy: Optional[str] = Form(
         None,
@@ -220,6 +227,10 @@ async def get_story(
     ),
     output_text_style: Optional[str] = Query(
         None, description="Optional description of the desired text style."
+    ),
+    reset_strategy_state: bool = Query(
+        False,
+        description="If set, instructs the strategy to reset its state, if any.",
     ),
     strategy: Optional[str] = Query(
         None,
@@ -338,6 +349,10 @@ async def post_frames(
     output_text_style: Optional[str] = Form(
         None, description="Optional description of the desired text style."
     ),
+    reset_strategy_state: bool = Query(
+        False,
+        description="If set, instructs the strategy to reset its state, if any.",
+    ),
     strategy: Optional[str] = Form(
         None,
         description="Optional, helps Calliope select what algorithm to use to generate the output. The idea is that we'll be able to build new ones and plug them in easily.",
@@ -363,6 +378,7 @@ async def post_frames(
         output_image_style=output_image_style,
         output_text_length=output_text_length,
         output_text_style=output_text_style,
+        reset_strategy_state=reset_strategy_state,
         strategy=strategy,
         debug=debug,
     )
@@ -416,6 +432,10 @@ async def get_frames(
     output_text_style: Optional[str] = Query(
         None, description="Optional description of the desired text style."
     ),
+    reset_strategy_state: bool = Query(
+        False,
+        description="If set, instructs the strategy to reset its state, if any.",
+    ),
     strategy: Optional[str] = Query(
         None,
         description="Optional, helps Calliope select what algorithm to use to generate the output. The idea is that we'll be able to build new ones and plug them in easily.",
@@ -439,6 +459,7 @@ async def get_frames(
         output_image_style=output_image_style,
         output_text_length=output_text_length,
         output_text_style=output_text_style,
+        reset_strategy_state=reset_strategy_state,
         strategy=strategy,
         debug=debug,
     )
@@ -464,10 +485,8 @@ def prepare_frame_images(
 ) -> None:
     is_google_cloud = is_google_cloud_run_environment()
     client_id = parameters.get("client_id")
-    output_image_format = (
-        ImageFormat.fromMediaFormat(parameters.get("output_image_format"))
-        if "output_image_format" in parameters
-        else None
+    output_image_format = ImageFormat.fromMediaFormat(
+        parameters.get("output_image_format")
     )
 
     for frame in frames:

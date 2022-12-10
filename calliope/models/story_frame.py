@@ -16,8 +16,5 @@ class StoryFrameModel(BaseModel):
     # An image illustrating the story.
     image: Optional[ImageModel]
 
-    # When to begin displaying this frame.
-    start_time: Optional[str]
-
-    # When to stop displaying this frame.
-    end_time: Optional[str]
+    # An optional duration, in seconds.
+    duration: Optional[int]
