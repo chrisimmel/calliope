@@ -1,14 +1,6 @@
 import datetime
 import os
 from typing import Any, Dict, List, Optional
-from calliope.models.story_frame import StoryFrameModel
-from calliope.strategies import StoryParameters, StoryStrategyRegistry
-from calliope.utils.file import compose_filename
-from calliope.utils.google import (
-    get_media_file,
-    is_google_cloud_run_environment,
-    stash_media_file,
-)
 
 import cuid
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Query, Request
@@ -25,6 +17,14 @@ from calliope.inference import (
     image_file_to_text_inference,
     text_to_extended_text_inference,
     text_to_image_file_inference,
+)
+from calliope.models import StoryFrameModel, TriggerConditionModel
+from calliope.strategies import StoryParameters, StoryStrategyRegistry
+from calliope.utils.file import compose_filename
+from calliope.utils.google import (
+    get_media_file,
+    is_google_cloud_run_environment,
+    stash_media_file,
 )
 from calliope.utils.authentication import get_api_key
 from calliope.utils.image import (
@@ -55,7 +55,7 @@ class StoryResponseV1(BaseModel):
     frames: List[StoryFrameModel]
 
     # An optional start time, "Unix time", seconds since epoch.
-    start_time: Optional[int]
+    start_condition: Optional[TriggerConditionModel]
 
     request_id: str
     generation_date: str

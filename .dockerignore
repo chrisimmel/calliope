@@ -16,7 +16,10 @@ README.md
 *.jpg
 *.raw
 *.png
-media/
 
 # Jupyter
 *.ipynb
+
+# Application storage
+media/
+state/

@@ -7,13 +7,16 @@ __pycache__/
 *.jpg
 *.raw
 *.png
-media/
 
 # Mac doodads
 .DS_Store
 
 # Jupyter
 *.ipynb
+
+# Application storage
+media/
+state/
 
 # C extensions
 *.so
@@ -139,3 +142,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Elm stuff
+clio-elm/elm-stuff/
