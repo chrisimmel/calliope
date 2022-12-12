@@ -35,3 +35,15 @@ gcloud auth application-default login
 gcloud builds submit --tag gcr.io/ardent-course-370411/calliope
 gcloud run deploy --image gcr.io/ardent-course-370411/calliope --platform managed
 ```
+
+
+# Clio
+
+To build:
+```
+cd clio
+npm run build
+cp build/* ../static
+```
+
+Then it will be served at <calliope-host>/
