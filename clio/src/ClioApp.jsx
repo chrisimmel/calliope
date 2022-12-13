@@ -22,7 +22,7 @@ export default function ClioApp() {
                 setError(null);
 
                 clearInterval(getFramesInterval);
-                getFramesInterval = setInterval(getFrames, 10000);
+                getFramesInterval = setInterval(getFrames, 20000);
                 setRequestCount(requestCount => requestCount + 1);
                 console.log(`requestCount = ${requestCount}`)
             } catch (err) {
