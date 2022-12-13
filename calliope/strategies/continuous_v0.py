@@ -77,6 +77,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
             last_text = " ".join(last_text_tokens)
 
         text = f"{caption} {last_text}"
+        print(f'text prompt: "{text}"')
         text_1 = self._get_new_story_fragment(text)
         text_2 = self._get_new_story_fragment(text_1)
         text = text_1 + " " + text_2
@@ -85,7 +86,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
             text = caption
 
         last_text = text
-        print(text)
+        # print(text)
 
         if text:
             prompt_template = output_image_style + " {x}"

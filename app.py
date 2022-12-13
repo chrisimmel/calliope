@@ -528,9 +528,6 @@ async def get_media(
                 status_code=404, detail=f"Error retrieving file {local_filename}: {e}"
             )
 
-    else:
-        print("Running locally.")
-
     if not os.path.isfile(local_filename):
         raise HTTPException(
             status_code=404, detail=f"Media file not found: {local_filename}"

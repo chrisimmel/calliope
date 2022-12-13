@@ -29,7 +29,24 @@ img {
     margin: 60px;
 }
 
-.text {
+.textContainer {
+    display: flex;
+    flex-direction: column;
+    max-height: 512px;
+    padding-right: 60px;
+}
+
+.textInner {
+    padding: 12px;
+    min-height: 0;
+    max-height: 512px;
+    display: flex;
+    flex-direction: column;
+}
+
+.textScroll {
+    flex-grow: 1;
+    overflow: scroll;
     font-family: arial, sans-serif;
     font-size: 16pt;
 }
