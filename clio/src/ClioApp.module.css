@@ -1,0 +1,35 @@
+html {
+    background-color: black
+}
+
+div {
+    background-color: black;
+    color: white;
+    white-space: pre-wrap;
+}
+
+.clio_app {
+    display: flex;
+}
+
+.image {
+    width: 50%;
+    display: grid;
+    margin: 60px;
+}
+
+img {
+    align-self: center;
+    justify-self: center;
+}
+
+.textFrame {
+    width: 50%;
+    justify-self: center;
+    margin: 60px;
+}
+
+.text {
+    font-family: arial, sans-serif;
+    font-size: 16pt;
+}

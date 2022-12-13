@@ -512,7 +512,8 @@ def prepare_frame_images(
 @app.get("/media/{filename}")
 async def get_media(
     filename: str,
-    api_key: APIKey = Depends(get_api_key),
+    fizzlebuzz: Optional[int] = 0,  # A throwaway param to let a client force reload.
+    # api_key: APIKey = Depends(get_api_key),
 ) -> Optional[FileResponse]:
     base_filename = filename
     format = guess_image_format_from_filename(base_filename)
@@ -622,7 +623,7 @@ async def route_logout_and_remove_cookie(
 
 
 # Mount the static HTML front end.
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
+app.mount("/clio/", StaticFiles(directory="static", html=True), name="static")
 
 
 def _get_domain(request: Request) -> str:
