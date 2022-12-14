@@ -1,7 +1,19 @@
-import { useRef, useState, useEffect } from "react";
+import { useCallback, useRef, useState, useEffect } from "react";
 import axios from "axios"
+import Webcam from "react-webcam";
 
 import styles from './ClioApp.module.css';
+
+const videoConstraints = {
+    width: 1280,
+    height: 720,
+    facingMode: "user",
+    screenshotFormat="image/jpeg"
+};
+const audioConstraints = {
+    suppressLocalAudioPlayback: true,
+    noiseSuppression: true
+};
 
 export default function ClioApp() {
     const bottomRef = useRef(null);
@@ -11,6 +23,17 @@ export default function ClioApp() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [requestCount, setRequestCount] = useState(0);
+
+    const webcamRef = useRef(null);
+    let uploadImage = null
+    const capture = useCallback(
+        () => {
+            const imageSrc = webcamRef.current.getScreenshot();
+            const parts = imageSrc ? imageSrc.split(",") : null;
+            uploadImage = (parts && parts.length > 1) ? parts[1] : null;
+        },
+        [webcamRef]
+    );
 
     useEffect(() => {
         // Scroll to bottom when text is added.
@@ -30,10 +53,20 @@ export default function ClioApp() {
                 if (getFramesInterval) {
                     clearInterval(getFramesInterval);
                 }
+                await capture();
 
-                const response = await axios.get(
-                    `/v1/frames/?api_key=xyzzy&client_id=chris&input_text=A prose poem expressing great longing.&strategy=continuous_v0`
-                );
+                const formData = new FormData();
+                formData.append('client_id', 'chris');
+                formData.append('strategy', 'continuous_v0');
+                formData.append("input_image", uploadImage);
+                const response = await axios.post(
+                    "/v1/frames/",
+                    formData, {
+                    headers: {
+                        "X-Api-Key": "xyzzy",
+                        "Content-Type": "multipart/form-data",
+                    },
+                });
 
                 setFrameData(response.data);
                 const frame = getFrame(response.data);
@@ -73,19 +106,29 @@ export default function ClioApp() {
     // remove fizzlebuzz.  
     const image_url = image ? (`/${image.url}?fizzlebuzz=${requestCount}`) : ""
 
-    return <div className={styles.clio_app}>
-        <div className={styles.image}>
-            <img src={image_url} />
-        </div>
-        <div className={styles.textFrame}>
-            <div className={styles.textContainer}>
-                <div className={styles.textInner}>
-                    <div className={styles.textScroll}>
-                        {storyText}
-                        <div ref={bottomRef} />
+    return <>
+        <div className={styles.clio_app}>
+            <div className={styles.image}>
+                <img src={image_url} />
+            </div>
+            <div className={styles.textFrame}>
+                <div className={styles.textContainer}>
+                    <div className={styles.textInner}>
+                        <div className={styles.textScroll}>
+                            {storyText}
+                            <div ref={bottomRef} />
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-    </div >;
+        </div >
+        <Webcam
+            ref={webcamRef}
+            className={styles.webcamVideo}
+            audio={true}
+            muted={true}
+            videoConstraints={videoConstraints}
+            audioConstraints={audioConstraints}
+        />
+    </>;
 }
