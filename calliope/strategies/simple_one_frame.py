@@ -1,7 +1,7 @@
 from calliope.models import ImageFormat, StoryFrameSequenceResponseModel
 from calliope.models.story_frame import StoryFrameModel
 from calliope.strategies.base import StoryStrategy
-from calliope.strategies.parameters import StoryParameters
+from calliope.strategies.parameters import StoryStrategyParams
 from calliope.strategies.registry import StoryStrategyRegistry
 
 
@@ -24,38 +24,31 @@ class SimpleOneFrameStoryStrategy(StoryStrategy):
 
     strategy_name = "simple_one_frame"
 
-    def get_frame_sequence(
-        self, parameters: StoryParameters
+    async def get_frame_sequence(
+        self, parameters: StoryStrategyParams
     ) -> StoryFrameSequenceResponseModel:
-        client_id = parameters.get("client_id")
+        client_id = parameters.client_id
 
-        output_image_style = parameters.get("output_image_style") or "A watercolor of"
+        output_image_style = parameters.output_image_style or "A watercolor of"
         debug_data = {}
         errors = []
         caption = ""
         image = None
 
-        if "input_image" in parameters:
-            input_image = parameters.get("input_image")
-            # TODO: Support other input image formats as needed.
-            input_image_filename = "input_image.jpg"
-            caption = "Along the riverrun"
+        if parameters.input_image_filename:
             try:
-                with open(input_image_filename, "wb") as f:
-                    f.write(input_image)
-                caption = image_file_to_text_inference(input_image_filename)
+                caption = image_file_to_text_inference(parameters.input_image_filename)
             except Exception as e:
                 print(e)
                 errors.append(str(e))
 
         debug_data["image_caption"] = caption
 
-        if "input_text" in parameters:
-            input_text = parameters.get("input_text")
+        if parameters.input_text:
             if caption:
-                caption = f"{caption}. {input_text}"
+                caption = f"{caption}. {parameters.input_text}"
             else:
-                caption = input_text
+                caption = parameters.input_text
 
         text = text_to_extended_text_inference(caption)
         prompt_template = output_image_style + " {x}"
