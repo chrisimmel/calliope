@@ -1,6 +1,4 @@
-import base64
-
-from calliope.models import ImageFormat, StoryFrameSequenceResponseModel
+from calliope.models import StoryFrameSequenceResponseModel
 from calliope.models.story_frame import StoryFrameModel
 from calliope.strategies.base import StoryStrategy
 from calliope.strategies.parameters import StoryStrategyParams
@@ -49,7 +47,6 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         caption = ""
         prompt = None
         text = None
-        fragment_len = 0
         image = None
 
         if parameters.input_image_filename:

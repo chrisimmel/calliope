@@ -3,12 +3,12 @@ import os
 from typing import Any, Dict, List, Optional
 
 import cuid
-from fastapi import Depends, FastAPI, File, Form, HTTPException, Query, Request
+from fastapi import Depends, FastAPI, File, HTTPException, Request
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.openapi.utils import get_openapi
 from fastapi.security.api_key import APIKey
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from starlette.responses import FileResponse, JSONResponse, RedirectResponse
 from urllib.parse import urlparse
 
@@ -33,7 +33,6 @@ from calliope.utils.google import (
 from calliope.utils.authentication import get_api_key
 from calliope.utils.image import (
     convert_png_to_rgb565,
-    get_image_attributes,
     guess_image_format_from_filename,
     image_format_to_media_type,
     ImageFormat,
@@ -45,9 +44,6 @@ from calliope.utils.string import slugify
 class StoryResponseV1(BaseModel):
     # Some frames of the story to display, with optional start/stop times.
     frames: List[StoryFrameModel]
-
-    # An optional start time, "Unix time", seconds since epoch.
-    start_condition: Optional[TriggerConditionModel]
 
     request_id: str
     generation_date: str

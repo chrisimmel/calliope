@@ -1,6 +1,14 @@
-from typing import Optional
+from enum import Enum
 
-from pydantic import BaseModel, StrictBool, StrictInt
+from pydantic import BaseModel, StrictInt
+
+
+class TriggerType(Enum):
+    AT_TIME = "at_time"
+    AFTER_WAIT = "after_wait"
+    ON_MOTION = "on_motion"
+    ON_SOUND = "on_sound"
+    ON_LIGHT = "on_light"
 
 
 class TriggerConditionModel(BaseModel):
@@ -8,14 +16,29 @@ class TriggerConditionModel(BaseModel):
     A trigger condition for an event or sequence of events.
     """
 
+    trigger_type: TriggerType
+
 
 class AtTimeTriggerConditionModel(TriggerConditionModel):
     """
     Trigger an event at a given time.
     """
 
+    trigger_type = TriggerType.AT_TIME
+
     # Trigger the event at the given time, a Unix timestamp (seconds since epoch).
     at_time: StrictInt
+
+
+class AfterWaitTriggerConditionModel(BaseModel):
+    """
+    Trigger an event after waiting a given number of seconds.
+    """
+
+    trigger_type = TriggerType.AFTER_WAIT
+
+    # Trigger the event after waiting the given number of seconds.
+    wait_seconds: StrictInt
 
 
 class OnMotionTriggerConditionModel(BaseModel):
@@ -23,5 +46,20 @@ class OnMotionTriggerConditionModel(BaseModel):
     Trigger an event when something moves.
     """
 
-    # An image illustrating the story.
-    on_motion: StrictBool
+    trigger_type = TriggerType.ON_MOTION
+
+
+class OnSoundTriggerConditionModel(BaseModel):
+    """
+    Trigger an event when you hear something.
+    """
+
+    trigger_type = TriggerType.ON_SOUND
+
+
+class OnLightTriggerConditionModel(BaseModel):
+    """
+    Trigger an event when you see light something.
+    """
+
+    trigger_type = TriggerType.ON_LIGHT

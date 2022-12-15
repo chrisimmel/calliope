@@ -26,4 +26,4 @@ class ImageModel(BaseModel):
     width: int
     height: int
     format: ImageFormat
-    url: Optional[str]
+    url: Optional[str] = None

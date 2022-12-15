@@ -3,6 +3,7 @@ from typing import Optional
 from pydantic import BaseModel
 
 from calliope.models.image import ImageModel
+from calliope.models.trigger_condition import TriggerConditionModel
 
 
 class StoryFrameModel(BaseModel):
@@ -11,10 +12,10 @@ class StoryFrameModel(BaseModel):
     """
 
     # A piece of text conveying part of the story.
-    text: Optional[str]
+    text: Optional[str] = None
 
     # An image illustrating the story.
-    image: Optional[ImageModel]
+    image: Optional[ImageModel] = None
 
-    # An optional duration, in seconds.
-    duration: Optional[int]
+    # An optional trigger condition.
+    trigger_condition: Optional[TriggerConditionModel] = None
