@@ -59,7 +59,7 @@ class OnSoundTriggerConditionModel(BaseModel):
 
 class OnLightTriggerConditionModel(BaseModel):
     """
-    Trigger an event when you see light something.
+    Trigger an event when you see light.
     """
 
     trigger_type = TriggerType.ON_LIGHT
