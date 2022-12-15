@@ -10,6 +10,7 @@ div {
 
 .clio_app {
     display: flex;
+    min-height: 700px;
 }
 
 .image {
@@ -52,7 +53,13 @@ img {
 }
 
 .webcamVideo {
+    z-index: -1;
+    position: absolute;
+    left: 60px;
+    top: 60px;
+    /*
     display: block;
     position: absolute;
     right: 100%;
+*/
 }

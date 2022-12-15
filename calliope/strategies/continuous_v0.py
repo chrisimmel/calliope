@@ -65,7 +65,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
             else:
                 caption = parameters.input_text
 
-        debug_data["image_caption"] = caption
+        debug_data["i_see"] = caption
 
         if last_text:
             last_text_tokens = last_text.split()

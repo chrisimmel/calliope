@@ -1,19 +1,21 @@
 import { useCallback, useRef, useState, useEffect } from "react";
 import axios from "axios"
 import Webcam from "react-webcam";
+import browserID from "browser-id";
 
 import styles from './ClioApp.module.css';
 
 const videoConstraints = {
-    width: 1280,
-    height: 720,
+    width: 512,
+    height: 512,
     facingMode: "user",
-    screenshotFormat="image/jpeg"
+    // screenshotFormat: "image/jpeg",
 };
 const audioConstraints = {
     suppressLocalAudioPlayback: true,
-    noiseSuppression: true
+    noiseSuppression: true,
 };
+const thisBrowserID = browserID();
 
 export default function ClioApp() {
     const bottomRef = useRef(null);
@@ -26,7 +28,7 @@ export default function ClioApp() {
 
     const webcamRef = useRef(null);
     let uploadImage = null
-    const capture = useCallback(
+    const captureImage = useCallback(
         () => {
             const imageSrc = webcamRef.current.getScreenshot();
             const parts = imageSrc ? imageSrc.split(",") : null;
@@ -34,6 +36,26 @@ export default function ClioApp() {
         },
         [webcamRef]
     );
+
+    /*
+    const handleStartCaptureClick = React.useCallback(() => {
+        setCapturing(true);
+        mediaRecorderRef.current = new MediaRecorder(webcamRef.current.stream, {
+            mimeType: "audio/wav",
+        });
+        mediaRecorderRef.current.addEventListener(
+            "dataavailable",
+            handleDataAvailable
+        );
+        mediaRecorderRef.current.start();
+    }, [webcamElement, setCapturing, mediaRecorderRef, handleDataAvailable]);
+
+    const handleStopCaptureClick = React.useCallback(() => {
+        mediaRecorderRef.current.stop();
+        setCapturing(false);
+    }, [mediaRecorderRef, setCapturing]);
+    */
+
 
     useEffect(() => {
         // Scroll to bottom when text is added.
@@ -53,20 +75,34 @@ export default function ClioApp() {
                 if (getFramesInterval) {
                     clearInterval(getFramesInterval);
                 }
-                await capture();
+                await captureImage();
 
+                /*
                 const formData = new FormData();
-                formData.append('client_id', 'chris');
+                formData.append('client_id', thisBrowserID);
                 formData.append('strategy', 'continuous_v0');
                 formData.append("input_image", uploadImage);
+                */
+
                 const response = await axios.post(
                     "/v1/frames/",
-                    formData, {
-                    headers: {
-                        "X-Api-Key": "xyzzy",
-                        "Content-Type": "multipart/form-data",
+                    {
+                        client_id: thisBrowserID,
+                        strategy: 'continuous_v0',
+                        input_image: uploadImage,
+                        debug: true,
                     },
-                });
+                    {
+                        headers: {
+                            "X-Api-Key": "xyzzy",
+                        },
+                    },
+                );
+                console.log(response.data);
+                const caption = response.data?.debug_data?.i_see;
+                if (caption) {
+                    console.log(`I see ${caption}.`);
+                }
 
                 setFrameData(response.data);
                 const frame = getFrame(response.data);
@@ -107,6 +143,11 @@ export default function ClioApp() {
     const image_url = image ? (`/${image.url}?fizzlebuzz=${requestCount}`) : ""
 
     return <>
+        <Webcam
+            ref={webcamRef}
+            className={styles.webcamVideo}
+            videoConstraints={videoConstraints}
+        />
         <div className={styles.clio_app}>
             <div className={styles.image}>
                 <img src={image_url} />
@@ -122,13 +163,10 @@ export default function ClioApp() {
                 </div>
             </div>
         </div >
-        <Webcam
-            ref={webcamRef}
-            className={styles.webcamVideo}
-            audio={true}
-            muted={true}
-            videoConstraints={videoConstraints}
-            audioConstraints={audioConstraints}
-        />
     </>;
 }
+/*
+audio={true}
+muted={true}
+audioConstraints={audioConstraints}
+*/
