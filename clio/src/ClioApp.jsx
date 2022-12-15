@@ -112,7 +112,7 @@ export default function ClioApp() {
                 console.log(response.data);
                 const caption = response.data?.debug_data?.i_see;
                 if (caption) {
-                    console.log(`I see ${caption.strip()}.`);
+                    console.log(`I see ${caption.trim()}.`);
                 }
 
                 setFrameData(response.data);
