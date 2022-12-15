@@ -9,13 +9,19 @@ const videoConstraints = {
     width: 512,
     height: 512,
     facingMode: "user",
-    // screenshotFormat: "image/jpeg",
 };
 const audioConstraints = {
     suppressLocalAudioPlayback: true,
     noiseSuppression: true,
 };
 const thisBrowserID = browserID();
+
+const DEFAULT_STRATEGY = 'continuous_v0'
+
+const getStrategy = () => {
+    const queryParameters = new URLSearchParams(window.location.search);
+    return queryParameters.get('strategy') || DEFAULT_STRATEGY;
+};
 
 export default function ClioApp() {
     const bottomRef = useRef(null);
@@ -58,8 +64,11 @@ export default function ClioApp() {
 
 
     useEffect(() => {
-        // Scroll to bottom when text is added.
-        bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+        const strategy = getStrategy();
+        if (strategy == DEFAULT_STRATEGY) {
+            // Scroll to bottom when text is added.
+            bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }
     }, [storyText]);
 
     const getFrame = (_frameData) => {
@@ -75,6 +84,8 @@ export default function ClioApp() {
                 if (getFramesInterval) {
                     clearInterval(getFramesInterval);
                 }
+                const strategy = getStrategy();
+
                 await captureImage();
 
                 /*
@@ -88,7 +99,7 @@ export default function ClioApp() {
                     "/v1/frames/",
                     {
                         client_id: thisBrowserID,
-                        strategy: 'continuous_v0',
+                        strategy: strategy,
                         input_image: uploadImage,
                         debug: true,
                     },
@@ -101,14 +112,19 @@ export default function ClioApp() {
                 console.log(response.data);
                 const caption = response.data?.debug_data?.i_see;
                 if (caption) {
-                    console.log(`I see ${caption}.`);
+                    console.log(`I see ${caption.strip()}.`);
                 }
 
                 setFrameData(response.data);
                 const frame = getFrame(response.data);
                 if (frame) {
                     if (frame && frame.text) {
-                        setStoryText(storyText => storyText + frame.text);
+                        if (strategy == DEFAULT_STRATEGY) {
+                            setStoryText(storyText => storyText + frame.text);
+                        }
+                        else {
+                            setStoryText(frame.text);
+                        }
                     }
                 }
 

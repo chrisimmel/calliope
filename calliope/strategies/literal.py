@@ -8,6 +8,7 @@ from calliope.strategies.registry import StoryStrategyRegistry
 
 
 from calliope.inference import (
+    image_file_to_text_inference,
     text_to_image_file_inference,
 )
 from calliope.utils.file import compose_filename
@@ -30,10 +31,22 @@ class LiteralStrategy(StoryStrategy):
         errors = []
         frames = []
 
-        input_text = parameters.input_text or ""
+        input_text = parameters.input_text
 
-        prompts = input_text.split("|")
+        prompts = input_text.split("|") if input_text else []
+
+        if parameters.input_image_filename:
+            try:
+                caption = image_file_to_text_inference(parameters.input_image_filename)
+                debug_data["i_see"] = caption
+                prompts.append(caption)
+            except Exception as e:
+                print(e)
+                errors.append(str(e))
+
         for index, prompt in enumerate(prompts):
+            image = None
+
             try:
                 output_image_filename_png = compose_filename(
                     "media", client_id, f"output_image_{index}.png"

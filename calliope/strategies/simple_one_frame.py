@@ -42,7 +42,7 @@ class SimpleOneFrameStoryStrategy(StoryStrategy):
                 print(e)
                 errors.append(str(e))
 
-        debug_data["image_caption"] = caption
+        debug_data["i_see"] = caption
 
         if parameters.input_text:
             if caption:
