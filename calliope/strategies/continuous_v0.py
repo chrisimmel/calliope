@@ -70,7 +70,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
             last_text = " ".join(last_text_tokens)
 
         text = f"{caption} {last_text}"
-        print(f'text prompt: "{text}"')
+        print(f'Text prompt: "{text}"')
         text_1 = self._get_new_story_fragment(text)
         text_2 = self._get_new_story_fragment(text_1)
         text = text_1 + " " + text_2 + " "
@@ -84,6 +84,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         if text:
             prompt_template = output_image_style + " {x}"
             prompt = caption_to_prompt(text, prompt_template)
+            print(f'Image prompt: "{prompt}"')
 
             try:
                 output_image_filename_png = compose_filename(

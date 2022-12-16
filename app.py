@@ -58,7 +58,7 @@ app = FastAPI(
 )
 
 
-@app.post("/v1/frames/", response_model=StoryResponseV1)
+@app.post("/v1/frames/", response_model=StoryResponseV1, tags=["story"])
 async def post_frames(
     request_params: FramesRequestParams,
     api_key: APIKey = Depends(get_api_key),
@@ -70,7 +70,7 @@ async def post_frames(
     return await handle_frames_request(request_params)
 
 
-@app.get("/v1/frames/", response_model=StoryResponseV1)
+@app.get("/v1/frames/", response_model=StoryResponseV1, tags=["story"])
 async def get_frames(
     api_key: APIKey = Depends(get_api_key),
     request_params=Depends(FramesRequestParams),
@@ -129,7 +129,7 @@ def prepare_frame_images(
                 stash_media_file(frame.image.url)
 
 
-@app.get("/media/{filename}")
+@app.get("/media/{filename}", tags=["story"])
 async def get_media(
     filename: str,
     fizzlebuzz: Optional[int] = 0,  # A throwaway param to let a client force reload.
@@ -156,7 +156,7 @@ async def get_media(
     return FileResponse(local_filename, media_type=media_type)
 
 
-@app.post("/image/")
+@app.post("/image/", tags=["story"])
 async def post_image(
     api_key: APIKey = Depends(get_api_key),
     image_file: bytes = File(None),
@@ -202,6 +202,11 @@ async def post_image(
     return None
 
 
+@app.get("/favicon.ico")
+async def get_favicon() -> FileResponse:
+    return FileResponse("static/icons8-lyre-32.png", media_type="image/png")
+
+
 @app.get("/openapi.json", tags=["documentation"])
 async def get_open_api_endpoint(api_key: APIKey = Depends(get_api_key)):
     response = JSONResponse(
@@ -229,7 +234,7 @@ async def get_documentation(
     return response
 
 
-@app.get("/logout")
+@app.get("/logout", tags=["authentication"])
 async def route_logout_and_remove_cookie(
     request: Request,
 ):
