@@ -1,6 +1,8 @@
 import argparse
+from collections import defaultdict
 from enum import Enum
 import os
+from typing import Sequence, Tuple
 
 import numpy as np
 from PIL import Image
@@ -60,6 +62,10 @@ def convert_png_to_rgb565(input_filename: str, output_filename: str) -> ImageMod
 def resize_image_if_needed(
     input_image: ImageModel, output_image_width: int, output_image_height: int
 ) -> ImageModel:
+    """
+    Resizes a given image iff necessary given output_image_width and
+    output_image_height.
+    """
     if output_image_width and output_image_height:
         img = Image.open(input_image.url)
         if img.width != output_image_width or img.height != output_image_height:
@@ -102,6 +108,9 @@ def resize_image_if_needed(
 
 
 def get_image_attributes(image_filename: str) -> ImageModel:
+    """
+    Gets an ImageModel from an image filename.
+    """
     image = Image.open(image_filename)
     format = guess_image_format_from_filename(image_filename)
 
@@ -111,6 +120,26 @@ def get_image_attributes(image_filename: str) -> ImageModel:
         format=format,
         url=image_filename,
     )
+
+
+def get_image_colors(image_filename: str) -> Sequence[Tuple[int, int]]:
+    """
+    Returns a sequence of (count, color) tuples with colors given in the mode of the image (e.g. RGB).
+    """
+    image = Image.open(image_filename)
+    by_color = defaultdict(int)
+    for pixel in image.getdata():
+        by_color[pixel] += 1
+    # return Image.open(image_filename).getcolors()
+    return by_color.items()
+
+
+def image_is_monochrome(image_filename: str) -> bool:
+    """
+    Returns True iff the given image is of a single solid d
+    """
+    colors = get_image_colors(image_filename)
+    return colors and len(colors) == 0
 
 
 def convert_rgb565_to_png(

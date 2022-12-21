@@ -35,6 +35,7 @@ from calliope.utils.image import (
     convert_png_to_rgb565,
     guess_image_format_from_filename,
     image_format_to_media_type,
+    image_is_monochrome,
     ImageFormat,
     resize_image_if_needed,
 )
@@ -111,6 +112,12 @@ def prepare_frame_images(
 
     for frame in frames:
         if frame.image:
+            if image_is_monochrome(frame.image.url):
+                print(f"Image {frame.image.url} is monochrome. Skipping.")
+                # Skip the image if it has only a single color (usually black).
+                frame.image = None
+                continue
+
             output_image_width = parameters.output_image_width
             output_image_height = parameters.output_image_height
             frame.image = resize_image_if_needed(
