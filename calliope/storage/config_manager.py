@@ -128,11 +128,11 @@ def get_sparrow_story_parameters(
         # Overlay the parameters from the sparrow config.
         params_dict = {**params_dict, **sparrow_config.parameters.dict()}
 
-    request_params = request_params.dict()
+    request_params_dict = request_params.dict()
     non_default_request_params = {}
     # Get the request parameters with non-default values.
     for field in StoryParamsModel.__fields__.values():
-        value = request_params.get(field.alias)
+        value = request_params_dict.get(field.alias)
         if value != field.default:
             non_default_request_params[field.alias] = value
 
@@ -146,7 +146,7 @@ def get_sparrow_story_parameters(
     if story_strategy_params.input_image:
         input_image_filename = create_unique_filename(
             "input",
-            request_params.client_id,
+            sparrow_id,
             "jpg",  # TODO: Handle non-jpeg image input.
         )
         decode_b64_to_file(story_strategy_params.input_image, input_image_filename)
