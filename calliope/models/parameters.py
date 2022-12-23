@@ -1,9 +1,11 @@
-import base64
-from typing import Optional, Type
+from typing import Any, Dict, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, root_validator
 
 """
+This doesn't work. Improper use of Field()...
+TODO: Would be nice to get descriptions on these fields for the OpenAPI docs.
+
 class FramesRequestParams(BaseModel):
     input_image: Optional[str] = (
         Field(
@@ -83,10 +85,11 @@ class FramesRequestParams(BaseModel):
 """
 
 
-class FramesRequestParams(BaseModel):
+class StoryParamsModel(BaseModel):
     input_image: Optional[str] = None
+    input_image_filename: Optional[str]
     input_audio: Optional[str] = None
-    client_id: str
+    input_audio_filename: Optional[str]
     location: Optional[str] = None
     input_text: Optional[str] = None
     output_image_format: Optional[str] = None
@@ -98,48 +101,26 @@ class FramesRequestParams(BaseModel):
     reset_strategy_state: Optional[bool] = False
     strategy: Optional[str] = None
     debug: Optional[bool] = False
+    extra_fields: Optional[Dict[str, Any]] = None
+
+    @root_validator(pre=True)
+    def build_extra_fields(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Collects any fields that aren't explicitly modeled into extra_fields.
+        """
+        modeled_field_names = {
+            field.alias
+            for field in cls.__fields__.values()
+            # if field.alias != "extra_fields"
+        }
+
+        extra_fields: Dict[str, Any] = {}
+        for field_name in list(values):
+            if field_name not in modeled_field_names:
+                extra_fields[field_name] = values.pop(field_name)
+        values["extra_fields"] = extra_fields
+        return values
 
 
-def decode_b64_to_file(data: str, filename: str) -> None:
-    bytes = str.encode(data)
-    decoded_bytes = base64.b64decode(bytes)
-    with open(filename, "wb") as f:
-        f.write(decoded_bytes)
-
-
-class StoryStrategyParams(FramesRequestParams):
-    input_image_filename: Optional[str]
-    input_audio_filename: Optional[str]
-
-    @classmethod
-    def from_frame_request_params(
-        cls: Type["StoryStrategyParams"],
-        request_params: FramesRequestParams,
-    ) -> "StoryStrategyParams":
-        story_strategy_params = StoryStrategyParams(
-            client_id=request_params.client_id,
-            location=request_params.location,
-            input_image=request_params.input_image,
-            input_audio=request_params.input_audio,
-            input_text=request_params.input_text,
-            output_image_format=request_params.output_image_format,
-            output_image_width=request_params.output_image_width,
-            output_image_height=request_params.output_image_height,
-            output_image_style=request_params.output_image_style,
-            output_text_length=request_params.output_text_length,
-            output_text_style=request_params.output_text_style,
-            reset_strategy_state=request_params.reset_strategy_state,
-            strategy=request_params.strategy,
-            debug=request_params.debug,
-        )
-        if story_strategy_params.input_image:
-            input_image_filename = "input_image.jpg"
-            decode_b64_to_file(story_strategy_params.input_image, input_image_filename)
-            story_strategy_params.input_image_filename = input_image_filename
-
-        if story_strategy_params.input_audio:
-            input_audio_filename = "input_audio.wav"
-            decode_b64_to_file(story_strategy_params.input_audio, input_audio_filename)
-            story_strategy_params.input_audio_filename = input_audio_filename
-
-        return story_strategy_params
+class FramesRequestParamsModel(StoryParamsModel):
+    client_id: str

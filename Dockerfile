@@ -1,6 +1,8 @@
 FROM python:3.10.2-buster
 ENV APP_HOME /app
 RUN mkdir $APP_HOME
+RUN mkdir $APP_HOME/config
+RUN mkdir $APP_HOME/input
 RUN mkdir $APP_HOME/media
 RUN mkdir $APP_HOME/state
 WORKDIR $APP_HOME

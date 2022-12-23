@@ -1,7 +1,9 @@
-from calliope.models import StoryFrameSequenceResponseModel
-from calliope.models.story_frame import StoryFrameModel
+from calliope.models import (
+    FramesRequestParamsModel,
+    StoryFrameModel,
+    StoryFrameSequenceResponseModel,
+)
 from calliope.strategies.base import StoryStrategy
-from calliope.strategies.parameters import StoryStrategyParams
 from calliope.strategies.registry import StoryStrategyRegistry
 
 
@@ -11,7 +13,7 @@ from calliope.inference import (
     text_to_extended_text_inference,
     text_to_image_file_inference,
 )
-from calliope.utils.file import compose_filename
+from calliope.utils.file import create_unique_filename
 from calliope.utils.image import get_image_attributes
 
 last_text = ""
@@ -31,7 +33,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
     strategy_name = "continuous_v0"
 
     async def get_frame_sequence(
-        self, parameters: StoryStrategyParams
+        self, parameters: FramesRequestParamsModel
     ) -> StoryFrameSequenceResponseModel:
         client_id = parameters.client_id
 
@@ -87,8 +89,8 @@ class ContinuousStoryV0Strategy(StoryStrategy):
             print(f'Image prompt: "{prompt}"')
 
             try:
-                output_image_filename_png = compose_filename(
-                    "media", client_id, "output_image.png"
+                output_image_filename_png = create_unique_filename(
+                    "media", client_id, "png"
                 )
                 text_to_image_file_inference(prompt, output_image_filename_png)
 

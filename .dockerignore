@@ -21,5 +21,7 @@ README.md
 *.ipynb
 
 # Application storage
+config/
+input/
 media/
 state/

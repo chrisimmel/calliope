@@ -1,7 +1,9 @@
-from calliope.models import ImageFormat, StoryFrameSequenceResponseModel
-from calliope.models.story_frame import StoryFrameModel
+from calliope.models import (
+    FramesRequestParamsModel,
+    StoryFrameModel,
+    StoryFrameSequenceResponseModel,
+)
 from calliope.strategies.base import StoryStrategy
-from calliope.strategies.parameters import StoryStrategyParams
 from calliope.strategies.registry import StoryStrategyRegistry
 
 
@@ -11,8 +13,8 @@ from calliope.inference import (
     text_to_extended_text_inference,
     text_to_image_file_inference,
 )
-from calliope.utils.file import compose_filename
-from calliope.utils.image import convert_png_to_rgb565, get_image_attributes
+from calliope.utils.file import create_unique_filename
+from calliope.utils.image import get_image_attributes
 
 
 @StoryStrategyRegistry.register()
@@ -25,7 +27,7 @@ class SimpleOneFrameStoryStrategy(StoryStrategy):
     strategy_name = "simple_one_frame"
 
     async def get_frame_sequence(
-        self, parameters: StoryStrategyParams
+        self, parameters: FramesRequestParamsModel
     ) -> StoryFrameSequenceResponseModel:
         client_id = parameters.client_id
 
@@ -58,8 +60,8 @@ class SimpleOneFrameStoryStrategy(StoryStrategy):
             prompt = caption_to_prompt(text, prompt_template)
 
             try:
-                output_image_filename_png = compose_filename(
-                    "media", client_id, "output_image.png"
+                output_image_filename_png = create_unique_filename(
+                    "media", client_id, "png"
                 )
                 text_to_image_file_inference(prompt, output_image_filename_png)
                 image = get_image_attributes(output_image_filename_png)

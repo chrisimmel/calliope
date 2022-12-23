@@ -1,7 +1,6 @@
 from abc import ABCMeta, abstractmethod
 
-from calliope.models import StoryFrameSequenceResponseModel
-from calliope.strategies.parameters import StoryStrategyParams
+from calliope.models import StoryFrameSequenceResponseModel, FramesRequestParamsModel
 
 
 class StoryStrategy(object, metaclass=ABCMeta):
@@ -14,7 +13,7 @@ class StoryStrategy(object, metaclass=ABCMeta):
 
     @abstractmethod
     async def get_frame_sequence(
-        self, parameters: StoryStrategyParams
+        self, parameters: FramesRequestParamsModel
     ) -> StoryFrameSequenceResponseModel:
         """
         Requests a sequence of story frames.

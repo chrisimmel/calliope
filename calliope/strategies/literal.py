@@ -1,9 +1,11 @@
 import base64
 
-from calliope.models import StoryFrameSequenceResponseModel
-from calliope.models.story_frame import StoryFrameModel
+from calliope.models import (
+    FramesRequestParamsModel,
+    StoryFrameModel,
+    StoryFrameSequenceResponseModel,
+)
 from calliope.strategies.base import StoryStrategy
-from calliope.strategies.parameters import StoryStrategyParams
 from calliope.strategies.registry import StoryStrategyRegistry
 
 
@@ -11,7 +13,7 @@ from calliope.inference import (
     image_file_to_text_inference,
     text_to_image_file_inference,
 )
-from calliope.utils.file import compose_filename
+from calliope.utils.file import create_unique_filename
 from calliope.utils.image import get_image_attributes
 
 
@@ -24,7 +26,7 @@ class LiteralStrategy(StoryStrategy):
     strategy_name = "literal"
 
     async def get_frame_sequence(
-        self, parameters: StoryStrategyParams
+        self, parameters: FramesRequestParamsModel
     ) -> StoryFrameSequenceResponseModel:
         client_id = parameters.client_id
         debug_data = {}
@@ -44,12 +46,12 @@ class LiteralStrategy(StoryStrategy):
                 print(e)
                 errors.append(str(e))
 
-        for index, prompt in enumerate(prompts):
+        for prompt in prompts:
             image = None
 
             try:
-                output_image_filename_png = compose_filename(
-                    "media", client_id, f"output_image_{index}.png"
+                output_image_filename_png = create_unique_filename(
+                    "media", client_id, f"png"
                 )
                 text_to_image_file_inference(prompt, output_image_filename_png)
 
