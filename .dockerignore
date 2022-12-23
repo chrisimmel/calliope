@@ -9,6 +9,9 @@ start.sh
 uwsgi.ini
 README.md
 
+# IDEs
+.vscode/
+
 # Mac doodads
 .DS_Store
 
