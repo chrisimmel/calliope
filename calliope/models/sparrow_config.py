@@ -1,17 +1,26 @@
-from pydantic import StrictStr
+from typing import Optional
 
-from calliope.models.base_config import BaseConfigModel, ConfigType
+from pydantic import BaseModel, StrictStr
+
+from calliope.models.parameters import StoryParamsModel
+from calliope.models.schedule import ScheduleModel
 
 
-class SparrowConfigModel(BaseConfigModel):
+class SparrowConfigModel(BaseModel):
     """
-    The configuration of a given sparrow.
+    The configuration of a sparrow, flock of sparrows, or flock of flocks.
     """
 
-    _config_type: ConfigType = ConfigType.SPARROW
+    # The ID of this sparrow or flock.
+    id: StrictStr
 
-    # The sparrow's ID.
-    sparrow_id: StrictStr
+    # The ID of the flock to which the sparrow or flock belongs, if any.
+    # A sparrow or flock inherits the parameters and schedule of its parent
+    # flock as defaults,
+    parent_flock_id: Optional[StrictStr]
 
-    # The ID of the flock to which the sparrow belongs.
-    flock_id: StrictStr
+    # Optional strategy parameters.
+    parameters: Optional[StoryParamsModel]
+
+    # An optional schedule to follow.
+    schedule: Optional[ScheduleModel]

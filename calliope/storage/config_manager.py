@@ -1,10 +1,7 @@
 import os
-from typing import cast, Optional
+from typing import Any, cast, Dict, Optional
 
 from calliope.models import (
-    BaseConfigModel,
-    ConfigType,
-    FlockConfigModel,
     FramesRequestParamsModel,
     SparrowConfigModel,
     StoryParamsModel,
@@ -22,51 +19,21 @@ from calliope.utils.google import (
 )
 
 
-def get_sparrow_config(sparrow_id: str) -> Optional[SparrowConfigModel]:
+def _compose_config_filename(sparrow_or_flock_id: str) -> str:
     """
-    Retrieves a sparrow config.
-    """
-    return cast(Optional[SparrowConfigModel], get_config(ConfigType.SPARROW, sparrow_id))
-
-
-def put_sparrow_config(sparrow_config: SparrowConfigModel):
-    """
-    Stores a sparrow config.
-    """
-    put_config(sparrow_config)
-
-
-def get_flock_config(flock_id: str) -> Optional[FlockConfigModel]:
-    """
-    Retrieves a flock config.
-    """
-    return cast(Optional[FlockConfigModel], get_config(ConfigType.FLOCK, flock_id))
-
-
-def put_flock_config(flock_config: FlockConfigModel):
-    """
-    Stores a flock config.
-    """
-    put_config(flock_config)
-
-
-def compose_config_filename(config_type: ConfigType, client_id: str) -> str:
-    """
-    Composes the filename of a config file.
+    Composes the filename of a sparrow or flock config file.
 
     Args:
-        config_type - The type of configuration (ConfigType.SPARROW or
-            ConfigType.FLOCK).
-        client_id - The ID of the sparrow or flock.
+        sparrow_or_flock_id - The ID of the sparrow or flock.
     """
-    return f"{config_type.value}-{client_id}.cfg"
+    return f"sparrow-{sparrow_or_flock_id}.cfg"
 
 
-def get_config(config_type: ConfigType, client_id: str) -> Optional[BaseConfigModel]:
+def get_sparrow_config(sparrow_or_flock_id: str) -> Optional[SparrowConfigModel]:
     """
     Retrieves the config for the given sparrow or flock.
     """
-    filename = compose_config_filename(config_type, client_id)
+    filename = _compose_config_filename(sparrow_or_flock_id)
 
     folder = "config"
     local_filename = f"{folder}/{filename}"
@@ -79,26 +46,20 @@ def get_config(config_type: ConfigType, client_id: str) -> Optional[BaseConfigMo
     if not os.path.isfile(local_filename):
         return None
 
-    model = FlockConfigModel if config_type == ConfigType.FLOCK else SparrowConfigModel
-    return load_json_into_pydantic_model(local_filename, model)
+    return load_json_into_pydantic_model(local_filename, SparrowConfigModel)
 
 
-def put_config(config: BaseConfigModel) -> Optional[BaseConfigModel]:
+def put_sparrow_config(sparrow_config: SparrowConfigModel) -> None:
     """
-    Stores the given config.
+    Stores the given sparrow or flock config.
     """
-    if config._config_type == ConfigType.SPARROW:
-        sparrow_config = cast(SparrowConfigModel, config)
-        client_id = sparrow_config.sparrow_id
-    else:
-        flock_config = cast(FlockConfigModel, config)
-        client_id = flock_config.flock_id
+    sparrow_or_flock_id = sparrow_config.id
 
-    filename = compose_config_filename(config._config_type, client_id)
+    filename = _compose_config_filename(sparrow_or_flock_id)
 
     folder = "config"
     local_filename = f"{folder}/{filename}"
-    write_pydantic_model_to_json(config, local_filename)
+    write_pydantic_model_to_json(sparrow_config, local_filename)
 
     if is_google_cloud_run_environment():
         put_google_file(folder, filename)
@@ -112,35 +73,8 @@ def get_sparrow_story_parameters(
     taking into account the sparrow and flock configurations.
     Also decodes and stores the b64-encoded file parameters.
     """
-    sparrow_id = request_params.client_id
-    sparrow_config = get_sparrow_config(sparrow_id)
-    flock_id = sparrow_config.flock_id if sparrow_config else None
-    flock_config = get_flock_config(flock_id) if flock_id else None
-
-    # Begin with the default parameters from the model.
-    params_dict = FramesRequestParamsModel(client_id=sparrow_id).dict()
-
-    if flock_config and flock_config.parameters:
-        # Overlay the parameters from the flock config.
-        params_dict = {**params_dict, **flock_config.parameters.dict()}
-
-    if sparrow_config and sparrow_config.parameters:
-        # Overlay the parameters from the sparrow config.
-        params_dict = {**params_dict, **sparrow_config.parameters.dict()}
-
-    request_params_dict = request_params.dict()
-    non_default_request_params = {}
-    # Get the request parameters with non-default values.
-    for field in StoryParamsModel.__fields__.values():
-        value = request_params_dict.get(field.alias)
-        if value != field.default:
-            non_default_request_params[field.alias] = value
-
-    if non_default_request_params:
-        # Overlay the non-default request parameters.
-        params_dict = {**params_dict, **non_default_request_params}
-
-    story_strategy_params = FramesRequestParamsModel(**params_dict)
+    story_strategy_params = _apply_sparrow_config_inheritance(request_params)
+    sparrow_id = story_strategy_params.client_id
 
     # Decode b64-encoded file inputs and store to files.
     if story_strategy_params.input_image:
@@ -160,3 +94,55 @@ def get_sparrow_story_parameters(
         story_strategy_params.input_audio_filename = input_audio_filename
 
     return story_strategy_params
+
+
+def _apply_sparrow_config_inheritance(
+    request_params: FramesRequestParamsModel,
+) -> FramesRequestParamsModel:
+    sparrow_or_flock_id = request_params.client_id
+
+    sparrows_and_flocks_visited = []
+
+    # Assemble the story parameters...
+    # 1. Take as the story params the request_params furnished with the API request.
+    params_dict = request_params.dict()
+    while sparrow_or_flock_id:
+        # 2. Check to see whether there is a config for the given sparrow or flock ID.
+        sparrow_or_flock_config = get_sparrow_config(sparrow_or_flock_id)
+        if sparrow_or_flock_config:
+            sparrow_or_flock_params_dict = _get_non_default_parameters(
+                sparrow_or_flock_config.parameters.dict()
+            )
+            # 3. If so, merge the sparrow/flock config with the story params. The
+            # story params take precedence.
+            params_dict = {**sparrow_or_flock_params_dict, **params_dict}
+            # 4. Take the flock ID from the sparrow/flock config.
+            sparrow_or_flock_id = sparrow_or_flock_config.parent_flock_id
+
+            if sparrow_or_flock_id:
+                # Prepare to inherit from a parent flock.
+                new_sparrows_and_flocks_visited = sparrows_and_flocks_visited.append(
+                    sparrow_or_flock_id
+                )
+                # Avoid inheritance loops.
+                if sparrow_or_flock_id in sparrows_and_flocks_visited:
+                    raise ValueError(
+                        f"Flock inheritance loop: {','.join(new_sparrows_and_flocks_visited)}"
+                    )
+                sparrows_and_flocks_visited = new_sparrows_and_flocks_visited
+        else:
+            # If there was no config for that sparrow or flock, we're done.
+            sparrow_or_flock_id = None
+
+    return FramesRequestParamsModel(**params_dict)
+
+
+def _get_non_default_parameters(params_dict: Dict[str, Any]) -> Dict[str, Any]:
+    non_default_request_params = {}
+    # Get the request parameters with non-default values.
+    for field in StoryParamsModel.__fields__.values():
+        value = params_dict.get(field.alias)
+        if value != field.default:
+            non_default_request_params[field.alias] = value
+
+    return non_default_request_params
