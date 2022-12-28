@@ -65,7 +65,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         if last_text:
             last_text_tokens = story.text.split()
             # last_text_tokens = last_text_tokens[int(len(last_text_tokens) / 2) :]
-            last_text_tokens = last_text_tokens[:-20]
+            last_text_tokens = last_text_tokens[-20:]
             last_text = " ".join(last_text_tokens)
 
         text = f"{caption} {last_text}"
