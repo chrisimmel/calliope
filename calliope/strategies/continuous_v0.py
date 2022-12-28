@@ -1,22 +1,20 @@
-from calliope.models import (
-    FramesRequestParamsModel,
-    StoryFrameModel,
-    StoryFrameSequenceResponseModel,
-)
-from calliope.strategies.base import StoryStrategy
-from calliope.strategies.registry import StoryStrategyRegistry
-
-
 from calliope.inference import (
     caption_to_prompt,
     image_file_to_text_inference,
     text_to_extended_text_inference,
     text_to_image_file_inference,
 )
-from calliope.utils.file import create_unique_filename
+from calliope.models import (
+    FramesRequestParamsModel,
+    SparrowStateModel,
+    StoryFrameModel,
+    StoryFrameSequenceResponseModel,
+    StoryModel,
+)
+from calliope.strategies.base import StoryStrategy
+from calliope.strategies.registry import StoryStrategyRegistry
+from calliope.utils.file import create_sequential_filename
 from calliope.utils.image import get_image_attributes
-
-last_text = ""
 
 
 @StoryStrategyRegistry.register()
@@ -33,15 +31,12 @@ class ContinuousStoryV0Strategy(StoryStrategy):
     strategy_name = "continuous_v0"
 
     async def get_frame_sequence(
-        self, parameters: FramesRequestParamsModel
+        self,
+        parameters: FramesRequestParamsModel,
+        sparrow_state: SparrowStateModel,
+        story: StoryModel,
     ) -> StoryFrameSequenceResponseModel:
         client_id = parameters.client_id
-
-        # Get last_text from saved story state.
-        global last_text
-
-        if parameters.reset_strategy_state:
-            last_text = ""
 
         output_image_style = parameters.output_image_style or "A watercolor of"
         debug_data = {}
@@ -66,9 +61,11 @@ class ContinuousStoryV0Strategy(StoryStrategy):
 
         debug_data["i_see"] = caption
 
+        last_text = story.text
         if last_text:
-            last_text_tokens = last_text.split()
-            last_text_tokens = last_text_tokens[int(len(last_text_tokens) / 2) :]
+            last_text_tokens = story.text.split()
+            # last_text_tokens = last_text_tokens[int(len(last_text_tokens) / 2) :]
+            last_text_tokens = last_text_tokens[:-20]
             last_text = " ".join(last_text_tokens)
 
         text = f"{caption} {last_text}"
@@ -89,8 +86,8 @@ class ContinuousStoryV0Strategy(StoryStrategy):
             print(f'Image prompt: "{prompt}"')
 
             try:
-                output_image_filename_png = create_unique_filename(
-                    "media", client_id, "png"
+                output_image_filename_png = create_sequential_filename(
+                    "media", client_id, "out", "png", story
                 )
                 text_to_image_file_inference(prompt, output_image_filename_png)
 
@@ -104,6 +101,8 @@ class ContinuousStoryV0Strategy(StoryStrategy):
             image=image,
             text=text,
         )
+        story.frames.append(frame)
+        story.text = story.text + text
 
         return StoryFrameSequenceResponseModel(
             frames=[frame], debug_data=debug_data, errors=errors

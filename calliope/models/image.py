@@ -4,7 +4,7 @@ from typing import Optional
 from pydantic import BaseModel
 
 
-class ImageFormat(Enum):
+class ImageFormat(str, Enum):
     # RGB565 doesn't have an official media type, but let's use this:
     RGB565 = "image/rgb565"
     PNG = "image/png"

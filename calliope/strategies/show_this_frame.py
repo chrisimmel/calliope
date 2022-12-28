@@ -1,7 +1,9 @@
 from calliope.models import (
     FramesRequestParamsModel,
+    SparrowStateModel,
     StoryFrameModel,
     StoryFrameSequenceResponseModel,
+    StoryModel,
 )
 from calliope.strategies.base import StoryStrategy
 from calliope.strategies.registry import StoryStrategyRegistry
@@ -17,7 +19,10 @@ class ShowThisFrameStrategy(StoryStrategy):
     strategy_name = "show_this_frame"
 
     async def get_frame_sequence(
-        self, parameters: FramesRequestParamsModel
+        self,
+        parameters: FramesRequestParamsModel,
+        sparrow_state: SparrowStateModel,
+        story: StoryModel,
     ) -> StoryFrameSequenceResponseModel:
 
         debug_data = {}
@@ -34,6 +39,15 @@ class ShowThisFrameStrategy(StoryStrategy):
             image=image,
             text=text,
         )
+        last_frame = story.frames[-1] if len(story.frames) else None
+        if (
+            not last_frame
+            or last_frame.image != frame.image
+            or last_frame.text != frame.text
+        ):
+            # Add the frame to the story only if it differs from the story's last frame.
+            story.frames.append(frame)
+            story.text = story.text + "\n" + text
 
         return StoryFrameSequenceResponseModel(
             frames=[frame], debug_data=debug_data, errors=errors

@@ -26,7 +26,7 @@ def _compose_config_filename(sparrow_or_flock_id: str) -> str:
     Args:
         sparrow_or_flock_id - The ID of the sparrow or flock.
     """
-    return f"sparrow-{sparrow_or_flock_id}.cfg"
+    return f"sparrow-{sparrow_or_flock_id}.cfg.json"
 
 
 def get_sparrow_config(sparrow_or_flock_id: str) -> Optional[SparrowConfigModel]:
@@ -73,27 +73,7 @@ def get_sparrow_story_parameters(
     taking into account the sparrow and flock configurations.
     Also decodes and stores the b64-encoded file parameters.
     """
-    story_strategy_params = _apply_sparrow_config_inheritance(request_params)
-    sparrow_id = story_strategy_params.client_id
-
-    # Decode b64-encoded file inputs and store to files.
-    if story_strategy_params.input_image:
-        input_image_filename = create_unique_filename(
-            "input",
-            sparrow_id,
-            "jpg",  # TODO: Handle non-jpeg image input.
-        )
-        decode_b64_to_file(story_strategy_params.input_image, input_image_filename)
-        story_strategy_params.input_image_filename = input_image_filename
-
-    if story_strategy_params.input_audio:
-        input_audio_filename = create_unique_filename(
-            "input", request_params.client_id, "wav"
-        )
-        decode_b64_to_file(story_strategy_params.input_audio, input_audio_filename)
-        story_strategy_params.input_audio_filename = input_audio_filename
-
-    return story_strategy_params
+    return _apply_sparrow_config_inheritance(request_params)
 
 
 def _apply_sparrow_config_inheritance(
@@ -110,12 +90,14 @@ def _apply_sparrow_config_inheritance(
         # 2. Check to see whether there is a config for the given sparrow or flock ID.
         sparrow_or_flock_config = get_sparrow_config(sparrow_or_flock_id)
         if sparrow_or_flock_config:
-            sparrow_or_flock_params_dict = _get_non_default_parameters(
-                sparrow_or_flock_config.parameters.dict()
-            )
-            # 3. If so, merge the sparrow/flock config with the story params. The
-            # story params take precedence.
-            params_dict = {**sparrow_or_flock_params_dict, **params_dict}
+            if sparrow_or_flock_config.parameters:
+                sparrow_or_flock_params_dict = _get_non_default_parameters(
+                    sparrow_or_flock_config.parameters.dict()
+                )
+                # 3. If so, merge the sparrow/flock config with the story params. The
+                # story params take precedence.
+                params_dict = {**sparrow_or_flock_params_dict, **params_dict}
+
             # 4. Take the flock ID from the sparrow/flock config.
             sparrow_or_flock_id = sparrow_or_flock_config.parent_flock_id
 

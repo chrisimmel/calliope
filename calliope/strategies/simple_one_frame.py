@@ -1,7 +1,9 @@
 from calliope.models import (
     FramesRequestParamsModel,
+    SparrowStateModel,
     StoryFrameModel,
     StoryFrameSequenceResponseModel,
+    StoryModel,
 )
 from calliope.strategies.base import StoryStrategy
 from calliope.strategies.registry import StoryStrategyRegistry
@@ -13,7 +15,7 @@ from calliope.inference import (
     text_to_extended_text_inference,
     text_to_image_file_inference,
 )
-from calliope.utils.file import create_unique_filename
+from calliope.utils.file import create_sequential_filename
 from calliope.utils.image import get_image_attributes
 
 
@@ -27,7 +29,10 @@ class SimpleOneFrameStoryStrategy(StoryStrategy):
     strategy_name = "simple_one_frame"
 
     async def get_frame_sequence(
-        self, parameters: FramesRequestParamsModel
+        self,
+        parameters: FramesRequestParamsModel,
+        sparrow_state: SparrowStateModel,
+        story: StoryModel,
     ) -> StoryFrameSequenceResponseModel:
         client_id = parameters.client_id
 
@@ -60,8 +65,8 @@ class SimpleOneFrameStoryStrategy(StoryStrategy):
             prompt = caption_to_prompt(text, prompt_template)
 
             try:
-                output_image_filename_png = create_unique_filename(
-                    "media", client_id, "png"
+                output_image_filename_png = create_sequential_filename(
+                    "media", client_id, "out", "png", story
                 )
                 text_to_image_file_inference(prompt, output_image_filename_png)
                 image = get_image_attributes(output_image_filename_png)
@@ -73,6 +78,8 @@ class SimpleOneFrameStoryStrategy(StoryStrategy):
             image=image,
             text=text,
         )
+        story.frames.append(frame)
+        story.text = story.text + "\n" + text
 
         return StoryFrameSequenceResponseModel(
             frames=[frame], debug_data=debug_data, errors=errors

@@ -1,6 +1,7 @@
 import base64
 import os
 import json
+from calliope.models.story import StoryModel
 
 import cuid
 from pydantic import BaseModel
@@ -52,6 +53,20 @@ def create_unique_filename(directory: str, client_id: str, extension: str) -> st
     return compose_full_filename(directory, client_id, f"{base_filename}.{extension}")
 
 
+def create_sequential_filename(
+    directory: str, client_id: str, tag: str, extension: str, story: StoryModel
+) -> str:
+    """
+    Creates a sequential full filename (filename with path) from the given directory, for the
+    given client, using the given extension. The name is assumed to be associated with the current
+    frame of the given story, and contains the story ID and frame number in the filename.
+    """
+    base_filename = story.story_id
+    return compose_full_filename(
+        directory, client_id, f"{base_filename}.{len(story.frames)}.{tag}.{extension}"
+    )
+
+
 def load_json_into_pydantic_model(json_filename: str, model: BaseModel) -> BaseModel:
     """
     Takes a JSON file path as a string and a Pydantic model class as arguments, reads
@@ -73,7 +88,7 @@ def write_pydantic_model_to_json(model: BaseModel, json_filename: str):
     """
     data = model.dict()
     with open(json_filename, "w") as f:
-        json.dump(data, f)
+        json.dump(data, f, indent=4, sort_keys=True)
 
 
 def decode_b64_to_file(data: str, filename: str) -> None:

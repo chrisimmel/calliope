@@ -1,5 +1,12 @@
 import datetime
 from typing import Any, Dict, List, Optional
+from calliope.models.story import StoryModel
+from calliope.storage.state_manager import (
+    get_sparrow_state,
+    get_story,
+    put_sparrow_state,
+    put_story,
+)
 
 import cuid
 from fastapi import APIRouter, Depends, File
@@ -18,7 +25,9 @@ from calliope.storage.config_manager import get_sparrow_story_parameters
 from calliope.strategies import StoryStrategyRegistry
 from calliope.utils.file import (
     compose_full_filename,
+    create_sequential_filename,
     create_unique_filename,
+    decode_b64_to_file,
     get_base_filename,
 )
 from calliope.utils.google import (
@@ -78,10 +87,40 @@ async def handle_frames_request(
     parameters.strategy = parameters.strategy or "simple_one_frame"
     parameters.debug = parameters.debug or False
 
+    client_id = parameters.client_id
     strategy_class = StoryStrategyRegistry.get_strategy_class(parameters.strategy)
-    story_frames_response = await strategy_class().get_frame_sequence(parameters)
+
+    sparrow_state = get_sparrow_state(client_id)
+
+    story = None
+    if sparrow_state.current_story_id and not parameters.reset_strategy_state:
+        story = get_story(sparrow_state.current_story_id)
+    if story and story.strategy_name != parameters.strategy:
+        # The story in progress was created by a different strategy. Start a new one.
+        story = None
+
+    if not story:
+        story = StoryModel(
+            story_id=cuid.cuid(),
+            strategy_name=parameters.strategy,
+            created_for_id=client_id,
+            text="",
+        )
+    if sparrow_state.current_story_id != story.story_id:
+        # We're starting a new story.
+        sparrow_state.current_story_id = story.story_id
+        sparrow_state.story_ids.append(story.story_id)
+
+    parameters = prepare_input_files(parameters, story)
+
+    story_frames_response = await strategy_class().get_frame_sequence(
+        parameters, sparrow_state, story
+    )
 
     prepare_frame_images(parameters, story_frames_response.frames)
+
+    put_story(story)
+    put_sparrow_state(sparrow_state)
 
     response = StoryResponseV1(
         frames=story_frames_response.frames,
@@ -91,6 +130,29 @@ async def handle_frames_request(
         errors=story_frames_response.errors,
     )
     return response
+
+
+def prepare_input_files(
+    request_params: FramesRequestParamsModel, story: StoryModel
+) -> FramesRequestParamsModel:
+    sparrow_id = request_params.client_id
+
+    # Decode b64-encoded file inputs and store to files.
+    if request_params.input_image:
+        input_image_filename = create_sequential_filename(
+            "input", sparrow_id, "in", "jpg", story  # TODO: Handle non-jpeg image input.
+        )
+        decode_b64_to_file(request_params.input_image, input_image_filename)
+        request_params.input_image_filename = input_image_filename
+
+    if request_params.input_audio:
+        input_audio_filename = create_sequential_filename(
+            "input", sparrow_id, "in", "wav", story
+        )
+        decode_b64_to_file(request_params.input_audio, input_audio_filename)
+        request_params.input_audio_filename = input_audio_filename
+
+    return request_params
 
 
 def prepare_frame_images(

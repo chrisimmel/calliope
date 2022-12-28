@@ -1,8 +1,10 @@
+from enum import Enum
 import os
 from typing import cast, Optional
 
 from calliope.models import (
     SparrowStateModel,
+    StoryModel,
 )
 from calliope.utils.file import (
     load_json_into_pydantic_model,
@@ -15,13 +17,49 @@ from calliope.utils.google import (
 )
 
 
+class StateType(Enum):
+    SPARROW = "sparrow"
+    STORY = "story"
+
+
+def get_sparrow_state(sparrow_id: str) -> SparrowStateModel:
+    """
+    Retrieves the state of the given sparrow. If a stored state isn't found, creates a new one.
+    """
+    filename = _compose_state_filename(StateType.SPARROW, sparrow_id)
+
+    folder = "state"
+    local_filename = f"{folder}/{filename}"
+    if is_google_cloud_run_environment():
+        try:
+            get_google_file(folder, filename, local_filename)
+        except Exception as e:
+            pass
+
+    print(f"Looking for {local_filename}.")
+    if os.path.isfile(local_filename):
+        print(f"Preparing to load {local_filename}.")
+        sparrow_state = cast(
+            Optional[SparrowStateModel],
+            load_json_into_pydantic_model(local_filename, SparrowStateModel),
+        )
+        print(f"{sparrow_state=}")
+    else:
+        sparrow_state = None
+
+    if not sparrow_state:
+        print("Creating a new sparrow state.")
+        sparrow_state = SparrowStateModel(sparrow_id=sparrow_id)
+    return sparrow_state
+
+
 def put_sparrow_state(state: SparrowStateModel) -> None:
     """
     Stores the given sparrow state.
     """
     sparrow_id = state.sparrow_id
 
-    filename = _compose_state_filename(sparrow_id)
+    filename = _compose_state_filename(StateType.SPARROW, sparrow_id)
 
     folder = "state"
     local_filename = f"{folder}/{filename}"
@@ -31,13 +69,13 @@ def put_sparrow_state(state: SparrowStateModel) -> None:
         put_google_file(folder, filename)
 
 
-def get_sparrow_state(sparrow_id: str) -> Optional[SparrowStateModel]:
+def get_story(story_id: str) -> Optional[StoryModel]:
     """
-    Retrieves the config for the given sparrow or flock.
+    Retrieves the given story.
     """
-    filename = _compose_state_filename(sparrow_id)
+    filename = _compose_state_filename(StateType.STORY, story_id)
 
-    folder = "config"
+    folder = "state"
     local_filename = f"{folder}/{filename}"
     if is_google_cloud_run_environment():
         try:
@@ -48,15 +86,33 @@ def get_sparrow_state(sparrow_id: str) -> Optional[SparrowStateModel]:
     if not os.path.isfile(local_filename):
         return None
 
-    model = SparrowStateModel
-    return load_json_into_pydantic_model(local_filename, model)
+    return cast(
+        Optional[StoryModel], load_json_into_pydantic_model(local_filename, StoryModel)
+    )
 
 
-def _compose_state_filename(sparrow_or_flock_id: str) -> str:
+def put_story(story: StoryModel) -> None:
     """
-    Composes the filename of a sparrow or flock config file.
+    Stores the given story state.
+    """
+    story_id = story.story_id
+
+    filename = _compose_state_filename(StateType.STORY, story_id)
+
+    folder = "state"
+    local_filename = f"{folder}/{filename}"
+    write_pydantic_model_to_json(story, local_filename)
+
+    if is_google_cloud_run_environment():
+        put_google_file(folder, filename)
+
+
+def _compose_state_filename(type: StateType, id: str) -> str:
+    """
+    Composes the filename of a sparrow or story state file.
 
     Args:
-        sparrow_or_flock_id - The ID of the sparrow or flock.
+        type - The type of state: sparrow or story.
+        id - The ID of the sparrow or story.
     """
-    return f"sparrow-{sparrow_or_flock_id}.state"
+    return f"{type.value}-{id}.state.json"

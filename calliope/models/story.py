@@ -20,7 +20,7 @@ class StoryModel(BaseModel):
     created_for_id: Optional[StrictStr] = None
 
     # The accumulated text.
-    text: Optional[StrictStr] = None
+    text: Optional[StrictStr] = ""
 
     # The frames that are part of this story.
     frames: List[StoryFrameModel] = []
