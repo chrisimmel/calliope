@@ -39,11 +39,15 @@ def get_sparrow_state(sparrow_id: str) -> SparrowStateModel:
     print(f"Looking for {local_filename}.")
     if os.path.isfile(local_filename):
         print(f"Preparing to load {local_filename}.")
-        sparrow_state = cast(
-            Optional[SparrowStateModel],
-            load_json_into_pydantic_model(local_filename, SparrowStateModel),
-        )
-        print(f"{sparrow_state=}")
+        try:
+            sparrow_state = cast(
+                SparrowStateModel,
+                load_json_into_pydantic_model(local_filename, SparrowStateModel),
+            )
+            print(f"{sparrow_state=}")
+        except Exception as e:
+            print(f"Error loading Sparrow state: {e}")
+            sparrow_state = None
     else:
         sparrow_state = None
 
@@ -66,7 +70,7 @@ def put_sparrow_state(state: SparrowStateModel) -> None:
     write_pydantic_model_to_json(state, local_filename)
 
     if is_google_cloud_run_environment():
-        put_google_file(folder, filename)
+        put_google_file(folder, local_filename)
 
 
 def get_story(story_id: str) -> Optional[StoryModel]:
@@ -104,7 +108,7 @@ def put_story(story: StoryModel) -> None:
     write_pydantic_model_to_json(story, local_filename)
 
     if is_google_cloud_run_environment():
-        put_google_file(folder, filename)
+        put_google_file(folder, local_filename)
 
 
 def _compose_state_filename(type: StateType, id: str) -> str:

@@ -46,7 +46,11 @@ def get_sparrow_config(sparrow_or_flock_id: str) -> Optional[SparrowConfigModel]
     if not os.path.isfile(local_filename):
         return None
 
-    return load_json_into_pydantic_model(local_filename, SparrowConfigModel)
+    try:
+        return load_json_into_pydantic_model(local_filename, SparrowConfigModel)
+    except Exception as e:
+        print(f"Error loading Sparrow config: {e}")
+        return None
 
 
 def put_sparrow_config(sparrow_config: SparrowConfigModel) -> None:
@@ -62,7 +66,7 @@ def put_sparrow_config(sparrow_config: SparrowConfigModel) -> None:
     write_pydantic_model_to_json(sparrow_config, local_filename)
 
     if is_google_cloud_run_environment():
-        put_google_file(folder, filename)
+        put_google_file(folder, local_filename)
 
 
 def get_sparrow_story_parameters(
@@ -103,9 +107,9 @@ def _apply_sparrow_config_inheritance(
 
             if sparrow_or_flock_id:
                 # Prepare to inherit from a parent flock.
-                new_sparrows_and_flocks_visited = sparrows_and_flocks_visited.append(
+                new_sparrows_and_flocks_visited = sparrows_and_flocks_visited + [
                     sparrow_or_flock_id
-                )
+                ]
                 # Avoid inheritance loops.
                 if sparrow_or_flock_id in sparrows_and_flocks_visited:
                     raise ValueError(
