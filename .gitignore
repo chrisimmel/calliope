@@ -7,9 +7,9 @@ __pycache__/
 .vscode/
 
 # Image files
-*.jpg
-*.raw
-*.png
+# *.jpg
+# *.raw
+# *.png
 
 # Mac doodads
 .DS_Store

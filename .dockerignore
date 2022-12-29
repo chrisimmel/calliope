@@ -16,9 +16,9 @@ README.md
 .DS_Store
 
 # Image files
-*.jpg
-*.raw
-*.png
+# *.jpg
+# *.raw
+# *.png
 
 # Jupyter
 *.ipynb

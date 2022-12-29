@@ -35,7 +35,7 @@ async def get_media(
 @router.get("/apple-touch-icon.png")
 @router.get("/apple-touch-icon-precomposed.png")
 async def get_favicon() -> FileResponse:
-    return FileResponse("static/icons8-lyre-32.png", media_type="image/png")
+    return FileResponse("static/Calliope-icon-32x32.png", media_type="image/png")
 
 
 @router.get("/docs", tags=["documentation"])
