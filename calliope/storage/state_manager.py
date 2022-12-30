@@ -36,15 +36,12 @@ def get_sparrow_state(sparrow_id: str) -> SparrowStateModel:
         except Exception as e:
             pass
 
-    print(f"Looking for {local_filename}.")
     if os.path.isfile(local_filename):
-        print(f"Preparing to load {local_filename}.")
         try:
             sparrow_state = cast(
                 SparrowStateModel,
                 load_json_into_pydantic_model(local_filename, SparrowStateModel),
             )
-            print(f"{sparrow_state=}")
         except Exception as e:
             print(f"Error loading Sparrow state: {e}")
             sparrow_state = None

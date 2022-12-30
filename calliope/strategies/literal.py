@@ -1,5 +1,7 @@
 from calliope.models import (
     FramesRequestParamsModel,
+    KeysModel,
+    InferenceModelConfigsModel,
     SparrowStateModel,
     StoryFrameModel,
     StoryFrameSequenceResponseModel,
@@ -28,6 +30,8 @@ class LiteralStrategy(StoryStrategy):
     async def get_frame_sequence(
         self,
         parameters: FramesRequestParamsModel,
+        inference_model_configs: InferenceModelConfigsModel,
+        keys: KeysModel,
         sparrow_state: SparrowStateModel,
         story: StoryModel,
     ) -> StoryFrameSequenceResponseModel:
@@ -42,7 +46,9 @@ class LiteralStrategy(StoryStrategy):
 
         if parameters.input_image_filename:
             try:
-                caption = image_file_to_text_inference(parameters.input_image_filename)
+                caption = image_file_to_text_inference(
+                    parameters.input_image_filename, inference_model_configs, keys
+                )
                 debug_data["i_see"] = caption
                 prompts.append(caption)
             except Exception as e:
@@ -56,7 +62,9 @@ class LiteralStrategy(StoryStrategy):
                 output_image_filename_png = create_sequential_filename(
                     "media", client_id, "out", "png", story
                 )
-                text_to_image_file_inference(prompt, output_image_filename_png)
+                text_to_image_file_inference(
+                    prompt, output_image_filename_png, inference_model_configs, keys
+                )
 
                 output_image_filename = output_image_filename_png
                 image = get_image_attributes(output_image_filename)

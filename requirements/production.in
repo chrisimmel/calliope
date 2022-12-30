@@ -12,6 +12,7 @@ python-dotenv
 python-multipart
 requests
 requests-futures
+stability-sdk
 starlette
 types-python-dateutil
 types-pytz

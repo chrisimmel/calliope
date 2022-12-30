@@ -100,6 +100,10 @@ class StoryParamsModel(BaseModel):
     output_text_style: Optional[str] = None
     reset_strategy_state: Optional[bool] = False
     strategy: Optional[str] = None
+    image_to_text_model_config: Optional[str] = None
+    text_to_image_model_config: Optional[str] = None
+    text_to_text_model_config: Optional[str] = None
+    audio_to_text_model_config: Optional[str] = None
     debug: Optional[bool] = False
     extra_fields: Optional[Dict[str, Any]] = None
 

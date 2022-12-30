@@ -2,6 +2,8 @@ from abc import ABCMeta, abstractmethod
 
 from calliope.models import (
     FramesRequestParamsModel,
+    KeysModel,
+    InferenceModelConfigsModel,
     SparrowStateModel,
     StoryFrameSequenceResponseModel,
     StoryModel,
@@ -20,6 +22,8 @@ class StoryStrategy(object, metaclass=ABCMeta):
     async def get_frame_sequence(
         self,
         parameters: FramesRequestParamsModel,
+        inference_model_configs: InferenceModelConfigsModel,
+        keys: KeysModel,
         sparrow_state: SparrowStateModel,
         story: StoryModel,
     ) -> StoryFrameSequenceResponseModel:

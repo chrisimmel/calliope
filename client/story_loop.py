@@ -11,9 +11,7 @@ from calliope.inference import (
     text_to_extended_text_inference,
     text_to_image_file_inference,
 )
-
-
-API_TOKEN = "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"
+from calliope.models import KeysModel
 
 
 frame_file = "frame.jpg"
@@ -32,6 +30,10 @@ def story_loop_inference_api(prompt_template: str) -> None:
     vid = cv2.VideoCapture(0)
     last_text = ""
 
+    # TODO: If we want to keep this legacy code, we need a way to load the
+    # keys from a secrets file.
+    keys = KeysModel()
+
     while True:
         ret, frame = vid.read()
         if frame is not None:
@@ -42,7 +44,7 @@ def story_loop_inference_api(prompt_template: str) -> None:
             fragment_len = 0
 
             try:
-                caption = image_file_to_text_inference(frame_file)
+                caption = image_file_to_text_inference(frame_file, keys)
             except Exception as e:
                 print(e)
 
@@ -54,7 +56,7 @@ def story_loop_inference_api(prompt_template: str) -> None:
             text = f"{caption} {last_text}"
             fragment_len = len(text)
             try:
-                text = text_to_extended_text_inference(text)
+                text = text_to_extended_text_inference(text, keys)
             except Exception as e:
                 print(e)
 
@@ -71,7 +73,7 @@ def story_loop_inference_api(prompt_template: str) -> None:
             print(text)
             try:
                 output_image_filename = "output_file.jpg"
-                text_to_image_file_inference(prompt, output_image_filename)
+                text_to_image_file_inference(prompt, output_image_filename, keys)
                 image = cv2.imread(output_image_filename)
                 cv2.imshow("Calliope", image)
             except Exception as e:

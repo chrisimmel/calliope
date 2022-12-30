@@ -1,5 +1,7 @@
 from calliope.models import (
     FramesRequestParamsModel,
+    KeysModel,
+    InferenceModelConfigsModel,
     SparrowStateModel,
     StoryFrameModel,
     StoryFrameSequenceResponseModel,
@@ -31,6 +33,8 @@ class SimpleOneFrameStoryStrategy(StoryStrategy):
     async def get_frame_sequence(
         self,
         parameters: FramesRequestParamsModel,
+        inference_model_configs: InferenceModelConfigsModel,
+        keys: KeysModel,
         sparrow_state: SparrowStateModel,
         story: StoryModel,
     ) -> StoryFrameSequenceResponseModel:
@@ -44,7 +48,9 @@ class SimpleOneFrameStoryStrategy(StoryStrategy):
 
         if parameters.input_image_filename:
             try:
-                caption = image_file_to_text_inference(parameters.input_image_filename)
+                caption = image_file_to_text_inference(
+                    parameters.input_image_filename, inference_model_configs, keys
+                )
             except Exception as e:
                 print(e)
                 errors.append(str(e))
@@ -57,7 +63,7 @@ class SimpleOneFrameStoryStrategy(StoryStrategy):
             else:
                 caption = parameters.input_text
 
-        text = text_to_extended_text_inference(caption)
+        text = text_to_extended_text_inference(caption, inference_model_configs, keys)
         prompt_template = output_image_style + " {x}"
         print(text)
 
@@ -68,7 +74,9 @@ class SimpleOneFrameStoryStrategy(StoryStrategy):
                 output_image_filename_png = create_sequential_filename(
                     "media", client_id, "out", "png", story
                 )
-                text_to_image_file_inference(prompt, output_image_filename_png)
+                text_to_image_file_inference(
+                    prompt, output_image_filename_png, inference_model_configs, keys
+                )
                 image = get_image_attributes(output_image_filename_png)
             except Exception as e:
                 print(e)

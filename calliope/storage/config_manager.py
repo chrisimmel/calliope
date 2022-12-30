@@ -1,14 +1,15 @@
 import os
-from typing import Any, cast, Dict, Optional
+from typing import Any, cast, Dict, Optional, Tuple
 
 from calliope.models import (
     FramesRequestParamsModel,
+    InferenceModelConfigsModel,
+    KeysModel,
+    load_inference_model_configs,
     SparrowConfigModel,
     StoryParamsModel,
 )
 from calliope.utils.file import (
-    create_unique_filename,
-    decode_b64_to_file,
     load_json_into_pydantic_model,
     write_pydantic_model_to_json,
 )
@@ -69,20 +70,14 @@ def put_sparrow_config(sparrow_config: SparrowConfigModel) -> None:
         put_google_file(folder, local_filename)
 
 
-def get_sparrow_story_parameters(
+def get_sparrow_story_parameters_and_keys(
     request_params: FramesRequestParamsModel,
-) -> FramesRequestParamsModel:
+) -> Tuple[FramesRequestParamsModel, KeysModel, InferenceModelConfigsModel]:
     """
-    Gets the StoryParamsModel for a given set of request parameters,
-    taking into account the sparrow and flock configurations.
-    Also decodes and stores the b64-encoded file parameters.
+    Gets the story parameters and keys given a set of request
+    parameters, taking into account the sparrow and flock
+    configurations.
     """
-    return _apply_sparrow_config_inheritance(request_params)
-
-
-def _apply_sparrow_config_inheritance(
-    request_params: FramesRequestParamsModel,
-) -> FramesRequestParamsModel:
     sparrow_or_flock_id = request_params.client_id
 
     sparrows_and_flocks_visited = []
@@ -90,17 +85,24 @@ def _apply_sparrow_config_inheritance(
     # Assemble the story parameters...
     # 1. Take as the story params the request_params furnished with the API request.
     params_dict = request_params.dict()
+    keys_dict = {}
+
     while sparrow_or_flock_id:
         # 2. Check to see whether there is a config for the given sparrow or flock ID.
         sparrow_or_flock_config = get_sparrow_config(sparrow_or_flock_id)
         if sparrow_or_flock_config:
             if sparrow_or_flock_config.parameters:
+                # 3. If so, merge the sparrow/flock config with the story params. The
+                # story params take precedence.
                 sparrow_or_flock_params_dict = _get_non_default_parameters(
                     sparrow_or_flock_config.parameters.dict()
                 )
-                # 3. If so, merge the sparrow/flock config with the story params. The
-                # story params take precedence.
                 params_dict = {**sparrow_or_flock_params_dict, **params_dict}
+
+            if sparrow_or_flock_config.keys:
+                # 3.5 Merge keys similarly.
+                sparrow_or_flock_keys_dict = sparrow_or_flock_config.keys.dict()
+                keys_dict = {**sparrow_or_flock_keys_dict, **keys_dict}
 
             # 4. Take the flock ID from the sparrow/flock config.
             sparrow_or_flock_id = sparrow_or_flock_config.parent_flock_id
@@ -120,7 +122,31 @@ def _apply_sparrow_config_inheritance(
             # If there was no config for that sparrow or flock, we're done.
             sparrow_or_flock_id = None
 
-    return FramesRequestParamsModel(**params_dict)
+    inference_model_configs = _load_inference_model_configs(params_dict)
+
+    return (
+        FramesRequestParamsModel(**params_dict),
+        KeysModel(**keys_dict),
+        inference_model_configs,
+    )
+
+
+def _load_inference_model_configs(
+    request_params_dict: Dict[str, Any]
+) -> InferenceModelConfigsModel:
+    config_names = {
+        key: name
+        for key, name in request_params_dict.items()
+        if key
+        in (
+            "image_to_text_model_config",
+            "text_to_image_model_config",
+            "text_to_text_model_config",
+            "audio_to_text_model_config",
+        )
+        and name
+    }
+    return load_inference_model_configs(**config_names)
 
 
 def _get_non_default_parameters(params_dict: Dict[str, Any]) -> Dict[str, Any]:

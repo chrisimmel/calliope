@@ -1,5 +1,7 @@
 from calliope.models import (
     FramesRequestParamsModel,
+    KeysModel,
+    InferenceModelConfigsModel,
     SparrowStateModel,
     StoryFrameModel,
     StoryFrameSequenceResponseModel,
@@ -21,6 +23,8 @@ class ShowThisFrameStrategy(StoryStrategy):
     async def get_frame_sequence(
         self,
         parameters: FramesRequestParamsModel,
+        inference_model_configs: InferenceModelConfigsModel,
+        keys: KeysModel,
         sparrow_state: SparrowStateModel,
         story: StoryModel,
     ) -> StoryFrameSequenceResponseModel:

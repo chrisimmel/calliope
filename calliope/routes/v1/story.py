@@ -21,7 +21,7 @@ from calliope.inference import (
     text_to_image_file_inference,
 )
 from calliope.models import FramesRequestParamsModel, StoryFrameModel, StoryParamsModel
-from calliope.storage.config_manager import get_sparrow_story_parameters
+from calliope.storage.config_manager import get_sparrow_story_parameters_and_keys
 from calliope.strategies import StoryStrategyRegistry
 from calliope.utils.file import (
     compose_full_filename,
@@ -83,7 +83,9 @@ async def get_frames(
 async def handle_frames_request(
     request_params: FramesRequestParamsModel,
 ) -> StoryResponseV1:
-    parameters = get_sparrow_story_parameters(request_params)
+    parameters, keys, inference_model_configs = get_sparrow_story_parameters_and_keys(
+        request_params
+    )
     parameters.strategy = parameters.strategy or "simple_one_frame"
     parameters.debug = parameters.debug or False
 
@@ -114,7 +116,7 @@ async def handle_frames_request(
     parameters = prepare_input_files(parameters, story)
 
     story_frames_response = await strategy_class().get_frame_sequence(
-        parameters, sparrow_state, story
+        parameters, inference_model_configs, keys, sparrow_state, story
     )
 
     prepare_frame_images(parameters, story_frames_response.frames)

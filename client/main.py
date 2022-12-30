@@ -14,10 +14,8 @@ from calliope.inference import (
     image_file_to_text_inference,
     text_to_image_file_inference,
 )
+from calliope.models import KeysModel
 from calliope.settings import CALLIOPE_API_KEY
-
-
-API_TOKEN = "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"
 
 
 # image_to_text_model = "ydshieh/vit-gpt2-coco-en-ckpts"
@@ -38,6 +36,10 @@ def image_loop_inference_api() -> None:
     Run forever.
     This version uses the Hugging Face inference API to run the models remotely.
     """
+
+    # TODO: If we want to keep this legacy code, we need a way to load the
+    # keys from a secrets file.
+    keys = KeysModel()
     vid = cv2.VideoCapture(0)
 
     while True:
@@ -47,7 +49,7 @@ def image_loop_inference_api() -> None:
             caption = None
             prompt = None
             try:
-                caption = image_file_to_text_inference(frame_file)
+                caption = image_file_to_text_inference(frame_file, keys)
             except Exception as e:
                 print(e)
 
@@ -57,7 +59,7 @@ def image_loop_inference_api() -> None:
 
             if prompt:
                 try:
-                    output_image_file = text_to_image_file_inference(prompt)
+                    output_image_file = text_to_image_file_inference(prompt, keys)
                     image = cv2.imread(output_image_file)
                     cv2.imshow("weld", image)
                 except Exception as e:

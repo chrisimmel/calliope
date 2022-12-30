@@ -1,5 +1,12 @@
 from .frame_sequence_response import StoryFrameSequenceResponseModel
 from .image import ImageFormat, ImageModel
+from .keys import KeysModel
+from .inference_model_config import (
+    InferenceModelConfigModel,
+    InferenceModelConfigsModel,
+    InferenceModelProvider,
+    load_inference_model_configs,
+)
 from .parameters import FramesRequestParamsModel, StoryParamsModel
 from .schedule import ScheduleModel, ScheduleStateModel, ScheduleStepModel
 from .sparrow_config import SparrowConfigModel
@@ -17,6 +24,11 @@ __all__ = [
     "FramesRequestParamsModel",
     "ImageFormat",
     "ImageModel",
+    "KeysModel",
+    "InferenceModelConfigModel",
+    "InferenceModelConfigsModel",
+    "InferenceModelProvider",
+    "load_inference_model_configs",
     "OnMotionTriggerConditionModel",
     "ScheduleModel",
     "ScheduleStateModel",

@@ -2,6 +2,7 @@ from typing import Optional
 
 from pydantic import BaseModel, StrictStr
 
+from calliope.models.keys import KeysModel
 from calliope.models.parameters import StoryParamsModel
 from calliope.models.schedule import ScheduleModel
 
@@ -24,3 +25,6 @@ class SparrowConfigModel(BaseModel):
 
     # An optional schedule to follow.
     schedule: Optional[ScheduleModel]
+
+    # An optional dictionary of things like API keys.
+    keys: Optional[KeysModel]
