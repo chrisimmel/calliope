@@ -16,17 +16,16 @@ const audioConstraints = {
 };
 const thisBrowserID = browserID();
 
-const DEFAULT_STRATEGY = 'continuous_v0'
-
 const getStrategy = () => {
     const queryParameters = new URLSearchParams(window.location.search);
-    return queryParameters.get('strategy') || DEFAULT_STRATEGY;
+    return queryParameters.get('strategy');
 };
 
 export default function ClioApp() {
     const bottomRef = useRef(null);
 
     const [storyText, setStoryText] = useState("")
+    const [append_to_prior_frames, setAppendToPriorFrames] = useState(false)
     const [frameData, setFrameData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -64,8 +63,7 @@ export default function ClioApp() {
 
 
     useEffect(() => {
-        const strategy = getStrategy();
-        if (strategy == DEFAULT_STRATEGY) {
+        if (append_to_prior_frames) {
             // Scroll to bottom when text is added.
             bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
         }
@@ -88,21 +86,18 @@ export default function ClioApp() {
 
                 await captureImage();
 
-                /*
-                const formData = new FormData();
-                formData.append('client_id', thisBrowserID);
-                formData.append('strategy', 'continuous_v0');
-                formData.append("input_image", uploadImage);
-                */
+                params = {
+                    client_id: thisBrowserID,
+                    input_image: uploadImage,
+                    debug: true,
+                };
+                if (strategy) {
+                    params.strategy = strategy
+                }
 
                 const response = await axios.post(
                     "/v1/frames/",
-                    {
-                        client_id: thisBrowserID,
-                        strategy: strategy,
-                        input_image: uploadImage,
-                        debug: true,
-                    },
+                    params,
                     {
                         headers: {
                             "X-Api-Key": "xyzzy",
@@ -119,7 +114,8 @@ export default function ClioApp() {
                 const frame = getFrame(response.data);
                 if (frame) {
                     if (frame && frame.text) {
-                        if (strategy == DEFAULT_STRATEGY) {
+                        setAppendToPriorFrames(response.data.append_to_prior_frames)
+                        if (response.data.append_to_prior_frames) {
                             setStoryText(storyText => storyText + frame.text);
                         }
                         else {
@@ -152,11 +148,7 @@ export default function ClioApp() {
 
     const frame = getFrame(frameData)
     const image = frame ? frame.image : null
-    // This unfortunate fizzlebuzz thing is just to force download of a new image. This is
-    // because the back end today generally swaps out the image behind the same filename
-    // rather than issuing a new filename with each request.  TODO: Fix on back end and
-    // remove fizzlebuzz.  
-    const image_url = image ? (`/${image.url}?fizzlebuzz=${requestCount}`) : ""
+    const image_url = image ? `/${image.url}` : ""
 
     return <>
         <Webcam
