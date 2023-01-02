@@ -4,6 +4,7 @@ from pprint import pprint
 from typing import Any, Optional
 
 import cv2
+import openai
 from PIL import Image
 import requests
 from requests.models import Response
@@ -96,11 +97,11 @@ def text_to_image_file_inference(
     model_config = inference_model_configs.text_to_image_model_config
 
     if model_config.provider == InferenceModelProvider.HUGGINGFACE:
-        print("text_to_image_file_inference.huggingface")
+        print(f"text_to_image_file_inference.huggingface {model_config.model_name}")
         # width and height are ignored by HuggingFace.
         payload = {"inputs": text}
         data = json.dumps(payload)
-        response = _hugging_face_request(data, text_to_image_model, keys)
+        response = _hugging_face_request(data, model_config.model_name, keys)
 
         with open(output_image_filename, "wb") as f:
             for chunk in response:
@@ -108,7 +109,7 @@ def text_to_image_file_inference(
 
         return output_image_filename
     elif model_config.provider == InferenceModelProvider.STABILITY:
-        print("text_to_image_file_inference.stability")
+        print(f"text_to_image_file_inference.stability {model_config.model_name}")
         stability_api = stability_client.StabilityInference(
             key=keys.stability_api_key,
             host=keys.stability_api_host,
@@ -145,11 +146,29 @@ def text_to_image_file_inference(
 def text_to_extended_text_inference(
     text: str, inference_model_configs: InferenceModelConfigsModel, keys: KeysModel
 ) -> str:
-    payload = {"inputs": text}
-    data = json.dumps(payload)
-    response = _hugging_face_request(data, text_prediction_model, keys)
-    predictions = json.loads(response.content.decode("utf-8"))
-    extended_text = predictions[0]["generated_text"]
+    model_config = inference_model_configs.text_to_text_model_config
+
+    if model_config.provider == InferenceModelProvider.HUGGINGFACE:
+        print(f"text_to_extended_text_inference.huggingface {model_config.model_name}")
+        payload = {"inputs": text}
+        data = json.dumps(payload)
+        response = _hugging_face_request(data, model_config.model_name, keys)
+        predictions = json.loads(response.content.decode("utf-8"))
+        extended_text = predictions[0]["generated_text"]
+    elif model_config.provider == InferenceModelProvider.OPENAI:
+        print(f"text_to_extended_text_inference.openai {model_config.model_name}")
+        openai.api_key = keys.openapi_api_key
+
+        completion = openai.Completion.create(
+            engine=model_config.model_name, prompt=text
+        )
+        extended_text = completion.choices[0].text
+        print(f"extended_text= {extended_text}")
+    else:
+        raise ValueError(
+            f"Don't know how to do text->text inference for provider {model_config.provider}."
+        )
+
     return extended_text
 
 

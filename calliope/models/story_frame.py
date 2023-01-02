@@ -17,5 +17,8 @@ class StoryFrameModel(BaseModel):
     # An image illustrating the story.
     image: Optional[ImageModel] = None
 
+    # The minimum duration of this frame, in seconds.
+    min_duration_seconds: Optional[int]
+
     # An optional trigger condition.
     trigger_condition: Optional[TriggerConditionModel] = None

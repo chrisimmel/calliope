@@ -83,16 +83,16 @@ async def get_frames(
 async def handle_frames_request(
     request_params: FramesRequestParamsModel,
 ) -> StoryResponseV1:
+    client_id = request_params.client_id
+    sparrow_state = get_sparrow_state(client_id)
+
     parameters, keys, inference_model_configs = get_sparrow_story_parameters_and_keys(
-        request_params
+        request_params, sparrow_state
     )
     parameters.strategy = parameters.strategy or "simple_one_frame"
     parameters.debug = parameters.debug or False
 
-    client_id = parameters.client_id
     strategy_class = StoryStrategyRegistry.get_strategy_class(parameters.strategy)
-
-    sparrow_state = get_sparrow_state(client_id)
 
     story = None
     if sparrow_state.current_story_id and not parameters.reset_strategy_state:

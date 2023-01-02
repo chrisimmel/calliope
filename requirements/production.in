@@ -4,6 +4,7 @@ ftfy
 google-cloud-storage
 mypy
 numpy
+openai
 opencv-python-headless
 Pillow
 pydantic

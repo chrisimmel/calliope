@@ -9,6 +9,8 @@ from calliope.models import (
     SparrowConfigModel,
     StoryParamsModel,
 )
+from calliope.models.sparrow_state import SparrowStateModel
+from calliope.storage.schedule import check_schedule
 from calliope.utils.file import (
     load_json_into_pydantic_model,
     write_pydantic_model_to_json,
@@ -71,12 +73,12 @@ def put_sparrow_config(sparrow_config: SparrowConfigModel) -> None:
 
 
 def get_sparrow_story_parameters_and_keys(
-    request_params: FramesRequestParamsModel,
+    request_params: FramesRequestParamsModel, sparrow_state: SparrowStateModel
 ) -> Tuple[FramesRequestParamsModel, KeysModel, InferenceModelConfigsModel]:
     """
     Gets the story parameters and keys given a set of request
     parameters, taking into account the sparrow and flock
-    configurations.
+    configurations and schedules.
     """
     sparrow_or_flock_id = request_params.client_id
 
@@ -84,20 +86,44 @@ def get_sparrow_story_parameters_and_keys(
 
     # Assemble the story parameters...
     # 1. Take as the story params the request_params furnished with the API request.
-    params_dict = request_params.dict()
+    params_dict = _get_non_default_parameters(request_params.dict())
     keys_dict = {}
 
     while sparrow_or_flock_id:
         # 2. Check to see whether there is a config for the given sparrow or flock ID.
         sparrow_or_flock_config = get_sparrow_config(sparrow_or_flock_id)
         if sparrow_or_flock_config:
+            # 3. If so, collect the sparrow or flock's parameters and merge them with
+            # those already assembled...
+            sparrow_or_flock_params_dict = {}
+
             if sparrow_or_flock_config.parameters:
-                # 3. If so, merge the sparrow/flock config with the story params. The
-                # story params take precedence.
+                # Does the sparrow or flock have parameters?
                 sparrow_or_flock_params_dict = _get_non_default_parameters(
                     sparrow_or_flock_config.parameters.dict()
                 )
+                print(
+                    f"For sparrow {sparrow_or_flock_id}, text_to_text_model_config={sparrow_or_flock_params_dict.get('text_to_text_model_config')}"
+                )
+
+            if sparrow_or_flock_config.schedule:
+                # Does it have a schedule? (If so, merge the sparrow schedule with its
+                # parameters, giving precedence to the schedule.)
+                sparrow_or_flock_params_dict = {
+                    **sparrow_or_flock_params_dict,
+                    **check_schedule(sparrow_or_flock_config, sparrow_state),
+                }
+                print(
+                    f"For sparrow {sparrow_or_flock_id} with schedule, text_to_text_model_config={sparrow_or_flock_params_dict.get('text_to_text_model_config')}"
+                )
+
+            if sparrow_or_flock_params_dict:
+                # Merge the sparrow params with the params already assembled, giving
+                # precedence to those already assembled.
                 params_dict = {**sparrow_or_flock_params_dict, **params_dict}
+                print(
+                    f"For sparrow {sparrow_or_flock_id} after merge, text_to_text_model_config={params_dict.get('text_to_text_model_config')}"
+                )
 
             if sparrow_or_flock_config.keys:
                 # 3.5 Merge keys similarly.
@@ -122,7 +148,13 @@ def get_sparrow_story_parameters_and_keys(
             # If there was no config for that sparrow or flock, we're done.
             sparrow_or_flock_id = None
 
+    print(
+        f"In assembled params, text_to_text_model_config={params_dict.get('text_to_text_model_config')}"
+    )
+
     inference_model_configs = _load_inference_model_configs(params_dict)
+
+    print(f"{inference_model_configs.text_to_text_model_config=}")
 
     return (
         FramesRequestParamsModel(**params_dict),
@@ -152,7 +184,7 @@ def _load_inference_model_configs(
 def _get_non_default_parameters(params_dict: Dict[str, Any]) -> Dict[str, Any]:
     non_default_request_params = {}
     # Get the request parameters with non-default values.
-    for field in StoryParamsModel.__fields__.values():
+    for field in FramesRequestParamsModel.__fields__.values():
         value = params_dict.get(field.alias)
         if value != field.default:
             non_default_request_params[field.alias] = value

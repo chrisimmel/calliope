@@ -13,6 +13,10 @@ class StoryFrameSequenceResponseModel(BaseModel):
     # A list of story frames.
     frames: List[StoryFrameModel]
 
+    # Whether these frames should be appended to those delivered
+    # previously.
+    append_to_prior_frames: bool = False
+
     # Optional debug data.
     debug_data: Optional[Dict[str, Any]] = None
 

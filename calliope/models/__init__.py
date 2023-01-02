@@ -15,11 +15,17 @@ from .story import StoryModel
 from .story_frame import StoryFrameModel
 from .trigger_condition import (
     TriggerConditionModel,
+    TriggerType,
+    AfterWaitTriggerConditionModel,
     AtTimeTriggerConditionModel,
+    OnLightTriggerConditionModel,
     OnMotionTriggerConditionModel,
+    OnSoundTriggerConditionModel,
 )
 
+
 __all__ = [
+    "AfterWaitTriggerConditionModel",
     "AtTimeTriggerConditionModel",
     "FramesRequestParamsModel",
     "ImageFormat",
@@ -29,7 +35,10 @@ __all__ = [
     "InferenceModelConfigsModel",
     "InferenceModelProvider",
     "load_inference_model_configs",
+    "OnLightTriggerConditionModel",
     "OnMotionTriggerConditionModel",
+    "OnSoundTriggerConditionModel",
+    "OnLightTriggerConditionModel",
     "ScheduleModel",
     "ScheduleStateModel",
     "ScheduleStepModel",
@@ -40,4 +49,5 @@ __all__ = [
     "StoryModel",
     "StoryParamsModel",
     "TriggerConditionModel",
+    "TriggerType",
 ]

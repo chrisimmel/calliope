@@ -20,20 +20,19 @@ from calliope.utils.image import get_image_attributes
 
 
 @StoryStrategyRegistry.register()
-class ContinuousStoryV0Strategy(StoryStrategy):
+class ContinuousStoryV1Strategy(StoryStrategy):
     """
     Tries to keep a story going, carrying context from a previous frame, if any,
     to a new frame. This works in the manner of an "Exquisite Corpse" exercise,
     where each generation blindly adds something new to the story, based only on
     the step immediately precedent.
 
-    This is largely tuned for the EleutherAI/gpt-neo-2.7B model, so uses very short
-    text fragments.
+    Spread our wings and try larger prompts tuned for GPT-3.
 
     Returns a single frame.
     """
 
-    strategy_name = "continuous_v0"
+    strategy_name = "continuous_v1"
 
     async def get_frame_sequence(
         self,
@@ -74,14 +73,15 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         if last_text:
             last_text_tokens = story.text.split()
             # last_text_tokens = last_text_tokens[int(len(last_text_tokens) / 2) :]
-            last_text_tokens = last_text_tokens[-20:]
+            last_text_tokens = last_text_tokens[-500:]
             last_text = " ".join(last_text_tokens)
 
-        text = f"{caption} {last_text}"
+            text = f"Say something about '{caption}', while continuing this story: {last_text}"
+        else:
+            text = f"Begin a long, dreamy, bittersweet story about '{caption}'"
+
         print(f'Text prompt: "{text}"')
-        text_1 = self._get_new_story_fragment(text, inference_model_configs, keys)
-        text_2 = self._get_new_story_fragment(text_1, inference_model_configs, keys)
-        text = text_1 + " " + text_2 + " "
+        text = self._get_new_story_fragment(text, inference_model_configs, keys) + " "
 
         if not text or text.isspace():
             text = caption
@@ -129,16 +129,11 @@ class ContinuousStoryV0Strategy(StoryStrategy):
     def _get_new_story_fragment(
         self, text: str, inference_model_configs, keys: KeysModel
     ) -> str:
-        fragment_len = len(text)
         try:
             text = text_to_extended_text_inference(text, inference_model_configs, keys)
         except Exception as e:
             print(e)
-
-        text = text[fragment_len:]
-        text = " ".join(text.split(" "))
-        text = text.replace("*", "")
-        text = text.replace("_", "")
-        text = text.strip()
+        # text = " ".join(text.split(" "))
+        # text = text.strip()
 
         return text

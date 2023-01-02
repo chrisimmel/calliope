@@ -16,7 +16,7 @@ h11
 httptools==0.5.0
 invoke==1.7.1
 numpy==1.23.5
-openai==0.19.0
+openai==0.25.0
 opencv-python==4.6.0.66
 Pillow==9.3.0
 pydantic==1.10.2

@@ -1,6 +1,6 @@
 from enum import Enum
 
-from pydantic import BaseModel, StrictInt
+from pydantic import BaseModel, StrictInt, StrictStr
 
 
 class TriggerType(Enum):
@@ -26,8 +26,8 @@ class AtTimeTriggerConditionModel(TriggerConditionModel):
 
     trigger_type = TriggerType.AT_TIME
 
-    # Trigger the event at the given time, a Unix timestamp (seconds since epoch).
-    at_time: StrictInt
+    # Trigger the event at or after the given Zulu time (ISO format).
+    at_time: StrictStr
 
 
 class AfterWaitTriggerConditionModel(BaseModel):

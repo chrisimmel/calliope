@@ -39,7 +39,7 @@ _model_configs_by_name = {
     ),
     "huggingface_gpt_neo_2.7B": InferenceModelConfigModel(
         provider=InferenceModelProvider.HUGGINGFACE,
-        model_name="huggingface_gpt_neo_2.7B",
+        model_name="EleutherAI/gpt-neo-2.7B",
     ),
     "huggingface_wav2vec2": InferenceModelConfigModel(
         provider=InferenceModelProvider.HUGGINGFACE,
@@ -66,6 +66,13 @@ _model_configs_by_name = {
         },
     ),
     # OpenAI models...
+    "openai_curie": InferenceModelConfigModel(
+        provider=InferenceModelProvider.OPENAI,
+        model_name="curie",
+        parameters={
+            "max_tokens": 1024,
+        },
+    ),
     "openai_dall_e_2": InferenceModelConfigModel(
         provider=InferenceModelProvider.OPENAI,
         model_name="DALL-E-2",
