@@ -11,7 +11,7 @@ from calliope.models import (
 from calliope.utils.authentication import get_api_key
 
 
-router = APIRouter(prefix="/v1", tags=["media"])
+router = APIRouter(prefix="/v1", tags=["config"])
 
 
 @router.get("/config/sparrow/{sparrow_or_flock_id}")
