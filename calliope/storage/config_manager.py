@@ -92,6 +92,11 @@ def get_sparrow_story_parameters_and_keys(
     while sparrow_or_flock_id:
         # 2. Check to see whether there is a config for the given sparrow or flock ID.
         sparrow_or_flock_config = get_sparrow_config(sparrow_or_flock_id)
+        if not sparrow_or_flock_config:
+            # Fall back on the default config.
+            sparrow_or_flock_id = "default"
+            sparrow_or_flock_config = get_sparrow_config(sparrow_or_flock_id)
+
         if sparrow_or_flock_config:
             # 3. If so, collect the sparrow or flock's parameters and merge them with
             # those already assembled...
