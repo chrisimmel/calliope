@@ -18,11 +18,11 @@ inheriting default parameters from their parent flocks.
 # Configuration
 A sparrow or flock configuration consists of the following:
 
-* id: The ID of the sparrow or flock.
-* parent_flock_id: The ID of the flock to which the sparrow or flock belongs,
+* `id`: The ID of the sparrow or flock.
+* `parent_flock_id`: The ID of the flock to which the sparrow or flock belongs,
 if any. A sparrow or flock inherits the parameters and schedule of its parent
 flock as defaults,
-* parameters: Optional parameters to be passed through the flock inheritance
+* `parameters`: Optional parameters to be passed through the flock inheritance
 sequence to the strategy.
-* schedule: An optional schedule to follow. See [Scheduling]https://github.com/chrisimmel/calliope/tree/main/docs/scheduling.md)
-* keys: An optional dictionary of things like API keys.
+* `schedule`: An optional schedule to follow. See [Scheduling]https://github.com/chrisimmel/calliope/tree/main/docs/scheduling.md)
+* `keys`: An optional dictionary of things like API keys.

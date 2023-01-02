@@ -11,24 +11,24 @@ to either a POST or GET request.
 
 ## `/v1/frames/` parameters
 
-* client_id: string - the ID of the calling client. A required string that should uniquely identify the calling device or application.
-* input_image: string - An input image, encoded in base64, optional (harvested image, for now, common web image formats work, jpg, png, etc.).
-* input_audio: string - An audio sample, encoded in base64, optional (harvested sound).
-* location: string - The geolocation of the client, optional.
-* input_text: string - Harvested text from client environment, or an arbitrary string sent from the client.
-* output_image_format: string - The requested image format. Can be ,
-* output_image_width: int - The requested image width. The final image may be padded or cropped to fit this dimension.
-* output_image_height: int - The requested image height. The final image may be padded or cropped to fit this dimension.
-* output_image_style: string - The requested image style, given as English text, like "A watercolor of" or "A pencil drawing of".
-* output_text_length: int - The requested text length (currently unused).
-* output_text_style: string - The requested text style (currently unused).
-* reset_strategy_state: boolean - Whether to reset the strategy and begin a new story. Default is False.
-* strategy: string - The name of the strategy to be used to generate the frames.
-* image_to_text_model_config: string - The name of the inference model config used to generate text from an image.
-* text_to_image_model_config: string - The name of the inference model config used to generate an image from text. 
-* text_to_text_model_config: string -  The name of the inference model config used to generate extended text from text.
-* audio_to_text_model_config: string - The name of the inference model config used to generate text from audio.
-* debug: boolean - Whether to include extra diagnostic information in the response.
+* `client_id`: string - the ID of the calling client. A required string that should uniquely identify the calling device or application.
+* `input_image`: string - An input image, encoded in base64, optional (harvested image, for now, common web image formats work, jpg, png, etc.).
+* `input_audio`: string - An audio sample, encoded in base64, optional (harvested sound).
+* `location`: string - The geolocation of the client, optional.
+* `input_text`: string - Harvested text from client environment, or an arbitrary string sent from the client.
+* `output_image_format`: string - The requested image format. Can be ,
+* `output_image_width`: int - The requested image width. The final image may be padded or cropped to fit this dimension.
+* `output_image_height`: int - The requested image height. The final image may be padded or cropped to fit this dimension.
+* `output_image_style`: string - The requested image style, given as English text, like "A watercolor of" or "A pencil drawing of".
+* `output_text_length`: int - The requested text length (currently unused).
+* `output_text_style`: string - The requested text style (currently unused).
+* `reset_strategy_state`: boolean - Whether to reset the strategy and begin a new story. Default is False.
+* `strategy`: string - The name of the strategy to be used to generate the frames.
+* `image_to_text_model_config`: string - The name of the inference model config used to generate text from an image.
+* `text_to_image_model_config`: string - The name of the inference model config used to generate an image from text. 
+* `text_to_text_model_config`: string -  The name of the inference model config used to generate extended text from text.
+* `audio_to_text_model_config`: string - The name of the inference model config used to generate text from audio.
+* `debug`: boolean - Whether to include extra diagnostic information in the response.
 
 Hint: Some image generation models (notably Stable Diffusion) constrain output image dimensions to multiples of 64.
 When asked for an image size that doesn't fit this constraint, Calliope will use the nearest greater multiple of 64
