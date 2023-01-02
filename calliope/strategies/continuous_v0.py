@@ -107,7 +107,9 @@ class ContinuousStoryV0Strategy(StoryStrategy):
                     parameters.output_image_height,
                 )
                 output_image_filename = output_image_filename_png
+                print(f"Wrote image to file {output_image_filename}.")
                 image = get_image_attributes(output_image_filename)
+                print(f"Image: {image}.")
             except Exception as e:
                 print(e)
                 errors.append(str(e))
@@ -123,7 +125,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
             frames=[frame],
             debug_data=debug_data,
             errors=errors,
-            append_to_prior_frame=True,
+            append_to_prior_frames=True,
         )
 
     def _get_new_story_fragment(

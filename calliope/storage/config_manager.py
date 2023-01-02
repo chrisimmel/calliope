@@ -107,9 +107,6 @@ def get_sparrow_story_parameters_and_keys(
                 sparrow_or_flock_params_dict = _get_non_default_parameters(
                     sparrow_or_flock_config.parameters.dict()
                 )
-                print(
-                    f"For sparrow {sparrow_or_flock_id}, text_to_text_model_config={sparrow_or_flock_params_dict.get('text_to_text_model_config')}"
-                )
 
             if sparrow_or_flock_config.schedule:
                 # Does it have a schedule? (If so, merge the sparrow schedule with its
@@ -118,17 +115,11 @@ def get_sparrow_story_parameters_and_keys(
                     **sparrow_or_flock_params_dict,
                     **check_schedule(sparrow_or_flock_config, sparrow_state),
                 }
-                print(
-                    f"For sparrow {sparrow_or_flock_id} with schedule, text_to_text_model_config={sparrow_or_flock_params_dict.get('text_to_text_model_config')}"
-                )
 
             if sparrow_or_flock_params_dict:
                 # Merge the sparrow params with the params already assembled, giving
                 # precedence to those already assembled.
                 params_dict = {**sparrow_or_flock_params_dict, **params_dict}
-                print(
-                    f"For sparrow {sparrow_or_flock_id} after merge, text_to_text_model_config={params_dict.get('text_to_text_model_config')}"
-                )
 
             if sparrow_or_flock_config.keys:
                 # 3.5 Merge keys similarly.
@@ -153,13 +144,7 @@ def get_sparrow_story_parameters_and_keys(
             # If there was no config for that sparrow or flock, we're done.
             sparrow_or_flock_id = None
 
-    print(
-        f"In assembled params, text_to_text_model_config={params_dict.get('text_to_text_model_config')}"
-    )
-
     inference_model_configs = _load_inference_model_configs(params_dict)
-
-    print(f"{inference_model_configs.text_to_text_model_config=}")
 
     return (
         FramesRequestParamsModel(**params_dict),

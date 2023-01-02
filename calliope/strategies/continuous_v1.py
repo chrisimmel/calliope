@@ -76,7 +76,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
             last_text_tokens = last_text_tokens[-500:]
             last_text = " ".join(last_text_tokens)
 
-            text = f"Say something about '{caption}', while continuing this story: {last_text}"
+            text = f"Continue this story about {caption}: {last_text}"
         else:
             text = f"Begin a long, dreamy, bittersweet story about '{caption}'"
 
@@ -107,7 +107,9 @@ class ContinuousStoryV1Strategy(StoryStrategy):
                     parameters.output_image_height,
                 )
                 output_image_filename = output_image_filename_png
+                print(f"Wrote image to file {output_image_filename}.")
                 image = get_image_attributes(output_image_filename)
+                print(f"Image: {image}.")
             except Exception as e:
                 print(e)
                 errors.append(str(e))
@@ -123,7 +125,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
             frames=[frame],
             debug_data=debug_data,
             errors=errors,
-            append_to_prior_frame=True,
+            append_to_prior_frames=True,
         )
 
     def _get_new_story_fragment(

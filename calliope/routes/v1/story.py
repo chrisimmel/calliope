@@ -50,6 +50,10 @@ class StoryResponseV1(BaseModel):
     # Some frames of the story to display, with optional start/stop times.
     frames: List[StoryFrameModel]
 
+    # Whether these frames should be appended to those delivered
+    # previously.
+    append_to_prior_frames: bool = False
+
     request_id: str
     generation_date: str
     debug_data: Optional[Dict[str, Any]] = None
@@ -126,6 +130,7 @@ async def handle_frames_request(
 
     response = StoryResponseV1(
         frames=story_frames_response.frames,
+        append_to_prior_frames=story_frames_response.append_to_prior_frames,
         request_id=cuid.cuid(),
         generation_date=datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ"),
         debug_data=story_frames_response.debug_data if parameters.debug else {},

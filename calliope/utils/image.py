@@ -103,8 +103,8 @@ def resize_image_if_needed(
                 format=input_image.format,
                 url=input_image.url,
             )
-    else:
-        return input_image
+
+    return input_image
 
 
 def get_image_attributes(image_filename: str) -> ImageModel:
