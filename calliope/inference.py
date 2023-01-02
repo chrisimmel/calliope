@@ -1,5 +1,6 @@
 import io
 import json
+import math
 from pprint import pprint
 from typing import Any, Optional
 
@@ -120,10 +121,19 @@ def text_to_image_file_inference(
             # Available engines: stable-diffusion-v1 stable-diffusion-v1-5 stable-diffusion-512-v2-0 stable-diffusion-768-v2-0
             # stable-diffusion-512-v2-1 stable-diffusion-768-v2-1 stable-inpainting-v1-0 stable-inpainting-512-v2-0
         )
+
+        width = width or 512
+        height = height or 512
+
+        # Stable Diffusion accepts only multiples of 64 for image dimensions. Can scale or crop
+        # afterward to mach requested size.
+        width = math.ceil(width / 64) * 64
+        height = math.ceil(height / 64) * 64
+
         responses = stability_api.generate(
             prompt=text,
-            width=width or 512,
-            height=height or 512,
+            width=width,
+            height=height,
             **model_config.parameters,
         )
         for response in responses:
