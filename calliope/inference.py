@@ -109,7 +109,9 @@ def text_to_image_file_inference(
 
         return output_image_filename
     elif model_config.provider == InferenceModelProvider.STABILITY:
-        print(f"text_to_image_file_inference.stability {model_config.model_name}")
+        print(
+            f"text_to_image_file_inference.stability {model_config.model_name} ({width}x{height})"
+        )
         stability_api = stability_client.StabilityInference(
             key=keys.stability_api_key,
             host=keys.stability_api_host,

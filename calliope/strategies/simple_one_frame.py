@@ -75,7 +75,12 @@ class SimpleOneFrameStoryStrategy(StoryStrategy):
                     "media", client_id, "out", "png", story
                 )
                 text_to_image_file_inference(
-                    prompt, output_image_filename_png, inference_model_configs, keys
+                    prompt,
+                    output_image_filename_png,
+                    inference_model_configs,
+                    keys,
+                    parameters.output_image_width,
+                    parameters.output_image_height,
                 )
                 image = get_image_attributes(output_image_filename_png)
             except Exception as e:
