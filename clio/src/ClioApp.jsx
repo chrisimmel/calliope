@@ -29,7 +29,6 @@ export default function ClioApp() {
     const [frameData, setFrameData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [requestCount, setRequestCount] = useState(0);
 
     const webcamRef = useRef(null);
     let uploadImage = null
@@ -86,7 +85,7 @@ export default function ClioApp() {
 
                 await captureImage();
 
-                params = {
+                let params = {
                     client_id: thisBrowserID,
                     input_image: uploadImage,
                     debug: true,
@@ -127,7 +126,6 @@ export default function ClioApp() {
                 setError(null);
 
                 getFramesInterval = setInterval(getFrames, 20000);
-                setRequestCount(requestCount => requestCount + 1);
             } catch (err) {
                 setError(err.message);
             } finally {
