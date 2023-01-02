@@ -2,49 +2,15 @@
 
 ![image](https://user-images.githubusercontent.com/17924059/209908360-af2a806e-e121-4f39-a988-72c3b73142db.png)
 
+In Greek mythology, Calliope (/kəˈlaɪ.əpi/ kə-LY-ə-pee; Ancient Greek: Καλλιόπη, romanized: Kalliópē, lit. 'beautiful-voiced') is the Muse who presides over eloquence and epic poetry; so called from the ecstatic harmony of her voice. Hesiod and Ovid called her the "Chief of all Muses".
 
-# Running Calliope
+In this incarnation, Calliope invents and recites stories.
 
-Client/server:
+## Table of Contents
 
-Start the server (in one terminal):
-```
-uvicorn app:app --reload
-```
-
-Start the client (in another terminal):
-```
-python -m client.main
-```
-
-Altogether:
-```
-python -m client.story_loop
-```
-
-
-# With Docker
-```
-docker build -t calliope .
-docker run --env PORT=8080 --publish 127.0.0.1:8080:8080/tcp calliope
-```
-
-# Building and Deploying to Google Cloud
-
-```
-gcloud auth application-default login
-gcloud builds submit --tag gcr.io/ardent-course-370411/calliope
-gcloud run deploy --image gcr.io/ardent-course-370411/calliope --platform managed
-```
-
-
-# Clio
-
-To build:
-```
-cd clio
-npm run build
-cp build/* ../static
-```
-
-Then it will be served at <calliope-host>/
+- [Building]https://github.com/chrisimmel/calliope/tree/main/docs/building.md)
+- [Running]https://github.com/chrisimmel/calliope/tree/main/docs/running.md)
+- [API]https://github.com/chrisimmel/calliope/tree/main/docs/api.md)
+- [Stories]https://github.com/chrisimmel/calliope/tree/main/docs/stories.md)
+- [Configuration]https://github.com/chrisimmel/calliope/tree/main/docs/config.md)
+- [Scheduling]https://github.com/chrisimmel/calliope/tree/main/docs/scheduling.md)
