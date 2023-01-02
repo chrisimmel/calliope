@@ -26,9 +26,6 @@ class ScheduleModel(BaseModel):
     A sequence of configuration steps.
     """
 
-    # An optional name for the schedule.
-    name: Optional[str]
-
     # The sequence of steps.
     steps: List[ScheduleStepModel]
 
