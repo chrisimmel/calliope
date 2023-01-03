@@ -3,7 +3,16 @@
 The auto-generated API documentation is available at https://calliope-ugaidvq5sa-uc.a.run.app/docs.
 
 The API consists mainly of two parts: serving a story (the _story_ API) and configuring sparrows and
-flocks (the _config_ API).
+flocks (the _config_ API). In addition, there are endpoints to help download and upload media files
+used in support of a story.
+
+# Authentication
+Authentication to the Calliope API is done via an API key. To run locally, you can set the key to whatever
+you like via the `CALLIOPE_API_KEY` environment variable. For access to the production API key, please contact
+Chris Immel or Mikal Hart.
+
+The API key is normally sent as the value of the `X-Api-Header` HTTP header, but for HTTP get requests (generally
+for development and testing) can also be given as the value of the `api_key` query parameter on the URL.
 
 # The Story API
 The story API consists of the `/v1/frames/` endpoint, which delivers frames of a story in response
@@ -39,3 +48,10 @@ The config API allows a caller to either PUT or GET a configuration for a sparro
 `/v1/config/sparrow/<sparrow-or-flock_ID>`.
 
 For more information on sparrow configs, see [Configuration]https://github.com/chrisimmel/calliope/tree/main/docs/config.md).
+
+# The Media API
+The media API allows a file to be downloaded:
+`/media/{filename}` (GET)
+
+and uploaded:
+`/media/{filename}` (PUT)

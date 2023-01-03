@@ -8,9 +8,9 @@ In this incarnation, Calliope invents and recites stories.
 
 ## Table of Contents
 
-- [Building]https://github.com/chrisimmel/calliope/tree/main/docs/building.md)
-- [Running]https://github.com/chrisimmel/calliope/tree/main/docs/running.md)
-- [API]https://github.com/chrisimmel/calliope/tree/main/docs/api.md)
-- [Stories]https://github.com/chrisimmel/calliope/tree/main/docs/stories.md)
-- [Configuration]https://github.com/chrisimmel/calliope/tree/main/docs/config.md)
-- [Scheduling]https://github.com/chrisimmel/calliope/tree/main/docs/scheduling.md)
+- [Building](https://github.com/chrisimmel/calliope/tree/main/docs/building.md)
+- [Running](https://github.com/chrisimmel/calliope/tree/main/docs/running.md)
+- [API](https://github.com/chrisimmel/calliope/tree/main/docs/api.md)
+- [Stories](https://github.com/chrisimmel/calliope/tree/main/docs/stories.md)
+- [Configuration](https://github.com/chrisimmel/calliope/tree/main/docs/config.md)
+- [Scheduling](https://github.com/chrisimmel/calliope/tree/main/docs/scheduling.md)
