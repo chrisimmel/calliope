@@ -25,6 +25,6 @@ flock as defaults,
 * `parameters`: Optional parameters to be passed through the flock inheritance
 sequence to the strategy.
 * `schedule`: An optional schedule to follow. For details, see
-[Scheduling]https://github.com/chrisimmel/calliope/tree/main/docs/scheduling.md)
+[Scheduling](https://github.com/chrisimmel/calliope/tree/main/docs/scheduling.md)
 * `keys`: An optional dictionary of things like API keys. Overriding these
 enables independent API tracking, management, and billing by sparrow or flock.
