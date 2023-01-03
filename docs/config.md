@@ -12,8 +12,10 @@ be stored for automatic use.
 
 # Flocks
 Sparrows can be collected into _flocks_, where a flock is a group of sparrows
-with some shared configuration. Flocks can also be collected into flocks,
-inheriting default parameters from their parent flocks.
+with some shared configuration. Flocks can also be collected into flocks. A
+sparrow or flock with a parent flock inherits default parameters, schedule, and
+keys from its parent, making it possible to set up a tree of cascading options
+to control the configuration of all sparrows.
 
 # Configuration
 A sparrow or flock configuration consists of the following:
@@ -25,6 +27,6 @@ flock as defaults,
 * `parameters`: Optional parameters to be passed through the flock inheritance
 sequence to the strategy.
 * `schedule`: An optional schedule to follow. For details, see
-[Scheduling](https://github.com/chrisimmel/calliope/tree/main/docs/scheduling.md)
+[Scheduling](https://github.com/chrisimmel/calliope/tree/main/docs/scheduling.md).
 * `keys`: An optional dictionary of things like API keys. Overriding these
 enables independent API tracking, management, and billing by sparrow or flock.
