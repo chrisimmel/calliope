@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from starlette.responses import JSONResponse
 
 from calliope.models import StoryFrameModel
+from calliope.routes import media as media_routes
 from calliope.routes import meta as meta_routes
 from calliope.routes.v1 import config as config_routes
 from calliope.routes.v1 import story as story_routes
@@ -32,6 +33,7 @@ app = FastAPI(
 
 app.include_router(meta_routes.router)
 app.include_router(story_routes.router)
+app.include_router(media_routes.router)
 app.include_router(config_routes.router)
 
 

@@ -9,10 +9,9 @@ from calliope.storage.state_manager import (
 )
 
 import cuid
-from fastapi import APIRouter, Depends, File
+from fastapi import APIRouter, Depends
 from fastapi.security.api_key import APIKey
 from pydantic import BaseModel
-from starlette.responses import FileResponse
 
 from calliope.inference import (
     caption_to_prompt,
@@ -195,49 +194,3 @@ def prepare_frame_images(
 
             if is_google_cloud:
                 put_media_file(frame.image.url)
-
-
-@router.post("/image/", tags=["story"])
-async def post_image(
-    api_key: APIKey = Depends(get_api_key),
-    image_file: bytes = File(None),
-) -> Optional[FileResponse]:
-    """
-    Give an image, get an image.
-    This is an older version of the story API.
-    """
-    input_image_filename = "input_image.jpg"
-    caption = "Along the riverrun"
-    try:
-        # image_file.filename = output_image_file
-        with open(input_image_filename, "wb") as f:
-            f.write(image_file)
-        caption = image_file_to_text_inference(input_image_filename)
-    except Exception as e:
-        print(e)
-
-    text = text_to_extended_text_inference(caption)
-    prompt_template = "A watercolor of {x}"
-    print(text)
-
-    if text:
-        prompt = caption_to_prompt(text, prompt_template)
-        output_image_filename = None
-        text_file_name = "output_text"
-
-        try:
-            output_image_filename = create_unique_filename("media", "", "jpg")
-            text_to_image_file_inference(prompt, output_image_filename)
-            # image_np_array = np.frombuffer(image_data, dtype=np.int32)
-            # cv2.imwrite(output_image_file, image_np_array)
-
-            # output_image = cv2.imread(input_image_file)
-
-            # cv2.imwrite(output_image_file, output_image)
-            return FileResponse(output_image_filename, media_type="image/jpeg")
-        except Exception as e:
-            print(e)
-
-        # return zipfiles([output_image_file_name, text_file_name])
-
-    return None

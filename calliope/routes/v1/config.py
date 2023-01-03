@@ -11,10 +11,10 @@ from calliope.models import (
 from calliope.utils.authentication import get_api_key
 
 
-router = APIRouter(prefix="/v1", tags=["config"])
+router = APIRouter(prefix="/v1/config", tags=["configuration"])
 
 
-@router.get("/config/sparrow/{sparrow_or_flock_id}")
+@router.get("/sparrow/{sparrow_or_flock_id}")
 async def request_get_sparrow_config(
     sparrow_or_flock_id: str,
     api_key: APIKey = Depends(get_api_key),
@@ -22,7 +22,7 @@ async def request_get_sparrow_config(
     return get_sparrow_config(sparrow_or_flock_id)
 
 
-@router.put("/config/sparrow/{sparrow_or_flock_id}")
+@router.put("/sparrow/{sparrow_or_flock_id}")
 async def request_put_sparrow_config(
     sparrow_or_flock_id: str,
     sparrow_config: SparrowConfigModel,

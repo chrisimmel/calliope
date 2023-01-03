@@ -8,9 +8,8 @@ from fastapi import (
 
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.security.api_key import APIKey
-from starlette.responses import FileResponse, JSONResponse, RedirectResponse
+from starlette.responses import FileResponse, RedirectResponse
 
-from calliope.routes.v1.media import handle_media_request
 from calliope.utils.authentication import get_api_key
 from calliope.utils.fastapi import get_domain
 
@@ -21,14 +20,6 @@ router = APIRouter()
 @router.get("/robots.txt")
 async def empty_response() -> str:
     return ""
-
-
-@router.get("/media/{filename}")
-async def get_media(
-    filename: str,
-    # api_key: APIKey = Depends(get_api_key),
-) -> Optional[FileResponse]:
-    return await handle_media_request(filename)
 
 
 @router.get("/favicon.ico")
