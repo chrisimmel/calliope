@@ -45,13 +45,9 @@ in both width and height, then scale, pad, or crop as needed to fit the resultin
 
 # The Config API
 The config API allows a caller to either PUT or GET a configuration for a sparrow or flock at
-`/v1/config/sparrow/<sparrow-or-flock_ID>`.
+`/v1/config/sparrow/{sparrow-or-flock_ID}`.
 
 For more information on sparrow configs, see [Configuration]https://github.com/chrisimmel/calliope/tree/main/docs/config.md).
 
 # The Media API
-The media API allows a file to be downloaded:
-`/media/{filename}` (GET)
-
-and uploaded:
-`/media/{filename}` (PUT)
+The media API allows a caller to either PUT or GET a media file for use in story frames at `/media/{filename}`.
