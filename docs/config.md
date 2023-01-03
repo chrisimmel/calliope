@@ -8,7 +8,7 @@ treatment of a given sparrow in terms of the parameters that will be used by
 default when serving `/v1/frames/` requests from that client. Everything about
 how Calliope serves frames to a given sparrow is determined by the parameters
 given with the request--configuration lets default values for these parameters
-to be stored for automatic use.
+be stored for automatic use.
 
 # Flocks
 Sparrows can be collected into _flocks_, where a flock is a group of sparrows
@@ -24,5 +24,7 @@ if any. A sparrow or flock inherits the parameters and schedule of its parent
 flock as defaults,
 * `parameters`: Optional parameters to be passed through the flock inheritance
 sequence to the strategy.
-* `schedule`: An optional schedule to follow. See [Scheduling]https://github.com/chrisimmel/calliope/tree/main/docs/scheduling.md)
-* `keys`: An optional dictionary of things like API keys.
+* `schedule`: An optional schedule to follow. For details, see
+[Scheduling]https://github.com/chrisimmel/calliope/tree/main/docs/scheduling.md)
+* `keys`: An optional dictionary of things like API keys. Overriding these
+enables independent API tracking, management, and billing by sparrow or flock.
