@@ -1,7 +1,11 @@
 # Sparrows
-
 A Sparrow is an individual Calliope client, either a device or an application. It is
 identified by a unique `client_id` passed with each request to the `/frames/` API.
+The primary family of sparrows are implemented on ESP32-based hardware devices,
+discussed in detail at [ESP32-Sparrow](https://github.com/mikalhart/ESP32-Sparrow).
+Another example of a Calliope client/sparrow is
+[Clio](https://github.com/chrisimmel/calliope/tree/main/docs/Clio.md), which runs
+as a JavaScript app in a Web browser.
 
 A configuration can be stored with the Calliope server to determine the default
 treatment of a given sparrow in terms of the parameters that will be used by

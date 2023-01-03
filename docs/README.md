@@ -14,3 +14,4 @@ In this present incarnation, Calliope invents and recites stories.
 - [Stories](https://github.com/chrisimmel/calliope/tree/main/docs/stories.md)
 - [Configuration](https://github.com/chrisimmel/calliope/tree/main/docs/config.md)
 - [Scheduling](https://github.com/chrisimmel/calliope/tree/main/docs/scheduling.md)
+- [Clio](https://github.com/chrisimmel/calliope/tree/main/docs/Clio.md)
