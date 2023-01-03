@@ -1,3 +1,7 @@
+import os
+
+from fastapi import HTTPException
+
 from calliope.models import (
     FramesRequestParamsModel,
     KeysModel,
@@ -9,6 +13,7 @@ from calliope.models import (
 )
 from calliope.strategies.base import StoryStrategy
 from calliope.strategies.registry import StoryStrategyRegistry
+from calliope.utils.google import get_media_file, is_google_cloud_run_environment
 from calliope.utils.image import get_image_attributes
 
 
@@ -32,11 +37,12 @@ class ShowThisFrameStrategy(StoryStrategy):
         debug_data = {}
         errors = []
 
-        image = (
-            get_image_attributes(parameters.input_image_filename)
-            if parameters.input_image_filename
-            else None
-        )
+        if parameters.input_image_filename:
+            self._get_file(parameters.input_image_filename)
+            image = get_image_attributes(parameters.input_image_filename)
+        else:
+            image = None
+
         text = parameters.input_text
 
         frame = StoryFrameModel(
@@ -56,3 +62,21 @@ class ShowThisFrameStrategy(StoryStrategy):
         return StoryFrameSequenceResponseModel(
             frames=[frame], debug_data=debug_data, errors=errors
         )
+
+    def _get_file(self, filename: str) -> None:
+        """
+        Retrieves the file from Google Cloud Storage if needed, and verifies that it exists.
+        """
+        if is_google_cloud_run_environment():
+            base_filename = os.path.basename(filename)
+            try:
+                get_media_file(base_filename, filename)
+            except Exception as e:
+                raise HTTPException(
+                    status_code=404, detail=f"Error retrieving file {filename}: {e}"
+                )
+
+        if not os.path.isfile(filename):
+            raise HTTPException(
+                status_code=404, detail=f"Media file not found: {filename}"
+            )
