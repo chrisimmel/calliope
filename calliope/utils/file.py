@@ -18,10 +18,10 @@ def get_base_filename(filename) -> str:
     after the path and just before the extension. Raises a ValueError if there is no
     base filename.
     """
-    basename = os.path.basename(filename).rsplit(".", 0)
+    basename = os.path.basename(filename).rsplit(".", 1)
     if not basename and len(basename) > 1:
         raise ValueError(f"Invalid image filename: {filename}")
-    return basename[1]
+    return basename[0]
 
 
 def get_file_extension(filename) -> str:
