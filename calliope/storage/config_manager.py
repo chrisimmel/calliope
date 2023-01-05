@@ -38,7 +38,7 @@ def _compose_config_filename(config_type: ConfigType, config_id: str) -> str:
         config_type - The kind of configuration.
         config_id - The ID of the sparrow, flock, or client type.
     """
-    return f"{config_type}-{config_id}.cfg.json"
+    return f"{config_type.value}-{config_id}.cfg.json"
 
 
 def _get_config(config_type: ConfigType, config_id: str) -> Optional[ConfigModel]:
@@ -230,6 +230,8 @@ def get_sparrow_story_parameters_and_keys(
             client_type_config_dict = _get_non_default_parameters(
                 client_type_config.parameters.dict()
             )
+            # As with other parameter merging, parameters passed with
+            # the request take precedence.
             params_dict = {**client_type_config_dict, **params_dict}
 
     inference_model_configs = _load_inference_model_configs(params_dict)
