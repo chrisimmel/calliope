@@ -7,7 +7,7 @@ from calliope.models import (
     StoryFrameSequenceResponseModel,
     StoryModel,
 )
-from calliope.strategies.base import StoryStrategy
+from calliope.strategies.base import DEFAULT_MIN_DURATION_SECONDS, StoryStrategy
 from calliope.strategies.registry import StoryStrategyRegistry
 
 
@@ -80,6 +80,7 @@ class LiteralStrategy(StoryStrategy):
             frame = StoryFrameModel(
                 image=image,
                 text=prompt,
+                min_duration_seconds=DEFAULT_MIN_DURATION_SECONDS,
             )
             frames.append(frame)
 

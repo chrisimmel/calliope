@@ -1,13 +1,15 @@
+from enum import Enum
 import os
 from typing import Any, cast, Dict, Optional, Tuple
 
 from calliope.models import (
+    ClientTypeConfigModel,
+    ConfigModel,
     FramesRequestParamsModel,
     InferenceModelConfigsModel,
     KeysModel,
     load_inference_model_configs,
     SparrowConfigModel,
-    StoryParamsModel,
 )
 from calliope.models.sparrow_state import SparrowStateModel
 from calliope.storage.schedule import check_schedule
@@ -16,27 +18,34 @@ from calliope.utils.file import (
     write_pydantic_model_to_json,
 )
 from calliope.utils.google import (
+    delete_google_file,
     get_google_file,
     is_google_cloud_run_environment,
     put_google_file,
 )
 
 
-def _compose_config_filename(sparrow_or_flock_id: str) -> str:
+class ConfigType(Enum):
+    SPARROW = "sparrow"
+    CLIENT_TYPE = "client-type"
+
+
+def _compose_config_filename(config_type: ConfigType, config_id: str) -> str:
     """
-    Composes the filename of a sparrow or flock config file.
+    Composes the filename of a config file for a sparrow, flock, or client type.
 
     Args:
-        sparrow_or_flock_id - The ID of the sparrow or flock.
+        config_type - The kind of configuration.
+        config_id - The ID of the sparrow, flock, or client type.
     """
-    return f"sparrow-{sparrow_or_flock_id}.cfg.json"
+    return f"{config_type}-{config_id}.cfg.json"
 
 
-def get_sparrow_config(sparrow_or_flock_id: str) -> Optional[SparrowConfigModel]:
+def _get_config(config_type: ConfigType, config_id: str) -> Optional[ConfigModel]:
     """
     Retrieves the config for the given sparrow or flock.
     """
-    filename = _compose_config_filename(sparrow_or_flock_id)
+    filename = _compose_config_filename(config_type, config_id)
 
     folder = "config"
     local_filename = f"{folder}/{filename}"
@@ -49,27 +58,93 @@ def get_sparrow_config(sparrow_or_flock_id: str) -> Optional[SparrowConfigModel]
     if not os.path.isfile(local_filename):
         return None
 
+    model_class = (
+        SparrowConfigModel
+        if config_type == ConfigType.SPARROW
+        else ClientTypeConfigModel
+    )
     try:
-        return load_json_into_pydantic_model(local_filename, SparrowConfigModel)
+        return load_json_into_pydantic_model(local_filename, model_class)
     except Exception as e:
-        print(f"Error loading Sparrow config: {e}")
+        print(f"Error loading configuration {local_filename}: {e}")
         return None
+
+
+def _put_config(config_type: ConfigType, config: ConfigModel) -> None:
+    """
+    Stores the given sparrow or flock config.
+    """
+    filename = _compose_config_filename(config_type, config.id)
+
+    folder = "config"
+    local_filename = f"{folder}/{filename}"
+    write_pydantic_model_to_json(config, local_filename)
+
+    if is_google_cloud_run_environment():
+        put_google_file(folder, local_filename)
+
+
+def _delete_config(config_type: ConfigType, config_id: str) -> None:
+    filename = _compose_config_filename(config_type, config_id)
+
+    folder = "config"
+    local_filename = f"{folder}/{filename}"
+    if is_google_cloud_run_environment():
+        try:
+            delete_google_file(folder, filename)
+        except Exception as e:
+            return None
+
+    if not os.path.isfile(local_filename):
+        os.remove(local_filename)
+
+
+def get_sparrow_config(sparrow_or_flock_id: str) -> Optional[SparrowConfigModel]:
+    """
+    Retrieves the config for the given sparrow or flock.
+    """
+    return cast(
+        Optional[SparrowConfigModel],
+        _get_config(ConfigType.SPARROW, sparrow_or_flock_id),
+    )
 
 
 def put_sparrow_config(sparrow_config: SparrowConfigModel) -> None:
     """
     Stores the given sparrow or flock config.
     """
-    sparrow_or_flock_id = sparrow_config.id
+    _put_config(ConfigType.SPARROW, sparrow_config)
 
-    filename = _compose_config_filename(sparrow_or_flock_id)
 
-    folder = "config"
-    local_filename = f"{folder}/{filename}"
-    write_pydantic_model_to_json(sparrow_config, local_filename)
+def delete_sparrow_config(sparrow_or_flock_id: str) -> None:
+    """
+    Deletes the given sparrow or flock config.
+    """
+    _delete_config(ConfigType.SPARROW, sparrow_or_flock_id)
 
-    if is_google_cloud_run_environment():
-        put_google_file(folder, local_filename)
+
+def get_client_type_config(client_type_id: str) -> Optional[ClientTypeConfigModel]:
+    """
+    Retrieves the config for the given sparrow or flock.
+    """
+    return cast(
+        Optional[ClientTypeConfigModel],
+        _get_config(ConfigType.CLIENT_TYPE, client_type_id),
+    )
+
+
+def put_client_type_config(client_type_config: ClientTypeConfigModel) -> None:
+    """
+    Stores the given client type config.
+    """
+    _put_config(ConfigType.CLIENT_TYPE, client_type_config)
+
+
+def delete_client_type_config(client_type_id: str) -> None:
+    """
+    Deletes the given client type config.
+    """
+    _delete_config(ConfigType.CLIENT_TYPE, client_type_id)
 
 
 def get_sparrow_story_parameters_and_keys(
@@ -98,8 +173,8 @@ def get_sparrow_story_parameters_and_keys(
             sparrow_or_flock_config = get_sparrow_config(sparrow_or_flock_id)
 
         if sparrow_or_flock_config:
-            # 3. If so, collect the sparrow or flock's parameters and merge them with
-            # those already assembled...
+            # 3. If there's a sparrow/flock config, collect its parameters and merge
+            # them with those already assembled...
             sparrow_or_flock_params_dict = {}
 
             if sparrow_or_flock_config.parameters:
@@ -143,6 +218,19 @@ def get_sparrow_story_parameters_and_keys(
         else:
             # If there was no config for that sparrow or flock, we're done.
             sparrow_or_flock_id = None
+
+    # 5. Check for a configuration for the client_type.
+    # Note that the client type can either be passed with the request or
+    # come from a sparrow config.
+    client_type = params_dict.get("client_type")
+    if client_type:
+        client_type_config = get_client_type_config(client_type)
+        if client_type_config:
+            # 5.1. If there is one, merge it with the request parameters.
+            client_type_config_dict = _get_non_default_parameters(
+                client_type_config.parameters.dict()
+            )
+            params_dict = {**client_type_config_dict, **params_dict}
 
     inference_model_configs = _load_inference_model_configs(params_dict)
 

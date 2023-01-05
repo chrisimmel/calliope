@@ -10,6 +10,11 @@ from calliope.models import (
 )
 
 
+# By default, we ask each frame to be displayed for at
+# least 20 seconds.
+DEFAULT_MIN_DURATION_SECONDS = 20
+
+
 class StoryStrategy(object, metaclass=ABCMeta):
     """
     Abstract base class for classes that implement story strategies.

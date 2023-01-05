@@ -85,18 +85,30 @@ class FramesRequestParams(BaseModel):
 """
 
 
-class StoryParamsModel(BaseModel):
+class ClientTypeParamsModel(BaseModel):
+    """
+    Holds parameters that may be attached to a type of client,
+    such as a specific piece of hardware.
+    """
+
+    output_image_format: Optional[str] = None
+    output_image_width: Optional[int] = None
+    output_image_height: Optional[int] = None
+    max_output_text_length: Optional[int] = None
+
+
+class StoryParamsModel(ClientTypeParamsModel):
+    """
+    Holds parameters for generating frames of a story.
+    """
+
     input_image: Optional[str] = None
     input_image_filename: Optional[str]
     input_audio: Optional[str] = None
     input_audio_filename: Optional[str]
     location: Optional[str] = None
     input_text: Optional[str] = None
-    output_image_format: Optional[str] = None
-    output_image_width: Optional[int] = None
-    output_image_height: Optional[int] = None
     output_image_style: Optional[str] = None
-    output_text_length: Optional[int] = None
     output_text_style: Optional[str] = None
     reset_strategy_state: Optional[bool] = False
     strategy: Optional[str] = None
@@ -112,11 +124,7 @@ class StoryParamsModel(BaseModel):
         """
         Collects any fields that aren't explicitly modeled into extra_fields.
         """
-        modeled_field_names = {
-            field.alias
-            for field in cls.__fields__.values()
-            # if field.alias != "extra_fields"
-        }
+        modeled_field_names = {field.alias for field in cls.__fields__.values()}
 
         extra_fields: Dict[str, Any] = {}
         for field_name in list(values):
@@ -128,3 +136,4 @@ class StoryParamsModel(BaseModel):
 
 class FramesRequestParamsModel(StoryParamsModel):
     client_id: str
+    client_type: Optional[str] = None

@@ -13,7 +13,7 @@ from calliope.models import (
     StoryFrameSequenceResponseModel,
     StoryModel,
 )
-from calliope.strategies.base import StoryStrategy
+from calliope.strategies.base import DEFAULT_MIN_DURATION_SECONDS, StoryStrategy
 from calliope.strategies.registry import StoryStrategyRegistry
 from calliope.utils.file import create_sequential_filename
 from calliope.utils.image import get_image_attributes
@@ -117,6 +117,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         frame = StoryFrameModel(
             image=image,
             text=text,
+            min_duration_seconds=DEFAULT_MIN_DURATION_SECONDS,
         )
         story.frames.append(frame)
         story.text = story.text + text

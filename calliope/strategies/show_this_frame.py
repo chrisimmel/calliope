@@ -11,7 +11,7 @@ from calliope.models import (
     StoryFrameSequenceResponseModel,
     StoryModel,
 )
-from calliope.strategies.base import StoryStrategy
+from calliope.strategies.base import DEFAULT_MIN_DURATION_SECONDS, StoryStrategy
 from calliope.strategies.registry import StoryStrategyRegistry
 from calliope.utils.google import get_media_file, is_google_cloud_run_environment
 from calliope.utils.image import get_image_attributes
@@ -48,6 +48,8 @@ class ShowThisFrameStrategy(StoryStrategy):
         frame = StoryFrameModel(
             image=image,
             text=text,
+            # TODO: Parameterize min_duration_seconds for this strategy.
+            min_duration_seconds=DEFAULT_MIN_DURATION_SECONDS,
         )
         last_frame = story.frames[-1] if len(story.frames) else None
         if (

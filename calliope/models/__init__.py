@@ -9,7 +9,7 @@ from .inference_model_config import (
 )
 from .parameters import FramesRequestParamsModel, StoryParamsModel
 from .schedule import ScheduleModel, ScheduleStateModel, ScheduleStepModel
-from .sparrow_config import SparrowConfigModel
+from .config import ConfigModel, ClientTypeConfigModel, SparrowConfigModel
 from .sparrow_state import SparrowStateModel
 from .story import StoryModel
 from .story_frame import StoryFrameModel
@@ -27,6 +27,8 @@ from .trigger_condition import (
 __all__ = [
     "AfterWaitTriggerConditionModel",
     "AtTimeTriggerConditionModel",
+    "ClientTypeConfigModel",
+    "ConfigModel",
     "FramesRequestParamsModel",
     "ImageFormat",
     "ImageModel",

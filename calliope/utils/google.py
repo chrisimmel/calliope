@@ -44,3 +44,12 @@ def get_google_file(
     blob = bucket.blob(blob_name)
 
     blob.download_to_filename(destination_path)
+
+
+def delete_google_file(google_folder: str, base_filename: str) -> str:
+    storage_client = storage.Client()
+
+    bucket = storage_client.bucket(CALLIOPE_BUCKET_NAME)
+    blob_name = f"{google_folder}/{os.path.basename(base_filename)}"
+    blob = bucket.blob(blob_name)
+    blob.delete()
