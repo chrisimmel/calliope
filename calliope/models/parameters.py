@@ -56,7 +56,7 @@ class FramesRequestParams(BaseModel):
             default=None, description="Optional description of the desired image style."
         ),
     )
-    output_text_length: Optional[int] = (
+    max_output_text_length: Optional[int] = (
         Field(
             default=None,
             description="Optional, the nominal length of the returned text, advisory, might be ignored.",
@@ -88,7 +88,7 @@ class FramesRequestParams(BaseModel):
 class ClientTypeParamsModel(BaseModel):
     """
     Holds parameters that may be attached to a type of client,
-    such as a specific piece of hardware.
+    such as a specific class of device or application.
     """
 
     output_image_format: Optional[str] = None
@@ -102,6 +102,7 @@ class StoryParamsModel(ClientTypeParamsModel):
     Holds parameters for generating frames of a story.
     """
 
+    client_type: Optional[str] = None
     input_image: Optional[str] = None
     input_image_filename: Optional[str]
     input_audio: Optional[str] = None
@@ -136,4 +137,3 @@ class StoryParamsModel(ClientTypeParamsModel):
 
 class FramesRequestParamsModel(StoryParamsModel):
     client_id: str
-    client_type: Optional[str] = None

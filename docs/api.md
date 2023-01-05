@@ -21,6 +21,7 @@ to either a POST or GET request.
 ## `/v1/frames/` parameters
 
 * `client_id`: string - the ID of the calling client. A required string that should uniquely identify the calling device or application.
+* `client_type`: string - the type of the calling client. An optional string identifying the _kind_ of calling device or application.
 * `input_image`: string - An input image, encoded in base64, optional (harvested image, for now, common web image formats work, jpg, png, etc.).
 * `input_audio`: string - An audio sample, encoded in base64, optional (harvested sound).
 * `location`: string - The geolocation of the client, optional.
@@ -29,8 +30,8 @@ to either a POST or GET request.
 * `output_image_width`: int - The requested image width. The final image may be padded or cropped to fit this dimension.
 * `output_image_height`: int - The requested image height. The final image may be padded or cropped to fit this dimension.
 * `output_image_style`: string - The requested image style, given as English text, like "A watercolor of" or "A pencil drawing of".
-* `output_text_length`: int - The requested text length (currently unused).
 * `output_text_style`: string - The requested text style (currently unused).
+* `max_output_text_length`: int - The maximum output text length (currently unused).
 * `reset_strategy_state`: boolean - Whether to reset the strategy and begin a new story. Default is False.
 * `strategy`: string - The name of the strategy to be used to generate the frames.
 * `image_to_text_model_config`: string - The name of the inference model config used to generate text from an image.
