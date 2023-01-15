@@ -35,6 +35,7 @@ from calliope.utils.google import (
 )
 from calliope.utils.authentication import get_api_key
 from calliope.utils.image import (
+    convert_png_to_grayscale16,
     convert_png_to_rgb565,
     image_is_monochrome,
     ImageFormat,
@@ -189,6 +190,15 @@ def prepare_frame_images(
                     "media", client_id, f"{base_filename}.raw"
                 )
                 frame.image = convert_png_to_rgb565(
+                    frame.image.url, output_image_filename_raw
+                )
+            elif output_image_format == ImageFormat.GRAYSCALE16:
+                base_filename = get_base_filename(frame.image.url)
+
+                output_image_filename_raw = compose_full_filename(
+                    "media", client_id, f"{base_filename}.raw"
+                )
+                frame.image = convert_png_to_grayscale16(
                     frame.image.url, output_image_filename_raw
                 )
 

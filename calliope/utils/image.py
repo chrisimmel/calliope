@@ -59,6 +59,69 @@ def convert_png_to_rgb565(input_filename: str, output_filename: str) -> ImageMod
     )
 
 
+def convert_rgb565_to_png(
+    input_filename: str, output_filename: str, width: int, height: int
+) -> ImageModel:
+    """
+    Converts the given RGB565/raw file to PNG format.
+    """
+    with open(input_filename, "r") as input_file:
+        dataArray = np.fromfile(input_file, np.uint16)
+
+        png = Image.new("RGB", (width, height))
+
+        for i, word in enumerate(np.nditer(dataArray)):
+            r = (word >> 11) & 0x1F
+            g = (word >> 5) & 0x3F
+            b = word & 0x1F
+            png.putpixel((i % width, i // width), (r << 3, g << 2, b << 3))
+
+        png.save(output_filename)
+
+        return ImageModel(
+            width=width, height=height, format=ImageFormat.PNG, url=output_filename
+        )
+
+
+def convert_png_to_grayscale16(input_filename: str, output_filename: str) -> ImageModel:
+    """
+    Converts the given PNG file to 'grayscale-16' format.
+    """
+
+    png = Image.open(input_filename)
+    # Convert to grayscale.
+    png = png.convert(mode="L")
+
+    input_image_content = png.getdata()
+    output_image_content = np.empty(len(input_image_content), np.uint16)
+    i = 0
+    for y in range(0, png.size[1]):
+        byte = 0
+        done = True
+        for x in range(0, png.size[0]):
+            l = png.getpixel((x, y))
+            if x % 2 == 0:
+                byte = l >> 4
+                done = False
+            else:
+                byte |= l & 0xF0
+                output_image_content[i] = byte
+                done = True
+                i += 1
+        if not done:
+            output_image_content[i] = byte
+
+    with open(output_filename, "wb") as output_file:
+        output_file.write(output_image_content)
+
+    return ImageModel(
+        width=png.width,
+        height=png.height,
+        format=ImageFormat.GRAYSCALE16,
+        url=output_filename,
+    )
+
+
 def resize_image_if_needed(
     input_image: ImageModel, output_image_width: int, output_image_height: int
 ) -> ImageModel:
@@ -142,36 +205,15 @@ def image_is_monochrome(image_filename: str) -> bool:
     return colors and len(colors) == 0
 
 
-def convert_rgb565_to_png(
-    input_filename: str, output_filename: str, width: int, height: int
-) -> ImageModel:
-    """
-    Converts the given RGB565/raw file to PNG format.
-    """
-    with open(input_filename, "r") as input_file:
-        dataArray = np.fromfile(input_file, np.uint16)
-
-        png = Image.new("RGB", (width, height))
-
-        for i, word in enumerate(np.nditer(dataArray)):
-            r = (word >> 11) & 0x1F
-            g = (word >> 5) & 0x3F
-            b = word & 0x1F
-            png.putpixel((i % width, i // width), (r << 3, g << 2, b << 3))
-
-        png.save(output_filename)
-
-        return ImageModel(
-            width=width, height=height, format=ImageFormat.PNG, url=output_filename
-        )
-
-
 class Mode(Enum):
     RAW = ".raw"
     PNG = ".png"
 
 
 def main():
+    """
+    A little utility test harness for conversion to/from the rgb565 format.
+    """
     parser = argparse.ArgumentParser(
         description="Convert a file from one format to another."
     )

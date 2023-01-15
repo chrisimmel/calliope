@@ -5,10 +5,11 @@ from pydantic import BaseModel
 
 
 class ImageFormat(str, Enum):
-    # RGB565 doesn't have an official media type, but let's use this:
-    RGB565 = "image/rgb565"
-    PNG = "image/png"
     JPEG = "image/jpeg"
+    PNG = "image/png"
+    # Unofficial media types for the RGB565 and Grayscale-16 formats we use...
+    GRAYSCALE16 = "image/grayscale16"
+    RGB565 = "image/rgb565"
 
     def fromMediaFormat(mediaFormat: str) -> "ImageFormat":
         if mediaFormat == None:
