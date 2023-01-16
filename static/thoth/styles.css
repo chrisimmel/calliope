@@ -1,0 +1,60 @@
+.header {
+    display: grid;
+    grid-template-columns: 100px auto;
+    margin-bottom: 20px;
+}
+
+.title {
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+.subtitle {
+    margin-bottom: 20px;
+    font-size: 16px;
+}
+
+.story {
+    margin-bottom: 10px;
+}
+
+.story:hover {
+    background-color: #eee;
+}
+
+.story-link {
+    display: grid;
+    grid-template-columns: 60px auto;
+}
+
+.story-thumb {
+    width: 48px;
+    height: 48px;
+}
+
+.story-title {}
+
+.story-link:visited {
+    color: #777;
+}
+
+.story-summary {
+    font-size: 16px;
+    padding-bottom: 20px;
+}
+
+.story-frame {
+    display: flex;
+    padding-bottom: 16px;
+}
+
+.frame-image {
+    flex: 1;
+    min-width: 512px;
+}
+
+.frame-text {
+    flex: 1;
+    margin-left: 20px;
+    margin-right: 80px;
+}

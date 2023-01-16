@@ -32,17 +32,17 @@ async def get_media(
 
 
 async def _handle_get_media_request(filename: str) -> Optional[FileResponse]:
-    base_filename = filename
-    format = guess_image_format_from_filename(base_filename)
+    format = guess_image_format_from_filename(filename)
     media_type = image_format_to_media_type(format)
 
-    local_filename = f"media/{base_filename}"
+    local_filename = f"media/{filename}"
     if is_google_cloud_run_environment():
         try:
-            get_media_file(base_filename, local_filename)
+            get_media_file(filename, local_filename)
         except Exception as e:
             raise HTTPException(
-                status_code=404, detail=f"Error retrieving file {local_filename}: {e}"
+                status_code=404,
+                detail=f"Error retrieving file {local_filename}: {e}",
             )
 
     if not os.path.isfile(local_filename):

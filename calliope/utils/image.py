@@ -15,6 +15,8 @@ def guess_image_format_from_filename(filename: str) -> ImageFormat:
     extension = get_file_extension(filename)
     if extension in ("raw", "rgb565"):
         return ImageFormat.RGB565
+    if extension in ("grayscale16"):
+        return ImageFormat.GRAYSCALE16
     elif extension in ("jpg", "jpeg"):
         return ImageFormat.JPEG
     elif extension == "png":
@@ -121,6 +123,37 @@ def convert_png_to_grayscale16(input_filename: str, output_filename: str) -> Ima
         format=ImageFormat.GRAYSCALE16,
         url=output_filename,
     )
+
+
+def convert_grayscale16_to_png(
+    input_filename: str, output_filename: str, width: int, height: int
+) -> ImageModel:
+    """
+    Converts 'grayscale-16' file to PNG.
+    There are 2 pixels per byte, 4 bits (black, white, 14 shades of gray) each.
+    """
+
+    with open(input_filename, "r") as input_file:
+        dataArray = np.fromfile(input_file, np.uint8)
+
+        png = Image.new("L", (width, height))
+
+        for i, pixel_pair in enumerate(np.nditer(dataArray)):
+            p0 = int(pixel_pair & 0xF) << 4
+            i *= 2
+            xy = (i % width, i // width)
+            png.putpixel(xy, p0)
+
+            p1 = int(pixel_pair)
+            i += 1
+            xy = (i % width, i // width)
+            png.putpixel(xy, p1)
+
+        png.save(output_filename)
+
+        return ImageModel(
+            width=width, height=height, format=ImageFormat.PNG, url=output_filename
+        )
 
 
 def resize_image_if_needed(

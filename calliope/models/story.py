@@ -24,3 +24,14 @@ class StoryModel(BaseModel):
 
     # The frames that are part of this story.
     frames: List[StoryFrameModel] = []
+
+    @property
+    def title(self) -> str:
+        """
+        Takes as the title the text of the first frame, if any, else the story_id.
+        """
+        for frame in self.frames:
+            if frame.text:
+                return frame.text
+
+        return self.story_id

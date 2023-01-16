@@ -2,6 +2,8 @@ cuid
 fastapi
 ftfy
 google-cloud-storage
+jinja2
+MarkupSafe>=2.0
 mypy
 numpy
 openai

@@ -174,6 +174,7 @@ def prepare_frame_images(
             if image_is_monochrome(frame.image.url):
                 print(f"Image {frame.image.url} is monochrome. Skipping.")
                 # Skip the image if it has only a single color (usually black).
+                # (This doesn't appear to work.)
                 frame.image = None
                 continue
 
@@ -184,20 +185,20 @@ def prepare_frame_images(
             )
 
             if output_image_format == ImageFormat.RGB565:
+                if is_google_cloud:
+                    # Also save the original PNG image in case we want to see it later.
+                    put_media_file(frame.image.url)
                 base_filename = get_base_filename(frame.image.url)
-
-                output_image_filename_raw = compose_full_filename(
-                    "media", client_id, f"{base_filename}.raw"
-                )
+                output_image_filename_raw = f"media/{base_filename}.raw"
                 frame.image = convert_png_to_rgb565(
                     frame.image.url, output_image_filename_raw
                 )
             elif output_image_format == ImageFormat.GRAYSCALE16:
+                if is_google_cloud:
+                    # Also save the original PNG image in case we want to see it later.
+                    put_media_file(frame.image.url)
                 base_filename = get_base_filename(frame.image.url)
-
-                output_image_filename_raw = compose_full_filename(
-                    "media", client_id, f"{base_filename}.raw"
-                )
+                output_image_filename_raw = f"media/{base_filename}.grayscale16"
                 frame.image = convert_png_to_grayscale16(
                     frame.image.url, output_image_filename_raw
                 )

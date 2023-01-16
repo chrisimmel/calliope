@@ -1,6 +1,7 @@
 from enum import Enum
+import glob
 import os
-from typing import cast, Optional
+from typing import cast, Optional, Sequence
 
 from calliope.models import (
     SparrowStateModel,
@@ -68,6 +69,23 @@ def put_sparrow_state(state: SparrowStateModel) -> None:
 
     if is_google_cloud_run_environment():
         put_google_file(folder, local_filename)
+
+
+def list_stories() -> Sequence[StoryModel]:
+    """
+    Lists all stories.
+    """
+    dir_path = r"state/story*"
+    story_filenames = glob.glob(dir_path)
+    # TODO: Gcloud case.
+    # https://cloud.google.com/storage/docs/listing-objects#storage-list-objects-python
+
+    stories = [
+        load_json_into_pydantic_model(story_filename, StoryModel)
+        for story_filename in story_filenames
+    ]
+
+    return stories
 
 
 def get_story(story_id: str) -> Optional[StoryModel]:

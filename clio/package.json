@@ -4,8 +4,8 @@
   "description": "Simple step by step walkthrough of setting up a React app with Webpack",
   "main": "index.js",
   "scripts": {
-    "build": "webpack --mode production && cp build/* ../static",
-    "build-dev": "webpack --mode development && cp build/* ../static",
+    "build": "webpack --mode production && cp build/* ../static/clio",
+    "build-dev": "webpack --mode development && cp build/* ../static/clio",
     "start": "webpack serve --mode development"
   },
   "repository": {

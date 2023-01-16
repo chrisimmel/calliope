@@ -10,6 +10,7 @@ from starlette.responses import JSONResponse
 from calliope.models import StoryFrameModel
 from calliope.routes import media as media_routes
 from calliope.routes import meta as meta_routes
+from calliope.routes import thoth as thoth_routes
 from calliope.routes.v1 import config as config_routes
 from calliope.routes.v1 import story as story_routes
 from calliope.utils.authentication import get_api_key
@@ -35,6 +36,7 @@ app.include_router(meta_routes.router)
 app.include_router(story_routes.router)
 app.include_router(media_routes.router)
 app.include_router(config_routes.router)
+app.include_router(thoth_routes.router)
 
 
 @app.get("/openapi.json", tags=["documentation"])
@@ -45,5 +47,6 @@ async def get_open_api_endpoint(api_key: APIKey = Depends(get_api_key)):
     return response
 
 
-# Mount the static HTML front end.
-app.mount("/clio/", StaticFiles(directory="static", html=True), name="static")
+# Mount the static HTML front ends.
+app.mount("/clio/", StaticFiles(directory="static/clio", html=True), name="static")
+app.mount("/thoth/", StaticFiles(directory="static/thoth", html=True), name="static")

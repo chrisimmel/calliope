@@ -1,0 +1,27 @@
+<html>
+
+<head>
+    <title>{{ story.title }}</title>
+    <link href="/thoth/styles.css" rel="stylesheet">
+</head>
+
+<body>
+    <div class="story-summary">
+        Made by strategy {{story.strategy_name}} for client {{story.created_for_id}}.
+    </div>
+
+    {% for frame in story.frames %}
+    <div class="story-frame">
+        <div class="frame-image">
+            {%- if frame.image -%}
+            <img src="/{{frame.image.url}}" />
+            {%- endif %}
+        </div>
+        <div class="frame-text">
+            {{frame.text}}
+        </div>
+    </div>
+    {% endfor %}
+</body>
+
+</html>
