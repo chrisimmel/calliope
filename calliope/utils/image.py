@@ -86,6 +86,7 @@ def convert_rgb565_to_png(
 def convert_png_to_grayscale16(input_filename: str, output_filename: str) -> ImageModel:
     """
     Converts the given PNG file to 'grayscale-16' format.
+    There are 2 pixels per byte, 4 bits (black, white, 14 shades of gray) each.
     """
 
     png = Image.open(input_filename)
@@ -93,7 +94,7 @@ def convert_png_to_grayscale16(input_filename: str, output_filename: str) -> Ima
     png = png.convert(mode="L")
 
     input_image_content = png.getdata()
-    output_image_content = np.empty(len(input_image_content), np.uint16)
+    output_image_content = np.empty(int(len(input_image_content) / 2), np.uint8)
     i = 0
     for y in range(0, png.size[1]):
         byte = 0
