@@ -19,6 +19,12 @@ class StoryModel(BaseModel):
     # The ID of the flock or sparrow for which the story was created.
     created_for_id: Optional[StrictStr] = None
 
+    # The date the story was created.
+    date_created: Optional[StrictStr] = None
+
+    # The date the story was last updated.
+    date_updated: Optional[StrictStr] = None
+
     # The accumulated text.
     text: Optional[StrictStr] = ""
 

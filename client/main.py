@@ -1,6 +1,5 @@
-import argparse
-import json
 from pprint import pprint
+import sys, traceback
 
 import cv2
 
@@ -51,7 +50,7 @@ def image_loop_inference_api() -> None:
             try:
                 caption = image_file_to_text_inference(frame_file, keys)
             except Exception as e:
-                print(e)
+                traceback.print_exc(file=sys.stderr)
 
             if caption:
                 prompt = caption_to_prompt(caption)
@@ -63,7 +62,7 @@ def image_loop_inference_api() -> None:
                     image = cv2.imread(output_image_file)
                     cv2.imshow("weld", image)
                 except Exception as e:
-                    print(e)
+                    traceback.print_exc(file=sys.stderr)
 
             cv2.waitKey(2000)
 
@@ -166,7 +165,7 @@ def image_loop_calliope() -> None:
                         cv2.imshow("Calliope", image)
 
             except Exception as e:
-                print(e)
+                traceback.print_exc(file=sys.stderr)
 
         cv2.waitKey(10000)
 

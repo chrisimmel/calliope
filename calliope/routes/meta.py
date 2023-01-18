@@ -9,7 +9,7 @@ from fastapi.security.api_key import APIKey
 from starlette.responses import FileResponse, RedirectResponse
 
 from calliope.utils.authentication import get_api_key
-from calliope.utils.fastapi import get_domain
+from calliope.utils.fastapi import get_base_url
 
 
 router = APIRouter()
@@ -32,7 +32,7 @@ async def get_documentation(
     request: Request,
     api_key: APIKey = Depends(get_api_key),
 ):
-    domain = get_domain(request)
+    domain = get_base_url(request)
 
     response = get_swagger_ui_html(openapi_url="/openapi.json", title="docs")
     response.set_cookie(
@@ -50,7 +50,7 @@ async def get_documentation(
 async def route_logout_and_remove_cookie(
     request: Request,
 ):
-    domain = get_domain(request)
+    domain = get_base_url(request)
     response = RedirectResponse(url="/")
     response.delete_cookie("api_key", domain=domain)
     return response

@@ -201,8 +201,10 @@ def get_sparrow_story_parameters_and_keys(
                 sparrow_or_flock_keys_dict = sparrow_or_flock_config.keys.dict()
                 keys_dict = {**sparrow_or_flock_keys_dict, **keys_dict}
 
-            # 4. Take the flock ID from the sparrow/flock config.
+            # 4. Take the flock ID from the parent flock.
             sparrow_or_flock_id = sparrow_or_flock_config.parent_flock_id
+            if not sparrow_or_flock_id and sparrow_or_flock_config.id != "default":
+                sparrow_or_flock_id = "default"
 
             if sparrow_or_flock_id:
                 # Prepare to inherit from a parent flock.

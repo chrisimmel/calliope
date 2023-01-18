@@ -1,15 +1,8 @@
 import datetime
 from typing import Any, Dict, List, Optional
-from calliope.models.story import StoryModel
-from calliope.storage.state_manager import (
-    get_sparrow_state,
-    get_story,
-    put_sparrow_state,
-    put_story,
-)
 
 import cuid
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi.security.api_key import APIKey
 from pydantic import BaseModel
 
@@ -19,9 +12,16 @@ from calliope.inference import (
     text_to_extended_text_inference,
     text_to_image_file_inference,
 )
-from calliope.models import FramesRequestParamsModel, StoryFrameModel, StoryParamsModel
+from calliope.models import FramesRequestParamsModel, StoryFrameModel, StoryModel
 from calliope.storage.config_manager import get_sparrow_story_parameters_and_keys
+from calliope.storage.state_manager import (
+    get_sparrow_state,
+    get_story,
+    put_sparrow_state,
+    put_story,
+)
 from calliope.strategies import StoryStrategyRegistry
+from calliope.utils.fastapi import get_base_url
 from calliope.utils.file import (
     compose_full_filename,
     create_sequential_filename,
@@ -62,6 +62,7 @@ class StoryResponseV1(BaseModel):
 
 @router.post("/frames/", response_model=StoryResponseV1)
 async def post_frames(
+    request: Request,
     request_params: FramesRequestParamsModel,
     api_key: APIKey = Depends(get_api_key),
 ) -> StoryResponseV1:
@@ -69,11 +70,14 @@ async def post_frames(
     Provide some harvested data (image, sound, text). Get a new episode of an
     ongoing story, with text and image.
     """
-    return await handle_frames_request(request_params)
+    base_url = get_base_url(request)
+
+    return await handle_frames_request(request_params, base_url)
 
 
 @router.get("/frames/", response_model=StoryResponseV1)
 async def get_frames(
+    request: Request,
     api_key: APIKey = Depends(get_api_key),
     request_params=Depends(FramesRequestParamsModel),
 ) -> StoryResponseV1:
@@ -81,11 +85,14 @@ async def get_frames(
     Provide some harvested data (image, sound, text). Get a new episode of an
     ongoing story, with text and image.
     """
-    return await handle_frames_request(request_params)
+    base_url = get_base_url(request)
+
+    return await handle_frames_request(request_params, base_url)
 
 
 async def handle_frames_request(
     request_params: FramesRequestParamsModel,
+    base_url: str,
 ) -> StoryResponseV1:
     client_id = request_params.client_id
     sparrow_state = get_sparrow_state(client_id)
@@ -123,7 +130,14 @@ async def handle_frames_request(
         parameters, inference_model_configs, keys, sparrow_state, story
     )
 
-    prepare_frame_images(parameters, story_frames_response.frames)
+    story_frames_response.debug_data = {
+        **story_frames_response.debug_data,
+        "story_id": story.story_id,
+        "story_title": story.title,
+        "thoth_link": f"{base_url}thoth/story/{story.story_id}",
+    }
+
+    prepare_frame_images(parameters, story_frames_response.frames, base_url)
 
     put_story(story)
     put_sparrow_state(sparrow_state)
@@ -132,7 +146,7 @@ async def handle_frames_request(
         frames=story_frames_response.frames,
         append_to_prior_frames=story_frames_response.append_to_prior_frames,
         request_id=cuid.cuid(),
-        generation_date=datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ"),
+        generation_date=str(datetime.datetime.utcnow()),
         debug_data=story_frames_response.debug_data if parameters.debug else {},
         errors=story_frames_response.errors,
     )
@@ -163,7 +177,7 @@ def prepare_input_files(
 
 
 def prepare_frame_images(
-    parameters: FramesRequestParamsModel, frames: List[StoryFrameModel]
+    parameters: FramesRequestParamsModel, frames: List[StoryFrameModel], base_url: str
 ) -> None:
     is_google_cloud = is_google_cloud_run_environment()
     client_id = parameters.client_id

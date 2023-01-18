@@ -35,6 +35,13 @@ def get_file_extension(filename) -> str:
     return basename[1].lower()
 
 
+def get_base_filename_and_extension(filename) -> str:
+    """
+    Gets the base name and extension together.
+    """
+    return os.path.basename(filename)
+
+
 def compose_full_filename(directory: str, client_id: str, filename: str) -> str:
     """
     Composes a full filename (filename with path) from the given directory, for the

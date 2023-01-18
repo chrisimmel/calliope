@@ -7,7 +7,12 @@
 
 <body>
     <div class="story-summary">
-        Made by strategy {{story.strategy_name}} for client {{story.created_for_id}}.
+        <div class="summary-line">
+            Made by strategy {{story.strategy_name}} at {{story.date_created}} for client {{story.created_for_id}}.
+        </div>
+        <div class="summary-line">
+            Last updated at {{story.date_updated}}.
+        </div>
     </div>
 
     {% for frame in story.frames %}

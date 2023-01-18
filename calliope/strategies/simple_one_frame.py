@@ -1,3 +1,5 @@
+import sys, traceback
+
 from calliope.models import (
     FramesRequestParamsModel,
     KeysModel,
@@ -51,11 +53,10 @@ class SimpleOneFrameStoryStrategy(StoryStrategy):
                 caption = image_file_to_text_inference(
                     parameters.input_image_filename, inference_model_configs, keys
                 )
+                debug_data["i_see"] = caption
             except Exception as e:
-                print(e)
+                traceback.print_exc(file=sys.stderr)
                 errors.append(str(e))
-
-        debug_data["i_see"] = caption
 
         if parameters.input_text:
             if caption:
@@ -84,7 +85,7 @@ class SimpleOneFrameStoryStrategy(StoryStrategy):
                 )
                 image = get_image_attributes(output_image_filename_png)
             except Exception as e:
-                print(e)
+                traceback.print_exc(file=sys.stderr)
                 errors.append(str(e))
 
         frame = StoryFrameModel(

@@ -1,6 +1,5 @@
-import argparse
-import json
 from pprint import pprint
+import sys, traceback
 from typing import Any
 
 import cv2
@@ -46,7 +45,7 @@ def story_loop_inference_api(prompt_template: str) -> None:
             try:
                 caption = image_file_to_text_inference(frame_file, keys)
             except Exception as e:
-                print(e)
+                traceback.print_exc(file=sys.stderr)
 
             if last_text:
                 last_text_tokens = last_text.split()
@@ -58,7 +57,7 @@ def story_loop_inference_api(prompt_template: str) -> None:
             try:
                 text = text_to_extended_text_inference(text, keys)
             except Exception as e:
-                print(e)
+                traceback.print_exc(file=sys.stderr)
 
             text = text[fragment_len + 1 :]
             text = " ".join(text.split(" "))
@@ -77,7 +76,7 @@ def story_loop_inference_api(prompt_template: str) -> None:
                 image = cv2.imread(output_image_filename)
                 cv2.imshow("Calliope", image)
             except Exception as e:
-                print(e)
+                traceback.print_exc(file=sys.stderr)
 
             cv2.waitKey(5000)
 

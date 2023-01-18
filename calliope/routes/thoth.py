@@ -1,7 +1,11 @@
 import os
 from calliope.models import ImageFormat
 from calliope.models.story_frame import StoryFrameModel
-from calliope.utils.file import get_base_filename
+from calliope.utils.file import (
+    get_base_filename,
+    get_base_filename_and_extension,
+    get_file_extension,
+)
 from calliope.utils.google import (
     get_media_file,
     is_google_cloud_run_environment,
@@ -26,15 +30,19 @@ async def thoth_root(request: Request):
     story_thumbs_by_story_id = {}
 
     for story in stories:
-        if len(story.frames):
-            _prepare_frame_image(story.frames[0])
-            thumb = story.frames[0].image
-            if thumb:
-                longer_dim = max(thumb.width, thumb.height)
-                scale = 48 / longer_dim
-                thumb.width *= scale
-                thumb.height *= scale
-                story_thumbs_by_story_id[story.story_id] = thumb
+        thumb = None
+        for frame in story.frames:
+            if frame.image:
+                _prepare_frame_image(frame)
+                thumb = frame.image
+                break
+
+        if thumb:
+            longer_dim = max(thumb.width, thumb.height)
+            scale = 48 / longer_dim
+            thumb.width *= scale
+            thumb.height *= scale
+            story_thumbs_by_story_id[story.story_id] = thumb
 
     context = {
         "request": request,
@@ -66,7 +74,7 @@ def _prepare_frame_image(frame: StoryFrameModel) -> None:
         found = os.path.isfile(local_filename)
 
         if found:
-            print("original PNG found")
+            print(f"original PNG found: {local_filename}")
             # We already have a PNG locally! Use it!
             frame.image.format = ImageFormat.PNG
             frame.image.url = local_filename
@@ -79,9 +87,17 @@ def _prepare_frame_image(frame: StoryFrameModel) -> None:
             local_filename = f"media/{filename}"
             found = os.path.isfile(local_filename)
             if found:
+                print(f"Oddly named PNG found: {local_filename}")
                 # We already have a PNG locally! Use it!
                 frame.image.format = ImageFormat.PNG
                 frame.image.url = local_filename
+
+        if found and is_google_cloud_run_environment():
+            try:
+                print(f"Copying back to GCS: {local_filename}")
+                put_media_file(local_filename)
+            except Exception as e:
+                print(f"Error saving media file: {e}")
 
         if not found:
             if is_google_cloud_run_environment():
@@ -90,14 +106,31 @@ def _prepare_frame_image(frame: StoryFrameModel) -> None:
                     # We were able to get a PNG from GCS.
                     frame.image.format = ImageFormat.PNG
                     frame.image.url = local_filename
+                    print(f"Found in GCS: {local_filename}")
+                    found = True
                 except Exception as e:
-                    pass
+                    print(f"Not found in GCS: {local_filename} ({filename=}")
+                    # This is ok. We'll convert and copy back to GCS below.
 
         if not found:
             original_found = os.path.isfile(frame.image.url)
+            if not original_found and is_google_cloud_run_environment():
+                # Be sure we have the original non-PNG file locally.
+                try:
+                    get_media_file(
+                        get_base_filename_and_extension(frame.image.url), frame.image.url
+                    )
+                    original_found = True
+                except Exception as e:
+                    print(
+                        f"Original not found in GCS: {get_base_filename_and_extension(frame.image.url)} ({frame.image.ur=}"
+                    )
+
             if original_found:
                 # Convert to PNG if we know how...
                 if frame.image.format == ImageFormat.RGB565:
+                    print(f"Converting from rgb565: {frame.image.url}")
+
                     frame.image = convert_rgb565_to_png(
                         frame.image.url,
                         local_filename,
@@ -106,11 +139,14 @@ def _prepare_frame_image(frame: StoryFrameModel) -> None:
                     )
                     if is_google_cloud_run_environment():
                         try:
-                            put_media_file(filename, local_filename)
+                            print(f"Copying back to GCS: {local_filename}")
+                            put_media_file(local_filename)
                         except Exception as e:
                             print(f"Error saving media file: {e}")
 
                 elif frame.image.format == ImageFormat.GRAYSCALE16:
+                    print(f"Converting from grayscale16: {frame.image.url}")
+
                     frame.image = convert_grayscale16_to_png(
                         frame.image.url,
                         local_filename,
@@ -119,7 +155,8 @@ def _prepare_frame_image(frame: StoryFrameModel) -> None:
                     )
                     if is_google_cloud_run_environment():
                         try:
-                            put_media_file(filename, local_filename)
+                            print(f"Copying back to GCS: {local_filename}")
+                            put_media_file(local_filename)
                         except Exception as e:
                             print(f"Error saving media file: {e}")
 

@@ -162,6 +162,7 @@ def text_to_extended_text_inference(
 
     if model_config.provider == InferenceModelProvider.HUGGINGFACE:
         print(f"text_to_extended_text_inference.huggingface {model_config.model_name}")
+        text = text.replace(":", "")
         payload = {"inputs": text}
         data = json.dumps(payload)
         response = _hugging_face_request(data, model_config.model_name, keys)

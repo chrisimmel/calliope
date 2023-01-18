@@ -141,13 +141,21 @@ def convert_grayscale16_to_png(
         for i, pixel_pair in enumerate(np.nditer(dataArray)):
             p0 = int(pixel_pair & 0xF) << 4
             i *= 2
-            xy = (i % width, i // width)
-            png.putpixel(xy, p0)
+            x = i % width
+            y = i // width
+            if y >= height:
+                # Due to an earlier bug, some stored images have too much data.
+                break
+            png.putpixel((x, y), p0)
 
             p1 = int(pixel_pair)
             i += 1
-            xy = (i % width, i // width)
-            png.putpixel(xy, p1)
+            x = i % width
+            y = i // width
+            if y >= height:
+                # Due to an earlier bug, some stored images have too much data.
+                break
+            png.putpixel((x, y), p1)
 
         png.save(output_filename)
 

@@ -1,3 +1,6 @@
+import sys, traceback
+from typing import List
+
 from calliope.inference import (
     caption_to_prompt,
     image_file_to_text_inference,
@@ -59,16 +62,15 @@ class ContinuousStoryV0Strategy(StoryStrategy):
                 caption = image_file_to_text_inference(
                     parameters.input_image_filename, inference_model_configs, keys
                 )
+                debug_data["i_see"] = caption
             except Exception as e:
-                print(e)
+                traceback.print_exc(file=sys.stderr)
                 errors.append(str(e))
         if parameters.input_text:
             if caption:
                 caption = f"{caption}. {parameters.input_text}"
             else:
                 caption = parameters.input_text
-
-        debug_data["i_see"] = caption
 
         last_text = story.text
         if last_text:
@@ -79,15 +81,18 @@ class ContinuousStoryV0Strategy(StoryStrategy):
 
         text = f"{caption} {last_text}"
         print(f'Text prompt: "{text}"')
-        text_1 = self._get_new_story_fragment(text, inference_model_configs, keys)
-        text_2 = self._get_new_story_fragment(text_1, inference_model_configs, keys)
+        text_1 = self._get_new_story_fragment(
+            text, inference_model_configs, keys, errors
+        )
+        text_2 = self._get_new_story_fragment(
+            text_1, inference_model_configs, keys, errors
+        )
         text = text_1 + " " + text_2 + " "
 
         if not text or text.isspace():
             text = caption
 
         last_text = text
-        # print(text)
 
         if text:
             prompt_template = output_image_style + " {x}"
@@ -111,7 +116,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
                 image = get_image_attributes(output_image_filename)
                 print(f"Image: {image}.")
             except Exception as e:
-                print(e)
+                traceback.print_exc(file=sys.stderr)
                 errors.append(str(e))
 
         frame = StoryFrameModel(
@@ -130,13 +135,20 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         )
 
     def _get_new_story_fragment(
-        self, text: str, inference_model_configs, keys: KeysModel
+        self,
+        text: str,
+        inference_model_configs,
+        keys: KeysModel,
+        errors: List[str],
     ) -> str:
         fragment_len = len(text)
+        print(f'_get_new_story_fragment: "{text=}"')
+
         try:
             text = text_to_extended_text_inference(text, inference_model_configs, keys)
         except Exception as e:
-            print(e)
+            traceback.print_exc(file=sys.stderr)
+            errors.append(str(e))
 
         text = text[fragment_len:]
         text = " ".join(text.split(" "))

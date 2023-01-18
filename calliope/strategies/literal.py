@@ -1,3 +1,5 @@
+import sys, traceback
+
 from calliope.models import (
     FramesRequestParamsModel,
     KeysModel,
@@ -52,7 +54,7 @@ class LiteralStrategy(StoryStrategy):
                 debug_data["i_see"] = caption
                 prompts.append(caption)
             except Exception as e:
-                print(e)
+                traceback.print_exc(file=sys.stderr)
                 errors.append(str(e))
 
         for prompt in prompts:
@@ -74,7 +76,7 @@ class LiteralStrategy(StoryStrategy):
                 output_image_filename = output_image_filename_png
                 image = get_image_attributes(output_image_filename)
             except Exception as e:
-                print(e)
+                traceback.print_exc(file=sys.stderr)
                 errors.append(str(e))
 
             frame = StoryFrameModel(
