@@ -1,9 +1,11 @@
+import asyncio
 import io
 import json
 import math
 from pprint import pprint
 from typing import Any, Optional
 
+import aiohttp
 import cv2
 import openai
 from PIL import Image
@@ -36,16 +38,20 @@ def _hugging_face_model_to_api_url(model_name: str) -> str:
     return f"https://api-inference.huggingface.co/models/{model_name}"
 
 
-def _hugging_face_request(data: Any, model_name: str, keys: KeysModel) -> Response:
+async def _hugging_face_request(
+    aiohttp_session: aiohttp.ClientSession,
+    data: Any,
+    model_name: str,
+    keys: KeysModel,
+) -> Response:
     api_key = keys.huggingface_api_key
     api_url = _hugging_face_model_to_api_url(model_name)
     headers = {"Authorization": f"Bearer {api_key}"}
-    response = requests.request("POST", api_url, headers=headers, data=data)
-    response.raise_for_status()
-    return response
+    return await aiohttp_session.post(api_url, headers=headers, data=data)
 
 
-def _hugging_face_image_to_text_inference(
+async def _hugging_face_image_to_text_inference(
+    aiohttp_session: aiohttp.ClientSession,
     image_data: bytes,
     inference_model_config: InferenceModelConfigModel,
     keys: KeysModel,
@@ -53,14 +59,18 @@ def _hugging_face_image_to_text_inference(
     """
     Takes the filename of an image. Returns a caption.
     """
-    response = _hugging_face_request(image_data, image_to_text_model, keys)
-    predictions = json.loads(response.content.decode("utf-8"))
+    response = await _hugging_face_request(
+        aiohttp_session, image_data, image_to_text_model, keys
+    )
+    # predictions = json.loads(response.content.decode("utf-8"))
+    predictions = await response.json()
     caption = predictions[0]["generated_text"]
 
     return caption
 
 
-def image_file_to_text_inference(
+async def image_file_to_text_inference(
+    aiohttp_session: aiohttp.ClientSession,
     image_filename: str,
     inference_model_configs: InferenceModelConfigsModel,
     keys: KeysModel,
@@ -79,12 +89,15 @@ def image_file_to_text_inference(
         image_data = f.read()
 
     if image_data:
-        return _hugging_face_image_to_text_inference(image_data, model_config, keys)
+        return await _hugging_face_image_to_text_inference(
+            aiohttp_session, image_data, model_config, keys
+        )
 
     return "A long the riverrun"
 
 
-def text_to_image_file_inference(
+async def text_to_image_file_inference(
+    aiohttp_session: aiohttp.ClientSession,
     text: str,
     output_image_filename: str,
     inference_model_configs: InferenceModelConfigsModel,
@@ -102,10 +115,12 @@ def text_to_image_file_inference(
         # width and height are ignored by HuggingFace.
         payload = {"inputs": text}
         data = json.dumps(payload)
-        response = _hugging_face_request(data, model_config.model_name, keys)
+        response = await _hugging_face_request(
+            aiohttp_session, data, model_config.model_name, keys
+        )
 
         with open(output_image_filename, "wb") as f:
-            for chunk in response:
+            for chunk in response.content.iter_chunks():
                 f.write(chunk)
 
         return output_image_filename
@@ -113,6 +128,7 @@ def text_to_image_file_inference(
         print(
             f"text_to_image_file_inference.stability {model_config.model_name} ({width}x{height})"
         )
+        # I see no way to use aiohttp with the Stability Inference API.
         stability_api = stability_client.StabilityInference(
             key=keys.stability_api_key,
             host=keys.stability_api_host,
@@ -155,8 +171,11 @@ def text_to_image_file_inference(
         )
 
 
-def text_to_extended_text_inference(
-    text: str, inference_model_configs: InferenceModelConfigsModel, keys: KeysModel
+async def text_to_extended_text_inference(
+    aiohttp_session: aiohttp.ClientSession,
+    text: str,
+    inference_model_configs: InferenceModelConfigsModel,
+    keys: KeysModel,
 ) -> str:
     model_config = inference_model_configs.text_to_text_model_config
 
@@ -165,13 +184,16 @@ def text_to_extended_text_inference(
         text = text.replace(":", "")
         payload = {"inputs": text}
         data = json.dumps(payload)
-        response = _hugging_face_request(data, model_config.model_name, keys)
-        predictions = json.loads(response.content.decode("utf-8"))
+        response = await _hugging_face_request(
+            aiohttp_session, data, model_config.model_name, keys
+        )
+        predictions = await response.json()
         extended_text = predictions[0]["generated_text"]
     elif model_config.provider == InferenceModelProvider.OPENAI:
         print(f"text_to_extended_text_inference.openai {model_config.model_name}")
         openai.api_key = keys.openapi_api_key
 
+        # It seems we can't use aiohttp with the Completion API.
         completion = openai.Completion.create(
             engine=model_config.model_name, prompt=text
         )

@@ -1,5 +1,7 @@
 import sys, traceback
 
+import aiohttp
+
 from calliope.models import (
     FramesRequestParamsModel,
     KeysModel,
@@ -39,6 +41,7 @@ class SimpleOneFrameStoryStrategy(StoryStrategy):
         keys: KeysModel,
         sparrow_state: SparrowStateModel,
         story: StoryModel,
+        aiohttp_session: aiohttp.ClientSession,
     ) -> StoryFrameSequenceResponseModel:
         client_id = parameters.client_id
 
@@ -50,8 +53,11 @@ class SimpleOneFrameStoryStrategy(StoryStrategy):
 
         if parameters.input_image_filename:
             try:
-                caption = image_file_to_text_inference(
-                    parameters.input_image_filename, inference_model_configs, keys
+                caption = await image_file_to_text_inference(
+                    aiohttp_session,
+                    parameters.input_image_filename,
+                    inference_model_configs,
+                    keys,
                 )
                 debug_data["i_see"] = caption
             except Exception as e:
@@ -64,7 +70,9 @@ class SimpleOneFrameStoryStrategy(StoryStrategy):
             else:
                 caption = parameters.input_text
 
-        text = text_to_extended_text_inference(caption, inference_model_configs, keys)
+        text = await text_to_extended_text_inference(
+            aiohttp_session, caption, inference_model_configs, keys
+        )
         prompt_template = output_image_style + " {x}"
         print(text)
 
@@ -75,7 +83,8 @@ class SimpleOneFrameStoryStrategy(StoryStrategy):
                 output_image_filename_png = create_sequential_filename(
                     "media", client_id, "out", "png", story
                 )
-                text_to_image_file_inference(
+                await text_to_image_file_inference(
+                    aiohttp_session,
                     prompt,
                     output_image_filename_png,
                     inference_model_configs,

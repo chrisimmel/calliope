@@ -1,5 +1,7 @@
 from abc import ABCMeta, abstractmethod
 
+import aiohttp
+
 from calliope.models import (
     FramesRequestParamsModel,
     KeysModel,
@@ -31,6 +33,7 @@ class StoryStrategy(object, metaclass=ABCMeta):
         keys: KeysModel,
         sparrow_state: SparrowStateModel,
         story: StoryModel,
+        aiohttp_session: aiohttp.ClientSession,
     ) -> StoryFrameSequenceResponseModel:
         """
         Requests a sequence of story frames.

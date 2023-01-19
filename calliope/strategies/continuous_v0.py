@@ -1,6 +1,8 @@
 import sys, traceback
 from typing import List
 
+import aiohttp
+
 from calliope.inference import (
     caption_to_prompt,
     image_file_to_text_inference,
@@ -45,6 +47,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         keys: KeysModel,
         sparrow_state: SparrowStateModel,
         story: StoryModel,
+        aiohttp_session: aiohttp.ClientSession,
     ) -> StoryFrameSequenceResponseModel:
         client_id = parameters.client_id
 
@@ -59,8 +62,11 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         if parameters.input_image_filename:
             caption = "Along the riverrun"
             try:
-                caption = image_file_to_text_inference(
-                    parameters.input_image_filename, inference_model_configs, keys
+                caption = await image_file_to_text_inference(
+                    aiohttp_session,
+                    parameters.input_image_filename,
+                    inference_model_configs,
+                    keys,
                 )
                 debug_data["i_see"] = caption
             except Exception as e:
@@ -81,11 +87,11 @@ class ContinuousStoryV0Strategy(StoryStrategy):
 
         text = f"{caption} {last_text}"
         print(f'Text prompt: "{text}"')
-        text_1 = self._get_new_story_fragment(
-            text, inference_model_configs, keys, errors
+        text_1 = await self._get_new_story_fragment(
+            text, inference_model_configs, keys, errors, aiohttp_session
         )
-        text_2 = self._get_new_story_fragment(
-            text_1, inference_model_configs, keys, errors
+        text_2 = await self._get_new_story_fragment(
+            text_1, inference_model_configs, keys, errors, aiohttp_session
         )
         text = text_1 + " " + text_2 + " "
 
@@ -103,7 +109,8 @@ class ContinuousStoryV0Strategy(StoryStrategy):
                 output_image_filename_png = create_sequential_filename(
                     "media", client_id, "out", "png", story
                 )
-                text_to_image_file_inference(
+                await text_to_image_file_inference(
+                    aiohttp_session,
                     prompt,
                     output_image_filename_png,
                     inference_model_configs,
@@ -134,18 +141,21 @@ class ContinuousStoryV0Strategy(StoryStrategy):
             append_to_prior_frames=True,
         )
 
-    def _get_new_story_fragment(
+    async def _get_new_story_fragment(
         self,
         text: str,
         inference_model_configs,
         keys: KeysModel,
         errors: List[str],
+        aiohttp_session: aiohttp.ClientSession,
     ) -> str:
         fragment_len = len(text)
         print(f'_get_new_story_fragment: "{text=}"')
 
         try:
-            text = text_to_extended_text_inference(text, inference_model_configs, keys)
+            text = await text_to_extended_text_inference(
+                aiohttp_session, text, inference_model_configs, keys
+            )
         except Exception as e:
             traceback.print_exc(file=sys.stderr)
             errors.append(str(e))

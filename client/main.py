@@ -38,6 +38,7 @@ def image_loop_inference_api() -> None:
 
     # TODO: If we want to keep this legacy code, we need a way to load the
     # keys from a secrets file.
+    # Also: this doesn't work with asyncio/aiohttp.
     keys = KeysModel()
     vid = cv2.VideoCapture(0)
 

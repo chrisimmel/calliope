@@ -1,6 +1,7 @@
 import datetime
 from typing import Any, Dict, List, Optional
 
+import aiohttp
 import cuid
 from fastapi import APIRouter, Depends, Request
 from fastapi.security.api_key import APIKey
@@ -125,10 +126,16 @@ async def handle_frames_request(
         sparrow_state.story_ids.append(story.story_id)
 
     parameters = prepare_input_files(parameters, story)
+    async with aiohttp.ClientSession(raise_for_status=True) as aiohttp_session:
 
-    story_frames_response = await strategy_class().get_frame_sequence(
-        parameters, inference_model_configs, keys, sparrow_state, story
-    )
+        story_frames_response = await strategy_class().get_frame_sequence(
+            parameters,
+            inference_model_configs,
+            keys,
+            sparrow_state,
+            story,
+            aiohttp_session,
+        )
 
     story_frames_response.debug_data = {
         **story_frames_response.debug_data,

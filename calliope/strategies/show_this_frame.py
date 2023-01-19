@@ -1,5 +1,6 @@
 import os
 
+import aiohttp
 from fastapi import HTTPException
 
 from calliope.models import (
@@ -32,6 +33,7 @@ class ShowThisFrameStrategy(StoryStrategy):
         keys: KeysModel,
         sparrow_state: SparrowStateModel,
         story: StoryModel,
+        aiohttp_session: aiohttp.ClientSession,
     ) -> StoryFrameSequenceResponseModel:
 
         debug_data = {}
