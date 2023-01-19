@@ -6,6 +6,7 @@ from pprint import pprint
 from typing import Any, Optional
 
 import aiohttp
+import aiofiles
 import cv2
 import openai
 from PIL import Image
@@ -96,6 +97,82 @@ async def image_file_to_text_inference(
     return "A long the riverrun"
 
 
+async def _text_to_image_file_inference_stability(
+    aiohttp_session: aiohttp.ClientSession,
+    text: str,
+    output_image_filename: str,
+    inference_model_configs: InferenceModelConfigsModel,
+    keys: KeysModel,
+    width: Optional[int] = None,
+    height: Optional[int] = None,
+) -> str:
+    # I see no way to use aiohttp with the Stability Inference API. :-(
+    stability_api = stability_client.StabilityInference(
+        key=keys.stability_api_key,
+        host=keys.stability_api_host,
+        verbose=True,  # Print debug messages.
+        engine=model_config.model_name,  # Set the engine to use for generation.
+        # Available engines: stable-diffusion-v1 stable-diffusion-v1-5 stable-diffusion-512-v2-0 stable-diffusion-768-v2-0
+        # stable-diffusion-512-v2-1 stable-diffusion-768-v2-1 stable-inpainting-v1-0 stable-inpainting-512-v2-0
+    )
+
+    width = width or 512
+    height = height or 512
+
+    # Stable Diffusion accepts only multiples of 64 for image dimensions. Can scale or crop
+    # afterward to mach requested size.
+    width = math.ceil(width / 64) * 64
+    height = math.ceil(height / 64) * 64
+
+    responses = stability_api.generate(
+        prompt=text,
+        width=width,
+        height=height,
+        **model_config.parameters,
+    )
+    for response in responses:
+        for artifact in response.artifacts:
+            if artifact.finish_reason == generation.FILTER:
+                raise ValueError(
+                    "Your request activated the API's safety filters and could not be processed."
+                    "Please modify the prompt and try again."
+                )
+            if artifact.type == generation.ARTIFACT_IMAGE:
+                img = Image.open(io.BytesIO(artifact.binary))
+                img.save(output_image_filename)
+                return output_image_filename
+    return None
+
+
+async def _text_to_image_file_inference_openai(
+    aiohttp_session: aiohttp.ClientSession,
+    text: str,
+    output_image_filename: str,
+    inference_model_configs: InferenceModelConfigsModel,
+    keys: KeysModel,
+    width: Optional[int] = None,
+    height: Optional[int] = None,
+) -> str:
+    params = {
+        "prompt": text,
+        "size": f"{width}x{height}",
+        "n": 1,
+    }
+    openai.api_key = keys.openapi_api_key
+    openai.aiosession.set(aiohttp_session)
+    openai_response = await openai.Image.acreate(**params)
+
+    image_url = openai_response["data"][0]["url"]
+    print(f"{image_url=}")
+    async with aiohttp_session.get(image_url) as resp:
+        if resp.status == 200:
+            f = await aiofiles.open(output_image_filename, mode="wb")
+            await f.write(await resp.read())
+            await f.close()
+
+    return output_image_filename
+
+
 async def text_to_image_file_inference(
     aiohttp_session: aiohttp.ClientSession,
     text: str,
@@ -128,43 +205,28 @@ async def text_to_image_file_inference(
         print(
             f"text_to_image_file_inference.stability {model_config.model_name} ({width}x{height})"
         )
-        # I see no way to use aiohttp with the Stability Inference API.
-        stability_api = stability_client.StabilityInference(
-            key=keys.stability_api_key,
-            host=keys.stability_api_host,
-            verbose=True,  # Print debug messages.
-            engine=model_config.model_name,  # Set the engine to use for generation.
-            # Available engines: stable-diffusion-v1 stable-diffusion-v1-5 stable-diffusion-512-v2-0 stable-diffusion-768-v2-0
-            # stable-diffusion-512-v2-1 stable-diffusion-768-v2-1 stable-inpainting-v1-0 stable-inpainting-512-v2-0
+        return await _text_to_image_file_inference_stability(
+            aiohttp_session,
+            text,
+            output_image_filename,
+            inference_model_configs,
+            keys,
+            width,
+            height,
         )
-
-        width = width or 512
-        height = height or 512
-
-        # Stable Diffusion accepts only multiples of 64 for image dimensions. Can scale or crop
-        # afterward to mach requested size.
-        width = math.ceil(width / 64) * 64
-        height = math.ceil(height / 64) * 64
-
-        responses = stability_api.generate(
-            prompt=text,
-            width=width,
-            height=height,
-            **model_config.parameters,
+    elif model_config.provider == InferenceModelProvider.OPENAI:
+        print(
+            f"text_to_image_file_inference.openai {model_config.model_name} ({width}x{height})"
         )
-        for response in responses:
-            for artifact in response.artifacts:
-                if artifact.finish_reason == generation.FILTER:
-                    raise ValueError(
-                        "Your request activated the API's safety filters and could not be processed."
-                        "Please modify the prompt and try again."
-                    )
-                if artifact.type == generation.ARTIFACT_IMAGE:
-                    img = Image.open(io.BytesIO(artifact.binary))
-                    img.save(output_image_filename)
-                    return output_image_filename
-
-        raise ValueError("No image artifact in response from Stability API.")
+        return await _text_to_image_file_inference_openai(
+            aiohttp_session,
+            text,
+            output_image_filename,
+            inference_model_configs,
+            keys,
+            width,
+            height,
+        )
     else:
         raise ValueError(
             f"Don't know how to do text->image inference for provider {model_config.provider}."
@@ -193,8 +255,8 @@ async def text_to_extended_text_inference(
         print(f"text_to_extended_text_inference.openai {model_config.model_name}")
         openai.api_key = keys.openapi_api_key
 
-        # It seems we can't use aiohttp with the Completion API.
-        completion = openai.Completion.create(
+        openai.aiosession.set(aiohttp_session)
+        completion = await openai.Completion.acreate(
             engine=model_config.model_name, prompt=text
         )
         extended_text = completion.choices[0].text
