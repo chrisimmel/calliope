@@ -97,11 +97,35 @@ async def image_file_to_text_inference(
     return "A long the riverrun"
 
 
+async def _text_to_image_file_inference_hugging_face(
+    aiohttp_session: aiohttp.ClientSession,
+    text: str,
+    output_image_filename: str,
+    model_config: InferenceModelConfigModel,
+    keys: KeysModel,
+    width: Optional[int] = None,
+    height: Optional[int] = None,
+) -> str:
+    # width and height are ignored by HuggingFace.
+    payload = {"inputs": text}
+    data = json.dumps(payload)
+    response = await _hugging_face_request(
+        aiohttp_session, data, model_config.model_name, keys
+    )
+
+    if response.status == 200:
+        f = await aiofiles.open(output_image_filename, mode="wb")
+        await f.write(await response.read())
+        await f.close()
+
+    return output_image_filename
+
+
 async def _text_to_image_file_inference_stability(
     aiohttp_session: aiohttp.ClientSession,
     text: str,
     output_image_filename: str,
-    inference_model_configs: InferenceModelConfigsModel,
+    model_config: InferenceModelConfigModel,
     keys: KeysModel,
     width: Optional[int] = None,
     height: Optional[int] = None,
@@ -148,16 +172,29 @@ async def _text_to_image_file_inference_openai(
     aiohttp_session: aiohttp.ClientSession,
     text: str,
     output_image_filename: str,
-    inference_model_configs: InferenceModelConfigsModel,
+    model_config: InferenceModelConfigModel,
     keys: KeysModel,
     width: Optional[int] = None,
     height: Optional[int] = None,
 ) -> str:
     params = {
         "prompt": text,
-        "size": f"{width}x{height}",
         "n": 1,
     }
+
+    if width and height:
+        # DALL-E supports images of size 256x256, 512x512, or 1024x1024.
+        # The resulting image will be scaled and padded downstream to fit the
+        # client's requested dimensions.
+        if width > 1024 or height > 1024:
+            width = height = 1024
+        elif width > 512 or height > 512:
+            width = height = 512
+        else:
+            width = height = 256
+        params["size"] = f"{width}x{height}"
+    # If width and height aren't given, we let them default in the API/model.
+
     openai.api_key = keys.openapi_api_key
     openai.aiosession.set(aiohttp_session)
     openai_response = await openai.Image.acreate(**params)
@@ -189,18 +226,15 @@ async def text_to_image_file_inference(
 
     if model_config.provider == InferenceModelProvider.HUGGINGFACE:
         print(f"text_to_image_file_inference.huggingface {model_config.model_name}")
-        # width and height are ignored by HuggingFace.
-        payload = {"inputs": text}
-        data = json.dumps(payload)
-        response = await _hugging_face_request(
-            aiohttp_session, data, model_config.model_name, keys
+        return await _text_to_image_file_inference_hugging_face(
+            aiohttp_session,
+            text,
+            output_image_filename,
+            model_config,
+            keys,
+            width,
+            height,
         )
-
-        with open(output_image_filename, "wb") as f:
-            for chunk in response.content.iter_chunks():
-                f.write(chunk)
-
-        return output_image_filename
     elif model_config.provider == InferenceModelProvider.STABILITY:
         print(
             f"text_to_image_file_inference.stability {model_config.model_name} ({width}x{height})"
@@ -209,7 +243,7 @@ async def text_to_image_file_inference(
             aiohttp_session,
             text,
             output_image_filename,
-            inference_model_configs,
+            model_config,
             keys,
             width,
             height,
@@ -222,7 +256,7 @@ async def text_to_image_file_inference(
             aiohttp_session,
             text,
             output_image_filename,
-            inference_model_configs,
+            model_config,
             keys,
             width,
             height,
