@@ -1,3 +1,4 @@
+from datetime import datetime
 import sys, traceback
 
 import aiohttp
@@ -41,7 +42,7 @@ class LiteralStrategy(StoryStrategy):
         aiohttp_session: aiohttp.ClientSession,
     ) -> StoryFrameSequenceResponseModel:
         client_id = parameters.client_id
-        debug_data = {}
+        debug_data = self._get_default_debug_data(parameters)
         errors = []
         frames = []
 
@@ -88,8 +89,13 @@ class LiteralStrategy(StoryStrategy):
 
             frame = StoryFrameModel(
                 image=image,
+                source_image=image,
                 text=prompt,
                 min_duration_seconds=DEFAULT_MIN_DURATION_SECONDS,
+                metadata={
+                    **debug_data,
+                    "errors": errors,
+                },
             )
             frames.append(frame)
 

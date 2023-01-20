@@ -1,3 +1,4 @@
+from datetime import datetime
 import sys, traceback
 
 import aiohttp
@@ -46,7 +47,7 @@ class SimpleOneFrameStoryStrategy(StoryStrategy):
         client_id = parameters.client_id
 
         output_image_style = parameters.output_image_style or "A watercolor of"
-        debug_data = {}
+        debug_data = self._get_default_debug_data(parameters)
         errors = []
         caption = ""
         image = None
@@ -99,8 +100,13 @@ class SimpleOneFrameStoryStrategy(StoryStrategy):
 
         frame = StoryFrameModel(
             image=image,
+            source_iamge=image,
             text=text,
             min_duration_seconds=DEFAULT_MIN_DURATION_SECONDS,
+            metadata={
+                **debug_data,
+                "errors": errors,
+            },
         )
         story.frames.append(frame)
         story.text = story.text + "\n" + text

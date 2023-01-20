@@ -19,11 +19,14 @@
     <div class="story-frame">
         <div class="frame-image">
             {%- if frame.image -%}
-            <img src="/{{frame.image.url}}" />
+            <img src="/{{frame.source_image.url}}" />
             {%- endif %}
         </div>
         <div class="frame-text">
             {{frame.text}}
+        </div>
+        <div class="frame-metadata">
+            {{frame.pretty_metadata}}
         </div>
     </div>
     {% endfor %}

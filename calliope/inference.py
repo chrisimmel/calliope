@@ -186,9 +186,9 @@ async def _text_to_image_file_inference_openai(
         # DALL-E supports images of size 256x256, 512x512, or 1024x1024.
         # The resulting image will be scaled and padded downstream to fit the
         # client's requested dimensions.
-        if width > 1024 or height > 1024:
+        if width >= 1024 or height >= 1024:
             width = height = 1024
-        elif width > 512 or height > 512:
+        elif width >= 512 or height >= 512:
             width = height = 512
         else:
             width = height = 256

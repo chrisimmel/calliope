@@ -1,4 +1,5 @@
-from typing import Optional
+import json
+from typing import Any, Dict, Optional
 
 from pydantic import BaseModel
 
@@ -22,3 +23,17 @@ class StoryFrameModel(BaseModel):
 
     # An optional trigger condition.
     trigger_condition: Optional[TriggerConditionModel] = None
+
+    # The original image, before possible format conversion for the client.
+    source_image: Optional[ImageModel] = None
+
+    # Anything else someone may want to know about this frame?
+    # Information about how and when it was generated, etc.
+    metadata: Optional[Dict[str, Any]] = None
+
+    @property
+    def pretty_metadata(self) -> str:
+        """
+        Gets a nicely formatted string containing the frame metadata, if any.
+        """
+        return json.dumps(self.metadata, indent=2) if self.metadata else ""

@@ -1,3 +1,4 @@
+from datetime import datetime
 import sys, traceback
 from typing import List
 
@@ -52,7 +53,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         client_id = parameters.client_id
 
         output_image_style = parameters.output_image_style or "A watercolor of"
-        debug_data = {}
+        debug_data = self._get_default_debug_data(parameters)
         errors = []
         caption = ""
         prompt = None
@@ -119,17 +120,20 @@ class ContinuousStoryV0Strategy(StoryStrategy):
                     parameters.output_image_height,
                 )
                 output_image_filename = output_image_filename_png
-                print(f"Wrote image to file {output_image_filename}.")
                 image = get_image_attributes(output_image_filename)
-                print(f"Image: {image}.")
             except Exception as e:
                 traceback.print_exc(file=sys.stderr)
                 errors.append(str(e))
 
         frame = StoryFrameModel(
             image=image,
+            source_image=image,
             text=text,
             min_duration_seconds=DEFAULT_MIN_DURATION_SECONDS,
+            metadata={
+                **debug_data,
+                "errors": errors,
+            },
         )
         story.frames.append(frame)
         story.text = story.text + text

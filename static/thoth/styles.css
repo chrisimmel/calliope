@@ -44,17 +44,29 @@
 }
 
 .story-frame {
-    display: flex;
+    display: grid;
+    grid-template-columns: 512px auto 200px;
     padding-bottom: 16px;
 }
 
 .frame-image {
-    flex: 1;
     min-width: 512px;
 }
 
+.frame-image>img {
+    max-width: 512px;
+    max-height: 512px;
+}
+
 .frame-text {
-    flex: 1;
     margin-left: 20px;
     margin-right: 80px;
+}
+
+.frame-metadata {
+    width: 120px;
+    margin-right: 20px;
+    font-family: monospace;
+    font-size: 8px;
+    white-space: pre-wrap;
 }

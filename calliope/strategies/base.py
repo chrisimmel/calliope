@@ -1,4 +1,6 @@
 from abc import ABCMeta, abstractmethod
+from datetime import datetime
+from typing import Any, Dict
 
 import aiohttp
 
@@ -38,3 +40,24 @@ class StoryStrategy(object, metaclass=ABCMeta):
         """
         Requests a sequence of story frames.
         """
+
+    def _get_default_debug_data(
+        self, parameters: FramesRequestParamsModel
+    ) -> Dict[str, Any]:
+        return {
+            "parameters": {
+                key: value
+                for key, value in parameters.dict(exclude_none=True).items()
+                # Filter out some undesirable parameters:
+                if key
+                not in (
+                    "client_id",
+                    "input_audio",
+                    "input_audio_filename",
+                    "input_image",
+                    "input_image_filename",
+                )
+                and value
+            },
+            "generated_at": str(datetime.utcnow()),
+        }

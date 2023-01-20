@@ -1,3 +1,4 @@
+from datetime import datetime
 import os
 
 import aiohttp
@@ -36,7 +37,7 @@ class ShowThisFrameStrategy(StoryStrategy):
         aiohttp_session: aiohttp.ClientSession,
     ) -> StoryFrameSequenceResponseModel:
 
-        debug_data = {}
+        debug_data = self._get_default_debug_data(parameters)
         errors = []
 
         if parameters.input_image_filename:
@@ -49,9 +50,14 @@ class ShowThisFrameStrategy(StoryStrategy):
 
         frame = StoryFrameModel(
             image=image,
+            source_image=image,
             text=text,
             # TODO: Parameterize min_duration_seconds for this strategy.
             min_duration_seconds=DEFAULT_MIN_DURATION_SECONDS,
+            metadata={
+                **debug_data,
+                "errors": errors,
+            },
         )
         last_frame = story.frames[-1] if len(story.frames) else None
         if (
