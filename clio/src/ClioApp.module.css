@@ -2,45 +2,56 @@ html {
     background-color: black
 }
 
+body {
+    margin: 0;
+}
+
 div {
     background-color: black;
     color: white;
     white-space: pre-wrap;
 }
 
+div#root {
+    height: 100vh;
+}
+
 .clio_app {
-    display: flex;
-    min-height: 700px;
+    display: grid;
+    grid-template-columns: 381px auto;
+
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: auto;
 }
 
 .image {
-    width: 50%;
     display: grid;
-    margin: 60px;
 }
 
 img {
     align-self: center;
     justify-self: center;
+    max-height: 100vh;
 }
 
 .textFrame {
-    width: 50%;
+    /*width: 50%;
     justify-self: center;
     margin: 60px;
+    */
 }
 
 .textContainer {
     display: flex;
     flex-direction: column;
-    max-height: 512px;
+    max-height: 100vh;
     padding-right: 60px;
 }
 
 .textInner {
     padding: 12px;
     min-height: 0;
-    max-height: 512px;
+    max-height: 100vh;
     display: flex;
     flex-direction: column;
 }
@@ -49,17 +60,20 @@ img {
     flex-grow: 1;
     overflow: scroll;
     font-family: arial, sans-serif;
-    font-size: 16pt;
+    font-size: 14pt;
 }
 
 .webcamVideo {
     z-index: -1;
     position: absolute;
+    left: 0;
+    top: 0;
+    max-height: 100vh;
+    /*
     left: 60px;
     top: 60px;
-    /*
     display: block;
     position: absolute;
     right: 100%;
-*/
+    */
 }
