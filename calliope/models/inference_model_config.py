@@ -40,6 +40,12 @@ _model_configs_by_name = {
     "huggingface_gpt_neo_2.7B": InferenceModelConfigModel(
         provider=InferenceModelProvider.HUGGINGFACE,
         model_name="EleutherAI/gpt-neo-2.7B",
+        parameters={
+            "temperature": 1,
+            "max_new_tokens": 250,
+            "return_full_text": False,
+            # "repetition_penalty": 80,
+        },
     ),
     "huggingface_wav2vec2": InferenceModelConfigModel(
         provider=InferenceModelProvider.HUGGINGFACE,

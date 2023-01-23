@@ -1,4 +1,4 @@
-from datetime import datetime
+import re
 import sys, traceback
 from typing import List
 
@@ -52,7 +52,9 @@ class ContinuousStoryV0Strategy(StoryStrategy):
     ) -> StoryFrameSequenceResponseModel:
         client_id = parameters.client_id
 
-        output_image_style = parameters.output_image_style or "A watercolor of"
+        output_image_style = (
+            parameters.output_image_style or "A dreamy watercolor, paper texture."
+        )
         debug_data = self._get_default_debug_data(parameters)
         errors = []
         caption = ""
@@ -73,11 +75,14 @@ class ContinuousStoryV0Strategy(StoryStrategy):
             except Exception as e:
                 traceback.print_exc(file=sys.stderr)
                 errors.append(str(e))
+
+        input_text = ""
+
         if parameters.input_text:
             if caption:
-                caption = f"{caption}. {parameters.input_text}"
+                input_text = f"{caption}. {parameters.input_text}"
             else:
-                caption = parameters.input_text
+                input_text = parameters.input_text
 
         last_text = story.text
         if last_text:
@@ -86,15 +91,32 @@ class ContinuousStoryV0Strategy(StoryStrategy):
             last_text_tokens = last_text_tokens[-20:]
             last_text = " ".join(last_text_tokens)
 
-        text = f"{caption} {last_text}"
+        text = f"{input_text} {last_text}"
         print(f'Text prompt: "{text}"')
-        text_1 = await self._get_new_story_fragment(
-            text, inference_model_configs, keys, errors, aiohttp_session
-        )
-        text_2 = await self._get_new_story_fragment(
-            text_1, inference_model_configs, keys, errors, aiohttp_session
-        )
-        text = text_1 + " " + text_2 + " "
+        if text and not text.isspace():
+            text_1 = await self._get_new_story_fragment(
+                text, parameters, inference_model_configs, keys, errors, aiohttp_session
+            )
+            print(f"{text_1=}")
+            text_2 = await self._get_new_story_fragment(
+                text_1,
+                parameters,
+                inference_model_configs,
+                keys,
+                errors,
+                aiohttp_session,
+            )
+            print(f"{text_2=}")
+            text_3 = await self._get_new_story_fragment(
+                text_2,
+                parameters,
+                inference_model_configs,
+                keys,
+                errors,
+                aiohttp_session,
+            )
+            print(f"{text_3=}")
+            text = text_1 + " " + text_2 + " " + text_3 + " "
 
         if not text or text.isspace():
             text = caption
@@ -148,7 +170,8 @@ class ContinuousStoryV0Strategy(StoryStrategy):
     async def _get_new_story_fragment(
         self,
         text: str,
-        inference_model_configs,
+        parameters: FramesRequestParamsModel,
+        inference_model_configs: InferenceModelConfigsModel,
         keys: KeysModel,
         errors: List[str],
         aiohttp_session: aiohttp.ClientSession,
@@ -165,9 +188,24 @@ class ContinuousStoryV0Strategy(StoryStrategy):
             errors.append(str(e))
 
         text = text[fragment_len:]
-        text = " ".join(text.split(" "))
-        text = text.replace("*", "")
-        text = text.replace("_", "")
-        text = text.strip()
+
+        input_text = parameters.input_text
+
+        if input_text and text.find(input_text) >= 0:
+            msg = f"Rejecting story continuation because it contains the input text: {text}\n{input_text=}"
+            print(msg)
+            errors.append(msg)
+            text = ""
+        elif re.search(r"[<>#^#\\{}]|0x|://", text):
+            msg = f"Rejecting story continuation because it smells like code: {text}"
+            print(msg)
+            errors.append(msg)
+            text = ""
+        else:
+            text = " ".join(text.split(" "))
+            text = text.replace("*", "")
+            text = text.replace("_", "")
+            text = text.replace("�", "'")
+            text = text.strip()
 
         return text
