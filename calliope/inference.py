@@ -3,10 +3,12 @@ import io
 import json
 import math
 from pprint import pprint
-from typing import Any, Optional
+from typing import Any, Dict, Optional
+from urllib.parse import urlencode
 
 import aiohttp
 import aiofiles
+from calliope.utils.file import get_file_extension
 import cv2
 import openai
 from PIL import Image
@@ -27,11 +29,11 @@ from calliope.models import (
 
 
 # image_to_text_model = "ydshieh/vit-gpt2-coco-en-ckpts"
-image_to_text_model = "nlpconnect/vit-gpt2-image-captioning"
-text_to_image_model = "runwayml/stable-diffusion-v1-5"
-text_prediction_model = "EleutherAI/gpt-neo-2.7B"
+# image_to_text_model = "nlpconnect/vit-gpt2-image-captioning"
+# text_to_image_model = "runwayml/stable-diffusion-v1-5"
+# text_prediction_model = "EleutherAI/gpt-neo-2.7B"
 # text_prediction_model = "EleutherAI/gpt-neox-20b"
-speech_recognition_model = "facebook/wav2vec2-large-960h-lv60-self"
+# speech_recognition_model = "facebook/wav2vec2-large-960h-lv60-self"
 # voice_activity_detection_model = "pyannote/voice-activity-detection"
 
 
@@ -61,7 +63,7 @@ async def _hugging_face_image_to_text_inference(
     Takes the filename of an image. Returns a caption.
     """
     response = await _hugging_face_request(
-        aiohttp_session, image_data, image_to_text_model, keys
+        aiohttp_session, image_data, inference_model_config.model_name, keys
     )
     # predictions = json.loads(response.content.decode("utf-8"))
     predictions = await response.json()
@@ -94,7 +96,139 @@ async def image_file_to_text_inference(
             aiohttp_session, image_data, model_config, keys
         )
 
-    return "A long the riverrun"
+    return None
+
+
+def _convert_image_to_png(image_filename: str) -> str:
+    extension = get_file_extension(image_filename)
+    if extension != "png":
+        image_filename_png = image_filename + ".png"
+        img = Image.open(image_filename)
+        img.save(image_filename_png)
+        image_filename = image_filename_png
+
+    return image_filename
+
+
+def _azure_endpoint_to_api_url(azure_api_host: str, endpoint_name: str) -> str:
+    """
+    Example:
+    https://calliope-cognitive-services-1.cognitiveservices.azure.com/vision/v3.2/analyze?visualFeatures=Categories,Description,Faces,Objects,Tags
+    """
+    return f"{azure_api_host}{endpoint_name}"
+
+
+async def _azure_vision_inference(
+    aiohttp_session: aiohttp.ClientSession,
+    image_data: bytes,
+    inference_model_config: InferenceModelConfigModel,
+    keys: KeysModel,
+) -> Dict[str, Any]:
+    api_host = keys.azure_api_host
+    api_key = keys.azure_api_key
+    endpoint_name = inference_model_config.model_name
+    params = inference_model_config.parameters
+    api_url = _azure_endpoint_to_api_url(api_host, endpoint_name)
+    if params:
+        params_str = urlencode(params)  # .replace(",", "%2c")
+        api_url += f"?{params_str}"
+
+    print(f"{api_host=}, {endpoint_name=}, {api_key=}, {api_url=}, {params_str=}")
+    headers = {
+        "Content-Type": "application/octet-stream",
+        "Ocp-Apim-Subscription-Key": api_key,
+        "Accept": "application/json",
+        # "Accept-Encoding": "gzip, deflate, br",
+    }
+    response = await aiohttp_session.post(api_url, headers=headers, data=image_data)
+    response_json = await response.json()
+
+    from pprint import pprint
+
+    pprint(response_json)
+    return response_json
+
+
+async def image_analysis_inference(
+    aiohttp_session: aiohttp.ClientSession,
+    image_filename: str,
+    inference_model_configs: InferenceModelConfigsModel,
+    keys: KeysModel,
+) -> Dict[str, Any]:
+    """
+    Takes the filename of an image. Returns a dictionary of metadata about the image.
+    """
+    model_config = inference_model_configs.image_analysis_model_config
+
+    if model_config.provider != InferenceModelProvider.AZURE:
+        raise ValueError(
+            f"Don't know how to do image analysis for provider {model_config.provider}."
+        )
+
+    # Don't know why, but Azure comp vision doesn't seem to like JPG files. Convert to PNG.
+    image_filename = _convert_image_to_png(image_filename)
+    with open(image_filename, "rb") as f:
+        image_data = f.read()
+
+        if image_data:
+            raw_metadata = await _azure_vision_inference(
+                aiohttp_session, image_data, model_config, keys
+            )
+
+            if raw_metadata:
+                captions = [
+                    caption.get("text", "")
+                    for caption in raw_metadata.get("description", {}).get(
+                        "captions", []
+                    )
+                ]
+                tags = [tag.get("name", "") for tag in raw_metadata.get("tags", [])]
+                for tag in raw_metadata.get("description", {}).get("tags", []):
+                    if tag not in tags:
+                        tags.append(tag)
+
+                objects = [
+                    object.get("object") for object in raw_metadata.get("objects", [])
+                ]
+
+                image_metadata = {
+                    "captions": captions,
+                    "tags": tags,
+                    "objects": objects,
+                }
+                return image_metadata
+            return ValueError("Unexpected empty response from image analysis API.")
+
+    raise ValueError("No input image data to image_analysis_inference.")
+
+
+async def image_ocr_inference(
+    aiohttp_session: aiohttp.ClientSession,
+    image_filename: str,
+    inference_model_configs: InferenceModelConfigsModel,
+    keys: KeysModel,
+) -> Dict[str, Any]:
+    """
+    Takes the filename of an image. Returns a dictionary of metadata.
+    """
+    model_config = inference_model_configs.image_ocr_model_config
+
+    if model_config.provider != InferenceModelProvider.AZURE:
+        raise ValueError(
+            f"Don't know how to do image OCR for provider {model_config.provider}."
+        )
+
+    # Don't know why, but Azure comp vision doesn't seem to like JPG files. Convert to PNG.
+    image_filename = _convert_image_to_png(image_filename)
+    with open(image_filename, "rb") as f:
+        image_data = f.read()
+
+    if image_data:
+        return await _azure_vision_inference(
+            aiohttp_session, image_data, model_config, keys
+        )
+
+    raise ValueError("No input image data to image_analysis_inference.")
 
 
 async def _text_to_image_file_inference_hugging_face(

@@ -6,6 +6,7 @@ import aiohttp
 
 from calliope.inference import (
     caption_to_prompt,
+    image_analysis_inference,
     image_file_to_text_inference,
     text_to_extended_text_inference,
     text_to_image_file_inference,
@@ -63,15 +64,42 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         image = None
 
         if parameters.input_image_filename:
-            caption = "Along the riverrun"
+            # caption = "Along the riverrun"
             try:
+                """
                 caption = await image_file_to_text_inference(
                     aiohttp_session,
                     parameters.input_image_filename,
                     inference_model_configs,
                     keys,
                 )
+                """
+                analysis = await image_analysis_inference(
+                    aiohttp_session,
+                    parameters.input_image_filename,
+                    inference_model_configs,
+                    keys,
+                )
+                captions = analysis.get("captions") or []
+                caption = ". ".join(captions)
+                if caption:
+                    caption += ". "
+
+                tags = analysis.get("tags", [])
+                if tags:
+                    tags_phrase = ",".join(tags)
+                    caption += f" {tags_phrase}."
+
+                objects = analysis.get("objects", [])
+                if objects:
+                    objects_phrase = ""
+                    for object in objects:
+                        if object not in tags:
+                            objects_phrase += f",{object}"
+                    if objects_phrase:
+                        caption += f" {objects_phrase}"
                 debug_data["i_see"] = caption
+
             except Exception as e:
                 traceback.print_exc(file=sys.stderr)
                 errors.append(str(e))

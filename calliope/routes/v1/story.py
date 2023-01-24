@@ -7,12 +7,6 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.security.api_key import APIKey
 from pydantic import BaseModel
 
-from calliope.inference import (
-    caption_to_prompt,
-    image_file_to_text_inference,
-    text_to_extended_text_inference,
-    text_to_image_file_inference,
-)
 from calliope.models import FramesRequestParamsModel, StoryFrameModel, StoryModel
 from calliope.storage.config_manager import get_sparrow_story_parameters_and_keys
 from calliope.storage.state_manager import (
@@ -24,9 +18,7 @@ from calliope.storage.state_manager import (
 from calliope.strategies import StoryStrategyRegistry
 from calliope.utils.fastapi import get_base_url
 from calliope.utils.file import (
-    compose_full_filename,
     create_sequential_filename,
-    create_unique_filename,
     decode_b64_to_file,
     get_base_filename,
 )

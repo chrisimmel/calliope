@@ -106,7 +106,7 @@ export default function ClioApp() {
                 console.log(response.data);
                 const caption = response.data?.debug_data?.i_see;
                 if (caption) {
-                    console.log(`I think I see ${caption.trim()}.`);
+                    console.log(`I think I see ${caption}.`);
                 }
 
                 setFrameData(response.data);

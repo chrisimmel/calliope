@@ -8,6 +8,7 @@ class InferenceModelProvider(str, Enum):
     HUGGINGFACE = "huggingface"
     STABILITY = "stability"
     OPENAI = "openai"
+    AZURE = "azure"
 
 
 class InferenceModelConfigModel(BaseModel):
@@ -28,6 +29,16 @@ class InferenceModelConfigModel(BaseModel):
 # A registry of inference model configs. This can be selected by name when
 # performing inferences.
 _model_configs_by_name = {
+    # Azure models...
+    "azure_vision_analysis": InferenceModelConfigModel(
+        provider=InferenceModelProvider.AZURE,
+        model_name="/vision/v3.2/analyze",
+        parameters={"visualFeatures": "Categories,Description,Faces,Objects,Tags"},
+    ),
+    "azure_vision_ocr": InferenceModelConfigModel(
+        provider=InferenceModelProvider.AZURE,
+        model_name="/vision/v3.2/ocr",
+    ),
     # HuggingFace models...
     "huggingface_image_captioning": InferenceModelConfigModel(
         provider=InferenceModelProvider.HUGGINGFACE,
@@ -101,6 +112,16 @@ class InferenceModelConfigsModel(BaseModel):
     The configurations of all inference models.
     """
 
+    # Image analysis
+    image_analysis_model_config: Optional[
+        InferenceModelConfigModel
+    ] = get_model_config_by_name("azure_vision_analysis")
+
+    # Image OCR
+    image_ocr_model_config: Optional[
+        InferenceModelConfigModel
+    ] = get_model_config_by_name("azure_vision_ocr")
+
     # Image -> text
     image_to_text_model_config: Optional[
         InferenceModelConfigModel
@@ -123,12 +144,18 @@ class InferenceModelConfigsModel(BaseModel):
 
 
 def load_inference_model_configs(
+    image_analysis_model_config: str = "azure_vision_analysis",
+    image_ocr_model_config: str = "azure_vision_ocr",
     image_to_text_model_config: str = "huggingface_image_captioning",
     text_to_image_model_config: str = "stability_stable_diffusion_1.5",
     text_to_text_model_config: str = "huggingface_gpt_neo_2.7B",
     audio_to_text_model_config: str = "openai_whisper",
 ) -> InferenceModelConfigsModel:
     return InferenceModelConfigsModel(
+        image_analysis_model_config=get_model_config_by_name(
+            image_analysis_model_config
+        ),
+        image_ocr_model_config=get_model_config_by_name(image_ocr_model_config),
         image_to_text_model_config=get_model_config_by_name(image_to_text_model_config),
         text_to_image_model_config=get_model_config_by_name(text_to_image_model_config),
         text_to_text_model_config=get_model_config_by_name(text_to_text_model_config),
