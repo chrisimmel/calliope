@@ -32,8 +32,15 @@ _model_configs_by_name = {
     # Azure models...
     "azure_vision_analysis": InferenceModelConfigModel(
         provider=InferenceModelProvider.AZURE,
-        model_name="/vision/v3.2/analyze",
-        parameters={"visualFeatures": "Categories,Description,Faces,Objects,Tags"},
+        # model_name="/vision/v3.2/analyze",
+        model_name="/computervision/imageanalysis:analyze",
+        # parameters={"visualFeatures": "Categories,Description,Faces,Objects,Tags"},
+        parameters={
+            "features": "tags,objects,description,read,people",
+            "language": "en",
+            "model-version": "latest",
+            "api-version": "2022-10-12-preview",
+        },
     ),
     "azure_vision_ocr": InferenceModelConfigModel(
         provider=InferenceModelProvider.AZURE,

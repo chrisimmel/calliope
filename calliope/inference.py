@@ -77,13 +77,21 @@ async def image_file_to_text_inference(
     image_filename: str,
     inference_model_configs: InferenceModelConfigsModel,
     keys: KeysModel,
-) -> str:
+) -> Optional[str]:
     """
     Takes the filename of an image. Returns a caption.
     """
     model_config = inference_model_configs.image_to_text_model_config
 
-    if model_config.provider != InferenceModelProvider.HUGGINGFACE:
+    if model_config.provider == InferenceModelProvider.AZURE:
+        image_metadata = await image_analysis_inference(
+            aiohttp_session,
+            image_filename,
+            inference_model_configs,
+            keys,
+        )
+        return image_metadata.get("description")
+    elif model_config.provider != InferenceModelProvider.HUGGINGFACE:
         raise ValueError(
             f"Don't know how to do image->text inference for provider {model_config.provider}."
         )
@@ -127,10 +135,11 @@ async def _azure_vision_inference(
     api_host = keys.azure_api_host
     api_key = keys.azure_api_key
     endpoint_name = inference_model_config.model_name
-    params = inference_model_config.parameters
+    params = inference_model_config.parameters or {}
     api_url = _azure_endpoint_to_api_url(api_host, endpoint_name)
+
     if params:
-        params_str = urlencode(params)  # .replace(",", "%2c")
+        params_str = urlencode(params)
         api_url += f"?{params_str}"
 
     print(f"{api_host=}, {endpoint_name=}, {api_key=}, {api_url=}, {params_str=}")
@@ -147,6 +156,91 @@ async def _azure_vision_inference(
 
     pprint(response_json)
     return response_json
+
+
+def _interpret_azure_v3_metadata(raw_metadata: Dict[str, Any]) -> Dict[str, Any]:
+    captions = [
+        caption.get("text", "")
+        for caption in raw_metadata.get("description", {}).get("captions", [])
+    ]
+    tags = [tag.get("name", "") for tag in raw_metadata.get("tags", [])]
+    for tag in raw_metadata.get("description", {}).get("tags", []):
+        if tag not in tags:
+            tags.append(tag)
+
+    objects = [object.get("object") for object in raw_metadata.get("objects", [])]
+
+    description = ". ".join(captions)
+    if description:
+        description += ". "
+
+    if tags:
+        tags_phrase = ", ".join(tags)
+        description += " " + tags_phrase
+
+    if objects:
+        objects_phrase = ""
+        for object in objects:
+            if object.lower() not in tags:
+                if objects_phrase:
+                    objects_phrase += ", "
+                objects_phrase += object
+        if objects_phrase:
+            description += f", {objects_phrase}"
+
+    return {
+        "captions": captions,
+        "tags": tags,
+        "objects": objects,
+        "description": description,
+    }
+
+
+def _interpret_azure_v4_metadata(raw_metadata: Dict[str, Any]) -> Dict[str, Any]:
+    captions = [
+        description.get("text", "")
+        for description in raw_metadata.get("descriptionResult", {}).get("values", [])
+    ]
+    tags = [
+        tag.get("name", "")
+        for tag in raw_metadata.get("tagsResult", {}).get("values", [])
+    ]
+
+    objects = [
+        object.get("name")
+        for object in raw_metadata.get("objectsResult", {}).get("values", [])
+    ]
+
+    text = raw_metadata.get("readResult", {}).get("content")
+
+    description = ". ".join(captions)
+    if description:
+        description += ". "
+
+    if tags:
+        tags_phrase = ", ".join(tags)
+        description += " " + tags_phrase
+
+    if objects:
+        objects_phrase = ""
+        for object in objects:
+            if object.lower() not in tags:
+                if objects_phrase:
+                    objects_phrase += ", "
+                objects_phrase += object
+        if objects_phrase:
+            description += f", {objects_phrase}"
+
+    if text:
+        description += ". " + text
+
+    return {
+        "captions": captions,
+        "tags": tags,
+        "objects": objects,
+        "text": text,
+        "description": description,
+    }
 
 
 async def image_analysis_inference(
@@ -175,49 +269,13 @@ async def image_analysis_inference(
                 aiohttp_session, image_data, model_config, keys
             )
 
-            if raw_metadata:
-                captions = [
-                    caption.get("text", "")
-                    for caption in raw_metadata.get("description", {}).get(
-                        "captions", []
-                    )
-                ]
-                tags = [tag.get("name", "") for tag in raw_metadata.get("tags", [])]
-                for tag in raw_metadata.get("description", {}).get("tags", []):
-                    if tag not in tags:
-                        tags.append(tag)
+            if not raw_metadata:
+                return ValueError("Unexpected empty response from image analysis API.")
 
-                objects = [
-                    object.get("object") for object in raw_metadata.get("objects", [])
-                ]
-
-                description = ". ".join(captions)
-                if description:
-                    description += ". "
-
-                if tags:
-                    tags_phrase = ", ".join(tags)
-                    description += " " + tags_phrase
-
-                if objects:
-                    objects_phrase = ""
-                    for object in objects:
-                        if object.lower() not in tags:
-                            if objects_phrase:
-                                objects_phrase += ", "
-                            objects_phrase += object
-                    if objects_phrase:
-                        description += f", {objects_phrase}"
-
-                image_metadata = {
-                    "captions": captions,
-                    "tags": tags,
-                    "objects": objects,
-                    "description": description,
-                }
-
-                return image_metadata
-            return ValueError("Unexpected empty response from image analysis API.")
+            if model_config.model_name.find("v3.2") >= 0:
+                return _interpret_azure_v3_metadata(raw_metadata)
+            else:
+                return _interpret_azure_v4_metadata(raw_metadata)
 
     raise ValueError("No input image data to image_analysis_inference.")
 
