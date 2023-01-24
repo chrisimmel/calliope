@@ -191,11 +191,31 @@ async def image_analysis_inference(
                     object.get("object") for object in raw_metadata.get("objects", [])
                 ]
 
+                description = ". ".join(captions)
+                if description:
+                    description += ". "
+
+                if tags:
+                    tags_phrase = ", ".join(tags)
+                    description += " " + tags_phrase
+
+                if objects:
+                    objects_phrase = ""
+                    for object in objects:
+                        if object.lower() not in tags:
+                            if objects_phrase:
+                                objects_phrase += ", "
+                            objects_phrase += object
+                    if objects_phrase:
+                        description += f", {objects_phrase}"
+
                 image_metadata = {
                     "captions": captions,
                     "tags": tags,
                     "objects": objects,
+                    "description": description,
                 }
+
                 return image_metadata
             return ValueError("Unexpected empty response from image analysis API.")
 

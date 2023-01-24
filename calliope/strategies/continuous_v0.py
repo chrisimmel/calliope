@@ -80,24 +80,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
                     inference_model_configs,
                     keys,
                 )
-                captions = analysis.get("captions") or []
-                caption = ". ".join(captions)
-                if caption:
-                    caption += ". "
-
-                tags = analysis.get("tags", [])
-                if tags:
-                    tags_phrase = ",".join(tags)
-                    caption += f" {tags_phrase}."
-
-                objects = analysis.get("objects", [])
-                if objects:
-                    objects_phrase = ""
-                    for object in objects:
-                        if object not in tags:
-                            objects_phrase += f",{object}"
-                    if objects_phrase:
-                        caption += f" {objects_phrase}"
+                caption = analysis.get("description")
                 debug_data["i_see"] = caption
 
             except Exception as e:
