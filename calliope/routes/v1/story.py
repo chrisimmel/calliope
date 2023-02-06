@@ -93,7 +93,7 @@ async def handle_frames_request(
     parameters, keys, inference_model_configs = get_sparrow_story_parameters_and_keys(
         request_params, sparrow_state
     )
-    parameters.strategy = parameters.strategy or "simple_one_frame"
+    parameters.strategy = parameters.strategy or "continuous_v1"
     parameters.debug = parameters.debug or False
 
     strategy_class = StoryStrategyRegistry.get_strategy_class(parameters.strategy)

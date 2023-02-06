@@ -7,7 +7,6 @@ import aiohttp
 from calliope.inference import (
     caption_to_prompt,
     image_analysis_inference,
-    image_file_to_text_inference,
     text_to_extended_text_inference,
     text_to_image_file_inference,
 )
@@ -53,9 +52,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
     ) -> StoryFrameSequenceResponseModel:
         client_id = parameters.client_id
 
-        output_image_style = (
-            parameters.output_image_style or "A dreamy watercolor, paper texture."
-        )
+        output_image_style = parameters.output_image_style or "A watercolor of"
         debug_data = self._get_default_debug_data(parameters)
         errors = []
         caption = ""
@@ -106,7 +103,13 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         print(f'Text prompt: "{text}"')
         if text and not text.isspace():
             text_1 = await self._get_new_story_fragment(
-                text, parameters, inference_model_configs, keys, errors, aiohttp_session
+                text,
+                parameters,
+                inference_model_configs,
+                keys,
+                errors,
+                story,
+                aiohttp_session,
             )
             print(f"{text_1=}")
             text_2 = await self._get_new_story_fragment(
@@ -115,6 +118,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
                 inference_model_configs,
                 keys,
                 errors,
+                story,
                 aiohttp_session,
             )
             print(f"{text_2=}")
@@ -124,6 +128,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
                 inference_model_configs,
                 keys,
                 errors,
+                story,
                 aiohttp_session,
             )
             print(f"{text_3=}")
@@ -185,6 +190,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         inference_model_configs: InferenceModelConfigsModel,
         keys: KeysModel,
         errors: List[str],
+        story: StoryModel,
         aiohttp_session: aiohttp.ClientSession,
     ) -> str:
         fragment_len = len(text)
@@ -199,6 +205,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
             errors.append(str(e))
 
         text = text[fragment_len:]
+        stripped_text = text.strip()
 
         input_text = parameters.input_text
 
@@ -209,6 +216,11 @@ class ContinuousStoryV0Strategy(StoryStrategy):
             text = ""
         elif re.search(r"[<>#^#\\{}]|0x|://", text):
             msg = f"Rejecting story continuation because it smells like code: {text}"
+            print(msg)
+            errors.append(msg)
+            text = ""
+        elif stripped_text and stripped_text in story.text:
+            msg = f"Rejecting story continuation because it's already appeared in the story: '{text}'"
             print(msg)
             errors.append(msg)
             text = ""

@@ -87,6 +87,7 @@ export default function ClioApp() {
 
                 let params = {
                     client_id: thisBrowserID,
+                    client_type: "clio",
                     input_image: uploadImage,
                     debug: true,
                 };

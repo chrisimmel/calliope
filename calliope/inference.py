@@ -142,7 +142,6 @@ async def _azure_vision_inference(
         params_str = urlencode(params)
         api_url += f"?{params_str}"
 
-    print(f"{api_host=}, {endpoint_name=}, {api_key=}, {api_url=}, {params_str=}")
     headers = {
         "Content-Type": "application/octet-stream",
         "Ocp-Apim-Subscription-Key": api_key,
@@ -150,12 +149,7 @@ async def _azure_vision_inference(
         # "Accept-Encoding": "gzip, deflate, br",
     }
     response = await aiohttp_session.post(api_url, headers=headers, data=image_data)
-    response_json = await response.json()
-
-    from pprint import pprint
-
-    pprint(response_json)
-    return response_json
+    return await response.json()
 
 
 def _interpret_azure_v3_metadata(raw_metadata: Dict[str, Any]) -> Dict[str, Any]:
@@ -197,39 +191,61 @@ def _interpret_azure_v3_metadata(raw_metadata: Dict[str, Any]) -> Dict[str, Any]
 
 
 def _interpret_azure_v4_metadata(raw_metadata: Dict[str, Any]) -> Dict[str, Any]:
+    ignore_items = (
+        "selfie",
+        "human face",
+        "jaw",
+        "eyeball",
+        "eyebrow",
+        "forehead",
+        "chin",
+        "cheek",
+        "clothing",
+        "wearing",
+    )
     captions = [
-        description.get("text", "")
+        description.get("text", "").replace("taking a selfie", "looking at me")
         for description in raw_metadata.get("descriptionResult", {}).get("values", [])
     ]
     tags = [
         tag.get("name", "")
         for tag in raw_metadata.get("tagsResult", {}).get("values", [])
     ]
+    tags = [thing for thing in tags if thing not in ignore_items]
 
     objects = [
         object.get("name")
         for object in raw_metadata.get("objectsResult", {}).get("values", [])
     ]
+    objects = [thing for thing in objects if thing not in ignore_items]
 
     text = raw_metadata.get("readResult", {}).get("content")
 
-    description = ". ".join(captions)
-    if description:
-        description += ". "
+    all_captions = ". ".join(captions)
+    if all_captions:
+        all_captions += "."
 
+    description = all_captions
+    if description:
+        description += " "
+
+    all_tags_and_objects = ""
     if tags:
-        tags_phrase = ", ".join(tags)
-        description += " " + tags_phrase
+        all_tags_and_objects = ", ".join(tags)
 
     if objects:
         objects_phrase = ""
         for object in objects:
-            if object.lower() not in tags:
+            object = object.lower()
+            if object not in tags and object:
                 if objects_phrase:
                     objects_phrase += ", "
                 objects_phrase += object
         if objects_phrase:
-            description += f", {objects_phrase}"
+            all_tags_and_objects += f", {objects_phrase}"
+
+    if all_tags_and_objects:
+        description += all_tags_and_objects
 
     if text:
         description += ". " + text
@@ -238,6 +254,8 @@ def _interpret_azure_v4_metadata(raw_metadata: Dict[str, Any]) -> Dict[str, Any]
         "captions": captions,
         "tags": tags,
         "objects": objects,
+        "all_captions": all_captions,
+        "all_tags_and_objects": all_tags_and_objects,
         "text": text,
         "description": description,
     }
@@ -412,7 +430,6 @@ async def _text_to_image_file_inference_openai(
     openai_response = await openai.Image.acreate(**params)
 
     image_url = openai_response["data"][0]["url"]
-    print(f"{image_url=}")
     async with aiohttp_session.get(image_url) as resp:
         if resp.status == 200:
             f = await aiofiles.open(output_image_filename, mode="wb")
@@ -503,10 +520,12 @@ async def text_to_extended_text_inference(
 
         openai.aiosession.set(aiohttp_session)
         completion = await openai.Completion.acreate(
-            engine=model_config.model_name, prompt=text
+            engine=model_config.model_name,
+            prompt=text,
+            **model_config.parameters,
         )
         extended_text = completion.choices[0].text
-        print(f"extended_text= {extended_text}")
+        print(f'extended_text="{extended_text}"')
     else:
         raise ValueError(
             f"Don't know how to do text->text inference for provider {model_config.provider}."
