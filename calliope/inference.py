@@ -202,6 +202,8 @@ def _interpret_azure_v4_metadata(raw_metadata: Dict[str, Any]) -> Dict[str, Any]
         "cheek",
         "clothing",
         "wearing",
+        "wrinkle",
+        "skin",
     )
     captions = [
         description.get("text", "").replace("taking a selfie", "looking at me")

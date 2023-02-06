@@ -23,46 +23,7 @@ from calliope.strategies.base import DEFAULT_MIN_DURATION_SECONDS, StoryStrategy
 from calliope.strategies.registry import StoryStrategyRegistry
 from calliope.utils.file import create_sequential_filename
 from calliope.utils.image import get_image_attributes
-
-
-STORY_BEGINNING_PROMPT = """
-Given a scene, an optional text fragment, and a list of objects, begin a story.
-Incorporate some of the scene and objects in the story. Use beautiful imagery and poetic prose in an antiquated style.
-Each character should have a name.
-
-Below are two examples.
-
-Scene: "a man standing in a hallway"
-Text: "Life is a movie"
-Objects: "wall, person, indoor, ceiling, building, man, plaster, smile, standing, glasses, door"
-
-Story:
-A man stands in a hallway.
-He smiles, thinks of the stones in the garden of his youth.
-He reaches to touch the plaster wall.
-Removes his glasses.
-And thinks: Life is a movie.
-When the dust the stones the missing tears form the sun's robe on the huge deserted squares.
-He shall finally hear the voice.
-
-Scene: "person with the hand on the chin."
-Text: ""
-Objects: "human face, person, clothing, indoor, wall, woman, glasses, ceiling"
-
-Story:
-There she sits, chin on hand.
-What silence behind her, but still greater the silence before.
-Her face is blank, her eyes look empty to the wall.
-The silence.
-It will not disturb but will hold guilty will brand and denounce.
-Day of sorrows and joys.
-
-Scene: "$scene"
-Text: "$text"
-Objects: "$objects"
-
-Story:
-"""
+from calliope.utils.string import split_into_sentences
 
 
 SHADOW_STORY = """
@@ -85,22 +46,22 @@ Here, there,
 In the delirium of uselessness.
 """
 
-STORY_CONTINUATION_PROMPT = """
-Given a story, a scene, an optional text fragment, and a list of objects, continue the story with four short, imaginative new sentences.
-Incorporate some of the scene and objects in the story. Use poetic, fantastical prose in the style of Herman Melville.
-Nostalgia, solitude. Don't repeat sentences that came before.
+STORY_PROMPT = """
+Given a scene, an optional text fragment, a list of objects, and a story, continue the story with four short, imaginative new sentences.
+Incorporate some of the scene and objects in the story. Use poetic, flowery prose in the style of Herman Melville.
+Nostalgia, solitude. Don't repeat sentences.
 
-Below are two examples.
+Below are three examples.
+
+Scene: "a man standing in a hallway"
+Text: "Life is a movie"
+Objects: "wall, person, indoor, ceiling, building, man, plaster, smile, standing, glasses, door"
 
 Story:
 A frightening stillness will mark that day.
 And the shadow of streetlights and fire-alarms will exhaust the light.
 All things, the quietest and the loudest, will be silent.
 The tugboats the locomotives the wind will glide by in silence.
-
-Scene: "a man standing in a hallway"
-Text: "Life is a movie"
-Objects: "wall, person, indoor, ceiling, building, man, plaster, smile, standing, glasses, door"
 
 Continuation:
 Smiling in silence, a man stands in the hallway.
@@ -108,26 +69,50 @@ He touches the wall and looks to the ceiling.
 Stillness hovers around him.
 He thinks: Life is a movie.
 
+Scene: "a black cat on a couch"
+Text: ""
+Objects: "cat, indoor, couch, table"
+
 Story:
 A frightening stillness will mark that day.
 And the shadow of streetlights and fire-alarms will exhaust the light.
 All things, the quietest and the loudest, will be silent.
 The tugboats the locomotives the wind will glide by in silence.
 
-Scene: "a black cat on a couch"
-Text: ""
-Objects: "cat, indoor, couch, table"
-
 Continuation:
 When the dust the stones the missing tears form the sun's robe on the huge deserted squares.
 We shall finally hear the voice.
-A startled cat, looks up, leaps from the couch where it was sleeping. 
+A startled cat looks up, leaps from the couch where it was sleeping. 
 A ghostly seagull told me this great terrible silence was my love.
 
-Story: "$poem"
+Scene: ""
+Text: ""
+Objects: ""
+
+Story:
+In the night there are of course the seven wonders
+of the world and the greatness tragedy and enchantment.
+Forests collide with legendary creatures hiding in thickets.
+There is you.
+In the night there are the walker`s footsteps the murderer`s
+the town policeman`s light from the street lamp and the ragman`s lantern
+There is you.
+
+Continuation:
+In the night trains go past and boats
+and the fantasy of countries where it`s daytime. The last breaths
+of twilight and the first shivers of dawn.
+There is you.
+A piano tune, a shout.
+A door slams. A clock.
+And not only beings and things and physical sounds.
+But also me chasing myself or endlessly going beyond me.
+
 Scene: "$scene"
 Text: "$text"
 Objects: "$objects"
+
+Story: "$poem"
 
 Continuation:
 """
@@ -158,7 +143,9 @@ class ContinuousStoryV1Strategy(StoryStrategy):
         aiohttp_session: aiohttp.ClientSession,
     ) -> StoryFrameSequenceResponseModel:
         client_id = parameters.client_id
-        output_image_style = parameters.output_image_style or "A watercolor of"
+        output_image_style = (
+            parameters.output_image_style or "A watercolor, paper texture."
+        )
         debug_data = self._get_default_debug_data(parameters)
         errors = []
         prompt = None
@@ -186,13 +173,18 @@ class ContinuousStoryV1Strategy(StoryStrategy):
                 traceback.print_exc(file=sys.stderr)
                 errors.append(str(e))
 
+        """
+        Use input_text parameter only as the story seed, not for each frame.
         if parameters.input_text:
             if image_scene:
                 image_scene = f"{image_scene}. {parameters.input_text}"
             else:
                 image_scene = parameters.input_text
+        """
 
-        prompt = self._compose_prompt(story, image_scene, image_text, image_objects)
+        prompt = self._compose_prompt(
+            parameters, story, image_scene, image_text, image_objects
+        )
 
         print(f'Text prompt: "{prompt}"')
         story_continuation = await self._get_new_story_fragment(
@@ -204,6 +196,18 @@ class ContinuousStoryV1Strategy(StoryStrategy):
             story,
             aiohttp_session,
         )
+
+        if not story_continuation or story_continuation.isspace():
+            # Allow one retry.
+            story_continuation = await self._get_new_story_fragment(
+                prompt,
+                parameters,
+                inference_model_configs,
+                keys,
+                errors,
+                story,
+                aiohttp_session,
+            )
 
         if not story_continuation or story_continuation.isspace():
             story_continuation = image_scene
@@ -255,23 +259,22 @@ class ContinuousStoryV1Strategy(StoryStrategy):
         )
 
     def _compose_prompt(
-        self, story: StoryModel, scene: str, text: str, objects: str
+        self,
+        parameters: FramesRequestParamsModel,
+        story: StoryModel,
+        scene: str,
+        text: str,
+        objects: str,
     ) -> str:
         last_text = story.text
         if last_text:
-            """
-            last_text_tokens = story.text.split()
-            last_text_tokens = last_text_tokens[-100:]
-            last_text = " ".join(last_text_tokens)
-            """
             last_text_lines = story.text.split("\n")
             last_text_lines = last_text_lines[-8:]
             last_text = "\n".join(last_text_lines)
-            prompt = STORY_CONTINUATION_PROMPT
+            prompt = STORY_PROMPT
         else:
-            last_text = SHADOW_STORY
-            prompt = STORY_CONTINUATION_PROMPT
-            # prompt = STORY_BEGINNING_PROMPT
+            last_text = parameters.input_text or SHADOW_STORY
+            prompt = STORY_PROMPT
 
         prompt = prompt.replace("$poem", last_text)
         prompt = prompt.replace("$scene", scene)
@@ -328,52 +331,12 @@ class ContinuousStoryV1Strategy(StoryStrategy):
             errors.append(msg)
             text = ""
 
+        prompt_words = ("Scene:", "Text:", "Objects:", "Continuation:")
+        for prompt_word in prompt_words:
+            if text.find(prompt_word) >= 0:
+                msg = f"Rejecting story continuation because it contains a prompt word: '{text}'"
+                print(msg)
+                errors.append(msg)
+                text = ""
+
         return text
-
-
-alphabets = "([A-Za-z])"
-prefixes = "(Mr|St|Mrs|Ms|Dr)[.]"
-suffixes = "(Inc|Ltd|Jr|Sr|Co)"
-starters = "(Mr|Mrs|Ms|Dr|Prof|Capt|Cpt|Lt|He\s|She\s|It\s|They\s|Their\s|Our\s|We\s|But\s|However\s|That\s|This\s|Wherever)"
-acronyms = "([A-Z][.][A-Z][.](?:[A-Z][.])?)"
-websites = "[.](com|net|org|io|gov|edu|me)"
-digits = "([0-9])"
-
-
-def split_into_sentences(text):
-    text = " " + text + "  "
-    text = text.replace("\n", " ")
-    text = re.sub(prefixes, "\\1<prd>", text)
-    text = re.sub(websites, "<prd>\\1", text)
-    text = re.sub(digits + "[.]" + digits, "\\1<prd>\\2", text)
-    if "..." in text:
-        text = text.replace("...", "<prd><prd><prd>")
-    if "Ph.D" in text:
-        text = text.replace("Ph.D.", "Ph<prd>D<prd>")
-    text = re.sub("\s" + alphabets + "[.] ", " \\1<prd> ", text)
-    text = re.sub(acronyms + " " + starters, "\\1<stop> \\2", text)
-    text = re.sub(
-        alphabets + "[.]" + alphabets + "[.]" + alphabets + "[.]",
-        "\\1<prd>\\2<prd>\\3<prd>",
-        text,
-    )
-    text = re.sub(alphabets + "[.]" + alphabets + "[.]", "\\1<prd>\\2<prd>", text)
-    text = re.sub(" " + suffixes + "[.] " + starters, " \\1<stop> \\2", text)
-    text = re.sub(" " + suffixes + "[.]", " \\1<prd>", text)
-    text = re.sub(" " + alphabets + "[.]", " \\1<prd>", text)
-    if "”" in text:
-        text = text.replace(".”", "”.")
-    if '"' in text:
-        text = text.replace('."', '".')
-    if "!" in text:
-        text = text.replace('!"', '"!')
-    if "?" in text:
-        text = text.replace('?"', '"?')
-    text = text.replace(".", ".<stop>")
-    text = text.replace("?", "?<stop>")
-    text = text.replace("!", "!<stop>")
-    text = text.replace("<prd>", ".")
-    sentences = text.split("<stop>")
-    sentences = sentences[:-1]
-    sentences = [s.strip() for s in sentences]
-    return sentences

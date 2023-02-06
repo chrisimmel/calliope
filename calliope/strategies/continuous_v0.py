@@ -52,7 +52,9 @@ class ContinuousStoryV0Strategy(StoryStrategy):
     ) -> StoryFrameSequenceResponseModel:
         client_id = parameters.client_id
 
-        output_image_style = parameters.output_image_style or "A watercolor of"
+        output_image_style = (
+            parameters.output_image_style or "A watercolor, paper texture."
+        )
         debug_data = self._get_default_debug_data(parameters)
         errors = []
         caption = ""
