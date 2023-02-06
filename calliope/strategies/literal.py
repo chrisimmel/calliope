@@ -17,6 +17,7 @@ from calliope.strategies.registry import StoryStrategyRegistry
 
 
 from calliope.inference import (
+    caption_to_prompt,
     image_file_to_text_inference,
     text_to_image_file_inference,
 )
@@ -42,6 +43,9 @@ class LiteralStrategy(StoryStrategy):
         aiohttp_session: aiohttp.ClientSession,
     ) -> StoryFrameSequenceResponseModel:
         client_id = parameters.client_id
+        output_image_style = (
+            parameters.output_image_style or "A watercolor, paper texture."
+        )
         debug_data = self._get_default_debug_data(parameters)
         errors = []
         frames = []
@@ -65,6 +69,10 @@ class LiteralStrategy(StoryStrategy):
                 errors.append(str(e))
 
         for prompt in prompts:
+            prompt_template = output_image_style + " {x}"
+            full_prompt = caption_to_prompt(prompt, prompt_template)
+            print(f'Image prompt: "{full_prompt}"')
+
             image = None
 
             try:
@@ -73,7 +81,7 @@ class LiteralStrategy(StoryStrategy):
                 )
                 await text_to_image_file_inference(
                     aiohttp_session,
-                    prompt,
+                    full_prompt,
                     output_image_filename_png,
                     inference_model_configs,
                     keys,
