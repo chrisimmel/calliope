@@ -46,7 +46,7 @@ Here, there,
 In the delirium of uselessness.
 """
 
-STORY_PROMPT = """
+STORY_PROMPT_DAVINCI = """
 Given a scene, an optional text fragment, a list of objects, and a story, continue the story with four short, imaginative new sentences.
 Incorporate some of the scene and objects in the story. Use poetic, flowery prose in the style of Herman Melville.
 Nostalgia, solitude. Don't repeat sentences.
@@ -117,6 +117,32 @@ Story: "$poem"
 Continuation:
 """
 
+STORY_PROMPT_CURIE = """
+In the night there are of course the seven wonders
+of the world and the greatness tragedy and enchantment.
+Forests collide with legendary creatures hiding in thickets.
+There is you.
+In the night there are the walker`s footsteps the murderer`s
+the town policeman`s light from the street lamp and the ragman`s lantern
+There is you.
+In the night trains go past and boats
+and the fantasy of countries where it`s daytime. The last breaths
+of twilight and the first shivers of dawn.
+There is you.
+A piano tune, a shout.
+A door slams. A clock.
+And not only beings and things and physical sounds.
+But also me chasing myself or endlessly going beyond me.
+
+$scene
+$text
+$objects
+
+$poem
+"""
+
+STORY_PROMPT = STORY_PROMPT_CURIE
+
 
 @StoryStrategyRegistry.register()
 class ContinuousStoryV1Strategy(StoryStrategy):
@@ -167,6 +193,9 @@ class ContinuousStoryV1Strategy(StoryStrategy):
                 image_objects = analysis.get("all_tags_and_objects")
                 image_text = analysis.get("text")
 
+                if image_scene:
+                    image_scene = image_scene[0:1].upper() + image_scene[1:]
+
                 debug_data["i_see"] = analysis.get("description")
 
             except Exception as e:
@@ -199,6 +228,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
 
         if not story_continuation or story_continuation.isspace():
             # Allow one retry.
+            prompt += " " + SHADOW_STORY
             story_continuation = await self._get_new_story_fragment(
                 prompt,
                 parameters,
@@ -210,7 +240,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
             )
 
         if not story_continuation or story_continuation.isspace():
-            story_continuation = image_scene
+            story_continuation = image_scene + "\n"
 
         if story_continuation:
             prompt_template = output_image_style + " {x}"
@@ -296,9 +326,27 @@ class ContinuousStoryV1Strategy(StoryStrategy):
             text = await text_to_extended_text_inference(
                 aiohttp_session, text, inference_model_configs, keys
             )
-            if text:
-                text = text.strip()
+            print(f"Raw output: '{text}'")
 
+            def ends_with_punctuation(str):
+                return len(str) and str[-1] in (".", "!", "?", ":", ",", ";", "-")
+
+            if text:
+                LIMIT = 1024
+
+                if len(text) > LIMIT:
+                    text_parts = text.split()
+                    text = ""
+                    for part in text_parts:
+                        # if ends_with_punctuation(part):
+                        #    text += part + "\n"
+                        # else:
+                        text += part + " "
+
+                        if len(text) > LIMIT:
+                            break
+
+                """
                 lines = split_into_sentences(text)
                 if len(lines) > 3:
                     # Discard the last line in order to subvert GPT-3's desire
@@ -306,6 +354,11 @@ class ContinuousStoryV1Strategy(StoryStrategy):
                     print(f"Discarding last sentence: '{lines[-1]}'")
                     lines = lines[0:-1]
                     text = "\n".join(lines)
+                """
+                text = text.strip()
+                if not ends_with_punctuation(text):
+                    text += "."
+
                 text += "\n\n"
 
         except Exception as e:
@@ -315,18 +368,18 @@ class ContinuousStoryV1Strategy(StoryStrategy):
         stripped_text = text.strip()
         input_text = parameters.input_text
 
-        if input_text and text.find(input_text) >= 0:
-            msg = f"Rejecting story continuation because it contains the input text: {text}\n{input_text=}"
+        if input_text and stripped_text.find(input_text) >= 0:
+            msg = f"Rejecting story continuation because it contains the input text: {stripped_text[:100]}[...]"
             print(msg)
             errors.append(msg)
             text = ""
         elif re.search(r"[<>#^#\\{}]|0x|://", text):
-            msg = f"Rejecting story continuation because it smells like code: {text}"
+            msg = f"Rejecting story continuation because it smells like code: {stripped_text[:100]}[...]"
             print(msg)
             errors.append(msg)
             text = ""
         elif stripped_text and stripped_text in story.text:
-            msg = f"Rejecting story continuation because it's already appeared in the story: '{text}'"
+            msg = f"Rejecting story continuation because it's already appeared in the story: {stripped_text[:100]}[...]"
             print(msg)
             errors.append(msg)
             text = ""

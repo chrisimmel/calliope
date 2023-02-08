@@ -212,17 +212,17 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         input_text = parameters.input_text
 
         if input_text and text.find(input_text) >= 0:
-            msg = f"Rejecting story continuation because it contains the input text: {text}\n{input_text=}"
+            msg = f"Rejecting story continuation because it contains the input text: {stripped_text[:100]}[...]"
             print(msg)
             errors.append(msg)
             text = ""
         elif re.search(r"[<>#^#\\{}]|0x|://", text):
-            msg = f"Rejecting story continuation because it smells like code: {text}"
+            msg = f"Rejecting story continuation because it smells like code: {stripped_text[:100]}[...]"
             print(msg)
             errors.append(msg)
             text = ""
         elif stripped_text and stripped_text in story.text:
-            msg = f"Rejecting story continuation because it's already appeared in the story: '{text}'"
+            msg = f"Rejecting story continuation because it's already appeared in the story: {stripped_text[:100]}[...]"
             print(msg)
             errors.append(msg)
             text = ""

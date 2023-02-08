@@ -95,6 +95,9 @@ _model_configs_by_name = {
         model_name="curie",
         parameters={
             "max_tokens": 512,
+            "temperature": 0.85,
+            "presence_penalty": 1.5,
+            "frequency_penalty": 1.5,
         },
     ),
     "openai_davinci_03": InferenceModelConfigModel(
