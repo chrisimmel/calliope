@@ -4,7 +4,7 @@ from typing import Sequence, Tuple
 
 from google.cloud import storage
 
-from calliope.settings import CALLIOPE_BUCKET_NAME, MEDIA_FOLDER
+from calliope.settings import settings
 
 GOOGLE_CLOUD_MARKER_VARIABLE = "K_SERVICE"
 
@@ -14,16 +14,16 @@ def is_google_cloud_run_environment() -> bool:
 
 
 def put_media_file(filename: str) -> None:
-    put_google_file(MEDIA_FOLDER, filename)
+    put_google_file(settings.MEDIA_FOLDER, filename)
 
 
 def get_media_file(base_filename: str, destination_path: str) -> str:
-    get_google_file(MEDIA_FOLDER, base_filename, destination_path)
+    get_google_file(settings.MEDIA_FOLDER, base_filename, destination_path)
 
 
 def put_google_file(google_folder: str, filename: str) -> None:
     storage_client = storage.Client()
-    bucket = storage_client.bucket(CALLIOPE_BUCKET_NAME)
+    bucket = storage_client.bucket(settings.CALLIOPE_BUCKET_NAME)
 
     blob_name = f"{google_folder}/{os.path.basename(filename)}"
     blob = bucket.blob(blob_name)
@@ -36,7 +36,7 @@ def get_google_file(
 ) -> str:
     storage_client = storage.Client()
 
-    bucket = storage_client.bucket(CALLIOPE_BUCKET_NAME)
+    bucket = storage_client.bucket(settings.CALLIOPE_BUCKET_NAME)
 
     # Construct a client side representation of a blob.
     # Note `Bucket.blob` differs from `Bucket.get_blob` as it doesn't retrieve
@@ -59,7 +59,7 @@ def get_google_file_dates(
         a tuple with the creation date and update date, as datetimes.
     """
     storage_client = storage.Client()
-    bucket = storage_client.bucket(CALLIOPE_BUCKET_NAME)
+    bucket = storage_client.bucket(settings.CALLIOPE_BUCKET_NAME)
     blob_name = f"{google_folder}/{os.path.basename(base_filename)}"
     blob = bucket.get_blob(blob_name)
     return (
@@ -71,7 +71,7 @@ def get_google_file_dates(
 def delete_google_file(google_folder: str, base_filename: str) -> str:
     storage_client = storage.Client()
 
-    bucket = storage_client.bucket(CALLIOPE_BUCKET_NAME)
+    bucket = storage_client.bucket(settings.CALLIOPE_BUCKET_NAME)
     blob_name = f"{google_folder}/{os.path.basename(base_filename)}"
     blob = bucket.blob(blob_name)
     blob.delete()
@@ -110,7 +110,7 @@ def list_google_files_with_prefix(prefix, delimiter=None) -> Sequence[str]:
 
     # Note: Client.list_blobs requires at least package version 1.17.0.
     blobs = storage_client.list_blobs(
-        CALLIOPE_BUCKET_NAME, prefix=prefix, delimiter=delimiter
+        settings.CALLIOPE_BUCKET_NAME, prefix=prefix, delimiter=delimiter
     )
 
     # Note: The call returns a response only when the iterator is consumed.

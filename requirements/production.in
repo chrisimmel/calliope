@@ -1,5 +1,6 @@
 aiofiles
 aiohttp
+asyncpg
 cuid
 fastapi
 ftfy
@@ -19,6 +20,7 @@ requests
 requests-futures
 stability-sdk
 starlette
+tortoise-orm
 types-python-dateutil
 types-pytz
 types-requests

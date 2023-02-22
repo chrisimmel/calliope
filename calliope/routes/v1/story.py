@@ -87,6 +87,7 @@ async def handle_frames_request(
     request_params: FramesRequestParamsModel,
     base_url: str,
 ) -> StoryResponseV1:
+    print("handle_frames_request")
     client_id = request_params.client_id
     sparrow_state = get_sparrow_state(client_id)
 

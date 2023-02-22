@@ -1,18 +1,26 @@
+import asyncio
 from enum import Enum
+import glob
 import os
-from typing import Any, cast, Dict, Optional, Tuple
+from typing import Any, cast, Dict, Optional, Sequence, Tuple
 
 from calliope.models import (
+    ClientTypeConfig,
     ClientTypeConfigModel,
     ConfigModel,
     FramesRequestParamsModel,
+    Image,
     InferenceModelConfigsModel,
     KeysModel,
     load_inference_model_configs,
+    SparrowConfig,
     SparrowConfigModel,
+    Story,
+    StoryFrame,
 )
 from calliope.models.sparrow_state import SparrowStateModel
 from calliope.storage.schedule import check_schedule
+from calliope.storage.state_manager import list_stories
 from calliope.utils.file import (
     load_json_into_pydantic_model,
     write_pydantic_model_to_json,
@@ -21,6 +29,7 @@ from calliope.utils.google import (
     delete_google_file,
     get_google_file,
     is_google_cloud_run_environment,
+    list_google_files_with_prefix,
     put_google_file,
 )
 
@@ -99,6 +108,67 @@ def _delete_config(config_type: ConfigType, config_id: str) -> None:
         os.remove(local_filename)
 
 
+def list_configs() -> Sequence[ConfigModel]:
+    """
+    Lists all configs.
+    """
+
+    if is_google_cloud_run_environment():
+        blob_names = list_google_files_with_prefix("config/")
+        for blob_name in blob_names:
+            local_filename = blob_name  # os.path.basename(blob_name)
+            get_google_file("config", blob_name, local_filename)
+
+    dir_path = r"config/*"
+    config_filenames = glob.glob(dir_path)
+
+    for fname in config_filenames:
+        print(f"{fname=}")
+
+    configs = [
+        load_json_into_pydantic_model(
+            config_filename,
+            SparrowConfigModel
+            if config_filename.startswith("config/sparrow")
+            else ClientTypeConfigModel,
+        )
+        for config_filename in config_filenames
+    ]
+
+    return configs
+
+
+async def copy_configs_to_tortoise() -> None:
+    for config_model in list_configs():
+        print(f"Copying model {config_model}")
+        if isinstance(config_model, SparrowConfigModel):
+            config = await SparrowConfig.from_pydantic(config_model)
+        else:
+            config = await ClientTypeConfig.from_pydantic(config_model)
+        await config.save()
+
+
+async def copy_images_to_tortoise() -> None:
+    for image_model in list_images():
+        print(f"Copying image {image_model}")
+        image = await Image.from_pydantic(image_model)
+        await image.save()
+
+
+async def copy_story_frames_to_tortoise() -> None:
+    for frame_model in list_story_frames():
+        print(f"Copying frame {frame_model}")
+        frame = await StoryFrame.from_pydantic(frame_model)
+        await frame.save()
+
+
+async def copy_stories_to_tortoise() -> None:
+    for story_model in list_stories():
+        print(f"Copying frame {story_model}")
+        story = await Story.from_pydantic(story_model)
+        await story.save()
+
+
 def get_sparrow_config(sparrow_or_flock_id: str) -> Optional[SparrowConfigModel]:
     """
     Retrieves the config for the given sparrow or flock.
@@ -113,7 +183,9 @@ def put_sparrow_config(sparrow_config: SparrowConfigModel) -> None:
     """
     Stores the given sparrow or flock config.
     """
-    _put_config(ConfigType.SPARROW, sparrow_config)
+    # _put_config(ConfigType.SPARROW, sparrow_config)
+    config = SparrowConfig.from_pydantic(sparrow_config)
+    config.save()
 
 
 def delete_sparrow_config(sparrow_or_flock_id: str) -> None:
@@ -137,7 +209,9 @@ def put_client_type_config(client_type_config: ClientTypeConfigModel) -> None:
     """
     Stores the given client type config.
     """
-    _put_config(ConfigType.CLIENT_TYPE, client_type_config)
+    # _put_config(ConfigType.CLIENT_TYPE, client_type_config)
+    config = ClientTypeConfig.from_pydantic(client_type_config)
+    config.save()
 
 
 def delete_client_type_config(client_type_id: str) -> None:
@@ -274,4 +348,35 @@ def _get_non_default_parameters(params_dict: Dict[str, Any]) -> Dict[str, Any]:
     return non_default_request_params
 
 
-"An angel with Darth Vader, as painted by el Greco|An angel with Darth Vader, as engraved by M. C. Escher|An angel with Darth Vader, an Aztec carving|An angel with Darth Vader, a Walt Disney color sketch"
+from tortoise import Tortoise
+
+
+async def init():
+    from app import get_db_uri, TORTOISE_MODELS
+    from calliope.settings import settings
+
+    print(f"{settings.POSTGRESQL_USERNAME}, {settings.POSTGRESQL_PASSWORD}")
+
+    # Here we create a SQLite DB using file "db.sqlite3"
+    #  also specify the app name of "models"
+    #  which contain models from "app.models"
+    await Tortoise.init(
+        db_url=get_db_uri(
+            user=settings.POSTGRESQL_USERNAME,
+            passwd=settings.POSTGRESQL_PASSWORD,
+            host=settings.POSTGRESQL_HOSTNAME,
+            db=settings.POSTGRESQL_DATABASE,
+        ),
+        modules={"models": TORTOISE_MODELS},
+    )
+    # Generate the schema
+    await Tortoise.generate_schemas()
+
+
+async def main():
+    await init()
+    await copy_configs_to_tortoise()
+
+
+if __name__ == "__main__":
+    asyncio.run(main(), debug=True)
