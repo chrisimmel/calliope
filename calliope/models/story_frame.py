@@ -1,6 +1,7 @@
 import json
 from typing import Any, Dict, Optional
 
+import cuid
 from pydantic import BaseModel
 from tortoise.models import Model
 from tortoise import fields
@@ -46,15 +47,18 @@ class StoryFrame(Model):
     A frame of a story. (As in a graphic novel.)
     """
 
-    frame_id = fields.CharField(max_length=50, pk=True, generated=False)
+    id = fields.CharField(max_length=50, pk=True, generated=False)
 
     story = fields.ForeignKeyField("models.Story", related_name="frames")
 
+    # The frame number in the story, starting from 0.
+    number = fields.BigIntField()
+
     # A piece of text conveying part of the story.
-    text = fields.CharField(max_length=2000, null=True)
+    text = fields.CharField(max_length=65536, null=True)
 
     # An image illustrating the story.
-    image = fields.ForeignKeyField("models.Image", related_name="frame", null=True)
+    image = fields.OneToOneField("models.Image", related_name="frame", null=True)
 
     # The minimum duration of this frame, in seconds.
     min_duration_seconds = fields.IntField()
@@ -63,7 +67,7 @@ class StoryFrame(Model):
     trigger_condition = fields.JSONField(null=True)
 
     # The original image, before possible format conversion for the client.
-    source_image = fields.ForeignKeyField(
+    source_image = fields.OneToOneField(
         "models.Image", related_name="source_for_frame", null=True
     )
 
@@ -71,37 +75,42 @@ class StoryFrame(Model):
     # Information about how and when it was generated, etc.
     metadata = fields.JSONField(null=True)
 
+    date_created = fields.DatetimeField(auto_now_add=True)
+    date_updated = fields.DatetimeField(auto_now=True)
+
     class Meta:
         table = "story_frame"
 
     @classmethod
-    async def from_pydantic(cls, model: StoryFrameModel) -> "StoryFrame":
-        frame_id = model.frame_id
-        # story
+    async def from_pydantic(cls, model: StoryFrameModel, number: int) -> "StoryFrame":
         text = model.text
-        # image
-        min_duration_seconds = model.min_duration_seconds
+        min_duration_seconds = model.min_duration_seconds or 0
         trigger_condition = (
             model.trigger_condition.dict(exclude_none=True)
             if model.trigger_condition
             else None
         )
+        metadata = model.metadata
 
+        # FK fields that must be set otherwise:
+        # story
+        # image
         # source_image
 
-        metadata = model.metadata.dict(exclude_none=True) if model.metadata else None
-
-        instance: StoryFrame = await StoryFrame.get_or_none(frame_id=frame_id)
+        instance: Optional[StoryFrame] = await StoryFrame.get_or_none(id=id)
         if instance:
             instance.text = text
             instance.min_duration_seconds = min_duration_seconds
             instance.trigger_condition = trigger_condition
+            instance.metadata = metadata
         else:
             instance = StoryFrame(
-                frame_id=frame_id,
+                id=cuid.cuid(),
+                number=number,
                 text=text,
                 min_duration_seconds=min_duration_seconds,
                 trigger_condition=trigger_condition,
+                metadata=metadata,
             )
 
         return instance

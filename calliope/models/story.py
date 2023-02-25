@@ -50,7 +50,10 @@ class Story(Model):
     A story.
     """
 
-    id = fields.CharField(max_length=50, pk=True)
+    id = fields.CharField(max_length=50, pk=True, generated=False)
+
+    # The story's title.
+    title = fields.CharField(max_length=512, null=True)
 
     # The name of the strategy from which the story issues.
     strategy_name: fields.CharField(max_length=50, null=True)
@@ -65,7 +68,7 @@ class Story(Model):
     date_updated = fields.DatetimeField(auto_now=True)
 
     @property
-    def title(self) -> str:
+    def computed_title(self) -> str:
         """
         Takes as the title the text of the first frame, if any, else the story_id.
         """
@@ -73,16 +76,17 @@ class Story(Model):
             if frame.text:
                 return frame.text
 
-        return self.story_id
+        return self.id
 
     class Meta:
         table = "story"
 
     @classmethod
     async def from_pydantic(cls, model: StoryModel) -> "Story":
-        id = model.id
+        id = model.story_id
         strategy_name = model.strategy_name
         created_for_id = model.created_for_id
+        title = model.title[:512] if model.title else None
 
         instance: Story = await Story.get_or_none(id=id)
         if instance:
@@ -91,6 +95,7 @@ class Story(Model):
         else:
             instance = Story(
                 id=id,
+                title=title,
                 strategy_name=strategy_name,
                 created_for_id=created_for_id,
             )

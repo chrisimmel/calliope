@@ -68,7 +68,7 @@ def create_sequential_filename(
     given client, using the given extension. The name is assumed to be associated with the current
     frame of the given story, and contains the story ID and frame number in the filename.
     """
-    base_filename = story.story_id
+    base_filename = story.id
     return compose_full_filename(
         directory, client_id, f"{base_filename}.{len(story.frames)}.{tag}.{extension}"
     )

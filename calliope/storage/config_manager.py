@@ -20,7 +20,7 @@ from calliope.models import (
 )
 from calliope.models.sparrow_state import SparrowStateModel
 from calliope.storage.schedule import check_schedule
-from calliope.storage.state_manager import list_stories
+from calliope.storage.state_manager import list_legacy_stories
 from calliope.utils.file import (
     load_json_into_pydantic_model,
     write_pydantic_model_to_json,
@@ -108,9 +108,9 @@ def _delete_config(config_type: ConfigType, config_id: str) -> None:
         os.remove(local_filename)
 
 
-def list_configs() -> Sequence[ConfigModel]:
+def list_legacy_configs() -> Sequence[ConfigModel]:
     """
-    Lists all configs.
+    Lists all legacy configs (ones stored as Pydantic JSON).
     """
 
     if is_google_cloud_run_environment():
@@ -139,7 +139,7 @@ def list_configs() -> Sequence[ConfigModel]:
 
 
 async def copy_configs_to_tortoise() -> None:
-    for config_model in list_configs():
+    for config_model in list_legacy_configs():
         print(f"Copying model {config_model}")
         if isinstance(config_model, SparrowConfigModel):
             config = await SparrowConfig.from_pydantic(config_model)
@@ -148,25 +148,33 @@ async def copy_configs_to_tortoise() -> None:
         await config.save()
 
 
-async def copy_images_to_tortoise() -> None:
-    for image_model in list_images():
-        print(f"Copying image {image_model}")
-        image = await Image.from_pydantic(image_model)
-        await image.save()
-
-
-async def copy_story_frames_to_tortoise() -> None:
-    for frame_model in list_story_frames():
-        print(f"Copying frame {frame_model}")
-        frame = await StoryFrame.from_pydantic(frame_model)
-        await frame.save()
-
-
 async def copy_stories_to_tortoise() -> None:
-    for story_model in list_stories():
-        print(f"Copying frame {story_model}")
+    for story_model in list_legacy_stories():
+        print(f"Copying story {story_model.title}")
         story = await Story.from_pydantic(story_model)
         await story.save()
+
+        for frame_number, frame_model in enumerate(story_model.frames):
+            print(f"Frame {frame_number}")
+            image = (
+                await Image.from_pydantic(frame_model.image)
+                if frame_model.image
+                else None
+            )
+            if image:
+                await image.save()
+            source_image = (
+                await Image.from_pydantic(frame_model.source_image)
+                if frame_model.source_image
+                else None
+            )
+            if source_image:
+                await source_image.save()
+            frame = await StoryFrame.from_pydantic(frame_model, frame_number)
+            frame.image = image
+            frame.source_image = source_image
+            frame.story = story
+            await frame.save()
 
 
 def get_sparrow_config(sparrow_or_flock_id: str) -> Optional[SparrowConfigModel]:
@@ -179,13 +187,13 @@ def get_sparrow_config(sparrow_or_flock_id: str) -> Optional[SparrowConfigModel]
     )
 
 
-def put_sparrow_config(sparrow_config: SparrowConfigModel) -> None:
+async def put_sparrow_config(sparrow_config: SparrowConfigModel) -> None:
     """
     Stores the given sparrow or flock config.
     """
     # _put_config(ConfigType.SPARROW, sparrow_config)
     config = SparrowConfig.from_pydantic(sparrow_config)
-    config.save()
+    await config.save()
 
 
 def delete_sparrow_config(sparrow_or_flock_id: str) -> None:
@@ -205,13 +213,13 @@ def get_client_type_config(client_type_id: str) -> Optional[ClientTypeConfigMode
     )
 
 
-def put_client_type_config(client_type_config: ClientTypeConfigModel) -> None:
+async def put_client_type_config(client_type_config: ClientTypeConfigModel) -> None:
     """
     Stores the given client type config.
     """
     # _put_config(ConfigType.CLIENT_TYPE, client_type_config)
     config = ClientTypeConfig.from_pydantic(client_type_config)
-    config.save()
+    await config.save()
 
 
 def delete_client_type_config(client_type_id: str) -> None:
@@ -376,6 +384,7 @@ async def init():
 async def main():
     await init()
     await copy_configs_to_tortoise()
+    await copy_stories_to_tortoise()
 
 
 if __name__ == "__main__":

@@ -1,5 +1,6 @@
 from typing import Optional
 
+import cuid
 from pydantic import BaseModel, StrictStr
 from tortoise.models import Model
 from tortoise import fields
@@ -27,8 +28,16 @@ class Config(Model):
     Abstract base Tortoise model for a configuration.
     """
 
+    # The primary key, a CUID.
     id = fields.CharField(max_length=50, pk=True, generated=False)
+
+    # The sparrow or flock ID. For a sparrow, the client ID or client type.
+    # For a flock, a human-readable slug.
+    client_id = fields.CharField(max_length=50)
+
+    # Notes about the sparrow, flock, or client type.
     description = fields.CharField(max_length=1000, null=True)
+
     date_created = fields.DatetimeField(auto_now_add=True)
     date_updated = fields.DatetimeField(auto_now=True)
 
@@ -98,7 +107,7 @@ class SparrowConfig(Config):
 
     @classmethod
     async def from_pydantic(cls, model: SparrowConfigModel) -> "SparrowConfig":
-        id = model.id
+        client_id = model.id
         description = model.description
         parent_flock_id = model.parent_flock_id
         follow_parent_story = model.follow_parent_story
@@ -108,7 +117,7 @@ class SparrowConfig(Config):
         schedule = model.schedule.dict(exclude_none=True) if model.schedule else None
         keys = model.keys.dict(exclude_none=True) if model.keys else None
 
-        instance: SparrowConfig = await SparrowConfig.get_or_none(id=id)
+        instance: SparrowConfig = await SparrowConfig.get_or_none(client_id=client_id)
         if instance:
             instance.description = description
             instance.parent_flock_id = parent_flock_id
@@ -118,7 +127,8 @@ class SparrowConfig(Config):
             instance.keys = keys
         else:
             instance = SparrowConfig(
-                id=id,
+                id=cuid.cuid(),
+                client_id=client_id,
                 description=description,
                 parent_flock_id=parent_flock_id,
                 follow_parent_story=follow_parent_story,
@@ -152,19 +162,22 @@ class ClientTypeConfig(Config):
 
     @classmethod
     async def from_pydantic(cls, model: ClientTypeConfigModel) -> "ClientTypeConfig":
-        id = model.id
+        client_id = model.id
         description = model.description
         parameters = (
             model.parameters.dict(exclude_none=True) if model.parameters else None
         )
 
-        instance: ClientTypeConfig = await ClientTypeConfig.get_or_none(id=id)
+        instance: ClientTypeConfig = await ClientTypeConfig.get_or_none(
+            client_id=client_id
+        )
         if instance:
             instance.description = description
             instance.parameters = parameters
         else:
             instance = ClientTypeConfig(
-                id=id,
+                id=cuid.cuid(),
+                client_id=client_id,
                 description=description,
                 parameters=parameters,
             )

@@ -75,7 +75,7 @@ def put_sparrow_state(state: SparrowStateModel) -> None:
         put_google_file(folder, local_filename)
 
 
-def list_stories() -> Sequence[StoryModel]:
+def list_legacy_stories() -> Sequence[StoryModel]:
     """
     Lists all stories.
     """

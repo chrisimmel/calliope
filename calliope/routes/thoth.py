@@ -1,9 +1,8 @@
 import os
-from calliope.models import ImageFormat, ImageModel, StoryFrameModel
+from calliope.models import ImageFormat, StoryFrameModel
 from calliope.utils.file import (
     get_base_filename,
     get_base_filename_and_extension,
-    get_file_extension,
 )
 from calliope.utils.google import (
     get_media_file,
@@ -19,8 +18,8 @@ from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
-from calliope.models import StoryModel
-from calliope.storage.state_manager import get_story, list_stories, put_story
+from calliope.models import ImageModel, StoryModel, Story, StoryFrameModel
+from calliope.storage.state_manager import get_story, list_legacy_stories, put_story
 
 
 router = APIRouter()
@@ -29,28 +28,29 @@ templates = Jinja2Templates(directory="calliope/templates")
 
 @router.get("/thoth/", response_class=HTMLResponse)
 async def thoth_root(request: Request):
-    stories = list_stories()
+    # stories = list_legacy_stories()
+    stories = await Story.all().order_by("-date_updated")
     story_thumbs_by_story_id = {}
     story_modified = False
 
     for story in stories:
         thumb = None
-        for frame in story.frames:
+        for frame in await story.frames.all():
             if frame.image:
-                if _prepare_frame_image(frame):
-                    story_modified = True
-                thumb = frame.source_image
+                # if _prepare_frame_image(frame):
+                #     story_modified = True
+                thumb = await frame.source_image
                 break
 
-        if story_modified:
-            put_story(story)
+        # if story_modified:
+        #    put_story(story)
 
         if thumb:
             longer_dim = max(thumb.width, thumb.height)
             scale = 48 / longer_dim
             thumb.width *= scale
             thumb.height *= scale
-            story_thumbs_by_story_id[story.story_id] = thumb
+            story_thumbs_by_story_id[story.id] = thumb
 
     context = {
         "request": request,
@@ -61,15 +61,49 @@ async def thoth_root(request: Request):
 
 
 @router.get("/thoth/story/{story_id}", response_class=HTMLResponse)
-async def thoth_root(request: Request, story_id: str):
-    story = get_story(story_id)
-    story_modified = _prepare_frame_images(story)
-    if story_modified:
-        put_story(story)
+async def thoth_story(request: Request, story_id: str):
+    # story = get_story(story_id)
+    story = await Story.get(id=story_id)
+    await story.fetch_related("frames", "frames__image", "frames__source_image")
 
+    frames = []
+
+    for frame in await story.frames.all().order_by("number"):
+        image = await frame.image
+        source_image = await frame.source_image
+        metadata = frame.metadata
+
+        frames.append(
+            StoryFrameModel(
+                text=frame.text,
+                metadata=metadata,
+                image=ImageModel(
+                    width=image.width,
+                    height=image.height,
+                    format=image.format,
+                    url=image.url,
+                )
+                if image
+                else None,
+                source_image=ImageModel(
+                    width=source_image.width,
+                    height=source_image.height,
+                    format=source_image.format,
+                    url=source_image.url,
+                )
+                if source_image
+                else None,
+            )
+        )
+    # story_modified = _prepare_frame_images(story)
+    # if story_modified:
+    #     put_story(story)
+
+    print(f"{len(frames)=}")
     context = {
         "request": request,
         "story": story,
+        "frames": frames,
     }
     return templates.TemplateResponse("thoth_story.html", context)
 

@@ -15,10 +15,10 @@
         </div>
     </div>
 
-    {% for frame in story.frames %}
+    {% for frame in frames %}
     <div class="story-frame">
         <div class="frame-image">
-            {%- if frame.image -%}
+            {%- if frame.source_image -%}
             <img src="/{{frame.source_image.url}}" />
             {%- endif %}
         </div>
