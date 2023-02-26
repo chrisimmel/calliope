@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 import aiohttp
@@ -101,7 +101,7 @@ async def handle_frames_request(
 
     story = None
     if sparrow_state.current_story_id and not parameters.reset_strategy_state:
-        story = get_story(sparrow_state.current_story_id)
+        story = await get_story(sparrow_state.current_story_id)
     if story and story.strategy_name != parameters.strategy:
         # The story in progress was created by a different strategy. Start a new one.
         story = None

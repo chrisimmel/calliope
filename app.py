@@ -1,14 +1,14 @@
 from typing import Any, Dict, List, Optional
 
 from fastapi import Depends, FastAPI
+from fastapi.routing import Mount
 from fastapi.openapi.utils import get_openapi
 from fastapi.security.api_key import APIKey
 from fastapi.staticfiles import StaticFiles
+from piccolo_admin.endpoints import create_admin
+from piccolo.engine import engine_finder
 from pydantic import BaseModel
 from starlette.responses import JSONResponse
-
-from tortoise import Tortoise
-from tortoise.contrib.fastapi import register_tortoise
 
 from calliope.models import StoryFrameModel
 from calliope.routes import media as media_routes
@@ -18,6 +18,15 @@ from calliope.routes.v1 import config as config_routes
 from calliope.routes.v1 import story as story_routes
 from calliope.utils.authentication import get_api_key
 from calliope.settings import settings
+
+from calliope.tables import (
+    ClientTypeConfig,
+    Image,
+    SparrowConfig,
+    SparrowState,
+    Story,
+    StoryFrame,
+)
 
 
 class StoryResponseV1(BaseModel):
@@ -43,46 +52,55 @@ def get_db_uri(user, passwd, host, db):
     return f"postgres://{user}:{passwd}@{host}:5432/{db}"
 
 
-TORTOISE_MODELS = [
-    "calliope.models.config",
-    "calliope.models.image",
-    "calliope.models.sparrow_state",
-    "calliope.models.story_frame",
-    "calliope.models.story",
+PICCOLO_TABLES = [
+    ClientTypeConfig,
+    Image,
+    SparrowConfig,
+    SparrowState,
+    Story,
+    StoryFrame,
 ]
 
-Tortoise.init_models(TORTOISE_MODELS, "models")
+
+def create_app() -> FastAPI:
+    print("Creating app...")
+    app = FastAPI(
+        title="Calliope",
+        description="Let me tell you a story.",
+        version=settings.APP_VERSION,
+        routes=[
+            Mount(
+                path="/admin/",
+                app=create_admin(
+                    tables=PICCOLO_TABLES,
+                    site_name="Calliope Admin",
+                    # Required when running under HTTPS:
+                    # allowed_hosts=["my_site.com"],
+                ),
+            ),
+        ],
+    )
+
+    print("Registering views...")
+    register_views(app)
+
+    return app
 
 
-# def create_app() -> FastAPI:
-print("Creating app...")
-app = FastAPI(
-    title="Calliope",
-    description="Let me tell you a story.",
-    version=settings.APP_VERSION,
-)
+app = create_app()
+print("Created app.")
 
-print("Registering Tortoise...")
-register_tortoise(
-    app,
-    db_url=get_db_uri(
-        user=settings.POSTGRESQL_USERNAME,
-        passwd=settings.POSTGRESQL_PASSWORD,
-        host=settings.POSTGRESQL_HOSTNAME,
-        db=settings.POSTGRESQL_DATABASE,
-    ),
-    modules={"models": TORTOISE_MODELS},
-    # generate_schemas=True,
-    # add_exception_handlers=True,
-)
-print("Registering views...")
-register_views(app)
 
-#    return app
+@app.on_event("startup")
+async def open_database_connection_pool():
+    engine = engine_finder()
+    await engine.start_connection_pool()
 
-# print("Creating app.")
-# app = create_app()
-# print("Created app.")
+
+@app.on_event("shutdown")
+async def close_database_connection_pool():
+    engine = engine_finder()
+    await engine.close_connection_pool()
 
 
 @app.get("/openapi.json", tags=["documentation"])

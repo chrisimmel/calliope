@@ -5,13 +5,14 @@ import os
 from typing import cast, Optional, Sequence
 
 from calliope.models import (
-    SparrowState,
     SparrowStateModel,
-    Story,
     StoryModel,
 )
+from calliope.tables import (
+    SparrowState,
+    Story,
+)
 from calliope.utils.file import (
-    get_base_filename,
     load_json_into_pydantic_model,
     write_pydantic_model_to_json,
 )
@@ -117,7 +118,7 @@ def list_legacy_stories() -> Sequence[StoryModel]:
         for story_filename in story_filenames
     ]
     # Force full reload of each story in order to default dates properly.
-    stories = [get_story(story.story_id) for story in stories]
+    # stories = [await get_story(story.story_id) for story in stories]
 
     return sorted(stories, key=lambda story: story.date_updated, reverse=True)
 
@@ -154,12 +155,12 @@ def get_legacy_story(story_id: str) -> Optional[StoryModel]:
             # Get the file creation timestamp as a float, seconds since epoch.
             creation_time = os.path.getctime(local_filename)
             # Convert to a datetime.
-            creation_datetime = datetime.datetime.fromtimestamp(creation_time)
+            creation_datetime = datetime.fromtimestamp(creation_time)
 
             # Get the file modification timestamp as a float, seconds since epoch.
             updated_time = os.path.getmtime(local_filename)
             # Convert to a datetime.
-            updated_datetime = datetime.datetime.fromtimestamp(updated_time)
+            updated_datetime = datetime.fromtimestamp(updated_time)
 
         story.date_created = str(creation_datetime)
         story.date_updated = str(updated_datetime)
@@ -168,11 +169,11 @@ def get_legacy_story(story_id: str) -> Optional[StoryModel]:
     return story
 
 
-async def get_story(story_id: str) -> Optional[Story]:
+async def get_story(story_cuid: str) -> Optional[Story]:
     """
     Retrieves the given story.
     """
-    return await Story.get_or_none(id=story_id)
+    return await Story.objects().where(Story.cuid == story_cuid).first().run()
 
 
 def put_story(story: StoryModel, update_dates: bool = True) -> None:

@@ -1,5 +1,11 @@
 import os
-from calliope.models import ImageFormat, StoryFrameModel
+from fastapi import APIRouter, Request
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
+
+from calliope.models import ImageFormat, ImageModel, StoryModel, StoryFrameModel
+from calliope.storage.state_manager import get_story, list_legacy_stories, put_story
+from calliope.tables import Story, StoryFrame
 from calliope.utils.file import (
     get_base_filename,
     get_base_filename_and_extension,
@@ -14,12 +20,6 @@ from calliope.utils.image import (
     convert_rgb565_to_png,
     get_image_attributes,
 )
-from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
-
-from calliope.models import ImageModel, StoryModel, Story, StoryFrameModel
-from calliope.storage.state_manager import get_story, list_legacy_stories, put_story
 
 
 router = APIRouter()
@@ -28,29 +28,33 @@ templates = Jinja2Templates(directory="calliope/templates")
 
 @router.get("/thoth/", response_class=HTMLResponse)
 async def thoth_root(request: Request):
-    # stories = list_legacy_stories()
-    stories = await Story.all().order_by("-date_updated")
+    stories = await Story.objects().order_by(Story.date_updated, ascending=False)
+
     story_thumbs_by_story_id = {}
-    story_modified = False
 
     for story in stories:
-        thumb = None
-        for frame in await story.frames.all():
-            if frame.image:
-                # if _prepare_frame_image(frame):
-                #     story_modified = True
-                thumb = await frame.source_image
-                break
-
-        # if story_modified:
-        #    put_story(story)
+        frame_with_source_image = (
+            await StoryFrame.objects()
+            .where(
+                StoryFrame.story.cuid == story.cuid,
+                StoryFrame.source_image.is_not_null(),
+            )
+            .order_by(StoryFrame.number)
+            .first()
+            .run()
+        )
+        thumb = (
+            await frame_with_source_image.get_related(StoryFrame.source_image)
+            if frame_with_source_image
+            else None
+        )
 
         if thumb:
             longer_dim = max(thumb.width, thumb.height)
             scale = 48 / longer_dim
             thumb.width *= scale
             thumb.height *= scale
-            story_thumbs_by_story_id[story.id] = thumb
+            story_thumbs_by_story_id[story.cuid] = thumb
 
     context = {
         "request": request,
@@ -60,17 +64,24 @@ async def thoth_root(request: Request):
     return templates.TemplateResponse("thoth.html", context)
 
 
-@router.get("/thoth/story/{story_id}", response_class=HTMLResponse)
-async def thoth_story(request: Request, story_id: str):
-    # story = get_story(story_id)
-    story = await Story.get(id=story_id)
-    await story.fetch_related("frames", "frames__image", "frames__source_image")
+@router.get("/thoth/story/{story_cuid}", response_class=HTMLResponse)
+async def thoth_story(request: Request, story_cuid: str):
+    story = await Story.objects().where(Story.cuid == story_cuid).first().run()
 
     frames = []
 
-    for frame in await story.frames.all().order_by("number"):
-        image = await frame.image
-        source_image = await frame.source_image
+    for frame in (
+        await StoryFrame.objects()
+        .where(StoryFrame.story.cuid == story_cuid)
+        .order_by(StoryFrame.number)
+        .output(load_json=True)
+    ):
+        image = await frame.get_related(StoryFrame.image) if frame.image else None
+        source_image = (
+            await frame.get_related(StoryFrame.source_image)
+            if frame.source_image
+            else None
+        )
         metadata = frame.metadata
 
         frames.append(
@@ -95,11 +106,7 @@ async def thoth_story(request: Request, story_id: str):
                 else None,
             )
         )
-    # story_modified = _prepare_frame_images(story)
-    # if story_modified:
-    #     put_story(story)
 
-    print(f"{len(frames)=}")
     context = {
         "request": request,
         "story": story,

@@ -4,19 +4,23 @@ import glob
 import os
 from typing import Any, cast, Dict, Optional, Sequence, Tuple
 
+from piccolo.engine import engine_finder
+
 from calliope.models import (
-    ClientTypeConfig,
     ClientTypeConfigModel,
     ConfigModel,
     FramesRequestParamsModel,
-    Image,
     InferenceModelConfigsModel,
     KeysModel,
     load_inference_model_configs,
-    SparrowConfig,
     SparrowConfigModel,
-    SparrowState,
     SparrowStateModel,
+)
+from calliope.tables import (
+    ClientTypeConfig,
+    Image,
+    SparrowConfig,
+    SparrowState,
     Story,
     StoryFrame,
 )
@@ -142,21 +146,21 @@ def list_legacy_configs() -> Sequence[ConfigModel]:
     return configs
 
 
-async def copy_configs_to_tortoise() -> None:
+async def copy_configs_to_piccolo() -> None:
     for config_model in list_legacy_configs():
         print(f"Copying model {config_model}")
         if isinstance(config_model, SparrowConfigModel):
             config = await SparrowConfig.from_pydantic(config_model)
         else:
             config = await ClientTypeConfig.from_pydantic(config_model)
-        await config.save()
+        await config.save().run()
 
 
-async def copy_stories_to_tortoise() -> None:
+async def copy_stories_to_piccolo() -> None:
     for story_model in list_legacy_stories():
         print(f"Copying story {story_model.title}")
         story = await Story.from_pydantic(story_model)
-        await story.save()
+        await story.save().run()
 
         for frame_number, frame_model in enumerate(story_model.frames):
             print(f"Frame {frame_number}")
@@ -166,22 +170,22 @@ async def copy_stories_to_tortoise() -> None:
                 else None
             )
             if image:
-                await image.save()
+                await image.save().run()
             source_image = (
                 await Image.from_pydantic(frame_model.source_image)
                 if frame_model.source_image
                 else None
             )
             if source_image:
-                await source_image.save()
-            frame = await StoryFrame.from_pydantic(frame_model, frame_number)
-            frame.image = image
-            frame.source_image = source_image
-            frame.story = story
-            await frame.save()
+                await source_image.save().run()
+            frame = await StoryFrame.from_pydantic(frame_model, story.cuid, frame_number)
+            frame.image = image.id if image else None
+            frame.source_image = source_image.id if source_image else None
+            frame.story = story.id
+            await frame.save().run()
 
 
-async def copy_sparrow_states_to_tortoise() -> None:
+async def copy_sparrow_states_to_piccolo() -> None:
     for sparrow_state_model in list_legacy_sparrow_states():
         print(f"Copying state for Sparrow {sparrow_state_model.sparrow_id}")
         sparrow_state = await SparrowState.from_pydantic(sparrow_state_model)
@@ -202,14 +206,19 @@ async def get_sparrow_config(sparrow_or_flock_id: str) -> Optional[SparrowConfig
     """
     Retrieves the config for the given sparrow or flock.
     """
-    return await SparrowConfig.get_or_none(client_id=sparrow_or_flock_id)
+    return (
+        await SparrowConfig.objects()
+        .where(SparrowConfig.client_id == sparrow_or_flock_id)
+        .first()
+        .run()
+    )
 
 
 async def put_sparrow_config(sparrow_config: SparrowConfig) -> None:
     """
     Stores the given sparrow or flock config.
     """
-    await sparrow_config.save()
+    await sparrow_config.save().run()
 
 
 async def delete_sparrow_config(sparrow_or_flock_id: str) -> None:
@@ -235,7 +244,12 @@ async def get_client_type_config(client_type_id: str) -> Optional[ClientTypeConf
     """
     Retrieves the given client type config.
     """
-    return await ClientTypeConfig.get_or_none(client_id=client_type_id)
+    return (
+        await ClientTypeConfig.objects()
+        .where(ClientTypeConfig.client_id == client_type_id)
+        .first()
+        .run()
+    )
 
 
 async def put_client_type_config(client_type_config: ClientTypeConfigModel) -> None:
@@ -244,7 +258,7 @@ async def put_client_type_config(client_type_config: ClientTypeConfigModel) -> N
     """
     # _put_config(ConfigType.CLIENT_TYPE, client_type_config)
     config = ClientTypeConfig.from_pydantic(client_type_config)
-    await config.save()
+    await config.save().run()
 
 
 def delete_client_type_config(client_type_id: str) -> None:
@@ -381,34 +395,16 @@ def _get_non_default_parameters(params_dict: Dict[str, Any]) -> Dict[str, Any]:
     return non_default_request_params
 
 
-from tortoise import Tortoise
-
-
-async def init():
-    from app import get_db_uri, TORTOISE_MODELS
-    from calliope.settings import settings
-
-    print(f"{settings.POSTGRESQL_USERNAME}, {settings.POSTGRESQL_PASSWORD}")
-
-    #  which contain models from "app.models"
-    await Tortoise.init(
-        db_url=get_db_uri(
-            user=settings.POSTGRESQL_USERNAME,
-            passwd=settings.POSTGRESQL_PASSWORD,
-            host=settings.POSTGRESQL_HOSTNAME,
-            db=settings.POSTGRESQL_DATABASE,
-        ),
-        modules={"models": TORTOISE_MODELS},
-    )
-    # Generate the schema
-    await Tortoise.generate_schemas()
-
-
 async def main():
-    await init()
-    # await copy_configs_to_tortoise()
-    # await copy_stories_to_tortoise()
-    await copy_sparrow_states_to_tortoise()
+    engine = engine_finder()
+    await engine.start_connection_pool()
+
+    try:
+        await copy_configs_to_piccolo()
+        await copy_stories_to_piccolo()
+        await copy_sparrow_states_to_piccolo()
+    finally:
+        await engine.close_connection_pool()
 
 
 if __name__ == "__main__":

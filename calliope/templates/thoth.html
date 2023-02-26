@@ -18,12 +18,12 @@
 
     {% for story in stories %}
     <div class="story">
-        <a class="story-link" href="story/{{story.id}}">
+        <a class="story-link" href="story/{{story.cuid}}">
             <div class="story-thumb">
-                {% if story_thumbs_by_story_id.get(story.id) %}
-                <img src="/{{story_thumbs_by_story_id.get(story.id).url}}"
-                    width="{{story_thumbs_by_story_id.get(story.id).width}}"
-                    height="{{story_thumbs_by_story_id.get(story.id).height}}" />
+                {% if story_thumbs_by_story_id.get(story.cuid) %}
+                <img src="/{{story_thumbs_by_story_id.get(story.cuid).url}}"
+                    width="{{story_thumbs_by_story_id.get(story.cuid).width}}"
+                    height="{{story_thumbs_by_story_id.get(story.cuid).height}}" />
                 {% endif %}
             </div>
             <div class="story-title">

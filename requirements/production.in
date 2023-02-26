@@ -11,8 +11,8 @@ mypy
 numpy
 openai
 opencv-python-headless
+piccolo[postgres,orjson]
 Pillow
-pydantic
 python-dateutil
 python-dotenv
 python-multipart

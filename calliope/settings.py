@@ -8,10 +8,10 @@ class Settings(BaseSettings):
     CALLIOPE_BUCKET_NAME: str = "artifacts.ardent-course-370411.appspot.com"
     MEDIA_FOLDER: str = "media"
 
-    POSTGRESQL_HOSTNAME: str = "localhost"
-    POSTGRESQL_USERNAME: str = "guest"
-    POSTGRESQL_PASSWORD: str = "guest"
-    POSTGRESQL_DATABASE: str = "notesdb"
+    POSTGRESQL_HOSTNAME: str = "postgres"
+    POSTGRESQL_USERNAME: str = "postgres"
+    POSTGRESQL_PASSWORD: str = "postgres"
+    POSTGRESQL_DATABASE: str = "postgres"
     PORT: str = "1234"
 
 
