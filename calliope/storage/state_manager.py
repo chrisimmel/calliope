@@ -5,7 +5,9 @@ import os
 from typing import cast, Optional, Sequence
 
 from calliope.models import (
+    SparrowState,
     SparrowStateModel,
+    Story,
     StoryModel,
 )
 from calliope.utils.file import (
@@ -59,10 +61,11 @@ def get_sparrow_state(sparrow_id: str) -> SparrowStateModel:
     return sparrow_state
 
 
-def put_sparrow_state(state: SparrowStateModel) -> None:
+async def put_sparrow_state(state: SparrowState) -> None:
     """
     Stores the given sparrow state.
     """
+
     sparrow_id = state.sparrow_id
 
     filename = _compose_state_filename(StateType.SPARROW, sparrow_id)
@@ -75,6 +78,26 @@ def put_sparrow_state(state: SparrowStateModel) -> None:
         put_google_file(folder, local_filename)
 
 
+def list_legacy_sparrow_states() -> Sequence[SparrowStateModel]:
+    """
+    Lists all Sparrow states.
+    """
+
+    if is_google_cloud_run_environment():
+        blob_names = list_google_files_with_prefix("state/sparrow")
+        for blob_name in blob_names:
+            local_filename = blob_name
+            get_google_file("state", blob_name, local_filename)
+
+    dir_path = r"state/sparrow*"
+    state_filenames = glob.glob(dir_path)
+
+    return [
+        load_json_into_pydantic_model(state_filename, SparrowStateModel)
+        for state_filename in state_filenames
+    ]
+
+
 def list_legacy_stories() -> Sequence[StoryModel]:
     """
     Lists all stories.
@@ -83,7 +106,7 @@ def list_legacy_stories() -> Sequence[StoryModel]:
     if is_google_cloud_run_environment():
         blob_names = list_google_files_with_prefix("state/story")
         for blob_name in blob_names:
-            local_filename = blob_name  # os.path.basename(blob_name)
+            local_filename = blob_name
             get_google_file("state", blob_name, local_filename)
 
     dir_path = r"state/story*"
@@ -99,7 +122,7 @@ def list_legacy_stories() -> Sequence[StoryModel]:
     return sorted(stories, key=lambda story: story.date_updated, reverse=True)
 
 
-def get_story(story_id: str) -> Optional[StoryModel]:
+def get_legacy_story(story_id: str) -> Optional[StoryModel]:
     """
     Retrieves the given story.
     """
@@ -143,6 +166,13 @@ def get_story(story_id: str) -> Optional[StoryModel]:
         put_story(story, update_dates=False)
 
     return story
+
+
+async def get_story(story_id: str) -> Optional[Story]:
+    """
+    Retrieves the given story.
+    """
+    return await Story.get_or_none(id=story_id)
 
 
 def put_story(story: StoryModel, update_dates: bool = True) -> None:

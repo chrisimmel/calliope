@@ -12,12 +12,12 @@ from .schedule import ScheduleModel, ScheduleStateModel, ScheduleStepModel
 from .config import (
     Config,
     ConfigModel,
-    ClientTypeConfig, 
+    ClientTypeConfig,
     ClientTypeConfigModel,
     SparrowConfig,
     SparrowConfigModel,
 )
-from .sparrow_state import SparrowStateModel
+from .sparrow_state import SparrowState, SparrowStateModel
 from .story import Story, StoryModel
 from .story_frame import StoryFrame, StoryFrameModel
 from .trigger_condition import (
@@ -56,6 +56,7 @@ __all__ = [
     "ScheduleStepModel",
     "SparrowConfig",
     "SparrowConfigModel",
+    "SparrowState",
     "SparrowStateModel",
     "StoryFrame",
     "StoryFrameModel",

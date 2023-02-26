@@ -61,10 +61,12 @@ class SparrowState(Model):
         instance: SparrowState = await SparrowState.get_or_none(sparrow_id=sparrow_id)
 
         current_story: Optional[Story] = (
-            Story.get_or_none(model.current_story_id) if model.current_story_id else None
+            await Story.get_or_none(id=model.current_story_id)
+            if model.current_story_id
+            else None
         )
         stories: Sequence[Story] = (
-            list(Story.filter(id__in=model.story_ids)) if model.story_ids else []
+            list(await Story.filter(id__in=model.story_ids)) if model.story_ids else []
         )
         # schedule_state: Optional[ScheduleState] = ScheduleState.get_or_none(
         #     sparrow_id=sparrow_id
@@ -73,13 +75,12 @@ class SparrowState(Model):
         if instance:
             instance.sparrow_id = sparrow_id
             instance.current_story = current_story
-            instance.stories = stories
         else:
             instance = SparrowState(
                 id=cuid.cuid(),
                 sparrow_id=sparrow_id,
                 current_story=current_story,
-                stories=stories,
             )
+        await instance.stories.add(*stories)
 
         return instance

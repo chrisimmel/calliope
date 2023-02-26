@@ -24,7 +24,7 @@ async def request_get_sparrow_config(
     sparrow_or_flock_id: str,
     api_key: APIKey = Depends(get_api_key),
 ) -> SparrowConfigModel:
-    return get_sparrow_config(sparrow_or_flock_id)
+    return await get_sparrow_config(sparrow_or_flock_id)
 
 
 @router.put("/sparrow/{sparrow_or_flock_id}")
@@ -42,7 +42,7 @@ async def request_delete_sparrow_config(
     sparrow_or_flock_id: str,
     api_key: APIKey = Depends(get_api_key),
 ) -> None:
-    return delete_sparrow_config(sparrow_or_flock_id)
+    return await delete_sparrow_config(sparrow_or_flock_id)
 
 
 @router.get("/client_type/{client_type}")
@@ -50,7 +50,7 @@ async def request_get_client_type_config(
     client_type: str,
     api_key: APIKey = Depends(get_api_key),
 ) -> ClientTypeConfigModel:
-    return get_client_type_config(client_type)
+    return await get_client_type_config(client_type)
 
 
 @router.put("/client_type/{client_type}")
@@ -68,4 +68,4 @@ async def request_delete_client_type_config(
     client_type: str,
     api_key: APIKey = Depends(get_api_key),
 ) -> None:
-    return delete_client_type_config(client_type)
+    return await delete_client_type_config(client_type)

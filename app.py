@@ -46,6 +46,7 @@ def get_db_uri(user, passwd, host, db):
 TORTOISE_MODELS = [
     "calliope.models.config",
     "calliope.models.image",
+    "calliope.models.sparrow_state",
     "calliope.models.story_frame",
     "calliope.models.story",
 ]

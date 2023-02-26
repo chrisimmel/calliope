@@ -139,8 +139,8 @@ async def handle_frames_request(
 
     prepare_frame_images(parameters, story_frames_response.frames, base_url)
 
-    put_story(story)
-    put_sparrow_state(sparrow_state)
+    await put_story(story)
+    await put_sparrow_state(sparrow_state)
 
     response = StoryResponseV1(
         frames=story_frames_response.frames,

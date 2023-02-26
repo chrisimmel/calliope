@@ -15,12 +15,16 @@ from calliope.models import (
     load_inference_model_configs,
     SparrowConfig,
     SparrowConfigModel,
+    SparrowState,
+    SparrowStateModel,
     Story,
     StoryFrame,
 )
-from calliope.models.sparrow_state import SparrowStateModel
 from calliope.storage.schedule import check_schedule
-from calliope.storage.state_manager import list_legacy_stories
+from calliope.storage.state_manager import (
+    list_legacy_sparrow_states,
+    list_legacy_stories,
+)
 from calliope.utils.file import (
     load_json_into_pydantic_model,
     write_pydantic_model_to_json,
@@ -177,7 +181,14 @@ async def copy_stories_to_tortoise() -> None:
             await frame.save()
 
 
-def get_sparrow_config(sparrow_or_flock_id: str) -> Optional[SparrowConfigModel]:
+async def copy_sparrow_states_to_tortoise() -> None:
+    for sparrow_state_model in list_legacy_sparrow_states():
+        print(f"Copying state for Sparrow {sparrow_state_model.sparrow_id}")
+        sparrow_state = await SparrowState.from_pydantic(sparrow_state_model)
+        await sparrow_state.save()
+
+
+def get_legacy_sparrow_config(sparrow_or_flock_id: str) -> Optional[SparrowConfigModel]:
     """
     Retrieves the config for the given sparrow or flock.
     """
@@ -187,30 +198,44 @@ def get_sparrow_config(sparrow_or_flock_id: str) -> Optional[SparrowConfigModel]
     )
 
 
-async def put_sparrow_config(sparrow_config: SparrowConfigModel) -> None:
+async def get_sparrow_config(sparrow_or_flock_id: str) -> Optional[SparrowConfig]:
+    """
+    Retrieves the config for the given sparrow or flock.
+    """
+    return await SparrowConfig.get_or_none(client_id=sparrow_or_flock_id)
+
+
+async def put_sparrow_config(sparrow_config: SparrowConfig) -> None:
     """
     Stores the given sparrow or flock config.
     """
-    # _put_config(ConfigType.SPARROW, sparrow_config)
-    config = SparrowConfig.from_pydantic(sparrow_config)
-    await config.save()
+    await sparrow_config.save()
 
 
-def delete_sparrow_config(sparrow_or_flock_id: str) -> None:
+async def delete_sparrow_config(sparrow_or_flock_id: str) -> None:
     """
     Deletes the given sparrow or flock config.
     """
-    _delete_config(ConfigType.SPARROW, sparrow_or_flock_id)
+    await SparrowConfig.filter(client_id=sparrow_or_flock_id).delete()
 
 
-def get_client_type_config(client_type_id: str) -> Optional[ClientTypeConfigModel]:
+def get_legacy_client_type_config(
+    client_type_id: str,
+) -> Optional[ClientTypeConfigModel]:
     """
-    Retrieves the config for the given sparrow or flock.
+    Retrieves the given client type config.
     """
     return cast(
         Optional[ClientTypeConfigModel],
         _get_config(ConfigType.CLIENT_TYPE, client_type_id),
     )
+
+
+async def get_client_type_config(client_type_id: str) -> Optional[ClientTypeConfig]:
+    """
+    Retrieves the given client type config.
+    """
+    return await ClientTypeConfig.get_or_none(client_id=client_type_id)
 
 
 async def put_client_type_config(client_type_config: ClientTypeConfigModel) -> None:
@@ -229,7 +254,7 @@ def delete_client_type_config(client_type_id: str) -> None:
     _delete_config(ConfigType.CLIENT_TYPE, client_type_id)
 
 
-def get_sparrow_story_parameters_and_keys(
+async def get_sparrow_story_parameters_and_keys(
     request_params: FramesRequestParamsModel, sparrow_state: SparrowStateModel
 ) -> Tuple[FramesRequestParamsModel, KeysModel, InferenceModelConfigsModel]:
     """
@@ -248,11 +273,11 @@ def get_sparrow_story_parameters_and_keys(
 
     while sparrow_or_flock_id:
         # 2. Check to see whether there is a config for the given sparrow or flock ID.
-        sparrow_or_flock_config = get_sparrow_config(sparrow_or_flock_id)
+        sparrow_or_flock_config = await get_sparrow_config(sparrow_or_flock_id)
         if not sparrow_or_flock_config:
             # Fall back on the default config.
             sparrow_or_flock_id = "default"
-            sparrow_or_flock_config = get_sparrow_config(sparrow_or_flock_id)
+            sparrow_or_flock_config = await get_sparrow_config(sparrow_or_flock_id)
 
         if sparrow_or_flock_config:
             # 3. If there's a sparrow/flock config, collect its parameters and merge
@@ -308,7 +333,7 @@ def get_sparrow_story_parameters_and_keys(
     # come from a sparrow config.
     client_type = params_dict.get("client_type")
     if client_type:
-        client_type_config = get_client_type_config(client_type)
+        client_type_config = await get_client_type_config(client_type)
         if client_type_config:
             # 5.1. If there is one, merge it with the request parameters.
             client_type_config_dict = _get_non_default_parameters(
@@ -383,8 +408,9 @@ async def init():
 
 async def main():
     await init()
-    await copy_configs_to_tortoise()
-    await copy_stories_to_tortoise()
+    # await copy_configs_to_tortoise()
+    # await copy_stories_to_tortoise()
+    await copy_sparrow_states_to_tortoise()
 
 
 if __name__ == "__main__":
