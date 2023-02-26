@@ -390,8 +390,6 @@ async def init():
 
     print(f"{settings.POSTGRESQL_USERNAME}, {settings.POSTGRESQL_PASSWORD}")
 
-    # Here we create a SQLite DB using file "db.sqlite3"
-    #  also specify the app name of "models"
     #  which contain models from "app.models"
     await Tortoise.init(
         db_url=get_db_uri(
