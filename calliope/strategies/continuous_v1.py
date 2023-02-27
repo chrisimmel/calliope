@@ -14,10 +14,12 @@ from calliope.models import (
     FramesRequestParamsModel,
     KeysModel,
     InferenceModelConfigsModel,
-    SparrowStateModel,
-    StoryFrameModel,
     StoryFrameSequenceResponseModel,
-    StoryModel,
+)
+from calliope.tables import (
+    SparrowState,
+    StoryFrame,
+    Story,
 )
 from calliope.strategies.base import DEFAULT_MIN_DURATION_SECONDS, StoryStrategy
 from calliope.strategies.registry import StoryStrategyRegistry
@@ -164,8 +166,8 @@ class ContinuousStoryV1Strategy(StoryStrategy):
         parameters: FramesRequestParamsModel,
         inference_model_configs: InferenceModelConfigsModel,
         keys: KeysModel,
-        sparrow_state: SparrowStateModel,
-        story: StoryModel,
+        sparrow_state: SparrowState,
+        story: Story,
         aiohttp_session: aiohttp.ClientSession,
     ) -> StoryFrameSequenceResponseModel:
         client_id = parameters.client_id
@@ -268,7 +270,8 @@ class ContinuousStoryV1Strategy(StoryStrategy):
                 traceback.print_exc(file=sys.stderr)
                 errors.append(str(e))
 
-        frame = StoryFrameModel(
+        # TODO: Do this right in the Piccolo world.
+        frame = StoryFrame(
             image=image,
             source_image=image,
             text=story_continuation,
@@ -278,6 +281,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
                 "errors": errors,
             },
         )
+        # TODO: Not this.  (Can no longer append to story.frames or story.text since they no longer exist!)
         story.frames.append(frame)
         story.text = story.text + story_continuation
 
@@ -291,7 +295,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
     def _compose_prompt(
         self,
         parameters: FramesRequestParamsModel,
-        story: StoryModel,
+        story: Story,
         scene: str,
         text: str,
         objects: str,
@@ -319,7 +323,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
         inference_model_configs: InferenceModelConfigsModel,
         keys: KeysModel,
         errors: List[str],
-        story: StoryModel,
+        story: Story,
         aiohttp_session: aiohttp.ClientSession,
     ) -> str:
         try:

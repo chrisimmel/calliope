@@ -11,6 +11,7 @@ from piccolo.columns import (
 
 
 from calliope.models import ImageModel
+from calliope.utils.file import FileMetadata
 
 
 class Image(Table):
@@ -27,10 +28,13 @@ class Image(Table):
     url = Varchar()
 
     date_created = Timestamptz()
-    date_updated = Timestamptz(auto_update=datetime.now)
+    # TODO: Redefine as auto_update as soon as initial migrations are done.
+    date_updated = Timestamptz()  # auto_update=datetime.now)
 
     @classmethod
-    async def from_pydantic(cls, model: ImageModel) -> "Image":
+    async def from_pydantic(
+        cls, model: ImageModel, file_metadata: FileMetadata
+    ) -> "Image":
         width = model.width
         height = model.height
         format = model.format.value
@@ -50,7 +54,8 @@ class Image(Table):
         if not instance:
             instance = Image(
                 # id=cuid.cuid(),
-                date_created=datetime.now(timezone.utc),
+                date_created=file_metadata.date_created,
+                date_updated=file_metadata.date_updated,
                 width=width,
                 height=height,
                 format=format,

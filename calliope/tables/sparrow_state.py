@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from typing import Optional
+from calliope.utils.file import FileMetadata
 
 import cuid
 from piccolo.table import Table
@@ -28,7 +29,8 @@ class SparrowState(Table):
     current_story = ForeignKey(references=Story, null=True)
 
     date_created = Timestamptz()
-    date_updated = Timestamptz(auto_update=datetime.now)
+    # TODO: Redefine as auto_update as soon as initial migrations are done.
+    date_updated = Timestamptz()  # auto_update=datetime.now)
 
     # The schedule state, if any.
     # (Holding off on defining this, pending agreement on how a schedule should work.)
@@ -37,7 +39,9 @@ class SparrowState(Table):
     # )
 
     @classmethod
-    async def from_pydantic(cls, model: SparrowStateModel) -> "SparrowState":
+    async def from_pydantic(
+        cls, model: SparrowStateModel, file_metadata: FileMetadata
+    ) -> "SparrowState":
         sparrow_id = model.sparrow_id
         current_story_cuid = model.current_story_id
 
@@ -54,12 +58,15 @@ class SparrowState(Table):
             .run()
         )
         if instance:
-            instance.current_story = model.current_story_id
+            instance.date_created = file_metadata.date_created
+            instance.date_updated = file_metadata.date_updated
+            instance.current_story = (current_story.id if current_story else None,)
         else:
             instance = SparrowState(
                 # id=cuid.cuid(),
                 sparrow_id=sparrow_id,
-                date_created=datetime.now(timezone.utc),
+                date_created=file_metadata.date_created,
+                date_updated=file_metadata.date_updated,
                 current_story=current_story.id if current_story else None,
             )
 

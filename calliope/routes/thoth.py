@@ -165,7 +165,7 @@ def _prepare_frame_image(frame: StoryFrameModel) -> bool:
             if not found:
                 if is_google_cloud_run_environment():
                     try:
-                        get_media_file(filename, local_filename)
+                        get_media_file(local_filename, local_filename)
                         # We were able to get a PNG from GCS.
                         frame.source_image = get_image_attributes(local_filename)
                         frame_modified = True
@@ -181,7 +181,7 @@ def _prepare_frame_image(frame: StoryFrameModel) -> bool:
                     # Be sure we have the original non-PNG file locally.
                     try:
                         get_media_file(
-                            get_base_filename_and_extension(frame.image.url),
+                            frame.image.url,
                             frame.image.url,
                         )
                         original_found = True

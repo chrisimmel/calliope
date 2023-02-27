@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from typing import Optional
+from calliope.utils.file import FileMetadata
 
 from piccolo.table import Table
 from piccolo.columns import (
@@ -28,11 +29,10 @@ class Story(Table):
     # The ID of the flock or sparrow for which the story was created.
     created_for_sparrow_id = Varchar(length=50, null=True)
 
-    # The date the story was created.
+    # The dates the story was created and updated.
     date_created = Timestamptz()
-
-    # The date the story was last updated.
-    date_updated = Timestamptz(auto_update=datetime.now)
+    # TODO: Redefine as auto_update as soon as initial migrations are done.
+    date_updated = Timestamptz()  # auto_update=datetime.now)
 
     @property
     def computed_title(self) -> str:
@@ -46,12 +46,15 @@ class Story(Table):
         return self.id
 
     @classmethod
-    async def from_pydantic(cls, model: StoryModel) -> "Story":
+    async def from_pydantic(
+        cls, model: StoryModel, file_metadata: FileMetadata
+    ) -> "Story":
         story_cuid = model.story_id
         title = model.title if model.title else None
         strategy_name = model.strategy_name
         created_for_sparrow_id = model.created_for_id
 
+        """
         date_created = (
             datetime.fromisoformat(model.date_created)
             if model.date_created
@@ -62,6 +65,7 @@ class Story(Table):
             if model.date_updated
             else datetime.now(timezone.utc)
         )
+        """
 
         instance: Optional[Story] = (
             await Story.objects().where(Story.cuid == story_cuid).first().run()
@@ -70,14 +74,16 @@ class Story(Table):
             instance.title = title
             instance.strategy_name = strategy_name
             instance.created_for_sparrow_id = created_for_sparrow_id
+            instance.date_created = file_metadata.date_created
+            instance.date_updated = file_metadata.date_updated
         else:
             instance = Story(
                 cuid=story_cuid,
                 title=title,
                 strategy_name=strategy_name,
                 created_for_sparrow_id=created_for_sparrow_id,
-                date_created=date_created,
-                date_updated=date_updated,
+                date_created=file_metadata.date_created,
+                date_updated=file_metadata.date_updated,
             )
 
         return instance

@@ -40,7 +40,7 @@ class Story(Table, tablename="story"):
     )
 
 
-ID = "2023-02-26T16:49:12:379657"
+ID = "2023-02-27T14:36:43:445633"
 VERSION = "0.106.0"
 DESCRIPTION = ""
 
@@ -50,7 +50,11 @@ async def forwards():
         migration_id=ID, app_name="calliope", description=DESCRIPTION
     )
 
+    manager.add_table("Image", tablename="image")
+
     manager.add_table("Story", tablename="story")
+
+    manager.add_table("SparrowConfig", tablename="sparrow_config")
 
     manager.add_table("StoryFrame", tablename="story_frame")
 
@@ -58,9 +62,127 @@ async def forwards():
 
     manager.add_table("SparrowState", tablename="sparrow_state")
 
-    manager.add_table("Image", tablename="image")
+    manager.add_column(
+        table_class_name="Image",
+        tablename="image",
+        column_name="width",
+        db_column_name="width",
+        column_class_name="Integer",
+        column_class=Integer,
+        params={
+            "default": 0,
+            "null": False,
+            "primary_key": False,
+            "unique": False,
+            "index": False,
+            "index_method": IndexMethod.btree,
+            "choices": None,
+            "db_column_name": None,
+            "secret": False,
+        },
+    )
 
-    manager.add_table("SparrowConfig", tablename="sparrow_config")
+    manager.add_column(
+        table_class_name="Image",
+        tablename="image",
+        column_name="height",
+        db_column_name="height",
+        column_class_name="Integer",
+        column_class=Integer,
+        params={
+            "default": 0,
+            "null": False,
+            "primary_key": False,
+            "unique": False,
+            "index": False,
+            "index_method": IndexMethod.btree,
+            "choices": None,
+            "db_column_name": None,
+            "secret": False,
+        },
+    )
+
+    manager.add_column(
+        table_class_name="Image",
+        tablename="image",
+        column_name="format",
+        db_column_name="format",
+        column_class_name="Varchar",
+        column_class=Varchar,
+        params={
+            "length": 50,
+            "default": "",
+            "null": False,
+            "primary_key": False,
+            "unique": False,
+            "index": False,
+            "index_method": IndexMethod.btree,
+            "choices": None,
+            "db_column_name": None,
+            "secret": False,
+        },
+    )
+
+    manager.add_column(
+        table_class_name="Image",
+        tablename="image",
+        column_name="url",
+        db_column_name="url",
+        column_class_name="Varchar",
+        column_class=Varchar,
+        params={
+            "length": 255,
+            "default": "",
+            "null": False,
+            "primary_key": False,
+            "unique": False,
+            "index": False,
+            "index_method": IndexMethod.btree,
+            "choices": None,
+            "db_column_name": None,
+            "secret": False,
+        },
+    )
+
+    manager.add_column(
+        table_class_name="Image",
+        tablename="image",
+        column_name="date_created",
+        db_column_name="date_created",
+        column_class_name="Timestamptz",
+        column_class=Timestamptz,
+        params={
+            "default": TimestamptzNow(),
+            "null": False,
+            "primary_key": False,
+            "unique": False,
+            "index": False,
+            "index_method": IndexMethod.btree,
+            "choices": None,
+            "db_column_name": None,
+            "secret": False,
+        },
+    )
+
+    manager.add_column(
+        table_class_name="Image",
+        tablename="image",
+        column_name="date_updated",
+        db_column_name="date_updated",
+        column_class_name="Timestamptz",
+        column_class=Timestamptz,
+        params={
+            "default": TimestamptzNow(),
+            "null": False,
+            "primary_key": False,
+            "unique": False,
+            "index": False,
+            "index_method": IndexMethod.btree,
+            "choices": None,
+            "db_column_name": None,
+            "secret": False,
+        },
+    )
 
     manager.add_column(
         table_class_name="Story",
@@ -175,6 +297,170 @@ async def forwards():
         params={
             "default": TimestamptzNow(),
             "null": False,
+            "primary_key": False,
+            "unique": False,
+            "index": False,
+            "index_method": IndexMethod.btree,
+            "choices": None,
+            "db_column_name": None,
+            "secret": False,
+        },
+    )
+
+    manager.add_column(
+        table_class_name="SparrowConfig",
+        tablename="sparrow_config",
+        column_name="client_id",
+        db_column_name="client_id",
+        column_class_name="Varchar",
+        column_class=Varchar,
+        params={
+            "length": 50,
+            "default": "",
+            "null": False,
+            "primary_key": False,
+            "unique": True,
+            "index": True,
+            "index_method": IndexMethod.btree,
+            "choices": None,
+            "db_column_name": None,
+            "secret": False,
+        },
+    )
+
+    manager.add_column(
+        table_class_name="SparrowConfig",
+        tablename="sparrow_config",
+        column_name="description",
+        db_column_name="description",
+        column_class_name="Text",
+        column_class=Text,
+        params={
+            "default": "",
+            "null": True,
+            "primary_key": False,
+            "unique": False,
+            "index": False,
+            "index_method": IndexMethod.btree,
+            "choices": None,
+            "db_column_name": None,
+            "secret": False,
+        },
+    )
+
+    manager.add_column(
+        table_class_name="SparrowConfig",
+        tablename="sparrow_config",
+        column_name="date_created",
+        db_column_name="date_created",
+        column_class_name="Timestamptz",
+        column_class=Timestamptz,
+        params={
+            "default": TimestamptzNow(),
+            "null": False,
+            "primary_key": False,
+            "unique": False,
+            "index": False,
+            "index_method": IndexMethod.btree,
+            "choices": None,
+            "db_column_name": None,
+            "secret": False,
+        },
+    )
+
+    manager.add_column(
+        table_class_name="SparrowConfig",
+        tablename="sparrow_config",
+        column_name="date_updated",
+        db_column_name="date_updated",
+        column_class_name="Timestamptz",
+        column_class=Timestamptz,
+        params={
+            "default": TimestamptzNow(),
+            "null": False,
+            "primary_key": False,
+            "unique": False,
+            "index": False,
+            "index_method": IndexMethod.btree,
+            "choices": None,
+            "db_column_name": None,
+            "secret": False,
+        },
+    )
+
+    manager.add_column(
+        table_class_name="SparrowConfig",
+        tablename="sparrow_config",
+        column_name="parent_flock",
+        db_column_name="parent_flock",
+        column_class_name="ForeignKey",
+        column_class=ForeignKey,
+        params={
+            "references": "SparrowConfig",
+            "on_delete": OnDelete.cascade,
+            "on_update": OnUpdate.cascade,
+            "target_column": None,
+            "null": True,
+            "primary_key": False,
+            "unique": False,
+            "index": False,
+            "index_method": IndexMethod.btree,
+            "choices": None,
+            "db_column_name": None,
+            "secret": False,
+        },
+    )
+
+    manager.add_column(
+        table_class_name="SparrowConfig",
+        tablename="sparrow_config",
+        column_name="follow_parent_story",
+        db_column_name="follow_parent_story",
+        column_class_name="Boolean",
+        column_class=Boolean,
+        params={
+            "default": False,
+            "null": False,
+            "primary_key": False,
+            "unique": False,
+            "index": False,
+            "index_method": IndexMethod.btree,
+            "choices": None,
+            "db_column_name": None,
+            "secret": False,
+        },
+    )
+
+    manager.add_column(
+        table_class_name="SparrowConfig",
+        tablename="sparrow_config",
+        column_name="parameters",
+        db_column_name="parameters",
+        column_class_name="JSONB",
+        column_class=JSONB,
+        params={
+            "default": "{}",
+            "null": True,
+            "primary_key": False,
+            "unique": False,
+            "index": False,
+            "index_method": IndexMethod.btree,
+            "choices": None,
+            "db_column_name": None,
+            "secret": False,
+        },
+    )
+
+    manager.add_column(
+        table_class_name="SparrowConfig",
+        tablename="sparrow_config",
+        column_name="keys",
+        db_column_name="keys",
+        column_class_name="JSONB",
+        column_class=JSONB,
+        params={
+            "default": "{}",
+            "null": True,
             "primary_key": False,
             "unique": False,
             "index": False,
@@ -569,292 +855,6 @@ async def forwards():
         params={
             "default": TimestamptzNow(),
             "null": False,
-            "primary_key": False,
-            "unique": False,
-            "index": False,
-            "index_method": IndexMethod.btree,
-            "choices": None,
-            "db_column_name": None,
-            "secret": False,
-        },
-    )
-
-    manager.add_column(
-        table_class_name="Image",
-        tablename="image",
-        column_name="width",
-        db_column_name="width",
-        column_class_name="Integer",
-        column_class=Integer,
-        params={
-            "default": 0,
-            "null": False,
-            "primary_key": False,
-            "unique": False,
-            "index": False,
-            "index_method": IndexMethod.btree,
-            "choices": None,
-            "db_column_name": None,
-            "secret": False,
-        },
-    )
-
-    manager.add_column(
-        table_class_name="Image",
-        tablename="image",
-        column_name="height",
-        db_column_name="height",
-        column_class_name="Integer",
-        column_class=Integer,
-        params={
-            "default": 0,
-            "null": False,
-            "primary_key": False,
-            "unique": False,
-            "index": False,
-            "index_method": IndexMethod.btree,
-            "choices": None,
-            "db_column_name": None,
-            "secret": False,
-        },
-    )
-
-    manager.add_column(
-        table_class_name="Image",
-        tablename="image",
-        column_name="format",
-        db_column_name="format",
-        column_class_name="Varchar",
-        column_class=Varchar,
-        params={
-            "length": 50,
-            "default": "",
-            "null": False,
-            "primary_key": False,
-            "unique": False,
-            "index": False,
-            "index_method": IndexMethod.btree,
-            "choices": None,
-            "db_column_name": None,
-            "secret": False,
-        },
-    )
-
-    manager.add_column(
-        table_class_name="Image",
-        tablename="image",
-        column_name="url",
-        db_column_name="url",
-        column_class_name="Varchar",
-        column_class=Varchar,
-        params={
-            "length": 255,
-            "default": "",
-            "null": False,
-            "primary_key": False,
-            "unique": False,
-            "index": False,
-            "index_method": IndexMethod.btree,
-            "choices": None,
-            "db_column_name": None,
-            "secret": False,
-        },
-    )
-
-    manager.add_column(
-        table_class_name="Image",
-        tablename="image",
-        column_name="date_created",
-        db_column_name="date_created",
-        column_class_name="Timestamptz",
-        column_class=Timestamptz,
-        params={
-            "default": TimestamptzNow(),
-            "null": False,
-            "primary_key": False,
-            "unique": False,
-            "index": False,
-            "index_method": IndexMethod.btree,
-            "choices": None,
-            "db_column_name": None,
-            "secret": False,
-        },
-    )
-
-    manager.add_column(
-        table_class_name="Image",
-        tablename="image",
-        column_name="date_updated",
-        db_column_name="date_updated",
-        column_class_name="Timestamptz",
-        column_class=Timestamptz,
-        params={
-            "default": TimestamptzNow(),
-            "null": False,
-            "primary_key": False,
-            "unique": False,
-            "index": False,
-            "index_method": IndexMethod.btree,
-            "choices": None,
-            "db_column_name": None,
-            "secret": False,
-        },
-    )
-
-    manager.add_column(
-        table_class_name="SparrowConfig",
-        tablename="sparrow_config",
-        column_name="client_id",
-        db_column_name="client_id",
-        column_class_name="Varchar",
-        column_class=Varchar,
-        params={
-            "length": 50,
-            "default": "",
-            "null": False,
-            "primary_key": False,
-            "unique": True,
-            "index": True,
-            "index_method": IndexMethod.btree,
-            "choices": None,
-            "db_column_name": None,
-            "secret": False,
-        },
-    )
-
-    manager.add_column(
-        table_class_name="SparrowConfig",
-        tablename="sparrow_config",
-        column_name="description",
-        db_column_name="description",
-        column_class_name="Text",
-        column_class=Text,
-        params={
-            "default": "",
-            "null": True,
-            "primary_key": False,
-            "unique": False,
-            "index": False,
-            "index_method": IndexMethod.btree,
-            "choices": None,
-            "db_column_name": None,
-            "secret": False,
-        },
-    )
-
-    manager.add_column(
-        table_class_name="SparrowConfig",
-        tablename="sparrow_config",
-        column_name="date_created",
-        db_column_name="date_created",
-        column_class_name="Timestamptz",
-        column_class=Timestamptz,
-        params={
-            "default": TimestamptzNow(),
-            "null": False,
-            "primary_key": False,
-            "unique": False,
-            "index": False,
-            "index_method": IndexMethod.btree,
-            "choices": None,
-            "db_column_name": None,
-            "secret": False,
-        },
-    )
-
-    manager.add_column(
-        table_class_name="SparrowConfig",
-        tablename="sparrow_config",
-        column_name="date_updated",
-        db_column_name="date_updated",
-        column_class_name="Timestamptz",
-        column_class=Timestamptz,
-        params={
-            "default": TimestamptzNow(),
-            "null": False,
-            "primary_key": False,
-            "unique": False,
-            "index": False,
-            "index_method": IndexMethod.btree,
-            "choices": None,
-            "db_column_name": None,
-            "secret": False,
-        },
-    )
-
-    manager.add_column(
-        table_class_name="SparrowConfig",
-        tablename="sparrow_config",
-        column_name="parent_flock",
-        db_column_name="parent_flock",
-        column_class_name="ForeignKey",
-        column_class=ForeignKey,
-        params={
-            "references": "SparrowConfig",
-            "on_delete": OnDelete.cascade,
-            "on_update": OnUpdate.cascade,
-            "target_column": None,
-            "null": True,
-            "primary_key": False,
-            "unique": False,
-            "index": False,
-            "index_method": IndexMethod.btree,
-            "choices": None,
-            "db_column_name": None,
-            "secret": False,
-        },
-    )
-
-    manager.add_column(
-        table_class_name="SparrowConfig",
-        tablename="sparrow_config",
-        column_name="follow_parent_story",
-        db_column_name="follow_parent_story",
-        column_class_name="Boolean",
-        column_class=Boolean,
-        params={
-            "default": False,
-            "null": False,
-            "primary_key": False,
-            "unique": False,
-            "index": False,
-            "index_method": IndexMethod.btree,
-            "choices": None,
-            "db_column_name": None,
-            "secret": False,
-        },
-    )
-
-    manager.add_column(
-        table_class_name="SparrowConfig",
-        tablename="sparrow_config",
-        column_name="parameters",
-        db_column_name="parameters",
-        column_class_name="JSONB",
-        column_class=JSONB,
-        params={
-            "default": "{}",
-            "null": True,
-            "primary_key": False,
-            "unique": False,
-            "index": False,
-            "index_method": IndexMethod.btree,
-            "choices": None,
-            "db_column_name": None,
-            "secret": False,
-        },
-    )
-
-    manager.add_column(
-        table_class_name="SparrowConfig",
-        tablename="sparrow_config",
-        column_name="keys",
-        db_column_name="keys",
-        column_class_name="JSONB",
-        column_class=JSONB,
-        params={
-            "default": "{}",
-            "null": True,
             "primary_key": False,
             "unique": False,
             "index": False,

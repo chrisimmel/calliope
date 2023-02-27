@@ -1,4 +1,6 @@
 import base64
+from dataclasses import dataclass
+from datetime import datetime
 import os
 import json
 from calliope.models.story import StoryModel
@@ -10,6 +12,32 @@ from calliope.utils.string import slugify
 
 
 filename_counter = 0
+
+
+@dataclass
+class FileMetadata:
+    filename: str
+    date_created: datetime
+    date_updated: datetime
+
+
+@dataclass
+class ModelAndMetadata:
+    model: BaseModel
+    metadata: FileMetadata
+
+
+def get_file_metadata(filename) -> FileMetadata:
+    # Get the file creation timestamp as a float, seconds since epoch.
+    creation_time = os.path.getctime(filename)
+    # Convert to a datetime.
+    creation_datetime = datetime.fromtimestamp(creation_time)
+
+    # Get the file modification timestamp as a float, seconds since epoch.
+    updated_time = os.path.getmtime(filename)
+    # Convert to a datetime.
+    updated_datetime = datetime.fromtimestamp(updated_time)
+    return FileMetadata(filename, creation_datetime, updated_datetime)
 
 
 def get_base_filename(filename) -> str:

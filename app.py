@@ -1,12 +1,14 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Sequence, Union
 
 from fastapi import Depends, FastAPI
 from fastapi.routing import Mount
 from fastapi.openapi.utils import get_openapi
 from fastapi.security.api_key import APIKey
 from fastapi.staticfiles import StaticFiles
-from piccolo_admin.endpoints import create_admin
+from piccolo_admin.endpoints import create_admin, TableConfig
+from piccolo_api.media.local import LocalMediaStorage
 from piccolo.engine import engine_finder
+from piccolo.table import Table
 from pydantic import BaseModel
 from starlette.responses import JSONResponse
 
@@ -17,6 +19,7 @@ from calliope.routes import thoth as thoth_routes
 from calliope.routes.v1 import config as config_routes
 from calliope.routes.v1 import story as story_routes
 from calliope.utils.authentication import get_api_key
+from calliope.utils.google import is_google_cloud_run_environment
 from calliope.settings import settings
 
 from calliope.tables import (
@@ -27,16 +30,6 @@ from calliope.tables import (
     Story,
     StoryFrame,
 )
-
-
-class StoryResponseV1(BaseModel):
-    # Some frames of the story to display, with optional start/stop times.
-    frames: List[StoryFrameModel]
-
-    request_id: str
-    generation_date: str
-    debug_data: Optional[Dict[str, Any]] = None
-    errors: List[str]
 
 
 def register_views(app: FastAPI):
@@ -52,6 +45,21 @@ def get_db_uri(user, passwd, host, db):
     return f"postgres://{user}:{passwd}@{host}:5432/{db}"
 
 
+MEDIA_ROOT = "./"
+
+
+IMAGE_MEDIA = LocalMediaStorage(
+    column=Image.url,
+    media_path=MEDIA_ROOT,
+    allowed_extensions=["jpg", "jpeg", "png", "raw"],
+)
+
+image_local_config = TableConfig(
+    table_class=Image,
+    media_storage=[IMAGE_MEDIA],
+)
+
+
 PICCOLO_TABLES = [
     ClientTypeConfig,
     Image,
@@ -60,6 +68,21 @@ PICCOLO_TABLES = [
     Story,
     StoryFrame,
 ]
+
+
+def config_piccolo_tables() -> Sequence[Union[Table, TableConfig]]:
+    if is_google_cloud_run_environment:
+        # TODO: GCP custom MediaStorage for images.
+        return PICCOLO_TABLES
+    else:
+        return [
+            ClientTypeConfig,
+            image_local_config,
+            SparrowConfig,
+            SparrowState,
+            Story,
+            StoryFrame,
+        ]
 
 
 def create_app() -> FastAPI:
@@ -72,7 +95,7 @@ def create_app() -> FastAPI:
             Mount(
                 path="/admin/",
                 app=create_admin(
-                    tables=PICCOLO_TABLES,
+                    tables=config_piccolo_tables(),
                     site_name="Calliope Admin",
                     # Required when running under HTTPS:
                     # allowed_hosts=["my_site.com"],

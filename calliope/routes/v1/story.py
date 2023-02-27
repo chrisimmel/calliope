@@ -16,6 +16,7 @@ from calliope.storage.state_manager import (
     put_story,
 )
 from calliope.strategies import StoryStrategyRegistry
+from calliope.tables import StoryFrame
 from calliope.utils.fastapi import get_base_url
 from calliope.utils.file import (
     create_sequential_filename,
@@ -89,11 +90,13 @@ async def handle_frames_request(
 ) -> StoryResponseV1:
     print("handle_frames_request")
     client_id = request_params.client_id
-    sparrow_state = get_sparrow_state(client_id)
+    sparrow_state = await get_sparrow_state(client_id)
 
-    parameters, keys, inference_model_configs = get_sparrow_story_parameters_and_keys(
-        request_params, sparrow_state
-    )
+    (
+        parameters,
+        keys,
+        inference_model_configs,
+    ) = await get_sparrow_story_parameters_and_keys(request_params, sparrow_state)
     parameters.strategy = parameters.strategy or "continuous_v1"
     parameters.debug = parameters.debug or False
 
@@ -137,7 +140,7 @@ async def handle_frames_request(
         "thoth_link": f"{base_url}thoth/story/{story.story_id}",
     }
 
-    prepare_frame_images(parameters, story_frames_response.frames, base_url)
+    await prepare_frame_images(parameters, story_frames_response.frames, base_url)
 
     await put_story(story)
     await put_sparrow_state(sparrow_state)
@@ -176,46 +179,44 @@ def prepare_input_files(
     return request_params
 
 
-def prepare_frame_images(
-    parameters: FramesRequestParamsModel, frames: List[StoryFrameModel], base_url: str
+async def prepare_frame_images(
+    parameters: FramesRequestParamsModel, frames: List[StoryFrame], base_url: str
 ) -> None:
     is_google_cloud = is_google_cloud_run_environment()
     client_id = parameters.client_id
     output_image_format = ImageFormat.fromMediaFormat(parameters.output_image_format)
 
     for frame in frames:
-        if frame.image:
-            if image_is_monochrome(frame.image.url):
-                print(f"Image {frame.image.url} is monochrome. Skipping.")
+        image = await frame.get_related(StoryFrame.image)
+        if image:
+            if image_is_monochrome(image.url):
+                print(f"Image {image.url} is monochrome. Skipping.")
                 # Skip the image if it has only a single color (usually black).
                 # (This doesn't appear to work.)
                 frame.image = None
+                await frame.save().run()
                 continue
 
             output_image_width = parameters.output_image_width
             output_image_height = parameters.output_image_height
-            frame.image = resize_image_if_needed(
-                frame.image, output_image_width, output_image_height
+            image = resize_image_if_needed(
+                image, output_image_width, output_image_height
             )
 
             if output_image_format == ImageFormat.RGB565:
                 if is_google_cloud:
                     # Also save the original PNG image in case we want to see it later.
-                    put_media_file(frame.image.url)
-                base_filename = get_base_filename(frame.image.url)
+                    put_media_file(image.url)
+                base_filename = get_base_filename(image.url)
                 output_image_filename_raw = f"media/{base_filename}.raw"
-                frame.image = convert_png_to_rgb565(
-                    frame.image.url, output_image_filename_raw
-                )
+                image = convert_png_to_rgb565(image.url, output_image_filename_raw)
             elif output_image_format == ImageFormat.GRAYSCALE16:
                 if is_google_cloud:
                     # Also save the original PNG image in case we want to see it later.
-                    put_media_file(frame.image.url)
-                base_filename = get_base_filename(frame.image.url)
+                    put_media_file(image.url)
+                base_filename = get_base_filename(image.url)
                 output_image_filename_raw = f"media/{base_filename}.grayscale16"
-                frame.image = convert_png_to_grayscale16(
-                    frame.image.url, output_image_filename_raw
-                )
+                image = convert_png_to_grayscale16(image.url, output_image_filename_raw)
 
             if is_google_cloud:
-                put_media_file(frame.image.url)
+                put_media_file(image.url)

@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from datetime import datetime
 import os
 from typing import Sequence, Tuple
@@ -5,6 +6,7 @@ from typing import Sequence, Tuple
 from google.cloud import storage
 
 from calliope.settings import settings
+from calliope.utils.file import FileMetadata
 
 GOOGLE_CLOUD_MARKER_VARIABLE = "K_SERVICE"
 
@@ -17,8 +19,8 @@ def put_media_file(filename: str) -> None:
     put_google_file(settings.MEDIA_FOLDER, filename)
 
 
-def get_media_file(base_filename: str, destination_path: str) -> str:
-    get_google_file(settings.MEDIA_FOLDER, base_filename, destination_path)
+def get_media_file(base_filename: str, destination_path: str) -> FileMetadata:
+    return get_google_file(settings.MEDIA_FOLDER, base_filename, destination_path)
 
 
 def put_google_file(google_folder: str, filename: str) -> None:
@@ -31,41 +33,23 @@ def put_google_file(google_folder: str, filename: str) -> None:
     blob.upload_from_filename(filename)
 
 
-def get_google_file(
-    google_folder: str, base_filename: str, destination_path: str
-) -> str:
+def get_google_file(filename: str, destination_path: str) -> FileMetadata:
     storage_client = storage.Client()
 
     bucket = storage_client.bucket(settings.CALLIOPE_BUCKET_NAME)
-
-    # Construct a client side representation of a blob.
-    # Note `Bucket.blob` differs from `Bucket.get_blob` as it doesn't retrieve
-    # any content from Google Cloud Storage. As we don't need additional data,
-    # using `Bucket.blob` is preferred here.
-    blob_name = f"{google_folder}/{os.path.basename(base_filename)}"
-    blob = bucket.blob(blob_name)
+    blob = bucket.blob(filename)
 
     blob.download_to_filename(destination_path)
+    return FileMetadata(destination_path, blob.time_created, blob.updated)
 
 
-def get_google_file_dates(
-    google_folder: str, base_filename: str
-) -> Tuple[datetime, datetime]:
-    """
-    Args:
-        google_folder: the name of the GCS folder where the file is stored.
-        base_filename: the filename (without folder).
-    Returns:
-        a tuple with the creation date and update date, as datetimes.
-    """
+def get_google_file_metadata(filename: str) -> FileMetadata:
     storage_client = storage.Client()
+
     bucket = storage_client.bucket(settings.CALLIOPE_BUCKET_NAME)
-    blob_name = f"{google_folder}/{os.path.basename(base_filename)}"
-    blob = bucket.get_blob(blob_name)
-    return (
-        blob.time_created,
-        blob.updated,
-    )
+    blob = bucket.blob(filename)
+
+    return FileMetadata(filename, blob.time_created, blob.updated)
 
 
 def delete_google_file(google_folder: str, base_filename: str) -> str:

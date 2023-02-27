@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from typing import Optional
+from calliope.utils.file import FileMetadata
 
 import cuid
 from piccolo.table import Table
@@ -30,7 +31,8 @@ class SparrowConfig(Table):
     description = Text(null=True, required=False)
 
     date_created = Timestamptz()
-    date_updated = Timestamptz(auto_update=datetime.now)
+    # TODO: Redefine as auto_update as soon as initial migrations are done.
+    date_updated = Timestamptz()  # auto_update=datetime.now)
 
     # The ID of the flock to which the sparrow or flock belongs, if any.
     # A sparrow or flock inherits the parameters and schedule of its parent
@@ -52,7 +54,9 @@ class SparrowConfig(Table):
     keys = JSONB(null=True)
 
     @classmethod
-    async def from_pydantic(cls, model: SparrowConfigModel) -> "SparrowConfig":
+    async def from_pydantic(
+        cls, model: SparrowConfigModel, file_metadata: FileMetadata
+    ) -> "SparrowConfig":
         client_id = model.id
         description = model.description
         parent_flock_id = model.parent_flock_id
@@ -76,14 +80,17 @@ class SparrowConfig(Table):
         )
 
         if instance:
+            instance.date_created = file_metadata.date_created
+            instance.date_updated = file_metadata.date_updated
             instance.description = description
-            instance.parent_flock_id = parent_flock_id
+            instance.parent_flock = parent_flock.id if parent_flock else None
             instance.follow_parent_story = follow_parent_story
             instance.parameters = parameters
             instance.keys = keys
         else:
             instance = SparrowConfig(
-                date_created=datetime.now(timezone.utc),
+                date_created=file_metadata.date_created,
+                date_updated=file_metadata.date_updated,
                 client_id=client_id,
                 description=description,
                 parent_flock=parent_flock.id if parent_flock else None,
@@ -108,13 +115,16 @@ class ClientTypeConfig(Table):
     description = Text(null=True, required=False)
 
     date_created = Timestamptz()
-    date_updated = Timestamptz(auto_update=datetime.now)
+    # TODO: Redefine as auto_update as soon as initial migrations are done.
+    date_updated = Timestamptz()  # auto_update=datetime.now)
 
     # Optional strategy parameters.
     parameters = JSONB(null=True)
 
     @classmethod
-    async def from_pydantic(cls, model: ClientTypeConfigModel) -> "ClientTypeConfig":
+    async def from_pydantic(
+        cls, model: ClientTypeConfigModel, file_metadata: FileMetadata
+    ) -> "ClientTypeConfig":
         client_id = model.id
         description = model.description
         parameters = (
@@ -128,11 +138,14 @@ class ClientTypeConfig(Table):
             .run()
         )
         if instance:
+            instance.date_created = file_metadata.date_created
+            instance.date_updated = file_metadata.date_updated
             instance.description = description
             instance.parameters = parameters
         else:
             instance = ClientTypeConfig(
-                date_created=datetime.now(timezone.utc),
+                date_created=file_metadata.date_created,
+                date_updated=file_metadata.date_updated,
                 client_id=client_id,
                 description=description,
                 parameters=parameters,

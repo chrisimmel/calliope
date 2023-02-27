@@ -1,8 +1,9 @@
 import asyncio
+import datetime
 from enum import Enum
 import glob
 import os
-from typing import Any, cast, Dict, Optional, Sequence, Tuple
+from typing import Any, cast, Dict, List, Optional, Sequence, Tuple
 
 from piccolo.engine import engine_finder
 
@@ -15,6 +16,7 @@ from calliope.models import (
     load_inference_model_configs,
     SparrowConfigModel,
     SparrowStateModel,
+    StoryModel,
 )
 from calliope.tables import (
     ClientTypeConfig,
@@ -30,15 +32,17 @@ from calliope.storage.state_manager import (
     list_legacy_stories,
 )
 from calliope.utils.file import (
+    ModelAndMetadata,
+    get_file_metadata,
     load_json_into_pydantic_model,
-    write_pydantic_model_to_json,
 )
 from calliope.utils.google import (
+    FileMetadata,
     delete_google_file,
     get_google_file,
+    get_google_file_metadata,
     is_google_cloud_run_environment,
     list_google_files_with_prefix,
-    put_google_file,
 )
 
 
@@ -58,49 +62,6 @@ def _compose_config_filename(config_type: ConfigType, config_id: str) -> str:
     return f"{config_type.value}-{config_id}.cfg.json"
 
 
-def _get_config(config_type: ConfigType, config_id: str) -> Optional[ConfigModel]:
-    """
-    Retrieves the config for the given sparrow or flock.
-    """
-    filename = _compose_config_filename(config_type, config_id)
-
-    folder = "config"
-    local_filename = f"{folder}/{filename}"
-    if is_google_cloud_run_environment():
-        try:
-            get_google_file(folder, filename, local_filename)
-        except Exception as e:
-            return None
-
-    if not os.path.isfile(local_filename):
-        return None
-
-    model_class = (
-        SparrowConfigModel
-        if config_type == ConfigType.SPARROW
-        else ClientTypeConfigModel
-    )
-    try:
-        return load_json_into_pydantic_model(local_filename, model_class)
-    except Exception as e:
-        print(f"Error loading configuration {local_filename}: {e}")
-        return None
-
-
-def _put_config(config_type: ConfigType, config: ConfigModel) -> None:
-    """
-    Stores the given sparrow or flock config.
-    """
-    filename = _compose_config_filename(config_type, config.id)
-
-    folder = "config"
-    local_filename = f"{folder}/{filename}"
-    write_pydantic_model_to_json(config, local_filename)
-
-    if is_google_cloud_run_environment():
-        put_google_file(folder, local_filename)
-
-
 def _delete_config(config_type: ConfigType, config_id: str) -> None:
     filename = _compose_config_filename(config_type, config_id)
 
@@ -116,69 +77,139 @@ def _delete_config(config_type: ConfigType, config_id: str) -> None:
         os.remove(local_filename)
 
 
-def list_legacy_configs() -> Sequence[ConfigModel]:
+def list_legacy_configs() -> Sequence[ModelAndMetadata]:
     """
     Lists all legacy configs (ones stored as Pydantic JSON).
     """
 
+    filenames_and_dates: List[FileMetadata] = []
+
     if is_google_cloud_run_environment():
         blob_names = list_google_files_with_prefix("config/")
         for blob_name in blob_names:
-            local_filename = blob_name  # os.path.basename(blob_name)
-            get_google_file("config", blob_name, local_filename)
+            local_filename = blob_name
+            filenames_and_dates.append(get_google_file(blob_name, local_filename))
+    else:
+        dir_path = r"config/*"
+        config_filenames = glob.glob(dir_path)
+        for filename in config_filenames:
+            filenames_and_dates.append(get_file_metadata(filename))
 
-    dir_path = r"config/*"
-    config_filenames = glob.glob(dir_path)
-
-    for fname in config_filenames:
-        print(f"{fname=}")
-
-    configs = [
-        load_json_into_pydantic_model(
-            config_filename,
-            SparrowConfigModel
-            if config_filename.startswith("config/sparrow")
-            else ClientTypeConfigModel,
+    return [
+        ModelAndMetadata(
+            load_json_into_pydantic_model(
+                filename_and_dates.filename,
+                SparrowConfigModel
+                if filename_and_dates.filename.startswith("config/sparrow")
+                else ClientTypeConfigModel,
+            ),
+            filename_and_dates,
         )
-        for config_filename in config_filenames
+        for filename_and_dates in filenames_and_dates
     ]
-
-    return configs
 
 
 async def copy_configs_to_piccolo() -> None:
-    for config_model in list_legacy_configs():
-        print(f"Copying model {config_model}")
-        if isinstance(config_model, SparrowConfigModel):
-            config = await SparrowConfig.from_pydantic(config_model)
+    legacy_configs = list_legacy_configs()
+
+    for model_and_metadata in legacy_configs:
+        print(f"Copying model {model_and_metadata.model.id}")
+        if isinstance(model_and_metadata.model, SparrowConfigModel):
+            config = await SparrowConfig.from_pydantic(
+                model_and_metadata.model, model_and_metadata.metadata
+            )
         else:
-            config = await ClientTypeConfig.from_pydantic(config_model)
+            config = await ClientTypeConfig.from_pydantic(
+                model_and_metadata.model, model_and_metadata.metadata
+            )
         await config.save().run()
+
+    for model_and_metadata in legacy_configs:
+        if isinstance(model_and_metadata.model, SparrowConfigModel):
+            print(f"Connecting flocks for {model_and_metadata.model.id}")
+            config = await SparrowConfig.from_pydantic(
+                model_and_metadata.model, model_and_metadata.metadata
+            )
+            await config.save().run()
+
+
+def get_local_or_cloud_file_metadata(filename: str) -> FileMetadata:
+    if is_google_cloud_run_environment():
+        return get_google_file_metadata(filename)
+    else:
+        return get_file_metadata(filename)
 
 
 async def copy_stories_to_piccolo() -> None:
-    for story_model in list_legacy_stories():
+    legacy_stories = list_legacy_stories()
+
+    for model_and_metadata in legacy_stories:
+        story_model = cast(StoryModel, model_and_metadata.model)
+        file_metadata = model_and_metadata.metadata
+
         print(f"Copying story {story_model.title}")
-        story = await Story.from_pydantic(story_model)
+        story = await Story.from_pydantic(story_model, file_metadata)
         await story.save().run()
 
         for frame_number, frame_model in enumerate(story_model.frames):
             print(f"Frame {frame_number}")
-            image = (
-                await Image.from_pydantic(frame_model.image)
-                if frame_model.image
-                else None
+            date_created = None
+            date_updated = None
+
+            if frame_model.image:
+                try:
+                    image_file_metadata = get_local_or_cloud_file_metadata(
+                        frame_model.image.url
+                    )
+                    image = await Image.from_pydantic(
+                        frame_model.image, image_file_metadata
+                    )
+                    await image.save().run()
+
+                    date_created = image_file_metadata.date_created
+                    date_updated = image_file_metadata.date_updated
+                except Exception as e:
+                    print(f"Error getting image file {frame_model.image.url}: {e}")
+                    image = None
+            else:
+                image = None
+
+            if frame_model.source_image:
+                try:
+                    source_image_file_metadata = get_local_or_cloud_file_metadata(
+                        frame_model.source_image.url
+                    )
+                    source_image = await Image.from_pydantic(
+                        frame_model.source_image, source_image_file_metadata
+                    )
+                    await source_image.save().run()
+
+                    if not date_created:
+                        date_created = image_file_metadata.date_created
+                    if not date_updated:
+                        date_updated = image_file_metadata.date_updated
+                except Exception as e:
+                    print(
+                        f"Error getting image file {frame_model.source_image.url}: {e}"
+                    )
+                    source_image = None
+            else:
+                source_image = None
+
+            if not date_created:
+                date_created = file_metadata.date_created
+            if not date_updated:
+                date_updated = file_metadata.date_updated
+
+            frame_file_metadata = FileMetadata(
+                None,
+                date_created,
+                date_updated,
             )
-            if image:
-                await image.save().run()
-            source_image = (
-                await Image.from_pydantic(frame_model.source_image)
-                if frame_model.source_image
-                else None
+
+            frame = await StoryFrame.from_pydantic(
+                frame_model, frame_file_metadata, story.cuid, frame_number
             )
-            if source_image:
-                await source_image.save().run()
-            frame = await StoryFrame.from_pydantic(frame_model, story.cuid, frame_number)
             frame.image = image.id if image else None
             frame.source_image = source_image.id if source_image else None
             frame.story = story.id
@@ -186,20 +217,17 @@ async def copy_stories_to_piccolo() -> None:
 
 
 async def copy_sparrow_states_to_piccolo() -> None:
-    for sparrow_state_model in list_legacy_sparrow_states():
+    legacy_sparrow_states = list_legacy_sparrow_states()
+
+    for model_and_metadata in legacy_sparrow_states:
+        sparrow_state_model = cast(SparrowStateModel, model_and_metadata.model)
+        file_metadata = model_and_metadata.metadata
+
         print(f"Copying state for Sparrow {sparrow_state_model.sparrow_id}")
-        sparrow_state = await SparrowState.from_pydantic(sparrow_state_model)
+        sparrow_state = await SparrowState.from_pydantic(
+            sparrow_state_model, file_metadata
+        )
         await sparrow_state.save()
-
-
-def get_legacy_sparrow_config(sparrow_or_flock_id: str) -> Optional[SparrowConfigModel]:
-    """
-    Retrieves the config for the given sparrow or flock.
-    """
-    return cast(
-        Optional[SparrowConfigModel],
-        _get_config(ConfigType.SPARROW, sparrow_or_flock_id),
-    )
 
 
 async def get_sparrow_config(sparrow_or_flock_id: str) -> Optional[SparrowConfig]:
@@ -214,11 +242,12 @@ async def get_sparrow_config(sparrow_or_flock_id: str) -> Optional[SparrowConfig
     )
 
 
-async def put_sparrow_config(sparrow_config: SparrowConfig) -> None:
+async def put_sparrow_config(sparrow_config_model: SparrowConfigModel) -> None:
     """
     Stores the given sparrow or flock config.
     """
-    await sparrow_config.save().run()
+    config = SparrowConfig.from_pydantic(sparrow_config_model)
+    await config.save().run()
 
 
 async def delete_sparrow_config(sparrow_or_flock_id: str) -> None:
@@ -226,18 +255,6 @@ async def delete_sparrow_config(sparrow_or_flock_id: str) -> None:
     Deletes the given sparrow or flock config.
     """
     await SparrowConfig.filter(client_id=sparrow_or_flock_id).delete()
-
-
-def get_legacy_client_type_config(
-    client_type_id: str,
-) -> Optional[ClientTypeConfigModel]:
-    """
-    Retrieves the given client type config.
-    """
-    return cast(
-        Optional[ClientTypeConfigModel],
-        _get_config(ConfigType.CLIENT_TYPE, client_type_id),
-    )
 
 
 async def get_client_type_config(client_type_id: str) -> Optional[ClientTypeConfig]:
@@ -252,11 +269,10 @@ async def get_client_type_config(client_type_id: str) -> Optional[ClientTypeConf
     )
 
 
-async def put_client_type_config(client_type_config: ClientTypeConfigModel) -> None:
+async def put_client_type_config(client_type_config: ClientTypeConfig) -> None:
     """
     Stores the given client type config.
     """
-    # _put_config(ConfigType.CLIENT_TYPE, client_type_config)
     config = ClientTypeConfig.from_pydantic(client_type_config)
     await config.save().run()
 

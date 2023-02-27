@@ -78,9 +78,8 @@ class ShowThisFrameStrategy(StoryStrategy):
         Retrieves the file from Google Cloud Storage if needed, and verifies that it exists.
         """
         if is_google_cloud_run_environment():
-            base_filename = os.path.basename(filename)
             try:
-                get_media_file(base_filename, filename)
+                get_media_file(filename, filename)
             except Exception as e:
                 raise HTTPException(
                     status_code=404, detail=f"Error retrieving file {filename}: {e}"

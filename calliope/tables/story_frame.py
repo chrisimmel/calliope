@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Optional
+from calliope.utils.file import FileMetadata
 
 import cuid
 from piccolo.table import Table
@@ -50,11 +51,16 @@ class StoryFrame(Table):
     metadata = JSONB(null=True)
 
     date_created = Timestamptz()
-    date_updated = Timestamptz(auto_update=datetime.now)
+    # TODO: Redefine as auto_update as soon as initial migrations are done.
+    date_updated = Timestamptz()  # auto_update=datetime.now)
 
     @classmethod
     async def from_pydantic(
-        cls, model: StoryFrameModel, story_cuid: str, number: int
+        cls,
+        model: StoryFrameModel,
+        file_metadata: FileMetadata,
+        story_cuid: str,
+        number: int,
     ) -> "StoryFrame":
         text = model.text
         min_duration_seconds = model.min_duration_seconds or 0
@@ -77,6 +83,8 @@ class StoryFrame(Table):
             .run()
         )
         if instance:
+            instance.date_created = file_metadata.date_created
+            instance.date_updated = file_metadata.date_updated
             instance.text = text
             instance.min_duration_seconds = min_duration_seconds
             instance.trigger_condition = trigger_condition
@@ -84,6 +92,8 @@ class StoryFrame(Table):
         else:
             instance = StoryFrame(
                 # id=cuid.cuid(),
+                date_created=file_metadata.date_created,
+                date_updated=file_metadata.date_updated,
                 number=number,
                 text=text,
                 min_duration_seconds=min_duration_seconds,
