@@ -12,7 +12,7 @@ APP_CONFIG = AppConfig(
             "calliope.tables.config",
             "calliope.tables.image",
             "calliope.tables.sparrow_state",
-            "calliope.tables.story_frame",
+            # "calliope.tables.story_frame",
             "calliope.tables.story",
         ],
         exclude_imported=True,

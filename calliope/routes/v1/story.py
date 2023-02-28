@@ -16,7 +16,7 @@ from calliope.storage.state_manager import (
     put_story,
 )
 from calliope.strategies import StoryStrategyRegistry
-from calliope.tables import StoryFrame
+from calliope.tables import Story, StoryFrame
 from calliope.utils.fastapi import get_base_url
 from calliope.utils.file import (
     create_sequential_filename,
@@ -110,11 +110,10 @@ async def handle_frames_request(
         story = None
 
     if not story:
-        story = StoryModel(
+        story = Story(
             story_id=cuid.cuid(),
             strategy_name=parameters.strategy,
             created_for_id=client_id,
-            text="",
         )
     if sparrow_state.current_story_id != story.story_id:
         # We're starting a new story.

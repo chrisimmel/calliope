@@ -2,6 +2,7 @@ import os
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+from typing import Optional
 
 from calliope.models import ImageFormat, ImageModel, StoryModel, StoryFrameModel
 from calliope.storage.state_manager import get_story, list_legacy_stories, put_story
@@ -33,27 +34,8 @@ async def thoth_root(request: Request):
     story_thumbs_by_story_id = {}
 
     for story in stories:
-        frame_with_source_image = (
-            await StoryFrame.objects()
-            .where(
-                StoryFrame.story.cuid == story.cuid,
-                StoryFrame.source_image.is_not_null(),
-            )
-            .order_by(StoryFrame.number)
-            .first()
-            .run()
-        )
-        thumb = (
-            await frame_with_source_image.get_related(StoryFrame.source_image)
-            if frame_with_source_image
-            else None
-        )
-
+        thumb = await story.get_thumb()
         if thumb:
-            longer_dim = max(thumb.width, thumb.height)
-            scale = 48 / longer_dim
-            thumb.width *= scale
-            thumb.height *= scale
             story_thumbs_by_story_id[story.cuid] = thumb
 
     context = {
@@ -66,46 +48,10 @@ async def thoth_root(request: Request):
 
 @router.get("/thoth/story/{story_cuid}", response_class=HTMLResponse)
 async def thoth_story(request: Request, story_cuid: str):
-    story = await Story.objects().where(Story.cuid == story_cuid).first().run()
-
-    frames = []
-
-    for frame in (
-        await StoryFrame.objects()
-        .where(StoryFrame.story.cuid == story_cuid)
-        .order_by(StoryFrame.number)
-        .output(load_json=True)
-    ):
-        image = await frame.get_related(StoryFrame.image) if frame.image else None
-        source_image = (
-            await frame.get_related(StoryFrame.source_image)
-            if frame.source_image
-            else None
-        )
-        metadata = frame.metadata
-
-        frames.append(
-            StoryFrameModel(
-                text=frame.text,
-                metadata=metadata,
-                image=ImageModel(
-                    width=image.width,
-                    height=image.height,
-                    format=image.format,
-                    url=image.url,
-                )
-                if image
-                else None,
-                source_image=ImageModel(
-                    width=source_image.width,
-                    height=source_image.height,
-                    format=source_image.format,
-                    url=source_image.url,
-                )
-                if source_image
-                else None,
-            )
-        )
+    story: Optional[Story] = (
+        await Story.objects().where(Story.cuid == story_cuid).first().run()
+    )
+    frames = await story.get_frames(include_images=True) if story else []
 
     context = {
         "request": request,
