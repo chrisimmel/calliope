@@ -1,6 +1,6 @@
 import re
 import sys, traceback
-from typing import List
+from typing import List, Optional
 
 import aiohttp
 
@@ -14,8 +14,9 @@ from calliope.models import (
     FramesRequestParamsModel,
     KeysModel,
     InferenceModelConfigsModel,
-    StoryFrameSequenceResponseModel,
+    # StoryFrameSequenceResponseModel,
 )
+from calliope.models.frame_sequence_response import StoryFrameSequenceResponseModel
 from calliope.tables import (
     SparrowState,
     StoryFrame,
@@ -213,8 +214,10 @@ class ContinuousStoryV1Strategy(StoryStrategy):
                 image_scene = parameters.input_text
         """
 
+        # Get last four frames of text.
+        last_text = await story.get_text(-4)
         prompt = self._compose_prompt(
-            parameters, story, image_scene, image_text, image_objects
+            parameters, story, last_text, image_scene, image_text, image_objects
         )
 
         print(f'Text prompt: "{prompt}"')
@@ -225,6 +228,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
             keys,
             errors,
             story,
+            last_text,
             aiohttp_session,
         )
 
@@ -238,6 +242,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
                 keys,
                 errors,
                 story,
+                last_text,
                 aiohttp_session,
             )
 
@@ -250,7 +255,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
             print(f'Image prompt: "{prompt}"')
 
             try:
-                output_image_filename_png = create_sequential_filename(
+                output_image_filename_png = await create_sequential_filename(
                     "media", client_id, "out", "png", story
                 )
                 await text_to_image_file_inference(
@@ -270,8 +275,12 @@ class ContinuousStoryV1Strategy(StoryStrategy):
                 traceback.print_exc(file=sys.stderr)
                 errors.append(str(e))
 
-        # TODO: Do this right in the Piccolo world.
+        if image:
+            await image.save().run()
+
         frame = StoryFrame(
+            story=story.id,
+            number=await story.get_num_frames(),
             image=image,
             source_image=image,
             text=story_continuation,
@@ -281,9 +290,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
                 "errors": errors,
             },
         )
-        # TODO: Not this.  (Can no longer append to story.frames or story.text since they no longer exist!)
-        story.frames.append(frame)
-        story.text = story.text + story_continuation
+        await frame.save().run()
 
         return StoryFrameSequenceResponseModel(
             frames=[frame],
@@ -296,13 +303,13 @@ class ContinuousStoryV1Strategy(StoryStrategy):
         self,
         parameters: FramesRequestParamsModel,
         story: Story,
+        last_text: Optional[str],
         scene: str,
         text: str,
         objects: str,
     ) -> str:
-        last_text = story.text
         if last_text:
-            last_text_lines = story.text.split("\n")
+            last_text_lines = last_text.split("\n")
             last_text_lines = last_text_lines[-8:]
             last_text = "\n".join(last_text_lines)
             prompt = STORY_PROMPT
@@ -324,6 +331,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
         keys: KeysModel,
         errors: List[str],
         story: Story,
+        last_text: Optional[str],
         aiohttp_session: aiohttp.ClientSession,
     ) -> str:
         try:
@@ -382,7 +390,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
             print(msg)
             errors.append(msg)
             text = ""
-        elif stripped_text and stripped_text in story.text:
+        elif stripped_text and stripped_text in last_text:
             msg = f"Rejecting story continuation because it's already appeared in the story: {stripped_text[:100]}[...]"
             print(msg)
             errors.append(msg)

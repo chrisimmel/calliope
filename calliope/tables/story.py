@@ -56,6 +56,16 @@ class StoryFrame(Table):
     # TODO: Redefine as auto_update as soon as initial migrations are done.
     date_updated = Timestamptz()  # auto_update=datetime.now)
 
+    def to_pydantic(self) -> StoryFrameModel:
+        return StoryFrameModel(
+            text=self.text,
+            min_duration_seconds=self.min_duration_seconds,
+            trigger_condition=None,  # TODO: Fix! self.trigger_condition,
+            image=self.image.to_pydantic() if self.image else None,
+            source_image=self.source_image.to_pydantic() if self.source_image else None,
+            metadata=self.metadata,
+        )
+
     @classmethod
     async def from_pydantic(
         cls,
@@ -152,40 +162,42 @@ class Story(Table):
                 .run()
             )
 
-    async def get_head_text(self, max_frames: int = -1) -> Sequence[StoryFrame]:
-        qs = (
-            StoryFrame.select()
-            .where(
-                StoryFrame.story.id == self.id,
-                StoryFrame.text.is_not_null(),
-                StoryFrame.text != "",
-            )
-            .order_by(StoryFrame.number)
+    async def get_text(self, max_frames: int = 0) -> str:
+        """
+        Gets the story text.
+
+        Args:
+            max_frames: the maximum number of frames with text to include.
+            If negative, takes the last N frames. If zero (the default),
+            takes all.
+        """
+        qs = StoryFrame.select().where(
+            StoryFrame.story.id == self.id,
+            StoryFrame.text.is_not_null(),
+            StoryFrame.text != "",
         )
         if max_frames > 0:
-            qs = qs.limit(max_frames)
+            # First n frames.
+            qs = qs.order_by(StoryFrame.number).limit(max_frames)
+        elif max_frames < 0:
+            # Last n frames. These are reversed, so need to reverse again after retrieved.
+            qs = qs.order_by(StoryFrame.number, ascending=False).limit(-max_frames)
+        else:
+            # All frames.
+            qs = qs.order_by(StoryFrame.number)
 
-        fragments = await qs.run()
-        return "\n".join(fragments)
+        fragments = list(await qs.run())
+        if max_frames < 0:
+            # Fragments are sorted in reverse frame order, so reverse them.
+            fragments = fragments.reverse()
 
-    async def get_tail_text(self, max_frames: int = -1) -> Sequence[StoryFrame]:
-        qs = (
-            StoryFrame.select()
-            .where(
-                StoryFrame.story.id == self.id,
-                StoryFrame.text.is_not_null(),
-                StoryFrame.text != "",
-            )
-            .order_by(StoryFrame.number, ascending=False)
-        )
-        if max_frames > 0:
-            qs = qs.limit(max_frames)
+        return "".join(fragments) if fragments else ""
 
-        fragments = await qs.run()
-        return "\n".join(fragments)
+    async def get_num_frames(self) -> int:
+        return await StoryFrame.count().where(StoryFrame.story.id == self.id)
 
     async def compute_title(self) -> str:
-        return await self.get_head_text(max_frames=1)
+        return await self.get_text(max_frames=1)
 
     async def get_thumb(self) -> Optional[Image]:
         frame_with_source_image = (

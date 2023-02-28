@@ -36,7 +36,7 @@ async def get_sparrow_state(sparrow_id: str) -> SparrowState:
     """
 
     sparrow_state = (
-        await SparrowState.objects()
+        await SparrowState.objects(SparrowState.current_story)
         .where(SparrowState.sparrow_id == sparrow_id)
         .first()
         .run()

@@ -9,9 +9,10 @@ from calliope.models import (
     KeysModel,
     InferenceModelConfigsModel,
     SparrowStateModel,
-    StoryFrameSequenceResponseModel,
+    # StoryFrameSequenceResponseModel,
     StoryModel,
 )
+from calliope.models.frame_sequence_response import StoryFrameSequenceResponseModel
 
 
 # By default, we ask each frame to be displayed for at

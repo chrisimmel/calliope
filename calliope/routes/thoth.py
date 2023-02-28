@@ -1,12 +1,11 @@
 import os
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from typing import Optional
 
-from calliope.models import ImageFormat, ImageModel, StoryModel, StoryFrameModel
-from calliope.storage.state_manager import get_story, list_legacy_stories, put_story
-from calliope.tables import Story, StoryFrame
+from calliope.models import ImageFormat, StoryModel, StoryFrameModel
+from calliope.tables import Story
 from calliope.utils.file import (
     get_base_filename,
     get_base_filename_and_extension,
@@ -51,7 +50,13 @@ async def thoth_story(request: Request, story_cuid: str):
     story: Optional[Story] = (
         await Story.objects().where(Story.cuid == story_cuid).first().run()
     )
-    frames = await story.get_frames(include_images=True) if story else []
+    if not story:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Unknown story: {story_cuid}",
+        )
+
+    frames = await story.get_frames(include_images=True)
 
     context = {
         "request": request,

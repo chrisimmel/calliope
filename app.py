@@ -33,7 +33,7 @@ from calliope.tables import (
 
 
 def register_views(app: FastAPI):
-    print(f"Oye! {settings.PORT}")
+    print(f"Registering views for port {settings.PORT}")
     app.include_router(meta_routes.router)
     app.include_router(story_routes.router)
     app.include_router(media_routes.router)

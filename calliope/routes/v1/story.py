@@ -103,24 +103,26 @@ async def handle_frames_request(
     strategy_class = StoryStrategyRegistry.get_strategy_class(parameters.strategy)
 
     story = None
-    if sparrow_state.current_story_id and not parameters.reset_strategy_state:
-        story = await get_story(sparrow_state.current_story_id)
+    if sparrow_state.current_story and not parameters.reset_strategy_state:
+        story = sparrow_state.current_story
     if story and story.strategy_name != parameters.strategy:
         # The story in progress was created by a different strategy. Start a new one.
         story = None
 
     if not story:
-        story = Story(
-            story_id=cuid.cuid(),
+        story = Story.create_new(
             strategy_name=parameters.strategy,
-            created_for_id=client_id,
+            created_for_sparrow_id=client_id,
         )
-    if sparrow_state.current_story_id != story.story_id:
-        # We're starting a new story.
-        sparrow_state.current_story_id = story.story_id
-        sparrow_state.story_ids.append(story.story_id)
 
-    parameters = prepare_input_files(parameters, story)
+    if sparrow_state.current_story != story.id:
+        # We're starting a new story.
+        sparrow_state.current_story = story.id
+        story.created_for_sparrow_id = client_id
+        await put_sparrow_state(sparrow_state)
+        await put_story(story)
+
+    parameters = await prepare_input_files(parameters, story)
     async with aiohttp.ClientSession(raise_for_status=True) as aiohttp_session:
 
         story_frames_response = await strategy_class().get_frame_sequence(
@@ -134,9 +136,9 @@ async def handle_frames_request(
 
     story_frames_response.debug_data = {
         **story_frames_response.debug_data,
-        "story_id": story.story_id,
+        "story_id": story.cuid,
         "story_title": story.title,
-        "thoth_link": f"{base_url}thoth/story/{story.story_id}",
+        "thoth_link": f"{base_url}thoth/story/{story.cuid}",
     }
 
     await prepare_frame_images(parameters, story_frames_response.frames, base_url)
@@ -144,32 +146,34 @@ async def handle_frames_request(
     await put_story(story)
     await put_sparrow_state(sparrow_state)
 
+    frame_models = [frame.to_pydantic() for frame in story_frames_response.frames]
+
     response = StoryResponseV1(
-        frames=story_frames_response.frames,
+        frames=frame_models,
         append_to_prior_frames=story_frames_response.append_to_prior_frames,
         request_id=cuid.cuid(),
-        generation_date=str(datetime.datetime.utcnow()),
+        generation_date=str(datetime.utcnow()),
         debug_data=story_frames_response.debug_data if parameters.debug else {},
         errors=story_frames_response.errors,
     )
     return response
 
 
-def prepare_input_files(
+async def prepare_input_files(
     request_params: FramesRequestParamsModel, story: StoryModel
 ) -> FramesRequestParamsModel:
     sparrow_id = request_params.client_id
 
     # Decode b64-encoded file inputs and store to files.
     if request_params.input_image:
-        input_image_filename = create_sequential_filename(
+        input_image_filename = await create_sequential_filename(
             "input", sparrow_id, "in", "jpg", story  # TODO: Handle non-jpeg image input.
         )
         decode_b64_to_file(request_params.input_image, input_image_filename)
         request_params.input_image_filename = input_image_filename
 
     if request_params.input_audio:
-        input_audio_filename = create_sequential_filename(
+        input_audio_filename = await create_sequential_filename(
             "input", sparrow_id, "in", "wav", story
         )
         decode_b64_to_file(request_params.input_audio, input_audio_filename)
@@ -186,7 +190,8 @@ async def prepare_frame_images(
     output_image_format = ImageFormat.fromMediaFormat(parameters.output_image_format)
 
     for frame in frames:
-        image = await frame.get_related(StoryFrame.image)
+        # image = await frame.get_related(StoryFrame.image)
+        image = frame.image
         if image:
             if image_is_monochrome(image.url):
                 print(f"Image {image.url} is monochrome. Skipping.")

@@ -2,13 +2,11 @@ from datetime import datetime, timezone
 from typing import Optional
 from calliope.utils.file import FileMetadata
 
-import cuid
 from piccolo.table import Table
 from piccolo.columns import (
     Boolean,
     ForeignKey,
     JSONB,
-    LazyTableReference,
     Text,
     Timestamptz,
     Varchar,
@@ -34,10 +32,10 @@ class SparrowConfig(Table):
     # TODO: Redefine as auto_update as soon as initial migrations are done.
     date_updated = Timestamptz()  # auto_update=datetime.now)
 
-    # The ID of the flock to which the sparrow or flock belongs, if any.
+    # The client_id of the flock to which the sparrow or flock belongs, if any.
     # A sparrow or flock inherits the parameters and schedule of its parent
     # flock as defaults,
-    parent_flock = ForeignKey(references="SparrowConfig", null=True)
+    parent_flock_client_id = Varchar(length=50, null=True)
 
     # Whether to follow the parent flock's story state rather than
     # maintaining one's own. Default is False so each Sparrow normally has
@@ -72,18 +70,12 @@ class SparrowConfig(Table):
             .first()
             .run()
         )
-        parent_flock: SparrowConfig = (
-            await SparrowConfig.objects()
-            .where(SparrowConfig.client_id == parent_flock_id)
-            .first()
-            .run()
-        )
 
         if instance:
             instance.date_created = file_metadata.date_created
             instance.date_updated = file_metadata.date_updated
             instance.description = description
-            instance.parent_flock = parent_flock.id if parent_flock else None
+            instance.parent_flock_client_id = parent_flock_id
             instance.follow_parent_story = follow_parent_story
             instance.parameters = parameters
             instance.keys = keys
@@ -93,7 +85,7 @@ class SparrowConfig(Table):
                 date_updated=file_metadata.date_updated,
                 client_id=client_id,
                 description=description,
-                parent_flock=parent_flock.id if parent_flock else None,
+                parent_flock_client_id=parent_flock_id,
                 follow_parent_story=follow_parent_story,
                 parameters=parameters,
                 keys=keys,

@@ -238,6 +238,7 @@ async def get_sparrow_config(sparrow_or_flock_id: str) -> Optional[SparrowConfig
         await SparrowConfig.objects()
         .where(SparrowConfig.client_id == sparrow_or_flock_id)
         .first()
+        .output(load_json=True)
         .run()
     )
 
@@ -265,6 +266,7 @@ async def get_client_type_config(client_type_id: str) -> Optional[ClientTypeConf
         await ClientTypeConfig.objects()
         .where(ClientTypeConfig.client_id == client_type_id)
         .first()
+        .output(load_json=True)
         .run()
     )
 
@@ -317,9 +319,10 @@ async def get_sparrow_story_parameters_and_keys(
             if sparrow_or_flock_config.parameters:
                 # Does the sparrow or flock have parameters?
                 sparrow_or_flock_params_dict = _get_non_default_parameters(
-                    sparrow_or_flock_config.parameters.dict()
+                    sparrow_or_flock_config.parameters
                 )
 
+            """
             if sparrow_or_flock_config.schedule:
                 # Does it have a schedule? (If so, merge the sparrow schedule with its
                 # parameters, giving precedence to the schedule.)
@@ -327,6 +330,7 @@ async def get_sparrow_story_parameters_and_keys(
                     **sparrow_or_flock_params_dict,
                     **check_schedule(sparrow_or_flock_config, sparrow_state),
                 }
+            """
 
             if sparrow_or_flock_params_dict:
                 # Merge the sparrow params with the params already assembled, giving
@@ -335,12 +339,15 @@ async def get_sparrow_story_parameters_and_keys(
 
             if sparrow_or_flock_config.keys:
                 # 3.5 Merge keys similarly.
-                sparrow_or_flock_keys_dict = sparrow_or_flock_config.keys.dict()
+                sparrow_or_flock_keys_dict = sparrow_or_flock_config.keys
                 keys_dict = {**sparrow_or_flock_keys_dict, **keys_dict}
 
             # 4. Take the flock ID from the parent flock.
-            sparrow_or_flock_id = sparrow_or_flock_config.parent_flock_id
-            if not sparrow_or_flock_id and sparrow_or_flock_config.id != "default":
+            sparrow_or_flock_id = sparrow_or_flock_config.parent_flock_client_id
+            if (
+                not sparrow_or_flock_id
+                and sparrow_or_flock_config.client_id != "default"
+            ):
                 sparrow_or_flock_id = "default"
 
             if sparrow_or_flock_id:
@@ -367,7 +374,7 @@ async def get_sparrow_story_parameters_and_keys(
         if client_type_config:
             # 5.1. If there is one, merge it with the request parameters.
             client_type_config_dict = _get_non_default_parameters(
-                client_type_config.parameters.dict()
+                client_type_config.parameters  # .dict()
             )
             # As with other parameter merging, parameters passed with
             # the request take precedence.

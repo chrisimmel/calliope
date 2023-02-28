@@ -88,7 +88,7 @@ def create_unique_filename(directory: str, client_id: str, extension: str) -> st
     return compose_full_filename(directory, client_id, f"{base_filename}.{extension}")
 
 
-def create_sequential_filename(
+async def create_sequential_filename(
     directory: str, client_id: str, tag: str, extension: str, story: StoryModel
 ) -> str:
     """
@@ -98,7 +98,9 @@ def create_sequential_filename(
     """
     base_filename = story.cuid
     return compose_full_filename(
-        directory, client_id, f"{base_filename}.{len(story.frames)}.{tag}.{extension}"
+        directory,
+        client_id,
+        f"{base_filename}.{await story.get_num_frames()}.{tag}.{extension}",
     )
 
 

@@ -31,6 +31,14 @@ class Image(Table):
     # TODO: Redefine as auto_update as soon as initial migrations are done.
     date_updated = Timestamptz()  # auto_update=datetime.now)
 
+    def to_pydantic(self) -> ImageModel:
+        return ImageModel(
+            width=self.width,
+            height=self.height,
+            format=self.format,
+            url=self.url,
+        )
+
     @classmethod
     async def from_pydantic(
         cls, model: ImageModel, file_metadata: FileMetadata

@@ -10,9 +10,10 @@ from calliope.models import (
     InferenceModelConfigsModel,
     SparrowStateModel,
     StoryFrameModel,
-    StoryFrameSequenceResponseModel,
+    # StoryFrameSequenceResponseModel,
     StoryModel,
 )
+from calliope.models.frame_sequence_response import StoryFrameSequenceResponseModel
 from calliope.strategies.base import DEFAULT_MIN_DURATION_SECONDS, StoryStrategy
 from calliope.strategies.registry import StoryStrategyRegistry
 from calliope.utils.google import get_media_file, is_google_cloud_run_environment

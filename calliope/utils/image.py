@@ -5,9 +5,10 @@ import os
 from typing import Sequence, Tuple
 
 import numpy as np
-from PIL import Image
+import PIL
 
-from calliope.models import ImageFormat, ImageModel
+from calliope.models import ImageFormat
+from calliope.tables import Image
 from calliope.utils.file import get_file_extension
 
 
@@ -35,11 +36,11 @@ def image_format_to_media_type(image_format: ImageFormat) -> str:
 # The below conversion code was inspired by https://github.com/CommanderRedYT
 
 
-def convert_png_to_rgb565(input_filename: str, output_filename: str) -> ImageModel:
+def convert_png_to_rgb565(input_filename: str, output_filename: str) -> Image:
     """
     Converts the given PNG file to RGB565/raw format.
     """
-    png = Image.open(input_filename)
+    png = PIL.Image.open(input_filename)
 
     input_image_content = png.getdata()
     output_image_content = np.empty(len(input_image_content), np.uint16)
@@ -53,24 +54,24 @@ def convert_png_to_rgb565(input_filename: str, output_filename: str) -> ImageMod
     with open(output_filename, "wb") as output_file:
         output_file.write(output_image_content)
 
-    return ImageModel(
+    return Image(
         width=png.width,
         height=png.height,
-        format=ImageFormat.RGB565,
+        format=ImageFormat.RGB565.value(),
         url=output_filename,
     )
 
 
 def convert_rgb565_to_png(
     input_filename: str, output_filename: str, width: int, height: int
-) -> ImageModel:
+) -> Image:
     """
     Converts the given RGB565/raw file to PNG format.
     """
     with open(input_filename, "r") as input_file:
         dataArray = np.fromfile(input_file, np.uint16)
 
-        png = Image.new("RGB", (width, height))
+        png = PIL.Image.new("RGB", (width, height))
 
         for i, word in enumerate(np.nditer(dataArray)):
             r = (word >> 11) & 0x1F
@@ -80,18 +81,21 @@ def convert_rgb565_to_png(
 
         png.save(output_filename)
 
-        return ImageModel(
-            width=width, height=height, format=ImageFormat.PNG, url=output_filename
+        return Image(
+            width=width,
+            height=height,
+            format=ImageFormat.PNG.value(),
+            url=output_filename,
         )
 
 
-def convert_png_to_grayscale16(input_filename: str, output_filename: str) -> ImageModel:
+def convert_png_to_grayscale16(input_filename: str, output_filename: str) -> Image:
     """
     Converts the given PNG file to 'grayscale-16' format.
     There are 2 pixels per byte, 4 bits (black, white, 14 shades of gray) each.
     """
 
-    png = Image.open(input_filename)
+    png = PIL.Image.open(input_filename)
     # Convert to grayscale.
     png = png.convert(mode="L")
 
@@ -117,17 +121,17 @@ def convert_png_to_grayscale16(input_filename: str, output_filename: str) -> Ima
     with open(output_filename, "wb") as output_file:
         output_file.write(output_image_content)
 
-    return ImageModel(
+    return Image(
         width=png.width,
         height=png.height,
-        format=ImageFormat.GRAYSCALE16,
+        format=ImageFormat.GRAYSCALE16.value(),
         url=output_filename,
     )
 
 
 def convert_grayscale16_to_png(
     input_filename: str, output_filename: str, width: int, height: int
-) -> ImageModel:
+) -> Image:
     """
     Converts 'grayscale-16' file to PNG.
     There are 2 pixels per byte, 4 bits (black, white, 14 shades of gray) each.
@@ -136,7 +140,7 @@ def convert_grayscale16_to_png(
     with open(input_filename, "r") as input_file:
         dataArray = np.fromfile(input_file, np.uint8)
 
-        png = Image.new("L", (width, height))
+        png = PIL.Image.new("L", (width, height))
 
         for i, pixel_pair in enumerate(np.nditer(dataArray)):
             p0 = int(pixel_pair & 0xF) << 4
@@ -159,20 +163,23 @@ def convert_grayscale16_to_png(
 
         png.save(output_filename)
 
-        return ImageModel(
-            width=width, height=height, format=ImageFormat.PNG, url=output_filename
+        return Image(
+            width=width,
+            height=height,
+            format=ImageFormat.PNG.value(),
+            url=output_filename,
         )
 
 
 def resize_image_if_needed(
-    input_image: ImageModel, output_image_width: int, output_image_height: int
-) -> ImageModel:
+    input_image: Image, output_image_width: int, output_image_height: int
+) -> Image:
     """
     Resizes a given image iff necessary given output_image_width and
     output_image_height.
     """
     if output_image_width and output_image_height:
-        img = Image.open(input_image.url)
+        img = PIL.Image.open(input_image.url)
         if img.width != output_image_width or img.height != output_image_height:
             # Fit the image into the bounding box given by (output_image_width,
             # output_image_height)...
@@ -188,7 +195,7 @@ def resize_image_if_needed(
             if output_image_size != scaled_image_size:
                 # If the scaled image doesn't match the requested image size,
                 # add black bars to either side of it...
-                new_image = Image.new(
+                new_image = PIL.Image.new(
                     "RGB", output_image_size
                 )  # A blank image, all black.
                 box = (
@@ -202,7 +209,7 @@ def resize_image_if_needed(
                 resized_width = output_image_width
                 resized_height = output_image_height
 
-            return ImageModel(
+            return Image(
                 width=resized_width,
                 height=resized_height,
                 format=input_image.format,
@@ -212,17 +219,17 @@ def resize_image_if_needed(
     return input_image
 
 
-def get_image_attributes(image_filename: str) -> ImageModel:
+def get_image_attributes(image_filename: str) -> Image:
     """
-    Gets an ImageModel from an image filename.
+    Gets an Image from an image filename.
     """
-    image = Image.open(image_filename)
+    image = PIL.Image.open(image_filename)
     format = guess_image_format_from_filename(image_filename)
 
-    return ImageModel(
+    return Image(
         width=image.width,
         height=image.height,
-        format=format,
+        format=format.value(),
         url=image_filename,
     )
 
@@ -231,7 +238,7 @@ def get_image_colors(image_filename: str) -> Sequence[Tuple[int, int]]:
     """
     Returns a sequence of (count, color) tuples with colors given in the mode of the image (e.g. RGB).
     """
-    image = Image.open(image_filename)
+    image = PIL.Image.open(image_filename)
     by_color = defaultdict(int)
     for pixel in image.getdata():
         by_color[pixel] += 1

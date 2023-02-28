@@ -16,9 +16,10 @@ from calliope.models import (
     InferenceModelConfigsModel,
     SparrowStateModel,
     StoryFrameModel,
-    StoryFrameSequenceResponseModel,
+    # StoryFrameSequenceResponseModel,
     StoryModel,
 )
+from calliope.models.frame_sequence_response import StoryFrameSequenceResponseModel
 from calliope.strategies.base import DEFAULT_MIN_DURATION_SECONDS, StoryStrategy
 from calliope.strategies.registry import StoryStrategyRegistry
 from calliope.utils.file import create_sequential_filename
@@ -147,7 +148,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
             print(f'Image prompt: "{prompt}"')
 
             try:
-                output_image_filename_png = create_sequential_filename(
+                output_image_filename_png = await create_sequential_filename(
                     "media", client_id, "out", "png", story
                 )
                 await text_to_image_file_inference(
