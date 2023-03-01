@@ -1,5 +1,5 @@
 import asyncio
-import datetime
+import datetime, timezone
 from enum import Enum
 import glob
 import os
@@ -276,6 +276,7 @@ async def put_client_type_config(client_type_config: ClientTypeConfig) -> None:
     Stores the given client type config.
     """
     config = ClientTypeConfig.from_pydantic(client_type_config)
+    config.date_updated = datetime.now(timezone.utc)
     await config.save().run()
 
 

@@ -48,7 +48,7 @@ async def get_sparrow_state(sparrow_id: str) -> SparrowState:
             sparrow_id=sparrow_id,
             date_created=datetime.now(timezone.utc),
         )
-        await sparrow_state.save().run()
+        await put_sparrow_state(sparrow_state)
 
     return sparrow_state
 
@@ -57,6 +57,7 @@ async def put_sparrow_state(state: SparrowState) -> None:
     """
     Stores the given sparrow state.
     """
+    state.date_updated = datetime.now(timezone.utc)
     await state.save().run()
 
 
@@ -153,6 +154,8 @@ async def put_story(story: Story, update_dates: bool = True) -> None:
     """
     Stores the given story state.
     """
+    # TODO: Stop explicitly setting date_updated once possible.
+    story.date_updated = datetime.now(timezone.utc)
     await story.save().run()
 
 

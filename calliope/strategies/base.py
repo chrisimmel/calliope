@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional, Sequence
 
 import aiohttp
@@ -10,6 +10,7 @@ from calliope.models import (
     InferenceModelConfigsModel,
 )
 from calliope.models.frame_sequence_response import StoryFrameSequenceResponseModel
+from calliope.storage.state_manager import put_story
 from calliope.tables import (
     Image,
     SparrowState,
@@ -58,6 +59,7 @@ class StoryStrategy(object, metaclass=ABCMeta):
         Adds a new frame to a story and persists everything.
         """
         if image:
+            image.date_updated = datetime.now(timezone.utc)
             await image.save().run()
         frame = StoryFrame(
             story=story.id,
@@ -71,7 +73,13 @@ class StoryStrategy(object, metaclass=ABCMeta):
                 "errors": errors,
             },
         )
+        frame.date_updated = datetime.now(timezone.utc)
         await frame.save().run()
+
+        if not story.title:
+            story.title = await story.compute_title()
+            print(f"Computed story title: '{story.title}'")
+            await put_story(story)
 
         return frame
 

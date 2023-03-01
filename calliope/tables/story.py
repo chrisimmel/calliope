@@ -175,6 +175,10 @@ class Story(Table):
                 if frame.source_image and not frame.source_image.id:
                     frame.source_image = None
 
+        if max_frames < 0:
+            # Rows are sorted in reverse frame order, so reverse them.
+            frames.reverse()
+
         return frames
 
     async def get_text(self, max_frames: int = 0) -> str:
@@ -186,7 +190,7 @@ class Story(Table):
             If negative, takes the last N frames. If zero (the default),
             takes all.
         """
-        qs = StoryFrame.select().where(
+        qs = StoryFrame.select(StoryFrame.text).where(
             StoryFrame.story.id == self.id,
             StoryFrame.text.is_not_null(),
             StoryFrame.text != "",
@@ -201,11 +205,12 @@ class Story(Table):
             # All frames.
             qs = qs.order_by(StoryFrame.number)
 
-        fragments = list(await qs.run())
+        rows = list(await qs.run())
         if max_frames < 0:
-            # Fragments are sorted in reverse frame order, so reverse them.
-            fragments = fragments.reverse()
+            # Rows are sorted in reverse frame order, so reverse them.
+            rows.reverse()
 
+        fragments = [row.get("text", "") for row in rows]
         return "".join(fragments) if fragments else ""
 
     async def get_num_frames(self) -> int:
