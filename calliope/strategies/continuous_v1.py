@@ -140,8 +140,7 @@ $scene
 $text
 $objects
 
-$poem
-"""
+$poem"""
 
 STORY_PROMPT = STORY_PROMPT_CURIE
 
@@ -170,6 +169,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
         story: Story,
         aiohttp_session: aiohttp.ClientSession,
     ) -> StoryFrameSequenceResponseModel:
+        print(f"Begin processing strategy {self.strategy_name}...")
         client_id = parameters.client_id
         output_image_style = (
             parameters.output_image_style or "A watercolor, paper texture."
@@ -214,8 +214,11 @@ class ContinuousStoryV1Strategy(StoryStrategy):
                 image_scene = parameters.input_text
         """
 
-        # Get last four frames of text.
-        last_text = await story.get_text(-4)
+        # Get some recent text.
+        last_text = await story.get_text(-1)
+        last_text = (last_text.strip() + " ") if last_text else ""
+        print(f"{last_text=}")
+
         prompt = self._compose_prompt(
             parameters, story, last_text, image_scene, image_text, image_objects
         )
@@ -333,7 +336,17 @@ class ContinuousStoryV1Strategy(StoryStrategy):
             print(f"Raw output: '{text}'")
 
             def ends_with_punctuation(str):
-                return len(str) and str[-1] in (".", "!", "?", ":", ",", ";", "-")
+                return len(str) and str[-1] in (
+                    ".",
+                    "!",
+                    "?",
+                    ":",
+                    ",",
+                    ";",
+                    "-",
+                    '"',
+                    "'",
+                )
 
             if text:
                 LIMIT = 1024
