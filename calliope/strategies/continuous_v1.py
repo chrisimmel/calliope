@@ -17,13 +17,12 @@ from calliope.models import (
     # StoryFrameSequenceResponseModel,
 )
 from calliope.models.frame_sequence_response import StoryFrameSequenceResponseModel
-from calliope.tables import (
-    SparrowState,
-    StoryFrame,
-    Story,
-)
 from calliope.strategies.base import DEFAULT_MIN_DURATION_SECONDS, StoryStrategy
 from calliope.strategies.registry import StoryStrategyRegistry
+from calliope.tables import (
+    SparrowState,
+    Story,
+)
 from calliope.utils.file import create_sequential_filename
 from calliope.utils.image import get_image_attributes
 from calliope.utils.string import split_into_sentences
@@ -183,6 +182,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
         image_scene = ""
         image_objects = ""
         image_text = ""
+        frame_number = await story.get_num_frames()
 
         if parameters.input_image_filename:
             try:
@@ -255,8 +255,8 @@ class ContinuousStoryV1Strategy(StoryStrategy):
             print(f'Image prompt: "{prompt}"')
 
             try:
-                output_image_filename_png = await create_sequential_filename(
-                    "media", client_id, "out", "png", story
+                output_image_filename_png = create_sequential_filename(
+                    "media", client_id, "out", "png", story.cuid, frame_number
                 )
                 await text_to_image_file_inference(
                     aiohttp_session,
@@ -275,22 +275,14 @@ class ContinuousStoryV1Strategy(StoryStrategy):
                 traceback.print_exc(file=sys.stderr)
                 errors.append(str(e))
 
-        if image:
-            await image.save().run()
-
-        frame = StoryFrame(
-            story=story.id,
-            number=await story.get_num_frames(),
-            image=image,
-            source_image=image,
-            text=story_continuation,
-            min_duration_seconds=DEFAULT_MIN_DURATION_SECONDS,
-            metadata={
-                **debug_data,
-                "errors": errors,
-            },
+        frame = await self._add_frame(
+            story,
+            image,
+            story_continuation,
+            frame_number,
+            debug_data,
+            errors,
         )
-        await frame.save().run()
 
         return StoryFrameSequenceResponseModel(
             frames=[frame],

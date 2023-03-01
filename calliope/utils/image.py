@@ -57,7 +57,7 @@ def convert_png_to_rgb565(input_filename: str, output_filename: str) -> Image:
     return Image(
         width=png.width,
         height=png.height,
-        format=ImageFormat.RGB565.value(),
+        format=ImageFormat.RGB565.value,
         url=output_filename,
     )
 
@@ -84,7 +84,7 @@ def convert_rgb565_to_png(
         return Image(
             width=width,
             height=height,
-            format=ImageFormat.PNG.value(),
+            format=ImageFormat.PNG.value,
             url=output_filename,
         )
 
@@ -124,7 +124,7 @@ def convert_png_to_grayscale16(input_filename: str, output_filename: str) -> Ima
     return Image(
         width=png.width,
         height=png.height,
-        format=ImageFormat.GRAYSCALE16.value(),
+        format=ImageFormat.GRAYSCALE16.value,
         url=output_filename,
     )
 
@@ -166,7 +166,7 @@ def convert_grayscale16_to_png(
         return Image(
             width=width,
             height=height,
-            format=ImageFormat.PNG.value(),
+            format=ImageFormat.PNG.value,
             url=output_filename,
         )
 
@@ -229,7 +229,7 @@ def get_image_attributes(image_filename: str) -> Image:
     return Image(
         width=image.width,
         height=image.height,
-        format=format.value(),
+        format=format.value,
         url=image_filename,
     )
 

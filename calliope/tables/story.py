@@ -138,14 +138,36 @@ class Story(Table):
     # TODO: Redefine as auto_update as soon as initial migrations are done.
     date_updated = Timestamptz()  # auto_update=datetime.now)
 
-    async def get_frames(self, include_images: bool = False) -> Sequence[StoryFrame]:
+    async def get_frames(
+        self, max_frames: int = 0, include_images: bool = False
+    ) -> Sequence[StoryFrame]:
+        """
+        Gets the story's frames.
+
+        Args:
+            max_frames: the maximum number of frames to include.
+            If negative, takes the last N frames.
+            If zero (the default), takes all.
+        """
+        qs = (
+            StoryFrame.objects(StoryFrame.image, StoryFrame.source_image)
+            if include_images
+            else StoryFrame.objects()
+        ).where(StoryFrame.story.id == self.id)
+
+        if max_frames > 0:
+            # First n frames.
+            qs = qs.order_by(StoryFrame.number).limit(max_frames)
+        elif max_frames < 0:
+            # Last n frames. These are reversed, so need to reverse again after retrieved.
+            qs = qs.order_by(StoryFrame.number, ascending=False).limit(-max_frames)
+        else:
+            # All frames.
+            qs = qs.order_by(StoryFrame.number)
+
+        frames = await qs.run()
+
         if include_images:
-            frames = (
-                await StoryFrame.objects(StoryFrame.image, StoryFrame.source_image)
-                .where(StoryFrame.story.id == self.id)
-                .order_by(StoryFrame.number)
-                .run()
-            )
             for frame in frames:
                 # This seems like a hack necessitated by a quirk or Piccolo.
                 if frame.image and not frame.image.id:
@@ -153,14 +175,7 @@ class Story(Table):
                 if frame.source_image and not frame.source_image.id:
                     frame.source_image = None
 
-            return frames
-        else:
-            return (
-                await StoryFrame.objects()
-                .where(StoryFrame.story.id == self.id)
-                .order_by(StoryFrame.number)
-                .run()
-            )
+        return frames
 
     async def get_text(self, max_frames: int = 0) -> str:
         """
@@ -265,5 +280,5 @@ class Story(Table):
             cuid=cuid.cuid(),
             strategy_name=strategy_name,
             created_for_sparrow_id=created_for_sparrow_id,
-            date_created=datetime.datetime.utcnow(),
+            date_created=datetime.utcnow(),
         )

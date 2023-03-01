@@ -88,19 +88,23 @@ def create_unique_filename(directory: str, client_id: str, extension: str) -> st
     return compose_full_filename(directory, client_id, f"{base_filename}.{extension}")
 
 
-async def create_sequential_filename(
-    directory: str, client_id: str, tag: str, extension: str, story: StoryModel
+def create_sequential_filename(
+    directory: str,
+    client_id: str,
+    tag: str,
+    extension: str,
+    story_cuid: str,
+    frame_number: int,
 ) -> str:
     """
     Creates a sequential full filename (filename with path) from the given directory, for the
     given client, using the given extension. The name is assumed to be associated with the current
     frame of the given story, and contains the story ID and frame number in the filename.
     """
-    base_filename = story.cuid
     return compose_full_filename(
         directory,
         client_id,
-        f"{base_filename}.{await story.get_num_frames()}.{tag}.{extension}",
+        f"{story_cuid}.{frame_number}.{tag}.{extension}",
     )
 
 

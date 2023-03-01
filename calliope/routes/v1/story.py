@@ -114,6 +114,7 @@ async def handle_frames_request(
             strategy_name=parameters.strategy,
             created_for_sparrow_id=client_id,
         )
+        await put_story(story)
 
     if sparrow_state.current_story != story.id:
         # We're starting a new story.
@@ -160,21 +161,26 @@ async def handle_frames_request(
 
 
 async def prepare_input_files(
-    request_params: FramesRequestParamsModel, story: StoryModel
+    request_params: FramesRequestParamsModel, story: Story
 ) -> FramesRequestParamsModel:
     sparrow_id = request_params.client_id
 
     # Decode b64-encoded file inputs and store to files.
     if request_params.input_image:
-        input_image_filename = await create_sequential_filename(
-            "input", sparrow_id, "in", "jpg", story  # TODO: Handle non-jpeg image input.
+        input_image_filename = create_sequential_filename(
+            "input",
+            sparrow_id,
+            "in",
+            "jpg",
+            story.cuid,
+            0,  # TODO: Handle non-jpeg image input.
         )
         decode_b64_to_file(request_params.input_image, input_image_filename)
         request_params.input_image_filename = input_image_filename
 
     if request_params.input_audio:
-        input_audio_filename = await create_sequential_filename(
-            "input", sparrow_id, "in", "wav", story
+        input_audio_filename = create_sequential_filename(
+            "input", sparrow_id, "in", "wav", story.cuid, 0
         )
         decode_b64_to_file(request_params.input_audio, input_audio_filename)
         request_params.input_audio_filename = input_audio_filename

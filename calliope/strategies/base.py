@@ -1,6 +1,6 @@
 from abc import ABCMeta, abstractmethod
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any, Dict, Optional, Sequence
 
 import aiohttp
 
@@ -8,11 +8,14 @@ from calliope.models import (
     FramesRequestParamsModel,
     KeysModel,
     InferenceModelConfigsModel,
-    SparrowStateModel,
-    # StoryFrameSequenceResponseModel,
-    StoryModel,
 )
 from calliope.models.frame_sequence_response import StoryFrameSequenceResponseModel
+from calliope.tables import (
+    Image,
+    SparrowState,
+    Story,
+    StoryFrame,
+)
 
 
 # By default, we ask each frame to be displayed for at
@@ -34,13 +37,43 @@ class StoryStrategy(object, metaclass=ABCMeta):
         parameters: FramesRequestParamsModel,
         inference_model_configs: InferenceModelConfigsModel,
         keys: KeysModel,
-        sparrow_state: SparrowStateModel,
-        story: StoryModel,
+        sparrow_state: SparrowState,
+        story: Story,
         aiohttp_session: aiohttp.ClientSession,
     ) -> StoryFrameSequenceResponseModel:
         """
         Requests a sequence of story frames.
         """
+
+    async def _add_frame(
+        self,
+        story: Story,
+        image: Optional[Image],
+        text: Optional[str],
+        frame_number: int,
+        debug_data: Dict[str, Any],
+        errors: Sequence[str],
+    ) -> StoryFrame:
+        """
+        Adds a new frame to a story and persists everything.
+        """
+        if image:
+            await image.save().run()
+        frame = StoryFrame(
+            story=story.id,
+            number=frame_number,
+            image=image,
+            source_image=image,
+            text=text,
+            min_duration_seconds=DEFAULT_MIN_DURATION_SECONDS,
+            metadata={
+                **debug_data,
+                "errors": errors,
+            },
+        )
+        await frame.save().run()
+
+        return frame
 
     def _get_default_debug_data(
         self, parameters: FramesRequestParamsModel
