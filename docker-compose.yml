@@ -4,7 +4,7 @@ services:
     hostname: postgres
     image: postgres:12.4
     environment:
-      - POSTGRES_DB=postgres
+      - POSTGRES_DB=calliope
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
     ports:
@@ -25,7 +25,7 @@ services:
       - POSTGRESQL_HOSTNAME=postgres
       - POSTGRESQL_USERNAME=postgres
       - POSTGRESQL_PASSWORD=postgres
-      - POSTGRESQL_DATABASE=postgres
+      - POSTGRESQL_DATABASE=calliope
     ports:
       - 8000:8000
     tty: true
