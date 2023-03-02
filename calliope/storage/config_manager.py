@@ -3,46 +3,24 @@ from datetime import datetime, timezone
 from enum import Enum
 import glob
 import os
-from typing import Any, cast, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, Optional, Tuple
 
-from piccolo.engine import engine_finder
 
 from calliope.models import (
-    ClientTypeConfigModel,
-    ConfigModel,
     FramesRequestParamsModel,
     InferenceModelConfigsModel,
     KeysModel,
     load_inference_model_configs,
     SparrowConfigModel,
     SparrowStateModel,
-    StoryModel,
 )
 from calliope.tables import (
     ClientTypeConfig,
-    Image,
     SparrowConfig,
-    SparrowState,
-    Story,
-    StoryFrame,
-)
-from calliope.storage.schedule import check_schedule
-from calliope.storage.state_manager import (
-    list_legacy_sparrow_states,
-    list_legacy_stories,
-)
-from calliope.utils.file import (
-    ModelAndMetadata,
-    get_file_metadata,
-    load_json_into_pydantic_model,
 )
 from calliope.utils.google import (
-    FileMetadata,
     delete_google_file,
-    get_google_file,
-    get_google_file_metadata,
     is_google_cloud_run_environment,
-    list_google_files_with_prefix,
 )
 
 
@@ -75,159 +53,6 @@ def _delete_config(config_type: ConfigType, config_id: str) -> None:
 
     if not os.path.isfile(local_filename):
         os.remove(local_filename)
-
-
-def list_legacy_configs() -> Sequence[ModelAndMetadata]:
-    """
-    Lists all legacy configs (ones stored as Pydantic JSON).
-    """
-
-    filenames_and_dates: List[FileMetadata] = []
-
-    if is_google_cloud_run_environment():
-        blob_names = list_google_files_with_prefix("config/")
-        for blob_name in blob_names:
-            local_filename = blob_name
-            filenames_and_dates.append(get_google_file(blob_name, local_filename))
-    else:
-        dir_path = r"config/*"
-        config_filenames = glob.glob(dir_path)
-        for filename in config_filenames:
-            filenames_and_dates.append(get_file_metadata(filename))
-
-    return [
-        ModelAndMetadata(
-            load_json_into_pydantic_model(
-                filename_and_dates.filename,
-                SparrowConfigModel
-                if filename_and_dates.filename.startswith("config/sparrow")
-                else ClientTypeConfigModel,
-            ),
-            filename_and_dates,
-        )
-        for filename_and_dates in filenames_and_dates
-    ]
-
-
-async def copy_configs_to_piccolo() -> None:
-    legacy_configs = list_legacy_configs()
-
-    for model_and_metadata in legacy_configs:
-        print(f"Copying model {model_and_metadata.model.id}")
-        if isinstance(model_and_metadata.model, SparrowConfigModel):
-            config = await SparrowConfig.from_pydantic(
-                model_and_metadata.model, model_and_metadata.metadata
-            )
-        else:
-            config = await ClientTypeConfig.from_pydantic(
-                model_and_metadata.model, model_and_metadata.metadata
-            )
-        await config.save().run()
-
-    for model_and_metadata in legacy_configs:
-        if isinstance(model_and_metadata.model, SparrowConfigModel):
-            print(f"Connecting flocks for {model_and_metadata.model.id}")
-            config = await SparrowConfig.from_pydantic(
-                model_and_metadata.model, model_and_metadata.metadata
-            )
-            await config.save().run()
-
-
-def get_local_or_cloud_file_metadata(filename: str) -> FileMetadata:
-    if is_google_cloud_run_environment():
-        return get_google_file_metadata(filename)
-    else:
-        return get_file_metadata(filename)
-
-
-async def copy_stories_to_piccolo() -> None:
-    legacy_stories = list_legacy_stories()
-
-    for model_and_metadata in legacy_stories:
-        story_model = cast(StoryModel, model_and_metadata.model)
-        file_metadata = model_and_metadata.metadata
-
-        print(f"Copying story {story_model.title}")
-        story = await Story.from_pydantic(story_model, file_metadata)
-        await story.save().run()
-
-        for frame_number, frame_model in enumerate(story_model.frames):
-            print(f"Frame {frame_number}")
-            date_created = None
-            date_updated = None
-
-            if frame_model.image:
-                try:
-                    image_file_metadata = get_local_or_cloud_file_metadata(
-                        frame_model.image.url
-                    )
-                    image = await Image.from_pydantic(
-                        frame_model.image, image_file_metadata
-                    )
-                    await image.save().run()
-
-                    date_created = image_file_metadata.date_created
-                    date_updated = image_file_metadata.date_updated
-                except Exception as e:
-                    print(f"Error getting image file {frame_model.image.url}: {e}")
-                    image = None
-            else:
-                image = None
-
-            if frame_model.source_image:
-                try:
-                    source_image_file_metadata = get_local_or_cloud_file_metadata(
-                        frame_model.source_image.url
-                    )
-                    source_image = await Image.from_pydantic(
-                        frame_model.source_image, source_image_file_metadata
-                    )
-                    await source_image.save().run()
-
-                    if not date_created:
-                        date_created = image_file_metadata.date_created
-                    if not date_updated:
-                        date_updated = image_file_metadata.date_updated
-                except Exception as e:
-                    print(
-                        f"Error getting image file {frame_model.source_image.url}: {e}"
-                    )
-                    source_image = None
-            else:
-                source_image = None
-
-            if not date_created:
-                date_created = file_metadata.date_created
-            if not date_updated:
-                date_updated = file_metadata.date_updated
-
-            frame_file_metadata = FileMetadata(
-                None,
-                date_created,
-                date_updated,
-            )
-
-            frame = await StoryFrame.from_pydantic(
-                frame_model, frame_file_metadata, story.cuid, frame_number
-            )
-            frame.image = image.id if image else None
-            frame.source_image = source_image.id if source_image else None
-            frame.story = story.id
-            await frame.save().run()
-
-
-async def copy_sparrow_states_to_piccolo() -> None:
-    legacy_sparrow_states = list_legacy_sparrow_states()
-
-    for model_and_metadata in legacy_sparrow_states:
-        sparrow_state_model = cast(SparrowStateModel, model_and_metadata.model)
-        file_metadata = model_and_metadata.metadata
-
-        print(f"Copying state for Sparrow {sparrow_state_model.sparrow_id}")
-        sparrow_state = await SparrowState.from_pydantic(
-            sparrow_state_model, file_metadata
-        )
-        await sparrow_state.save()
 
 
 async def get_sparrow_config(sparrow_or_flock_id: str) -> Optional[SparrowConfig]:
@@ -417,19 +242,3 @@ def _get_non_default_parameters(params_dict: Dict[str, Any]) -> Dict[str, Any]:
             non_default_request_params[field.alias] = value
 
     return non_default_request_params
-
-
-async def main():
-    engine = engine_finder()
-    await engine.start_connection_pool()
-
-    try:
-        await copy_configs_to_piccolo()
-        await copy_stories_to_piccolo()
-        await copy_sparrow_states_to_piccolo()
-    finally:
-        await engine.close_connection_pool()
-
-
-if __name__ == "__main__":
-    asyncio.run(main(), debug=True)

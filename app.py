@@ -1,18 +1,22 @@
 from typing import Any, Dict, List, Optional, Sequence, Union
+from calliope.storage.migrate_pydantic_to_piccolo import (
+    MigrateFromPydanticFormModel,
+    migrate_from_pydantic_endpoint,
+)
 
 from fastapi import Depends, FastAPI
 from fastapi.routing import Mount
 from fastapi.openapi.utils import get_openapi
 from fastapi.security.api_key import APIKey
 from fastapi.staticfiles import StaticFiles
-from piccolo_admin.endpoints import create_admin, TableConfig
+from piccolo_admin.endpoints import create_admin, FormConfig, TableConfig
 from piccolo_api.media.local import LocalMediaStorage
 from piccolo.engine import engine_finder
 from piccolo.table import Table
 from pydantic import BaseModel
 from starlette.responses import JSONResponse
 
-from calliope.models import StoryFrameModel
+
 from calliope.routes import media as media_routes
 from calliope.routes import meta as meta_routes
 from calliope.routes import thoth as thoth_routes
@@ -99,6 +103,13 @@ def create_app() -> FastAPI:
                     site_name="Calliope Admin",
                     # Required when running under HTTPS:
                     # allowed_hosts=["my_site.com"],
+                    forms=[
+                        FormConfig(
+                            name="Migrate from Pydantic to Piccolo",
+                            pydantic_model=MigrateFromPydanticFormModel,
+                            endpoint=migrate_from_pydantic_endpoint,
+                        ),
+                    ],
                 ),
             ),
         ],
