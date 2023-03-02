@@ -60,7 +60,7 @@ class SparrowState(Table):
         if instance:
             instance.date_created = file_metadata.date_created
             instance.date_updated = file_metadata.date_updated
-            instance.current_story = (current_story.id if current_story else None,)
+            instance.current_story = current_story.id if current_story else None
         else:
             instance = SparrowState(
                 # id=cuid.cuid(),
