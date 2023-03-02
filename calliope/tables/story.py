@@ -1,4 +1,5 @@
 from datetime import datetime
+import json
 from typing import Optional, Sequence
 from calliope.utils.file import FileMetadata
 
@@ -55,6 +56,13 @@ class StoryFrame(Table):
     date_created = Timestamptz()
     # TODO: Redefine as auto_update as soon as initial migrations are done.
     date_updated = Timestamptz()  # auto_update=datetime.now)
+
+    @property
+    def pretty_metadata(self) -> str:
+        """
+        Gets a nicely formatted string containing the frame metadata, if any.
+        """
+        return json.dumps(self.metadata, indent=2) if self.metadata else ""
 
     def to_pydantic(self) -> StoryFrameModel:
         return StoryFrameModel(
@@ -165,8 +173,7 @@ class Story(Table):
             # All frames.
             qs = qs.order_by(StoryFrame.number)
 
-        frames = await qs.run()
-
+        frames = await qs.output(load_json=True).run()
         if include_images:
             for frame in frames:
                 # This seems like a hack necessitated by a quirk or Piccolo.
