@@ -91,11 +91,9 @@ def config_piccolo_tables() -> Sequence[Union[Table, TableConfig]]:
 
 def create_app() -> FastAPI:
     print("Creating app...")
-    app = FastAPI(
-        title="Calliope",
-        description="Let me tell you a story.",
-        version=settings.APP_VERSION,
-        routes=[
+    admin_route = None
+    try:
+        admin_route = (
             Mount(
                 path="/admin/",
                 app=create_admin(
@@ -117,7 +115,17 @@ def create_app() -> FastAPI:
                     ],
                 ),
             ),
-        ],
+        )
+    except Exception as e:
+        print(f"Error creating admin route: {e}")
+
+    routes = [admin_route] if admin_route else []
+
+    app = FastAPI(
+        title="Calliope",
+        description="Let me tell you a story.",
+        version=settings.APP_VERSION,
+        routes=[],
     )
 
     print("Registering views...")
@@ -132,14 +140,20 @@ print("Created app.")
 
 @app.on_event("startup")
 async def open_database_connection_pool():
-    engine = engine_finder()
-    await engine.start_connection_pool()
+    try:
+        engine = engine_finder()
+        await engine.start_connection_pool()
+    except Exception as e:
+        print(f"Error connecting to database: {e}")
 
 
 @app.on_event("shutdown")
 async def close_database_connection_pool():
-    engine = engine_finder()
-    await engine.close_connection_pool()
+    try:
+        engine = engine_finder()
+        await engine.close_connection_pool()
+    except Exception as e:
+        print(f"Error connecting to database: {e}")
 
 
 @app.get("/openapi.json", tags=["documentation"])
