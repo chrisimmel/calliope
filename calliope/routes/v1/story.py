@@ -99,7 +99,26 @@ async def handle_frames_request_sleep(
         StoryFrame(
             image=image,
             source_image=image,
-            text="Calliope sleeps a dream of angels. She will awake shortly, stronger for having slept.",
+            text="""
+O soft embalmer of the still midnight,
+      Shutting, with careful fingers and benign,
+Our gloom-pleas'd eyes, embower'd from the light,
+      Enshaded in forgetfulness divine:
+O soothest Sleep! if so it please thee, close
+      In midst of this thine hymn my willing eyes,
+Or wait the "Amen," ere thy poppy throws
+      Around my bed its lulling charities.
+Then save me, or the passed day will shine
+Upon my pillow, breeding many woes,—
+      Save me from curious Conscience, that still lords
+Its strength for darkness, burrowing like a mole;
+      Turn the key deftly in the oiled wards,
+And seal the hushed Casket of my Soul.
+
+                    --John Keats
+
+Calliope sleeps. She will awake shortly, improved.
+            """,
             metadata={},
             min_duration_seconds=60,
         )

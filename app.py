@@ -1,8 +1,4 @@
-from typing import Any, Dict, List, Optional, Sequence, Union
-from calliope.storage.migrate_pydantic_to_piccolo import (
-    MigrateFromPydanticFormModel,
-    migrate_from_pydantic_endpoint,
-)
+from typing import Sequence, Union
 
 from fastapi import Depends, FastAPI
 from fastapi.routing import Mount
@@ -13,10 +9,14 @@ from piccolo_admin.endpoints import create_admin, FormConfig, TableConfig
 from piccolo_api.media.local import LocalMediaStorage
 from piccolo.engine import engine_finder
 from piccolo.table import Table
-from pydantic import BaseModel
 from starlette.responses import JSONResponse
 
 
+from calliope.forms.migrate_pydantic_to_piccolo import (
+    MigrateFromPydanticFormModel,
+    migrate_from_pydantic_endpoint,
+)
+from calliope.forms.run_command import RunCommandFormModel, run_command_endpoint
 from calliope.routes import media as media_routes
 from calliope.routes import meta as meta_routes
 from calliope.routes import thoth as thoth_routes
@@ -108,6 +108,11 @@ def create_app() -> FastAPI:
                             name="Migrate from Pydantic to Piccolo",
                             pydantic_model=MigrateFromPydanticFormModel,
                             endpoint=migrate_from_pydantic_endpoint,
+                        ),
+                        FormConfig(
+                            name="Run Command",
+                            pydantic_model=RunCommandFormModel,
+                            endpoint=run_command_endpoint,
                         ),
                     ],
                 ),
