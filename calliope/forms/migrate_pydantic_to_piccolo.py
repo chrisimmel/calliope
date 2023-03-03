@@ -43,7 +43,7 @@ class MigrateFromPydanticFormModel(BaseModel):
 
 
 # Migrate action handler
-async def migrate_from_pydantic_endpoint(request, data):
+async def migrate_from_pydantic_endpoint(request, data: MigrateFromPydanticFormModel):
     await main()
     return "Data migrated"
 
