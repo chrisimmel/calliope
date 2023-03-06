@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Optional
 
 import aiohttp
 import cuid
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, HTTPException
 from fastapi.security.api_key import APIKey
 from pydantic import BaseModel
 
@@ -24,6 +24,7 @@ from calliope.utils.file import (
     get_base_filename,
 )
 from calliope.utils.google import (
+    get_media_file,
     is_google_cloud_run_environment,
     put_media_file,
 )
@@ -66,8 +67,8 @@ async def post_frames(
     """
     base_url = get_base_url(request)
 
-    # return await handle_frames_request(request_params, base_url)
-    return await handle_frames_request_sleep(request_params, base_url)
+    return await handle_frames_request(request_params, base_url)
+    # return await handle_frames_request_sleep(request_params, base_url)
 
 
 @router.get("/frames/", response_model=StoryResponseV1)
@@ -82,8 +83,8 @@ async def get_frames(
     """
     base_url = get_base_url(request)
 
-    # return await handle_frames_request(request_params, base_url)
-    return await handle_frames_request_sleep(request_params, base_url)
+    return await handle_frames_request(request_params, base_url)
+    # return await handle_frames_request_sleep(request_params, base_url)
 
 
 async def handle_frames_request_sleep(
@@ -91,9 +92,15 @@ async def handle_frames_request_sleep(
     base_url: str,
 ) -> StoryResponseV1:
 
-    image = Image(
-        format="image/png", width=512, height=512, url="media/Calliope-sleeps.png"
-    )
+    image_filename = "media/Calliope-sleeps.png"
+
+    if is_google_cloud_run_environment():
+        try:
+            get_media_file(image_filename, image_filename)
+        except Exception as e:
+            print(f"Error retrieving file {image_filename}: {e}")
+
+    image = Image(format="image/png", width=512, height=512, url=image_filename)
 
     frames = [
         StoryFrame(
@@ -249,7 +256,6 @@ async def prepare_frame_images(
     save: bool = True,
 ) -> None:
     is_google_cloud = is_google_cloud_run_environment()
-    client_id = parameters.client_id
     output_image_format = ImageFormat.fromMediaFormat(parameters.output_image_format)
 
     for frame in frames:
@@ -269,7 +275,7 @@ async def prepare_frame_images(
 
             output_image_width = parameters.output_image_width
             output_image_height = parameters.output_image_height
-            if save and is_google_cloud:
+            if is_google_cloud:
                 # Save the original PNG image in case we want to see it later.
                 put_media_file(image.url)
             original_image = image
@@ -282,20 +288,20 @@ async def prepare_frame_images(
                 base_filename = get_base_filename(image.url)
                 output_image_filename_raw = f"media/{base_filename}.raw"
                 image = convert_png_to_rgb565(image.url, output_image_filename_raw)
-                frame.image = image
                 image_updated = True
             elif output_image_format == ImageFormat.GRAYSCALE16:
-                if save and is_google_cloud:
+                if is_google_cloud:
                     # Also save the original PNG image in case we want to see it later.
                     put_media_file(image.url)
                 base_filename = get_base_filename(image.url)
                 output_image_filename_raw = f"media/{base_filename}.grayscale16"
                 image = convert_png_to_grayscale16(image.url, output_image_filename_raw)
-                frame.image = image
+                image_updated = True
 
-            if image_updated and save:
+            if image_updated:
                 frame.image = image
-                await image.save().run()
-                await frame.save().run()
+                if save:
+                    await image.save().run()
+                    await frame.save().run()
                 if is_google_cloud:
                     put_media_file(image.url)

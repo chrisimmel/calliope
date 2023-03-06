@@ -12,6 +12,8 @@ GOOGLE_CLOUD_MARKER_VARIABLE = "K_SERVICE"
 
 
 def is_google_cloud_run_environment() -> bool:
+    # TODO: Make this work also from command line (e.g. Cloud Run Jobs,
+    # not just Cloud Run Services).
     return bool(os.environ.get(GOOGLE_CLOUD_MARKER_VARIABLE))
 
 
@@ -20,7 +22,13 @@ def put_media_file(filename: str) -> None:
 
 
 def get_media_file(base_filename: str, destination_path: str) -> FileMetadata:
-    return get_google_file(settings.MEDIA_FOLDER, base_filename, destination_path)
+    gcs_filename = (
+        f"{settings.MEDIA_FOLDER}/{base_filename}"
+        if not base_filename.startswith(settings.MEDIA_FOLDER)
+        else base_filename
+    )
+
+    return get_google_file(gcs_filename, destination_path)
 
 
 def put_google_file(google_folder: str, filename: str) -> None:

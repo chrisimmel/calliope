@@ -29,8 +29,7 @@ class SparrowState(Table):
     current_story = ForeignKey(references=Story, null=True)
 
     date_created = Timestamptz()
-    # TODO: Redefine as auto_update as soon as initial migrations are done.
-    date_updated = Timestamptz()  # auto_update=datetime.now)
+    date_updated = Timestamptz(auto_update=datetime.now)
 
     # The schedule state, if any.
     # (Holding off on defining this, pending agreement on how a schedule should work.)
@@ -51,6 +50,9 @@ class SparrowState(Table):
             else None
         )
 
+        date_created = file_metadata.date_created or datetime.now(timezone.utc)
+        date_updated = file_metadata.date_updated or date_created
+
         instance: Optional[SparrowState] = (
             await SparrowState.objects()
             .where(SparrowState.sparrow_id == sparrow_id)
@@ -58,15 +60,15 @@ class SparrowState(Table):
             .run()
         )
         if instance:
-            instance.date_created = file_metadata.date_created
-            instance.date_updated = file_metadata.date_updated
+            instance.date_created = date_created
+            instance.date_updated = date_updated
             instance.current_story = current_story.id if current_story else None
         else:
             instance = SparrowState(
                 # id=cuid.cuid(),
                 sparrow_id=sparrow_id,
-                date_created=file_metadata.date_created,
-                date_updated=file_metadata.date_updated,
+                date_created=date_created,
+                date_updated=date_updated,
                 current_story=current_story.id if current_story else None,
             )
 

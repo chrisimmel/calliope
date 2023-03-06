@@ -26,9 +26,11 @@
         <div class="frame-text">
             {{frame.text}}
         </div>
+        {% if show_metadata %}
         <div class="frame-metadata">
             {{frame.pretty_metadata}}
         </div>
+        {% endif %}
     </div>
     {% endfor %}
 </body>

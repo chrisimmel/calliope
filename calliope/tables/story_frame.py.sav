@@ -51,8 +51,7 @@ class StoryFrame(Table):
     metadata = JSONB(null=True)
 
     date_created = Timestamptz()
-    # TODO: Redefine as auto_update as soon as initial migrations are done.
-    date_updated = Timestamptz()  # auto_update=datetime.now)
+    date_updated = Timestamptz(auto_update=datetime.now)
 
     @classmethod
     async def from_pydantic(

@@ -28,8 +28,7 @@ class Image(Table):
     url = Varchar()
 
     date_created = Timestamptz()
-    # TODO: Redefine as auto_update as soon as initial migrations are done.
-    date_updated = Timestamptz()  # auto_update=datetime.now)
+    date_updated = Timestamptz(auto_update=datetime.now)
 
     def to_pydantic(self) -> ImageModel:
         return ImageModel(
@@ -48,6 +47,9 @@ class Image(Table):
         format = model.format.value
         url = model.url
 
+        date_created = file_metadata.date_created or datetime.now(timezone.utc)
+        date_updated = file_metadata.date_updated or date_created
+
         instance: Optional[Image] = (
             await Image.objects()
             .where(
@@ -62,8 +64,8 @@ class Image(Table):
         if not instance:
             instance = Image(
                 # id=cuid.cuid(),
-                date_created=file_metadata.date_created,
-                date_updated=file_metadata.date_updated,
+                date_created=date_created,
+                date_updated=date_updated,
                 width=width,
                 height=height,
                 format=format,

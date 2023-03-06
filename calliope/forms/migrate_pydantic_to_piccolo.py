@@ -1,5 +1,6 @@
 import asyncio
 import glob
+import sys
 from typing import cast, List, Sequence
 
 from piccolo.engine import engine_finder
@@ -58,8 +59,9 @@ def list_legacy_configs() -> Sequence[ModelAndMetadata]:
     if is_google_cloud_run_environment():
         blob_names = list_google_files_with_prefix("config/")
         for blob_name in blob_names:
-            local_filename = blob_name
-            filenames_and_dates.append(get_google_file(blob_name, local_filename))
+            if blob_name != "config/":
+                local_filename = blob_name
+                filenames_and_dates.append(get_google_file(blob_name, local_filename))
     else:
         dir_path = r"config/*"
         config_filenames = glob.glob(dir_path)
@@ -113,6 +115,10 @@ def get_local_or_cloud_file_metadata(filename: str) -> FileMetadata:
 
 async def copy_stories_to_piccolo() -> None:
     legacy_stories = list_legacy_stories()
+
+    # await Story.delete(force=True).run()
+    # await StoryFrame.delete(force=True).run()
+    # await Image.delete(force=True).run()
 
     for model_and_metadata in legacy_stories:
         story_model = cast(StoryModel, model_and_metadata.model)
@@ -203,13 +209,18 @@ async def copy_sparrow_states_to_piccolo() -> None:
 
 async def main():
     engine = engine_finder()
+    print("Starting connection pool.")
     await engine.start_connection_pool()
 
     try:
+        print("Copy configs...")
         await copy_configs_to_piccolo()
+        print("Copy stories...")
         await copy_stories_to_piccolo()
+        print("Copy state...")
         await copy_sparrow_states_to_piccolo()
     finally:
+        print("Closing connection pool.")
         await engine.close_connection_pool()
 
 

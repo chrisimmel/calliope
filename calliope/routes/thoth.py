@@ -62,6 +62,7 @@ async def thoth_story(request: Request, story_cuid: str):
         "request": request,
         "story": story,
         "frames": frames,
+        "show_metadata": False,
     }
     return templates.TemplateResponse("thoth_story.html", context)
 

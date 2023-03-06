@@ -93,27 +93,25 @@ def create_app() -> FastAPI:
     print("Creating app...")
     admin_route = None
     try:
-        admin_route = (
-            Mount(
-                path="/admin/",
-                app=create_admin(
-                    tables=config_piccolo_tables(),
-                    site_name="Calliope Admin",
-                    # Required when running under HTTPS:
-                    # allowed_hosts=["my_site.com"],
-                    forms=[
-                        FormConfig(
-                            name="Migrate from Pydantic to Piccolo",
-                            pydantic_model=MigrateFromPydanticFormModel,
-                            endpoint=migrate_from_pydantic_endpoint,
-                        ),
-                        FormConfig(
-                            name="Run Command",
-                            pydantic_model=RunCommandFormModel,
-                            endpoint=run_command_endpoint,
-                        ),
-                    ],
-                ),
+        admin_route = Mount(
+            path="/admin/",
+            app=create_admin(
+                tables=config_piccolo_tables(),
+                site_name="Calliope Admin",
+                # Required when running under HTTPS:
+                # allowed_hosts=["my_site.com"],
+                forms=[
+                    # FormConfig(
+                    #     name="Migrate from Pydantic to Piccolo",
+                    #     pydantic_model=MigrateFromPydanticFormModel,
+                    #     endpoint=migrate_from_pydantic_endpoint,
+                    # ),
+                    FormConfig(
+                        name="Run Command",
+                        pydantic_model=RunCommandFormModel,
+                        endpoint=run_command_endpoint,
+                    ),
+                ],
             ),
         )
     except Exception as e:
@@ -125,7 +123,7 @@ def create_app() -> FastAPI:
         title="Calliope",
         description="Let me tell you a story.",
         version=settings.APP_VERSION,
-        routes=[],
+        routes=routes,
     )
 
     print("Registering views...")

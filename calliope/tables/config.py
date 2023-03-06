@@ -29,8 +29,7 @@ class SparrowConfig(Table):
     description = Text(null=True, required=False)
 
     date_created = Timestamptz()
-    # TODO: Redefine as auto_update as soon as initial migrations are done.
-    date_updated = Timestamptz()  # auto_update=datetime.now)
+    date_updated = Timestamptz(auto_update=datetime.now)
 
     # The client_id of the flock to which the sparrow or flock belongs, if any.
     # A sparrow or flock inherits the parameters and schedule of its parent
@@ -64,6 +63,9 @@ class SparrowConfig(Table):
         )
         keys = model.keys.dict(exclude_none=True) if model.keys else None
 
+        date_created = file_metadata.date_created or datetime.now(timezone.utc)
+        date_updated = file_metadata.date_updated or date_created
+
         instance: Optional[SparrowConfig] = (
             await SparrowConfig.objects()
             .where(SparrowConfig.client_id == client_id)
@@ -72,8 +74,8 @@ class SparrowConfig(Table):
         )
 
         if instance:
-            instance.date_created = file_metadata.date_created
-            instance.date_updated = file_metadata.date_updated
+            instance.date_created = date_created
+            instance.date_updated = date_updated
             instance.description = description
             instance.parent_flock_client_id = parent_flock_id
             instance.follow_parent_story = follow_parent_story
@@ -81,8 +83,8 @@ class SparrowConfig(Table):
             instance.keys = keys
         else:
             instance = SparrowConfig(
-                date_created=file_metadata.date_created,
-                date_updated=file_metadata.date_updated,
+                date_created=date_created,
+                date_updated=date_updated,
                 client_id=client_id,
                 description=description,
                 parent_flock_client_id=parent_flock_id,
@@ -107,8 +109,7 @@ class ClientTypeConfig(Table):
     description = Text(null=True, required=False)
 
     date_created = Timestamptz()
-    # TODO: Redefine as auto_update as soon as initial migrations are done.
-    date_updated = Timestamptz()  # auto_update=datetime.now)
+    date_updated = Timestamptz(auto_update=datetime.now)
 
     # Optional strategy parameters.
     parameters = JSONB(null=True)
@@ -122,6 +123,8 @@ class ClientTypeConfig(Table):
         parameters = (
             model.parameters.dict(exclude_none=True) if model.parameters else None
         )
+        date_created = file_metadata.date_created or datetime.now(timezone.utc)
+        date_updated = file_metadata.date_updated or date_created
 
         instance: Optional[ClientTypeConfig] = (
             await ClientTypeConfig.objects()
@@ -130,14 +133,14 @@ class ClientTypeConfig(Table):
             .run()
         )
         if instance:
-            instance.date_created = file_metadata.date_created
-            instance.date_updated = file_metadata.date_updated
+            instance.date_created = date_created
+            instance.date_updated = date_updated
             instance.description = description
             instance.parameters = parameters
         else:
             instance = ClientTypeConfig(
-                date_created=file_metadata.date_created,
-                date_updated=file_metadata.date_updated,
+                date_created=date_created,
+                date_updated=date_updated,
                 client_id=client_id,
                 description=description,
                 parameters=parameters,

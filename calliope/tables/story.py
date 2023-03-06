@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 from typing import Optional, Sequence
 from calliope.utils.file import FileMetadata
@@ -54,8 +54,7 @@ class StoryFrame(Table):
     metadata = JSONB(null=True)
 
     date_created = Timestamptz()
-    # TODO: Redefine as auto_update as soon as initial migrations are done.
-    date_updated = Timestamptz()  # auto_update=datetime.now)
+    date_updated = Timestamptz(auto_update=datetime.now)
 
     @property
     def pretty_metadata(self) -> str:
@@ -96,6 +95,9 @@ class StoryFrame(Table):
         # image
         # source_image
 
+        date_created = file_metadata.date_created or datetime.now(timezone.utc)
+        date_updated = file_metadata.date_updated or date_created
+
         instance: Optional[StoryFrame] = (
             await StoryFrame.objects()
             .where(StoryFrame.number == number, StoryFrame.story.cuid == story_cuid)
@@ -103,8 +105,8 @@ class StoryFrame(Table):
             .run()
         )
         if instance:
-            instance.date_created = file_metadata.date_created
-            instance.date_updated = file_metadata.date_updated
+            instance.date_created = date_created
+            instance.date_updated = date_updated
             instance.text = text
             instance.min_duration_seconds = min_duration_seconds
             instance.trigger_condition = trigger_condition
@@ -112,8 +114,8 @@ class StoryFrame(Table):
         else:
             instance = StoryFrame(
                 # id=cuid.cuid(),
-                date_created=file_metadata.date_created,
-                date_updated=file_metadata.date_updated,
+                date_created=date_created,
+                date_updated=date_updated,
                 number=number,
                 text=text,
                 min_duration_seconds=min_duration_seconds,
@@ -143,8 +145,7 @@ class Story(Table):
 
     # The dates the story was created and updated.
     date_created = Timestamptz()
-    # TODO: Redefine as auto_update as soon as initial migrations are done.
-    date_updated = Timestamptz()  # auto_update=datetime.now)
+    date_updated = Timestamptz(auto_update=datetime.now)
 
     async def get_frames(
         self, max_frames: int = 0, include_images: bool = False
@@ -261,6 +262,10 @@ class Story(Table):
         strategy_name = model.strategy_name
         created_for_sparrow_id = model.created_for_id
 
+        now = datetime.now(timezone.utc)
+        date_created = datetime.fromisoformat(model.date_created)
+        date_updated = datetime.fromisoformat(model.date_updated)
+
         instance: Optional[Story] = (
             await Story.objects().where(Story.cuid == story_cuid).first().run()
         )
@@ -268,16 +273,16 @@ class Story(Table):
             instance.title = title
             instance.strategy_name = strategy_name
             instance.created_for_sparrow_id = created_for_sparrow_id
-            instance.date_created = file_metadata.date_created
-            instance.date_updated = file_metadata.date_updated
+            instance.date_created = date_created
+            instance.date_updated = date_updated
         else:
             instance = Story(
                 cuid=story_cuid,
                 title=title,
                 strategy_name=strategy_name,
                 created_for_sparrow_id=created_for_sparrow_id,
-                date_created=file_metadata.date_created,
-                date_updated=file_metadata.date_updated,
+                date_created=date_created,
+                date_updated=date_updated,
             )
 
         return instance
@@ -292,5 +297,5 @@ class Story(Table):
             cuid=cuid.cuid(),
             strategy_name=strategy_name,
             created_for_sparrow_id=created_for_sparrow_id,
-            date_created=datetime.utcnow(),
+            date_created=datetime.now(timezone.utc),
         )
