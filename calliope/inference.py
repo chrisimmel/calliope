@@ -376,7 +376,7 @@ async def _text_to_image_file_inference_stability(
     height = height or 512
 
     # Stable Diffusion accepts only multiples of 64 for image dimensions. Can scale or crop
-    # afterward to mach requested size.
+    # afterward to match requested size.
     width = math.ceil(width / 64) * 64
     height = math.ceil(height / 64) * 64
 

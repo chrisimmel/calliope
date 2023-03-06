@@ -1,4 +1,3 @@
-from .frame_sequence_response import StoryFrameSequenceResponseModel
 from .image import ImageFormat, ImageModel
 from .keys import KeysModel
 from .inference_model_config import (
@@ -9,7 +8,11 @@ from .inference_model_config import (
 )
 from .parameters import FramesRequestParamsModel, StoryParamsModel
 from .schedule import ScheduleModel, ScheduleStateModel, ScheduleStepModel
-from .config import ConfigModel, ClientTypeConfigModel, SparrowConfigModel
+from .config import (
+    ConfigModel,
+    ClientTypeConfigModel,
+    SparrowConfigModel,
+)
 from .sparrow_state import SparrowStateModel
 from .story import StoryModel
 from .story_frame import StoryFrameModel
@@ -47,7 +50,6 @@ __all__ = [
     "SparrowConfigModel",
     "SparrowStateModel",
     "StoryFrameModel",
-    "StoryFrameSequenceResponseModel",
     "StoryModel",
     "StoryParamsModel",
     "TriggerConditionModel",

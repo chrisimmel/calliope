@@ -28,3 +28,4 @@ config/
 input/
 media/
 state/
+data/

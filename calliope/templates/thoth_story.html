@@ -8,26 +8,29 @@
 <body>
     <div class="story-summary">
         <div class="summary-line">
-            Made by strategy {{story.strategy_name}} at {{story.date_created}} for client {{story.created_for_id}}.
+            Made by strategy {{story.strategy_name}} at {{story.date_created}} for client
+            {{story.created_for_sparrow_id}}.
         </div>
         <div class="summary-line">
             Last updated at {{story.date_updated}}.
         </div>
     </div>
 
-    {% for frame in story.frames %}
+    {% for frame in frames %}
     <div class="story-frame">
         <div class="frame-image">
-            {%- if frame.image -%}
+            {%- if frame.source_image -%}
             <img src="/{{frame.source_image.url}}" />
             {%- endif %}
         </div>
         <div class="frame-text">
             {{frame.text}}
         </div>
+        {% if show_metadata %}
         <div class="frame-metadata">
             {{frame.pretty_metadata}}
         </div>
+        {% endif %}
     </div>
     {% endfor %}
 </body>

@@ -15,12 +15,15 @@ from calliope.models import (
     KeysModel,
     InferenceModelConfigsModel,
     SparrowStateModel,
-    StoryFrameModel,
-    StoryFrameSequenceResponseModel,
     StoryModel,
 )
+from calliope.models.frame_sequence_response import StoryFrameSequenceResponseModel
 from calliope.strategies.base import DEFAULT_MIN_DURATION_SECONDS, StoryStrategy
 from calliope.strategies.registry import StoryStrategyRegistry
+from calliope.tables import (
+    SparrowState,
+    Story,
+)
 from calliope.utils.file import create_sequential_filename
 from calliope.utils.image import get_image_attributes
 
@@ -46,8 +49,8 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         parameters: FramesRequestParamsModel,
         inference_model_configs: InferenceModelConfigsModel,
         keys: KeysModel,
-        sparrow_state: SparrowStateModel,
-        story: StoryModel,
+        sparrow_state: SparrowState,
+        story: Story,
         aiohttp_session: aiohttp.ClientSession,
     ) -> StoryFrameSequenceResponseModel:
         client_id = parameters.client_id
@@ -61,6 +64,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         prompt = None
         text = None
         image = None
+        frame_number = await story.get_num_frames()
 
         if parameters.input_image_filename:
             # caption = "Along the riverrun"
@@ -94,7 +98,8 @@ class ContinuousStoryV0Strategy(StoryStrategy):
             else:
                 input_text = parameters.input_text
 
-        last_text = story.text
+        # Get last four frames of text.
+        last_text = await story.get_text(-4)
         if last_text:
             last_text_tokens = story.text.split()
             # last_text_tokens = last_text_tokens[int(len(last_text_tokens) / 2) :]
@@ -148,7 +153,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
 
             try:
                 output_image_filename_png = create_sequential_filename(
-                    "media", client_id, "out", "png", story
+                    "media", client_id, "out", "png", story.cuid, frame_number
                 )
                 await text_to_image_file_inference(
                     aiohttp_session,
@@ -165,18 +170,14 @@ class ContinuousStoryV0Strategy(StoryStrategy):
                 traceback.print_exc(file=sys.stderr)
                 errors.append(str(e))
 
-        frame = StoryFrameModel(
-            image=image,
-            source_image=image,
-            text=text,
-            min_duration_seconds=DEFAULT_MIN_DURATION_SECONDS,
-            metadata={
-                **debug_data,
-                "errors": errors,
-            },
+        frame = await self._add_frame(
+            story,
+            image,
+            text,
+            frame_number,
+            debug_data,
+            errors,
         )
-        story.frames.append(frame)
-        story.text = story.text + text
 
         return StoryFrameSequenceResponseModel(
             frames=[frame],

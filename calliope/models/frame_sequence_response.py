@@ -1,17 +1,19 @@
+from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel
+# from pydantic import BaseModel
 
-from calliope.models.story_frame import StoryFrameModel
+from calliope.tables.story import StoryFrame
 
 
-class StoryFrameSequenceResponseModel(BaseModel):
+@dataclass
+class StoryFrameSequenceResponseModel:
     """
     A sequence of story frames.
     """
 
     # A list of story frames.
-    frames: List[StoryFrameModel]
+    frames: List[StoryFrame]
 
     # Whether these frames should be appended to those delivered
     # previously.
@@ -21,4 +23,4 @@ class StoryFrameSequenceResponseModel(BaseModel):
     debug_data: Optional[Dict[str, Any]] = None
 
     # A list of non-fatal error messages.
-    errors: List[str]
+    errors: List[str] = field(default_factory=list)

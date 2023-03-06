@@ -1,4 +1,6 @@
 import base64
+from dataclasses import dataclass
+from datetime import datetime
 import os
 import json
 from calliope.models.story import StoryModel
@@ -10,6 +12,32 @@ from calliope.utils.string import slugify
 
 
 filename_counter = 0
+
+
+@dataclass
+class FileMetadata:
+    filename: str
+    date_created: datetime
+    date_updated: datetime
+
+
+@dataclass
+class ModelAndMetadata:
+    model: BaseModel
+    metadata: FileMetadata
+
+
+def get_file_metadata(filename) -> FileMetadata:
+    # Get the file creation timestamp as a float, seconds since epoch.
+    creation_time = os.path.getctime(filename)
+    # Convert to a datetime.
+    creation_datetime = datetime.fromtimestamp(creation_time)
+
+    # Get the file modification timestamp as a float, seconds since epoch.
+    updated_time = os.path.getmtime(filename)
+    # Convert to a datetime.
+    updated_datetime = datetime.fromtimestamp(updated_time)
+    return FileMetadata(filename, creation_datetime, updated_datetime)
 
 
 def get_base_filename(filename) -> str:
@@ -61,16 +89,22 @@ def create_unique_filename(directory: str, client_id: str, extension: str) -> st
 
 
 def create_sequential_filename(
-    directory: str, client_id: str, tag: str, extension: str, story: StoryModel
+    directory: str,
+    client_id: str,
+    tag: str,
+    extension: str,
+    story_cuid: str,
+    frame_number: int,
 ) -> str:
     """
     Creates a sequential full filename (filename with path) from the given directory, for the
     given client, using the given extension. The name is assumed to be associated with the current
     frame of the given story, and contains the story ID and frame number in the filename.
     """
-    base_filename = story.story_id
     return compose_full_filename(
-        directory, client_id, f"{base_filename}.{len(story.frames)}.{tag}.{extension}"
+        directory,
+        client_id,
+        f"{story_cuid}.{frame_number}.{tag}.{extension}",
     )
 
 

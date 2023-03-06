@@ -94,7 +94,7 @@ _model_configs_by_name = {
         provider=InferenceModelProvider.OPENAI,
         model_name="curie",
         parameters={
-            "max_tokens": 512,
+            "max_tokens": 256,
             "temperature": 0.85,
             "presence_penalty": 1.5,
             "frequency_penalty": 1.5,

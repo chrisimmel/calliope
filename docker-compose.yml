@@ -1,17 +1,31 @@
 version: '3.10'
 services:
+  postgres:
+    hostname: postgres
+    image: postgres:12.4
+    environment:
+      - POSTGRES_DB=calliope
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "4433:4433"
+    volumes:
+      - ./data:/var/lib/postgresql/data
   calliope:
     # platform: linux/arm64/v8
     build:
       context: .
-    command: bash
-    container_name: calliope_service
+    # command: bash
+    command: uvicorn app:app --reload --host 0.0.0.0 --port 8000
+    container_name: calliope
+    depends_on:
+      - postgres
     environment:
-      - DOCKER_REGISTRY_URL
-    networks:
-      default:
-        aliases:
-          - calliope
+      - PORT=8000
+      - POSTGRESQL_HOSTNAME=postgres
+      - POSTGRESQL_USERNAME=postgres
+      - POSTGRESQL_PASSWORD=postgres
+      - POSTGRESQL_DATABASE=calliope
     ports:
       - 8000:8000
     tty: true

@@ -1,24 +1,27 @@
-import datetime
+from datetime import datetime, timezone
 from enum import Enum
 import glob
 import os
-from typing import cast, Optional, Sequence
+from typing import cast, List, Optional, Sequence
 
 from calliope.models import (
     SparrowStateModel,
     StoryModel,
 )
+from calliope.tables import (
+    SparrowState,
+    Story,
+)
 from calliope.utils.file import (
-    get_base_filename,
+    FileMetadata,
+    ModelAndMetadata,
+    get_file_metadata,
     load_json_into_pydantic_model,
-    write_pydantic_model_to_json,
 )
 from calliope.utils.google import (
     get_google_file,
-    get_google_file_dates,
     is_google_cloud_run_environment,
     list_google_files_with_prefix,
-    put_google_file,
 )
 
 
@@ -27,79 +30,96 @@ class StateType(Enum):
     STORY = "story"
 
 
-def get_sparrow_state(sparrow_id: str) -> SparrowStateModel:
+async def get_sparrow_state(sparrow_id: str) -> SparrowState:
     """
     Retrieves the state of the given sparrow. If a stored state isn't found, creates a new one.
     """
-    filename = _compose_state_filename(StateType.SPARROW, sparrow_id)
 
-    folder = "state"
-    local_filename = f"{folder}/{filename}"
-    if is_google_cloud_run_environment():
-        try:
-            get_google_file(folder, filename, local_filename)
-        except Exception as e:
-            pass
-
-    if os.path.isfile(local_filename):
-        try:
-            sparrow_state = cast(
-                SparrowStateModel,
-                load_json_into_pydantic_model(local_filename, SparrowStateModel),
-            )
-        except Exception as e:
-            print(f"Error loading Sparrow state: {e}")
-            sparrow_state = None
-    else:
-        sparrow_state = None
+    sparrow_state = (
+        await SparrowState.objects(SparrowState.current_story)
+        .where(SparrowState.sparrow_id == sparrow_id)
+        .first()
+        .run()
+    )
 
     if not sparrow_state:
         print("Creating a new sparrow state.")
-        sparrow_state = SparrowStateModel(sparrow_id=sparrow_id)
+        sparrow_state = SparrowState(
+            sparrow_id=sparrow_id,
+            date_created=datetime.now(timezone.utc),
+        )
+        await put_sparrow_state(sparrow_state)
+
     return sparrow_state
 
 
-def put_sparrow_state(state: SparrowStateModel) -> None:
+async def put_sparrow_state(state: SparrowState) -> None:
     """
     Stores the given sparrow state.
     """
-    sparrow_id = state.sparrow_id
+    state.date_updated = datetime.now(timezone.utc)
+    await state.save().run()
 
-    filename = _compose_state_filename(StateType.SPARROW, sparrow_id)
 
-    folder = "state"
-    local_filename = f"{folder}/{filename}"
-    write_pydantic_model_to_json(state, local_filename)
+def list_legacy_sparrow_states() -> Sequence[ModelAndMetadata]:
+    """
+    Lists all Sparrow states.
+    """
+    filenames_and_dates: List[FileMetadata] = []
 
     if is_google_cloud_run_environment():
-        put_google_file(folder, local_filename)
+        blob_names = list_google_files_with_prefix("state/sparrow")
+        for blob_name in blob_names:
+            local_filename = blob_name
+            filenames_and_dates.append(get_google_file(blob_name, local_filename))
+    else:
+        dir_path = r"state/sparrow*"
+        state_filenames = glob.glob(dir_path)
+        for filename in state_filenames:
+            filenames_and_dates.append(get_file_metadata(filename))
+
+    return [
+        ModelAndMetadata(
+            load_json_into_pydantic_model(file_metadata.filename, SparrowStateModel),
+            file_metadata,
+        )
+        for file_metadata in filenames_and_dates
+    ]
 
 
-def list_stories() -> Sequence[StoryModel]:
+def list_legacy_stories() -> Sequence[ModelAndMetadata]:
     """
     Lists all stories.
     """
+    filenames_and_dates: List[FileMetadata] = []
 
     if is_google_cloud_run_environment():
         blob_names = list_google_files_with_prefix("state/story")
         for blob_name in blob_names:
-            local_filename = blob_name  # os.path.basename(blob_name)
-            get_google_file("state", blob_name, local_filename)
+            local_filename = blob_name
+            filenames_and_dates.append(get_google_file(blob_name, local_filename))
+    else:
+        dir_path = r"state/story*"
+        story_filenames = glob.glob(dir_path)
+        for filename in story_filenames:
+            filenames_and_dates.append(get_file_metadata(filename))
 
-    dir_path = r"state/story*"
-    story_filenames = glob.glob(dir_path)
+    return sorted(
+        [
+            ModelAndMetadata(
+                load_json_into_pydantic_model(file_metadata.filename, StoryModel),
+                file_metadata,
+            )
+            for file_metadata in filenames_and_dates
+        ],
+        key=lambda model_and_metadata: cast(
+            StoryModel, model_and_metadata.model
+        ).date_updated,
+        reverse=True,
+    )
 
-    stories = [
-        load_json_into_pydantic_model(story_filename, StoryModel)
-        for story_filename in story_filenames
-    ]
-    # Force full reload of each story in order to default dates properly.
-    stories = [get_story(story.story_id) for story in stories]
 
-    return sorted(stories, key=lambda story: story.date_updated, reverse=True)
-
-
-def get_story(story_id: str) -> Optional[StoryModel]:
+def get_legacy_story(story_id: str) -> Optional[StoryModel]:
     """
     Retrieves the given story.
     """
@@ -109,7 +129,7 @@ def get_story(story_id: str) -> Optional[StoryModel]:
     local_filename = f"{folder}/{filename}"
     if is_google_cloud_run_environment():
         try:
-            get_google_file(folder, filename, local_filename)
+            get_google_file(local_filename, local_filename)
         except Exception as e:
             return None
 
@@ -120,51 +140,23 @@ def get_story(story_id: str) -> Optional[StoryModel]:
         Optional[StoryModel], load_json_into_pydantic_model(local_filename, StoryModel)
     )
 
-    if not story.date_created or not story.date_updated:
-        # TODO: Remove this as soon as set for all.
-        # Handle legacy models with no date_created/date_updated.
-        if is_google_cloud_run_environment():
-            creation_datetime, updated_datetime = get_google_file_dates(
-                "state", filename
-            )
-        else:
-            # Get the file creation timestamp as a float, seconds since epoch.
-            creation_time = os.path.getctime(local_filename)
-            # Convert to a datetime.
-            creation_datetime = datetime.datetime.fromtimestamp(creation_time)
-
-            # Get the file modification timestamp as a float, seconds since epoch.
-            updated_time = os.path.getmtime(local_filename)
-            # Convert to a datetime.
-            updated_datetime = datetime.datetime.fromtimestamp(updated_time)
-
-        story.date_created = str(creation_datetime)
-        story.date_updated = str(updated_datetime)
-        put_story(story, update_dates=False)
-
     return story
 
 
-def put_story(story: StoryModel, update_dates: bool = True) -> None:
+async def get_story(story_cuid: str) -> Optional[Story]:
+    """
+    Retrieves the given story.
+    """
+    return await Story.objects().where(Story.cuid == story_cuid).first().run()
+
+
+async def put_story(story: Story, update_dates: bool = True) -> None:
     """
     Stores the given story state.
     """
-    story_id = story.story_id
-
-    if update_dates:
-        now = str(datetime.datetime.utcnow())
-        story.date_updated = now
-        if not story.date_created:
-            story.date_created = story.date_updated
-
-    filename = _compose_state_filename(StateType.STORY, story_id)
-
-    folder = "state"
-    local_filename = f"{folder}/{filename}"
-    write_pydantic_model_to_json(story, local_filename)
-
-    if is_google_cloud_run_environment():
-        put_google_file(folder, local_filename)
+    # TODO: Stop explicitly setting date_updated once possible.
+    story.date_updated = datetime.now(timezone.utc)
+    await story.save().run()
 
 
 def _compose_state_filename(type: StateType, id: str) -> str:

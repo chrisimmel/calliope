@@ -38,7 +38,7 @@ async def _handle_get_media_request(filename: str) -> Optional[FileResponse]:
     local_filename = f"media/{filename}"
     if is_google_cloud_run_environment():
         try:
-            get_media_file(filename, local_filename)
+            get_media_file(local_filename, local_filename)
         except Exception as e:
             raise HTTPException(
                 status_code=404,

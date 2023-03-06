@@ -1,27 +1,26 @@
+import asyncio
+from datetime import datetime, timezone
 from enum import Enum
+import glob
 import os
-from typing import Any, cast, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
+
 
 from calliope.models import (
-    ClientTypeConfigModel,
-    ConfigModel,
     FramesRequestParamsModel,
     InferenceModelConfigsModel,
     KeysModel,
     load_inference_model_configs,
     SparrowConfigModel,
+    SparrowStateModel,
 )
-from calliope.models.sparrow_state import SparrowStateModel
-from calliope.storage.schedule import check_schedule
-from calliope.utils.file import (
-    load_json_into_pydantic_model,
-    write_pydantic_model_to_json,
+from calliope.tables import (
+    ClientTypeConfig,
+    SparrowConfig,
 )
 from calliope.utils.google import (
     delete_google_file,
-    get_google_file,
     is_google_cloud_run_environment,
-    put_google_file,
 )
 
 
@@ -41,49 +40,6 @@ def _compose_config_filename(config_type: ConfigType, config_id: str) -> str:
     return f"{config_type.value}-{config_id}.cfg.json"
 
 
-def _get_config(config_type: ConfigType, config_id: str) -> Optional[ConfigModel]:
-    """
-    Retrieves the config for the given sparrow or flock.
-    """
-    filename = _compose_config_filename(config_type, config_id)
-
-    folder = "config"
-    local_filename = f"{folder}/{filename}"
-    if is_google_cloud_run_environment():
-        try:
-            get_google_file(folder, filename, local_filename)
-        except Exception as e:
-            return None
-
-    if not os.path.isfile(local_filename):
-        return None
-
-    model_class = (
-        SparrowConfigModel
-        if config_type == ConfigType.SPARROW
-        else ClientTypeConfigModel
-    )
-    try:
-        return load_json_into_pydantic_model(local_filename, model_class)
-    except Exception as e:
-        print(f"Error loading configuration {local_filename}: {e}")
-        return None
-
-
-def _put_config(config_type: ConfigType, config: ConfigModel) -> None:
-    """
-    Stores the given sparrow or flock config.
-    """
-    filename = _compose_config_filename(config_type, config.id)
-
-    folder = "config"
-    local_filename = f"{folder}/{filename}"
-    write_pydantic_model_to_json(config, local_filename)
-
-    if is_google_cloud_run_environment():
-        put_google_file(folder, local_filename)
-
-
 def _delete_config(config_type: ConfigType, config_id: str) -> None:
     filename = _compose_config_filename(config_type, config_id)
 
@@ -99,45 +55,54 @@ def _delete_config(config_type: ConfigType, config_id: str) -> None:
         os.remove(local_filename)
 
 
-def get_sparrow_config(sparrow_or_flock_id: str) -> Optional[SparrowConfigModel]:
+async def get_sparrow_config(sparrow_or_flock_id: str) -> Optional[SparrowConfig]:
     """
     Retrieves the config for the given sparrow or flock.
     """
-    return cast(
-        Optional[SparrowConfigModel],
-        _get_config(ConfigType.SPARROW, sparrow_or_flock_id),
+    return (
+        await SparrowConfig.objects()
+        .where(SparrowConfig.client_id == sparrow_or_flock_id)
+        .first()
+        .output(load_json=True)
+        .run()
     )
 
 
-def put_sparrow_config(sparrow_config: SparrowConfigModel) -> None:
+async def put_sparrow_config(sparrow_config_model: SparrowConfigModel) -> None:
     """
     Stores the given sparrow or flock config.
     """
-    _put_config(ConfigType.SPARROW, sparrow_config)
+    config = SparrowConfig.from_pydantic(sparrow_config_model)
+    await config.save().run()
 
 
-def delete_sparrow_config(sparrow_or_flock_id: str) -> None:
+async def delete_sparrow_config(sparrow_or_flock_id: str) -> None:
     """
     Deletes the given sparrow or flock config.
     """
-    _delete_config(ConfigType.SPARROW, sparrow_or_flock_id)
+    await SparrowConfig.filter(client_id=sparrow_or_flock_id).delete()
 
 
-def get_client_type_config(client_type_id: str) -> Optional[ClientTypeConfigModel]:
+async def get_client_type_config(client_type_id: str) -> Optional[ClientTypeConfig]:
     """
-    Retrieves the config for the given sparrow or flock.
+    Retrieves the given client type config.
     """
-    return cast(
-        Optional[ClientTypeConfigModel],
-        _get_config(ConfigType.CLIENT_TYPE, client_type_id),
+    return (
+        await ClientTypeConfig.objects()
+        .where(ClientTypeConfig.client_id == client_type_id)
+        .first()
+        .output(load_json=True)
+        .run()
     )
 
 
-def put_client_type_config(client_type_config: ClientTypeConfigModel) -> None:
+async def put_client_type_config(client_type_config: ClientTypeConfig) -> None:
     """
     Stores the given client type config.
     """
-    _put_config(ConfigType.CLIENT_TYPE, client_type_config)
+    config = ClientTypeConfig.from_pydantic(client_type_config)
+    config.date_updated = datetime.now(timezone.utc)
+    await config.save().run()
 
 
 def delete_client_type_config(client_type_id: str) -> None:
@@ -147,7 +112,7 @@ def delete_client_type_config(client_type_id: str) -> None:
     _delete_config(ConfigType.CLIENT_TYPE, client_type_id)
 
 
-def get_sparrow_story_parameters_and_keys(
+async def get_sparrow_story_parameters_and_keys(
     request_params: FramesRequestParamsModel, sparrow_state: SparrowStateModel
 ) -> Tuple[FramesRequestParamsModel, KeysModel, InferenceModelConfigsModel]:
     """
@@ -166,11 +131,11 @@ def get_sparrow_story_parameters_and_keys(
 
     while sparrow_or_flock_id:
         # 2. Check to see whether there is a config for the given sparrow or flock ID.
-        sparrow_or_flock_config = get_sparrow_config(sparrow_or_flock_id)
+        sparrow_or_flock_config = await get_sparrow_config(sparrow_or_flock_id)
         if not sparrow_or_flock_config:
             # Fall back on the default config.
             sparrow_or_flock_id = "default"
-            sparrow_or_flock_config = get_sparrow_config(sparrow_or_flock_id)
+            sparrow_or_flock_config = await get_sparrow_config(sparrow_or_flock_id)
 
         if sparrow_or_flock_config:
             # 3. If there's a sparrow/flock config, collect its parameters and merge
@@ -180,9 +145,10 @@ def get_sparrow_story_parameters_and_keys(
             if sparrow_or_flock_config.parameters:
                 # Does the sparrow or flock have parameters?
                 sparrow_or_flock_params_dict = _get_non_default_parameters(
-                    sparrow_or_flock_config.parameters.dict()
+                    sparrow_or_flock_config.parameters
                 )
 
+            """
             if sparrow_or_flock_config.schedule:
                 # Does it have a schedule? (If so, merge the sparrow schedule with its
                 # parameters, giving precedence to the schedule.)
@@ -190,6 +156,7 @@ def get_sparrow_story_parameters_and_keys(
                     **sparrow_or_flock_params_dict,
                     **check_schedule(sparrow_or_flock_config, sparrow_state),
                 }
+            """
 
             if sparrow_or_flock_params_dict:
                 # Merge the sparrow params with the params already assembled, giving
@@ -198,12 +165,15 @@ def get_sparrow_story_parameters_and_keys(
 
             if sparrow_or_flock_config.keys:
                 # 3.5 Merge keys similarly.
-                sparrow_or_flock_keys_dict = sparrow_or_flock_config.keys.dict()
+                sparrow_or_flock_keys_dict = sparrow_or_flock_config.keys
                 keys_dict = {**sparrow_or_flock_keys_dict, **keys_dict}
 
             # 4. Take the flock ID from the parent flock.
-            sparrow_or_flock_id = sparrow_or_flock_config.parent_flock_id
-            if not sparrow_or_flock_id and sparrow_or_flock_config.id != "default":
+            sparrow_or_flock_id = sparrow_or_flock_config.parent_flock_client_id
+            if (
+                not sparrow_or_flock_id
+                and sparrow_or_flock_config.client_id != "default"
+            ):
                 sparrow_or_flock_id = "default"
 
             if sparrow_or_flock_id:
@@ -226,11 +196,11 @@ def get_sparrow_story_parameters_and_keys(
     # come from a sparrow config.
     client_type = params_dict.get("client_type")
     if client_type:
-        client_type_config = get_client_type_config(client_type)
+        client_type_config = await get_client_type_config(client_type)
         if client_type_config:
             # 5.1. If there is one, merge it with the request parameters.
             client_type_config_dict = _get_non_default_parameters(
-                client_type_config.parameters.dict()
+                client_type_config.parameters  # .dict()
             )
             # As with other parameter merging, parameters passed with
             # the request take precedence.
@@ -272,6 +242,3 @@ def _get_non_default_parameters(params_dict: Dict[str, Any]) -> Dict[str, Any]:
             non_default_request_params[field.alias] = value
 
     return non_default_request_params
-
-
-"An angel with Darth Vader, as painted by el Greco|An angel with Darth Vader, as engraved by M. C. Escher|An angel with Darth Vader, an Aztec carving|An angel with Darth Vader, a Walt Disney color sketch"

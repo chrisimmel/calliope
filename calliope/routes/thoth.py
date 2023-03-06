@@ -1,9 +1,14 @@
 import os
-from calliope.models import ImageFormat, ImageModel, StoryFrameModel
+from fastapi import APIRouter, Request, HTTPException
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
+from typing import Optional
+
+from calliope.models import ImageFormat, StoryModel, StoryFrameModel
+from calliope.tables import Story
 from calliope.utils.file import (
     get_base_filename,
     get_base_filename_and_extension,
-    get_file_extension,
 )
 from calliope.utils.google import (
     get_media_file,
@@ -15,12 +20,6 @@ from calliope.utils.image import (
     convert_rgb565_to_png,
     get_image_attributes,
 )
-from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
-
-from calliope.models import StoryModel
-from calliope.storage.state_manager import get_story, list_stories, put_story
 
 
 router = APIRouter()
@@ -29,28 +28,14 @@ templates = Jinja2Templates(directory="calliope/templates")
 
 @router.get("/thoth/", response_class=HTMLResponse)
 async def thoth_root(request: Request):
-    stories = list_stories()
+    stories = await Story.objects().order_by(Story.date_updated, ascending=False)
+
     story_thumbs_by_story_id = {}
-    story_modified = False
 
     for story in stories:
-        thumb = None
-        for frame in story.frames:
-            if frame.image:
-                if _prepare_frame_image(frame):
-                    story_modified = True
-                thumb = frame.source_image
-                break
-
-        if story_modified:
-            put_story(story)
-
+        thumb = await story.get_thumb()
         if thumb:
-            longer_dim = max(thumb.width, thumb.height)
-            scale = 48 / longer_dim
-            thumb.width *= scale
-            thumb.height *= scale
-            story_thumbs_by_story_id[story.story_id] = thumb
+            story_thumbs_by_story_id[story.cuid] = thumb
 
     context = {
         "request": request,
@@ -60,16 +45,24 @@ async def thoth_root(request: Request):
     return templates.TemplateResponse("thoth.html", context)
 
 
-@router.get("/thoth/story/{story_id}", response_class=HTMLResponse)
-async def thoth_root(request: Request, story_id: str):
-    story = get_story(story_id)
-    story_modified = _prepare_frame_images(story)
-    if story_modified:
-        put_story(story)
+@router.get("/thoth/story/{story_cuid}", response_class=HTMLResponse)
+async def thoth_story(request: Request, story_cuid: str):
+    story: Optional[Story] = (
+        await Story.objects().where(Story.cuid == story_cuid).first().run()
+    )
+    if not story:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Unknown story: {story_cuid}",
+        )
+
+    frames = await story.get_frames(include_images=True)
 
     context = {
         "request": request,
         "story": story,
+        "frames": frames,
+        "show_metadata": False,
     }
     return templates.TemplateResponse("thoth_story.html", context)
 
@@ -124,7 +117,7 @@ def _prepare_frame_image(frame: StoryFrameModel) -> bool:
             if not found:
                 if is_google_cloud_run_environment():
                     try:
-                        get_media_file(filename, local_filename)
+                        get_media_file(local_filename, local_filename)
                         # We were able to get a PNG from GCS.
                         frame.source_image = get_image_attributes(local_filename)
                         frame_modified = True
@@ -140,7 +133,7 @@ def _prepare_frame_image(frame: StoryFrameModel) -> bool:
                     # Be sure we have the original non-PNG file locally.
                     try:
                         get_media_file(
-                            get_base_filename_and_extension(frame.image.url),
+                            frame.image.url,
                             frame.image.url,
                         )
                         original_found = True

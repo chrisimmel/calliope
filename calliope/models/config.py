@@ -2,6 +2,7 @@ from typing import Optional
 
 from pydantic import BaseModel, StrictStr
 
+
 from calliope.models.keys import KeysModel
 from calliope.models.parameters import ClientTypeParamsModel, StoryParamsModel
 from calliope.models.schedule import ScheduleModel
@@ -48,6 +49,9 @@ class SparrowConfigModel(ConfigModel):
 
 
 class ClientTypeConfigModel(ConfigModel):
+    """
+    The definition of a client type.
+    """
 
     # Optional client type parameters.
     parameters: Optional[ClientTypeParamsModel]

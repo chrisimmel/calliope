@@ -19,5 +19,5 @@ class SparrowStateModel(BaseModel):
     # The IDs of all stories created for this client.
     story_ids: List[StrictStr] = []
 
-    # The scheduling state, if any.
+    # The schedule state, if any.
     schedule_state: Optional[ScheduleStateModel]

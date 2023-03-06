@@ -1,4 +1,3 @@
-from datetime import datetime
 import os
 
 import aiohttp
@@ -8,13 +7,14 @@ from calliope.models import (
     FramesRequestParamsModel,
     KeysModel,
     InferenceModelConfigsModel,
-    SparrowStateModel,
-    StoryFrameModel,
-    StoryFrameSequenceResponseModel,
-    StoryModel,
 )
+from calliope.models.frame_sequence_response import StoryFrameSequenceResponseModel
 from calliope.strategies.base import DEFAULT_MIN_DURATION_SECONDS, StoryStrategy
 from calliope.strategies.registry import StoryStrategyRegistry
+from calliope.tables import (
+    SparrowState,
+    Story,
+)
 from calliope.utils.google import get_media_file, is_google_cloud_run_environment
 from calliope.utils.image import get_image_attributes
 
@@ -32,8 +32,8 @@ class ShowThisFrameStrategy(StoryStrategy):
         parameters: FramesRequestParamsModel,
         inference_model_configs: InferenceModelConfigsModel,
         keys: KeysModel,
-        sparrow_state: SparrowStateModel,
-        story: StoryModel,
+        sparrow_state: SparrowState,
+        story: Story,
         aiohttp_session: aiohttp.ClientSession,
     ) -> StoryFrameSequenceResponseModel:
 
@@ -48,26 +48,25 @@ class ShowThisFrameStrategy(StoryStrategy):
 
         text = parameters.input_text
 
-        frame = StoryFrameModel(
-            image=image,
-            source_image=image,
-            text=text,
-            # TODO: Parameterize min_duration_seconds for this strategy.
-            min_duration_seconds=DEFAULT_MIN_DURATION_SECONDS,
-            metadata={
-                **debug_data,
-                "errors": errors,
-            },
-        )
-        last_frame = story.frames[-1] if len(story.frames) else None
+        last_frame = await story.get_frames(max_frames=-1, include_images=True)
         if (
             not last_frame
             or last_frame.image != frame.image
             or last_frame.text != frame.text
         ):
-            # Add the frame to the story only if it differs from the story's last frame.
-            story.frames.append(frame)
-            story.text = story.text + "\n" + text
+            # Create a new frame only if it differs from the story's last frame.
+            frame_number = await story.get_num_frames()
+            text = text + "\n"
+            frame = await self._add_frame(
+                story,
+                image,
+                text,
+                frame_number,
+                debug_data,
+                errors,
+            )
+        else:
+            frame = last_frame
 
         return StoryFrameSequenceResponseModel(
             frames=[frame], debug_data=debug_data, errors=errors
@@ -78,9 +77,8 @@ class ShowThisFrameStrategy(StoryStrategy):
         Retrieves the file from Google Cloud Storage if needed, and verifies that it exists.
         """
         if is_google_cloud_run_environment():
-            base_filename = os.path.basename(filename)
             try:
-                get_media_file(base_filename, filename)
+                get_media_file(filename, filename)
             except Exception as e:
                 raise HTTPException(
                     status_code=404, detail=f"Error retrieving file {filename}: {e}"

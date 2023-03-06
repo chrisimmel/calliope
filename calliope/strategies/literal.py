@@ -3,23 +3,22 @@ import sys, traceback
 
 import aiohttp
 
-from calliope.models import (
-    FramesRequestParamsModel,
-    KeysModel,
-    InferenceModelConfigsModel,
-    SparrowStateModel,
-    StoryFrameModel,
-    StoryFrameSequenceResponseModel,
-    StoryModel,
-)
-from calliope.strategies.base import DEFAULT_MIN_DURATION_SECONDS, StoryStrategy
-from calliope.strategies.registry import StoryStrategyRegistry
-
-
 from calliope.inference import (
     caption_to_prompt,
     image_file_to_text_inference,
     text_to_image_file_inference,
+)
+from calliope.models import (
+    FramesRequestParamsModel,
+    KeysModel,
+    InferenceModelConfigsModel,
+)
+from calliope.models.frame_sequence_response import StoryFrameSequenceResponseModel
+from calliope.strategies.base import DEFAULT_MIN_DURATION_SECONDS, StoryStrategy
+from calliope.strategies.registry import StoryStrategyRegistry
+from calliope.tables import (
+    SparrowState,
+    Story,
 )
 from calliope.utils.file import create_sequential_filename
 from calliope.utils.image import get_image_attributes
@@ -38,8 +37,8 @@ class LiteralStrategy(StoryStrategy):
         parameters: FramesRequestParamsModel,
         inference_model_configs: InferenceModelConfigsModel,
         keys: KeysModel,
-        sparrow_state: SparrowStateModel,
-        story: StoryModel,
+        sparrow_state: SparrowState,
+        story: Story,
         aiohttp_session: aiohttp.ClientSession,
     ) -> StoryFrameSequenceResponseModel:
         client_id = parameters.client_id
@@ -51,7 +50,6 @@ class LiteralStrategy(StoryStrategy):
         frames = []
 
         input_text = parameters.input_text
-
         prompts = input_text.split("|") if input_text else []
 
         if parameters.input_image_filename:
@@ -69,6 +67,7 @@ class LiteralStrategy(StoryStrategy):
                 errors.append(str(e))
 
         for prompt in prompts:
+            frame_number = await story.get_num_frames()
             prompt_template = output_image_style + " {x}"
             full_prompt = caption_to_prompt(prompt, prompt_template)
             print(f'Image prompt: "{full_prompt}"')
@@ -77,7 +76,7 @@ class LiteralStrategy(StoryStrategy):
 
             try:
                 output_image_filename_png = create_sequential_filename(
-                    "media", client_id, "out", "png", story
+                    "media", client_id, "out", "png", story.cuid, frame_number
                 )
                 await text_to_image_file_inference(
                     aiohttp_session,
@@ -95,20 +94,17 @@ class LiteralStrategy(StoryStrategy):
                 traceback.print_exc(file=sys.stderr)
                 errors.append(str(e))
 
-            frame = StoryFrameModel(
-                image=image,
-                source_image=image,
-                text=prompt,
-                min_duration_seconds=DEFAULT_MIN_DURATION_SECONDS,
-                metadata={
-                    **debug_data,
-                    "errors": errors,
-                },
+            text = prompt + "\n"
+
+            frame = await self._add_frame(
+                story,
+                image,
+                text,
+                frame_number,
+                debug_data,
+                errors,
             )
             frames.append(frame)
-
-            story.frames.append(frame)
-            story.text = story.text + "\n" + prompt
 
         return StoryFrameSequenceResponseModel(
             frames=frames, debug_data=debug_data, errors=errors

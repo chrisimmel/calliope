@@ -14,7 +14,7 @@ from calliope.inference import (
     text_to_image_file_inference,
 )
 from calliope.models import KeysModel
-from calliope.settings import CALLIOPE_API_KEY
+from calliope.settings import settings
 
 
 # image_to_text_model = "ydshieh/vit-gpt2-coco-en-ckpts"
@@ -91,7 +91,7 @@ def calliope_request(filename: str) -> Response:
     # api_url = "http://127.0.0.1:8000/story/"  # local, no Docker
     api_url = "http://127.0.0.1:8000/v1/frames/"  # local, no Docker
     # api_url = "https://calliope-ugaidvq5sa-uc.a.run.app/story/"  # Google Cloud
-    headers = {"X-Api-Key": CALLIOPE_API_KEY}
+    headers = {"X-Api-Key": settings.CALLIOPE_API_KEY}
 
     values = {
         "client_id": "chris",
@@ -115,7 +115,7 @@ def calliope_media_request(filename: str) -> str:
     base_url = "http://127.0.0.1:8000/"  # local, no Docker
     # base_url = "https://calliope-ugaidvq5sa-uc.a.run.app/"  # Google Cloud
     media_url = f"{base_url}{filename}"
-    headers = {"X-Api-Key": CALLIOPE_API_KEY}
+    headers = {"X-Api-Key": settings.CALLIOPE_API_KEY}
 
     response = requests.get(media_url, headers=headers)
     response.raise_for_status()

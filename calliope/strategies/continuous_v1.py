@@ -1,6 +1,6 @@
 import re
 import sys, traceback
-from typing import List
+from typing import List, Optional
 
 import aiohttp
 
@@ -14,13 +14,15 @@ from calliope.models import (
     FramesRequestParamsModel,
     KeysModel,
     InferenceModelConfigsModel,
-    SparrowStateModel,
-    StoryFrameModel,
-    StoryFrameSequenceResponseModel,
-    StoryModel,
+    # StoryFrameSequenceResponseModel,
 )
+from calliope.models.frame_sequence_response import StoryFrameSequenceResponseModel
 from calliope.strategies.base import DEFAULT_MIN_DURATION_SECONDS, StoryStrategy
 from calliope.strategies.registry import StoryStrategyRegistry
+from calliope.tables import (
+    SparrowState,
+    Story,
+)
 from calliope.utils.file import create_sequential_filename
 from calliope.utils.image import get_image_attributes
 from calliope.utils.string import split_into_sentences
@@ -138,8 +140,7 @@ $scene
 $text
 $objects
 
-$poem
-"""
+$poem"""
 
 STORY_PROMPT = STORY_PROMPT_CURIE
 
@@ -164,10 +165,11 @@ class ContinuousStoryV1Strategy(StoryStrategy):
         parameters: FramesRequestParamsModel,
         inference_model_configs: InferenceModelConfigsModel,
         keys: KeysModel,
-        sparrow_state: SparrowStateModel,
-        story: StoryModel,
+        sparrow_state: SparrowState,
+        story: Story,
         aiohttp_session: aiohttp.ClientSession,
     ) -> StoryFrameSequenceResponseModel:
+        print(f"Begin processing strategy {self.strategy_name}...")
         client_id = parameters.client_id
         output_image_style = (
             parameters.output_image_style or "A watercolor, paper texture."
@@ -180,6 +182,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
         image_scene = ""
         image_objects = ""
         image_text = ""
+        frame_number = await story.get_num_frames()
 
         if parameters.input_image_filename:
             try:
@@ -211,8 +214,13 @@ class ContinuousStoryV1Strategy(StoryStrategy):
                 image_scene = parameters.input_text
         """
 
+        # Get some recent text.
+        last_text = await story.get_text(-1)
+        last_text = (last_text.strip() + " ") if last_text else ""
+        print(f"{last_text=}")
+
         prompt = self._compose_prompt(
-            parameters, story, image_scene, image_text, image_objects
+            parameters, story, last_text, image_scene, image_text, image_objects
         )
 
         print(f'Text prompt: "{prompt}"')
@@ -223,6 +231,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
             keys,
             errors,
             story,
+            last_text,
             aiohttp_session,
         )
 
@@ -236,6 +245,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
                 keys,
                 errors,
                 story,
+                last_text,
                 aiohttp_session,
             )
 
@@ -249,7 +259,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
 
             try:
                 output_image_filename_png = create_sequential_filename(
-                    "media", client_id, "out", "png", story
+                    "media", client_id, "out", "png", story.cuid, frame_number
                 )
                 await text_to_image_file_inference(
                     aiohttp_session,
@@ -268,18 +278,14 @@ class ContinuousStoryV1Strategy(StoryStrategy):
                 traceback.print_exc(file=sys.stderr)
                 errors.append(str(e))
 
-        frame = StoryFrameModel(
-            image=image,
-            source_image=image,
-            text=story_continuation,
-            min_duration_seconds=DEFAULT_MIN_DURATION_SECONDS,
-            metadata={
-                **debug_data,
-                "errors": errors,
-            },
+        frame = await self._add_frame(
+            story,
+            image,
+            story_continuation,
+            frame_number,
+            debug_data,
+            errors,
         )
-        story.frames.append(frame)
-        story.text = story.text + story_continuation
 
         return StoryFrameSequenceResponseModel(
             frames=[frame],
@@ -291,14 +297,14 @@ class ContinuousStoryV1Strategy(StoryStrategy):
     def _compose_prompt(
         self,
         parameters: FramesRequestParamsModel,
-        story: StoryModel,
+        story: Story,
+        last_text: Optional[str],
         scene: str,
         text: str,
         objects: str,
     ) -> str:
-        last_text = story.text
         if last_text:
-            last_text_lines = story.text.split("\n")
+            last_text_lines = last_text.split("\n")
             last_text_lines = last_text_lines[-8:]
             last_text = "\n".join(last_text_lines)
             prompt = STORY_PROMPT
@@ -319,7 +325,8 @@ class ContinuousStoryV1Strategy(StoryStrategy):
         inference_model_configs: InferenceModelConfigsModel,
         keys: KeysModel,
         errors: List[str],
-        story: StoryModel,
+        story: Story,
+        last_text: Optional[str],
         aiohttp_session: aiohttp.ClientSession,
     ) -> str:
         try:
@@ -329,7 +336,17 @@ class ContinuousStoryV1Strategy(StoryStrategy):
             print(f"Raw output: '{text}'")
 
             def ends_with_punctuation(str):
-                return len(str) and str[-1] in (".", "!", "?", ":", ",", ";", "-")
+                return len(str) and str[-1] in (
+                    ".",
+                    "!",
+                    "?",
+                    ":",
+                    ",",
+                    ";",
+                    "-",
+                    '"',
+                    "'",
+                )
 
             if text:
                 LIMIT = 1024
@@ -378,7 +395,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
             print(msg)
             errors.append(msg)
             text = ""
-        elif stripped_text and stripped_text in story.text:
+        elif stripped_text and stripped_text in last_text:
             msg = f"Rejecting story continuation because it's already appeared in the story: {stripped_text[:100]}[...]"
             print(msg)
             errors.append(msg)
