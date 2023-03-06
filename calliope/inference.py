@@ -1,18 +1,13 @@
-import asyncio
 import io
 import json
-import math
-from pprint import pprint
 from typing import Any, Dict, Optional
 from urllib.parse import urlencode
 
 import aiohttp
 import aiofiles
 from calliope.utils.file import get_file_extension
-import cv2
 import openai
 from PIL import Image
-import requests
 from requests.models import Response
 from stability_sdk import client as stability_client
 import stability_sdk.interfaces.gooseai.generation.generation_pb2 as generation
@@ -377,8 +372,8 @@ async def _text_to_image_file_inference_stability(
 
     # Stable Diffusion accepts only multiples of 64 for image dimensions. Can scale or crop
     # afterward to match requested size.
-    width = math.ceil(width / 64) * 64
-    height = math.ceil(height / 64) * 64
+    width = (width / 64) * 64
+    height = (height / 64) * 64
 
     responses = stability_api.generate(
         prompt=text,
