@@ -259,7 +259,6 @@ async def prepare_frame_images(
     output_image_format = ImageFormat.fromMediaFormat(parameters.output_image_format)
 
     for frame in frames:
-        # image = await frame.get_related(StoryFrame.image)
         image = frame.image
         if image:
             image_updated = False

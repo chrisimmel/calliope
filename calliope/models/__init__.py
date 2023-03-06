@@ -1,4 +1,3 @@
-# from .frame_sequence_response import StoryFrameSequenceResponseModel
 from .image import ImageFormat, ImageModel
 from .keys import KeysModel
 from .inference_model_config import (
@@ -51,7 +50,6 @@ __all__ = [
     "SparrowConfigModel",
     "SparrowStateModel",
     "StoryFrameModel",
-    # "StoryFrameSequenceResponseModel",
     "StoryModel",
     "StoryParamsModel",
     "TriggerConditionModel",

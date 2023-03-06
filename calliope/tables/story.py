@@ -16,8 +16,6 @@ from piccolo.columns import (
 
 from calliope.models import StoryModel
 from calliope.models import StoryFrameModel
-
-# from calliope.tables.story_frame import StoryFrame
 from calliope.tables.image import Image
 
 
