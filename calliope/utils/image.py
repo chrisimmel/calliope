@@ -2,7 +2,7 @@ import argparse
 from collections import defaultdict
 from enum import Enum
 import os
-from typing import Sequence, Tuple
+from typing import Optional, Sequence, Tuple
 
 import numpy as np
 import PIL
@@ -173,11 +173,13 @@ def convert_grayscale16_to_png(
 
 def resize_image_if_needed(
     input_image: Image, output_image_width: int, output_image_height: int
-) -> Image:
+) -> Optional[Image]:
     """
     Resizes a given image iff necessary given output_image_width and
     output_image_height.
     """
+    resized_image = None
+
     if output_image_width and output_image_height:
         img = PIL.Image.open(input_image.url)
         if img.width != output_image_width or img.height != output_image_height:
@@ -209,14 +211,14 @@ def resize_image_if_needed(
                 resized_width = output_image_width
                 resized_height = output_image_height
 
-            return Image(
+            resized_image = Image(
                 width=resized_width,
                 height=resized_height,
                 format=input_image.format,
                 url=input_image.url,
             )
 
-    return input_image
+    return resized_image
 
 
 def get_image_attributes(image_filename: str) -> Image:

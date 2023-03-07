@@ -262,6 +262,12 @@ async def prepare_frame_images(
         image = frame.image
         if image:
             image_updated = False
+            if save:
+                # Save the original image.
+                await image.save().run()
+            if is_google_cloud:
+                # Save the original PNG image in case we want to see it later.
+                put_media_file(image.url)
 
             if image_is_monochrome(image.url):
                 print(f"Image {image.url} is monochrome. Skipping.")
@@ -274,14 +280,12 @@ async def prepare_frame_images(
 
             output_image_width = parameters.output_image_width
             output_image_height = parameters.output_image_height
-            if is_google_cloud:
-                # Save the original PNG image in case we want to see it later.
-                put_media_file(image.url)
-            original_image = image
-            image = resize_image_if_needed(
+            resized_image = resize_image_if_needed(
                 image, output_image_width, output_image_height
             )
-            image_updated = image.id != original_image.id
+            if resized_image:
+                image_updated = True
+                image = resized_image
 
             if output_image_format == ImageFormat.RGB565:
                 base_filename = get_base_filename(image.url)
