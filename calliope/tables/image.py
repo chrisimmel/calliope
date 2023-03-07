@@ -30,6 +30,12 @@ class Image(Table):
     date_created = Timestamptz()
     date_updated = Timestamptz(auto_update=datetime.now)
 
+    def __str__(self) -> str:
+        return f"<Image {self.width}x{self.height}, {self.format}, {self.url}>"
+
+    def __repr__(self) -> str:
+        return f"<Image {self.id}: {self.width}x{self.height}, {self.format}, {self.url}"
+
     def to_pydantic(self) -> ImageModel:
         return ImageModel(
             width=self.width,

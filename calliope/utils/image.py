@@ -172,7 +172,10 @@ def convert_grayscale16_to_png(
 
 
 def resize_image_if_needed(
-    input_image: Image, output_image_width: int, output_image_height: int
+    input_image: Image,
+    output_image_width: int,
+    output_image_height: int,
+    output_filename: str,
 ) -> Optional[Image]:
     """
     Resizes a given image iff necessary given output_image_width and
@@ -207,15 +210,18 @@ def resize_image_if_needed(
 
                 # Paste the scaled image into the middle of the black image.
                 new_image.paste(img, box)
-                new_image.save(input_image.url)
+                new_image.save(output_filename)
                 resized_width = output_image_width
                 resized_height = output_image_height
+            else:
+                # Otherwise, just save the resized image.
+                img.save(output_filename)
 
             resized_image = Image(
                 width=resized_width,
                 height=resized_height,
                 format=input_image.format,
-                url=input_image.url,
+                url=output_filename,
             )
 
     return resized_image

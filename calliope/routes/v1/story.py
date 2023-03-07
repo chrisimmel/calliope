@@ -280,8 +280,13 @@ async def prepare_frame_images(
 
             output_image_width = parameters.output_image_width
             output_image_height = parameters.output_image_height
+            base_filename = get_base_filename(image.url)
+            resized_image_filename = f"media/{base_filename}.rsz.png"
             resized_image = resize_image_if_needed(
-                image, output_image_width, output_image_height
+                image,
+                output_image_width,
+                output_image_height,
+                resized_image_filename,
             )
             if resized_image:
                 image_updated = True
