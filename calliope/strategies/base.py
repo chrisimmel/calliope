@@ -90,9 +90,9 @@ class StoryStrategy(object, metaclass=ABCMeta):
                 # But we do need to save to the database.
                 await thumbnail_image.save().run()
 
-            story.thumbnail_image = thumbnail_image
-            story_updated = True
-            print(f"Computed story thumbnail: '{thumbnail_image}'")
+                story.thumbnail_image = thumbnail_image
+                story_updated = True
+                print(f"Computed story thumbnail: '{thumbnail_image}'")
 
         if story_updated:
             await put_story(story)
