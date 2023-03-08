@@ -1,8 +1,9 @@
 import os
+from typing import cast, Optional, Sequence
+
 from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
-from typing import Optional
 
 from calliope.models import ImageFormat, StoryModel, StoryFrameModel
 from calliope.tables import Story
@@ -28,13 +29,18 @@ templates = Jinja2Templates(directory="calliope/templates")
 
 @router.get("/thoth/", response_class=HTMLResponse)
 async def thoth_root(request: Request):
-    stories = await Story.objects().order_by(Story.date_updated, ascending=False)
+    stories = cast(
+        Sequence[Story],
+        await Story.objects(Story.thumbnail_image).order_by(
+            Story.date_updated, ascending=False
+        ),
+    )
 
     story_thumbs_by_story_id = {}
 
     for story in stories:
-        thumb = await story.get_thumb()
-        if thumb:
+        thumb = story.thumbnail_image
+        if thumb and thumb.id:
             story_thumbs_by_story_id[story.cuid] = thumb
 
     context = {

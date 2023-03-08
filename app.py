@@ -12,9 +12,9 @@ from piccolo.table import Table
 from starlette.responses import JSONResponse
 
 
-from calliope.forms.migrate_pydantic_to_piccolo import (
-    MigrateFromPydanticFormModel,
-    migrate_from_pydantic_endpoint,
+from calliope.forms.add_story_thumbnails import (
+    AddStoryThumbnailsFormModel,
+    add_story_thumbnails_endpoint,
 )
 from calliope.forms.run_command import RunCommandFormModel, run_command_endpoint
 from calliope.routes import media as media_routes
@@ -110,6 +110,11 @@ def create_app() -> FastAPI:
                         name="Run Command",
                         pydantic_model=RunCommandFormModel,
                         endpoint=run_command_endpoint,
+                    ),
+                    FormConfig(
+                        name="Add Story Thumbnails",
+                        pydantic_model=AddStoryThumbnailsFormModel,
+                        endpoint=add_story_thumbnails_endpoint,
                     ),
                 ],
             ),

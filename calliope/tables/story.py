@@ -141,6 +141,9 @@ class Story(Table):
     # The ID of the flock or sparrow for which the story was created.
     created_for_sparrow_id = Varchar(length=50, null=True)
 
+    # A thumbnail image illustrating the story.
+    thumbnail_image = ForeignKey(references=Image, null=True)
+
     # The dates the story was created and updated.
     date_created = Timestamptz()
     date_updated = Timestamptz(auto_update=datetime.now)
@@ -225,7 +228,7 @@ class Story(Table):
     async def compute_title(self) -> str:
         return await self.get_text(max_frames=1)
 
-    async def get_thumb(self) -> Optional[Image]:
+    async def compute_thumbnail(self) -> Optional[Image]:
         frame_with_source_image = (
             await StoryFrame.objects(StoryFrame.source_image)
             .where(

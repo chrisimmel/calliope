@@ -82,9 +82,10 @@ class SimpleOneFrameStoryStrategy(StoryStrategy):
             prompt = caption_to_prompt(text, prompt_template)
 
             try:
-                output_image_filename_png = await create_sequential_filename(
+                output_image_filename_png = create_sequential_filename(
                     "media", client_id, "out", "png", story.cuid, frame_number
                 )
+
                 await text_to_image_file_inference(
                     aiohttp_session,
                     prompt,
