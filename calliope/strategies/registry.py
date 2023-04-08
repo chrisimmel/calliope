@@ -1,4 +1,4 @@
-from typing import Any, Callable, cast, Dict, Type
+from typing import Any, Callable, cast, Dict, Sequence, Type
 
 from calliope.strategies.base import StoryStrategy
 
@@ -41,3 +41,7 @@ class StoryStrategyRegistry:
         if strategy_name not in cls._story_strategies_by_name:
             raise ValueError(f"Unknown story strategy: {strategy_name}")
         return cls._story_strategies_by_name[strategy_name]
+
+    @classmethod
+    def get_all_strategy_names(cls) -> Sequence[str]:
+        return cls._story_strategies_by_name.keys()

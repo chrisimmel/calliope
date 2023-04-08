@@ -21,6 +21,7 @@ from calliope.models import (
     InferenceModelConfigModel,
     InferenceModelConfigsModel,
     KeysModel,
+    InferenceModelProviderVariant,
 )
 
 # from PIL import Image
@@ -69,41 +70,6 @@ async def _hugging_face_image_to_text_inference(
     caption = predictions[0]["generated_text"]
 
     return caption
-
-
-async def image_file_to_text_inference(
-    aiohttp_session: aiohttp.ClientSession,
-    image_filename: str,
-    inference_model_configs: InferenceModelConfigsModel,
-    keys: KeysModel,
-) -> Optional[str]:
-    """
-    Takes the filename of an image. Returns a caption.
-    """
-    model_config = inference_model_configs.image_to_text_model_config
-
-    if model_config.provider == InferenceModelProvider.AZURE:
-        image_metadata = await image_analysis_inference(
-            aiohttp_session,
-            image_filename,
-            inference_model_configs,
-            keys,
-        )
-        return image_metadata.get("description")
-    elif model_config.provider != InferenceModelProvider.HUGGINGFACE:
-        raise ValueError(
-            f"Don't know how to do image->text inference for provider {model_config.provider}."
-        )
-
-    with open(image_filename, "rb") as f:
-        image_data = f.read()
-
-    if image_data:
-        return await _hugging_face_image_to_text_inference(
-            aiohttp_session, image_data, model_config, keys
-        )
-
-    return None
 
 
 def _convert_image_to_png(image_filename: str) -> str:
@@ -273,28 +239,40 @@ async def image_analysis_inference(
     """
     model_config = inference_model_configs.image_analysis_model_config
 
-    if model_config.provider != InferenceModelProvider.AZURE:
-        raise ValueError(
-            f"Don't know how to do image analysis for provider {model_config.provider}."
-        )
+    if model_config.provider == InferenceModelProvider.AZURE:
+        # Don't know why, but Azure comp vision doesn't seem to like JPG files. Convert to PNG.
+        image_filename = _convert_image_to_png(image_filename)
 
-    # Don't know why, but Azure comp vision doesn't seem to like JPG files. Convert to PNG.
-    image_filename = _convert_image_to_png(image_filename)
     with open(image_filename, "rb") as f:
         image_data = f.read()
 
         if image_data:
-            raw_metadata = await _azure_vision_inference(
-                aiohttp_session, image_data, model_config, keys
-            )
+            if model_config.provider == InferenceModelProvider.HUGGINGFACE:
+                description = await _hugging_face_image_to_text_inference(
+                    aiohttp_session, image_data, model_config, keys
+                )
 
-            if not raw_metadata:
-                return ValueError("Unexpected empty response from image analysis API.")
+                return {
+                    "description": description,
+                }
+            elif model_config.provider == InferenceModelProvider.AZURE:
+                raw_metadata = await _azure_vision_inference(
+                    aiohttp_session, image_data, model_config, keys
+                )
 
-            if model_config.model_name.find("v3.2") >= 0:
-                return _interpret_azure_v3_metadata(raw_metadata)
+                if not raw_metadata:
+                    raise ValueError(
+                        "Unexpected empty response from image analysis API."
+                    )
+
+                if model_config.model_name.find("v3.2") >= 0:
+                    return _interpret_azure_v3_metadata(raw_metadata)
+                else:
+                    return _interpret_azure_v4_metadata(raw_metadata)
             else:
-                return _interpret_azure_v4_metadata(raw_metadata)
+                raise ValueError(
+                    f"Don't know how to do image->text inference for provider {model_config.provider}."
+                )
 
     raise ValueError("No input image data to image_analysis_inference.")
 
@@ -518,14 +496,40 @@ async def text_to_extended_text_inference(
     elif model_config.provider == InferenceModelProvider.OPENAI:
         print(f"text_to_extended_text_inference.openai {model_config.model_name}")
         openai.api_key = keys.openapi_api_key
-
         openai.aiosession.set(aiohttp_session)
-        completion = await openai.Completion.acreate(
-            engine=model_config.model_name,
-            prompt=text,
-            **model_config.parameters,
-        )
-        extended_text = completion.choices[0].text
+
+        if (
+            model_config.provider_variant
+            == InferenceModelProviderVariant.OPENAI_CHAT_COMPLETION
+        ):
+            messages = [
+                {
+                    "role": "user",
+                    "content": text,
+                }
+            ]
+
+            response = await openai.ChatCompletion.acreate(
+                model=model_config.model_name,
+                messages=messages,
+                **model_config.parameters,
+            )
+
+            extended_text = None
+            print(f"Chat Completion response is: '{response}'")
+            if response:
+                choices = response.get("choices", [])
+                if len(choices):
+                    message = choices[0].get("message", {})
+                    if message:
+                        extended_text = message.get("content")
+        else:
+            completion = await openai.Completion.acreate(
+                engine=model_config.model_name,
+                prompt=text,
+                **model_config.parameters,
+            )
+            extended_text = completion.choices[0].text
         print(f'extended_text="{extended_text}"')
     else:
         raise ValueError(

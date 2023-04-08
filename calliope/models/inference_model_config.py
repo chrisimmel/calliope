@@ -11,6 +11,11 @@ class InferenceModelProvider(str, Enum):
     AZURE = "azure"
 
 
+class InferenceModelProviderVariant(str, Enum):
+    OPENAI_COMPLETION = "openai_completion"
+    OPENAI_CHAT_COMPLETION = "openai_chat_completion"
+
+
 class InferenceModelConfigModel(BaseModel):
     """
     The configuration for a specific inference model.
@@ -18,6 +23,9 @@ class InferenceModelConfigModel(BaseModel):
 
     # Who hosts the model?
     provider: InferenceModelProvider
+
+    # The provider's API variant, if pertinent.
+    provider_variant: Optional[InferenceModelProviderVariant]
 
     # The model's name. There may be multiple configurations per model.
     model_name: StrictStr
@@ -90,8 +98,32 @@ _model_configs_by_name = {
         },
     ),
     # OpenAI models...
+    # Text->Text:
+    "openai_gpt_4": InferenceModelConfigModel(
+        provider=InferenceModelProvider.OPENAI,
+        provider_variant=InferenceModelProviderVariant.OPENAI_CHAT_COMPLETION,
+        model_name="gpt-4",
+        parameters={
+            "max_tokens": 512,
+            "temperature": 1,
+            "presence_penalty": 1.5,
+            "frequency_penalty": 1.5,
+        },
+    ),
+    "openai_chat_gpt": InferenceModelConfigModel(
+        provider=InferenceModelProvider.OPENAI,
+        provider_variant=InferenceModelProviderVariant.OPENAI_CHAT_COMPLETION,
+        model_name="curie",
+        parameters={
+            "max_tokens": 256,
+            "temperature": 0.85,
+            "presence_penalty": 1.5,
+            "frequency_penalty": 1.5,
+        },
+    ),
     "openai_curie": InferenceModelConfigModel(
         provider=InferenceModelProvider.OPENAI,
+        provider_variant=InferenceModelProviderVariant.OPENAI_COMPLETION,
         model_name="curie",
         parameters={
             "max_tokens": 256,
@@ -102,19 +134,22 @@ _model_configs_by_name = {
     ),
     "openai_davinci_03": InferenceModelConfigModel(
         provider=InferenceModelProvider.OPENAI,
+        provider_variant=InferenceModelProviderVariant.OPENAI_COMPLETION,
         model_name="text-davinci-003",
         parameters={
-            "max_tokens": 512,
+            "max_tokens": 1024,
             "temperature": 0.85,
             "presence_penalty": 1.5,
             "frequency_penalty": 1.5,
         },
     ),
+    # Text->Image...
     "openai_dall_e_2": InferenceModelConfigModel(
         provider=InferenceModelProvider.OPENAI,
         model_name="DALL-E-2",
         parameters={},
     ),
+    # Audio->Text...
     "openai_whisper": InferenceModelConfigModel(
         provider=InferenceModelProvider.OPENAI,
         model_name="whisper",

@@ -17,6 +17,7 @@ from calliope.tables import (
     Story,
     StoryFrame,
 )
+from calliope.tables.model_config import StrategyConfig
 
 
 # By default, we ask each frame to be displayed for at
@@ -36,6 +37,8 @@ class StoryStrategy(object, metaclass=ABCMeta):
     async def get_frame_sequence(
         self,
         parameters: FramesRequestParamsModel,
+        image_analysis: Optional[Dict[str, Any]],
+        strategy_config: Optional[StrategyConfig],
         inference_model_configs: InferenceModelConfigsModel,
         keys: KeysModel,
         sparrow_state: SparrowState,

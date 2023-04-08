@@ -1,17 +1,22 @@
 from datetime import datetime
+import sys
+import traceback
 from typing import Any, Dict, List, Optional
 
 import aiohttp
+from calliope.inference import image_analysis_inference
 import cuid
-from fastapi import APIRouter, Depends, Request, HTTPException
+from fastapi import APIRouter, Depends, Request
 from fastapi.security.api_key import APIKey
 from pydantic import BaseModel
 
 from calliope.models import FramesRequestParamsModel, StoryFrameModel
-from calliope.storage.config_manager import get_sparrow_story_parameters_and_keys
+from calliope.storage.config_manager import (
+    get_sparrow_story_parameters_and_keys,
+    get_strategy_config,
+)
 from calliope.storage.state_manager import (
     get_sparrow_state,
-    get_story,
     put_sparrow_state,
     put_story,
 )
@@ -53,6 +58,20 @@ class StoryResponseV1(BaseModel):
     generation_date: str
     debug_data: Optional[Dict[str, Any]] = None
     errors: List[str]
+
+
+@router.put("/story/reset")
+async def put_story_reset(
+    request: Request,
+    client_id: str,
+    api_key: APIKey = Depends(get_api_key),
+) -> None:
+    """
+    Resets the client's story state, forcing Calliope to begin a new story for this client.
+    """
+    sparrow_state = await get_sparrow_state(client_id)
+    sparrow_state.current_story = None
+    await put_sparrow_state(sparrow_state)
 
 
 @router.post("/frames/", response_model=StoryResponseV1)
@@ -161,12 +180,15 @@ async def handle_frames_request(
     ) = await get_sparrow_story_parameters_and_keys(request_params, sparrow_state)
     parameters.strategy = parameters.strategy or "continuous_v1"
     parameters.debug = parameters.debug or False
+    errors = []
 
-    strategy_class = StoryStrategyRegistry.get_strategy_class(parameters.strategy)
+    strategy_config = await get_strategy_config(parameters.strategy)
+    strategy_name = (
+        strategy_config.strategy_name if strategy_config else parameters.strategy
+    )
+    strategy_class = StoryStrategyRegistry.get_strategy_class(strategy_name)
 
-    story = None
-    if sparrow_state.current_story and not parameters.reset_strategy_state:
-        story = sparrow_state.current_story
+    story = sparrow_state.current_story
     if story and story.strategy_name != parameters.strategy:
         # The story in progress was created by a different strategy. Start a new one.
         story = None
@@ -186,10 +208,26 @@ async def handle_frames_request(
         await put_story(story)
 
     parameters = await prepare_input_files(parameters, story)
+    image_analysis = None
+
     async with aiohttp.ClientSession(raise_for_status=True) as aiohttp_session:
+
+        if parameters.input_image_filename:
+            try:
+                image_analysis = await image_analysis_inference(
+                    aiohttp_session,
+                    parameters.input_image_filename,
+                    inference_model_configs,
+                    keys,
+                )
+
+            except Exception as e:
+                traceback.print_exc(file=sys.stderr)
+                errors.append(str(e))
 
         story_frames_response = await strategy_class().get_frame_sequence(
             parameters,
+            image_analysis,
             inference_model_configs,
             keys,
             sparrow_state,
@@ -203,6 +241,8 @@ async def handle_frames_request(
         "story_title": story.title,
         "thoth_link": f"{base_url}thoth/story/{story.cuid}",
     }
+    if image_analysis:
+        story_frames_response.debug_data["i_see"] = image_analysis.get("description")
 
     await prepare_frame_images(parameters, story_frames_response.frames)
 
@@ -217,7 +257,7 @@ async def handle_frames_request(
         request_id=cuid.cuid(),
         generation_date=str(datetime.utcnow()),
         debug_data=story_frames_response.debug_data if parameters.debug else {},
-        errors=story_frames_response.errors,
+        errors=story_frames_response.errors + errors,
     )
     return response
 

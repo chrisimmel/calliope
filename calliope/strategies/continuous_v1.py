@@ -1,12 +1,11 @@
 import re
 import sys, traceback
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 import aiohttp
 
 from calliope.inference import (
     caption_to_prompt,
-    image_analysis_inference,
     text_to_extended_text_inference,
     text_to_image_file_inference,
 )
@@ -23,6 +22,7 @@ from calliope.tables import (
     SparrowState,
     Story,
 )
+from calliope.tables.model_config import StrategyConfig
 from calliope.utils.file import create_sequential_filename
 from calliope.utils.image import get_image_attributes
 from calliope.utils.string import split_into_sentences
@@ -49,12 +49,14 @@ In the delirium of uselessness.
 """
 
 STORY_PROMPT_DAVINCI = """
-Given a scene, an optional text fragment, a list of objects, and a story, continue the story with four short, imaginative new sentences.
-Incorporate some of the scene and objects in the story. Use poetic, flowery prose in the style of Herman Melville.
-Nostalgia, solitude. Don't repeat sentences.
+Given a scene, an optional text fragment, a list of people and objects, and a story, continue the story with a few short sentences.
+Incorporate some of the scene, people, and objects in the story. Use a literary style as seen in the examples, surrealist.
 
 Below are three examples.
 
+----
+
+Example 1
 Scene: "a man standing in a hallway"
 Text: "Life is a movie"
 Objects: "wall, person, indoor, ceiling, building, man, plaster, smile, standing, glasses, door"
@@ -71,6 +73,9 @@ He touches the wall and looks to the ceiling.
 Stillness hovers around him.
 He thinks: Life is a movie.
 
+----
+
+Example 2
 Scene: "a black cat on a couch"
 Text: ""
 Objects: "cat, indoor, couch, table"
@@ -87,6 +92,9 @@ We shall finally hear the voice.
 A startled cat looks up, leaps from the couch where it was sleeping. 
 A ghostly seagull told me this great terrible silence was my love.
 
+----
+
+Example 3
 Scene: ""
 Text: ""
 Objects: ""
@@ -109,6 +117,10 @@ A piano tune, a shout.
 A door slams. A clock.
 And not only beings and things and physical sounds.
 But also me chasing myself or endlessly going beyond me.
+
+----
+
+Now, here is the real one...
 
 Scene: "$scene"
 Text: "$text"
@@ -136,9 +148,7 @@ A door slams. A clock.
 And not only beings and things and physical sounds.
 But also me chasing myself or endlessly going beyond me.
 
-$scene
-$text
-$objects
+$scene, $text, $objects
 
 $poem"""
 
@@ -163,6 +173,8 @@ class ContinuousStoryV1Strategy(StoryStrategy):
     async def get_frame_sequence(
         self,
         parameters: FramesRequestParamsModel,
+        image_analysis: Optional[Dict[str, Any]],
+        strategy_config: Optional[StrategyConfig],
         inference_model_configs: InferenceModelConfigsModel,
         keys: KeysModel,
         sparrow_state: SparrowState,
@@ -179,31 +191,19 @@ class ContinuousStoryV1Strategy(StoryStrategy):
         prompt = None
         image = None
 
-        image_scene = ""
-        image_objects = ""
-        image_text = ""
         frame_number = await story.get_num_frames()
 
-        if parameters.input_image_filename:
-            try:
-                analysis = await image_analysis_inference(
-                    aiohttp_session,
-                    parameters.input_image_filename,
-                    inference_model_configs,
-                    keys,
-                )
-                image_scene = analysis.get("all_captions")
-                image_objects = analysis.get("all_tags_and_objects")
-                image_text = analysis.get("text")
+        if image_analysis:
+            image_scene = image_analysis.get("all_captions")
+            image_objects = image_analysis.get("all_tags_and_objects")
+            image_text = image_analysis.get("text")
 
-                if image_scene:
-                    image_scene = image_scene[0:1].upper() + image_scene[1:]
-
-                debug_data["i_see"] = analysis.get("description")
-
-            except Exception as e:
-                traceback.print_exc(file=sys.stderr)
-                errors.append(str(e))
+            if image_scene:
+                image_scene = image_scene[0:1].upper() + image_scene[1:]
+        else:
+            image_scene = ""
+            image_objects = ""
+            image_text = ""
 
         """
         Use input_text parameter only as the story seed, not for each frame.

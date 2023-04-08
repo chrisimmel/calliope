@@ -1,6 +1,8 @@
 import os
+from typing import Any, Dict, Optional
 
 import aiohttp
+from calliope.tables.model_config import StrategyConfig
 from fastapi import HTTPException
 
 from calliope.models import (
@@ -30,6 +32,8 @@ class ShowThisFrameStrategy(StoryStrategy):
     async def get_frame_sequence(
         self,
         parameters: FramesRequestParamsModel,
+        image_analysis: Optional[Dict[str, Any]],
+        strategy_config: Optional[StrategyConfig],
         inference_model_configs: InferenceModelConfigsModel,
         keys: KeysModel,
         sparrow_state: SparrowState,

@@ -4,6 +4,7 @@ from .inference_model_config import (
     InferenceModelConfigModel,
     InferenceModelConfigsModel,
     InferenceModelProvider,
+    InferenceModelProviderVariant,
     load_inference_model_configs,
 )
 from .parameters import FramesRequestParamsModel, StoryParamsModel
@@ -39,6 +40,7 @@ __all__ = [
     "InferenceModelConfigModel",
     "InferenceModelConfigsModel",
     "InferenceModelProvider",
+    "InferenceModelProviderVariant",
     "load_inference_model_configs",
     "OnLightTriggerConditionModel",
     "OnMotionTriggerConditionModel",

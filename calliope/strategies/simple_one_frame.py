@@ -1,10 +1,10 @@
 import sys, traceback
+from typing import Any, Dict, Optional
 
 import aiohttp
 
 from calliope.inference import (
     caption_to_prompt,
-    image_file_to_text_inference,
     text_to_extended_text_inference,
     text_to_image_file_inference,
 )
@@ -20,6 +20,7 @@ from calliope.tables import (
     SparrowState,
     Story,
 )
+from calliope.tables.model_config import StrategyConfig
 from calliope.utils.file import create_sequential_filename
 from calliope.utils.image import get_image_attributes
 
@@ -36,6 +37,8 @@ class SimpleOneFrameStoryStrategy(StoryStrategy):
     async def get_frame_sequence(
         self,
         parameters: FramesRequestParamsModel,
+        image_analysis: Optional[Dict[str, Any]],
+        strategy_config: Optional[StrategyConfig],
         inference_model_configs: InferenceModelConfigsModel,
         keys: KeysModel,
         sparrow_state: SparrowState,
@@ -49,31 +52,22 @@ class SimpleOneFrameStoryStrategy(StoryStrategy):
         )
         debug_data = self._get_default_debug_data(parameters)
         errors = []
-        caption = ""
+        description = ""
         image = None
         frame_number = await story.get_num_frames()
 
-        if parameters.input_image_filename:
-            try:
-                caption = await image_file_to_text_inference(
-                    aiohttp_session,
-                    parameters.input_image_filename,
-                    inference_model_configs,
-                    keys,
-                )
-                debug_data["i_see"] = caption
-            except Exception as e:
-                traceback.print_exc(file=sys.stderr)
-                errors.append(str(e))
+        if image_analysis:
+            description = image_analysis.get("description") if image_analysis else None
+            debug_data["i_see"] = description
 
         if parameters.input_text:
-            if caption:
-                caption = f"{caption}. {parameters.input_text}"
+            if description:
+                description = f"{description}. {parameters.input_text}"
             else:
-                caption = parameters.input_text
+                description = parameters.input_text
 
         text = await text_to_extended_text_inference(
-            aiohttp_session, caption, inference_model_configs, keys
+            aiohttp_session, description, inference_model_configs, keys
         )
         prompt_template = output_image_style + " {x}"
         print(text)

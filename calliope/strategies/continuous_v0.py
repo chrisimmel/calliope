@@ -1,12 +1,11 @@
 import re
 import sys, traceback
-from typing import List
+from typing import Any, Dict, List, Optional
 
 import aiohttp
 
 from calliope.inference import (
     caption_to_prompt,
-    image_analysis_inference,
     text_to_extended_text_inference,
     text_to_image_file_inference,
 )
@@ -24,6 +23,7 @@ from calliope.tables import (
     SparrowState,
     Story,
 )
+from calliope.tables.model_config import StrategyConfig
 from calliope.utils.file import create_sequential_filename
 from calliope.utils.image import get_image_attributes
 
@@ -47,6 +47,8 @@ class ContinuousStoryV0Strategy(StoryStrategy):
     async def get_frame_sequence(
         self,
         parameters: FramesRequestParamsModel,
+        image_analysis: Optional[Dict[str, Any]],
+        strategy_config: Optional[StrategyConfig],
         inference_model_configs: InferenceModelConfigsModel,
         keys: KeysModel,
         sparrow_state: SparrowState,
@@ -60,37 +62,12 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         )
         debug_data = self._get_default_debug_data(parameters)
         errors = []
-        caption = ""
+        caption = image_analysis.get("description") if image_analysis else None
         prompt = None
         text = None
         image = None
-        frame_number = await story.get_num_frames()
-
-        if parameters.input_image_filename:
-            # caption = "Along the riverrun"
-            try:
-                """
-                caption = await image_file_to_text_inference(
-                    aiohttp_session,
-                    parameters.input_image_filename,
-                    inference_model_configs,
-                    keys,
-                )
-                """
-                analysis = await image_analysis_inference(
-                    aiohttp_session,
-                    parameters.input_image_filename,
-                    inference_model_configs,
-                    keys,
-                )
-                caption = analysis.get("description")
-                debug_data["i_see"] = caption
-
-            except Exception as e:
-                traceback.print_exc(file=sys.stderr)
-                errors.append(str(e))
-
         input_text = ""
+        frame_number = await story.get_num_frames()
 
         if parameters.input_text:
             if caption:

@@ -10,7 +10,6 @@ from requests.models import Response
 # from image_captioning.model import predict
 from calliope.inference import (
     caption_to_prompt,
-    image_file_to_text_inference,
     text_to_image_file_inference,
 )
 from calliope.models import KeysModel

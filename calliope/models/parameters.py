@@ -2,6 +2,9 @@ from typing import Any, Dict, Optional
 
 from pydantic import BaseModel, root_validator
 
+from calliope.strategies import StrategyName
+
+
 """
 This doesn't work. Improper use of Field()...
 TODO: Would be nice to get descriptions on these fields for the OpenAPI docs.
@@ -67,12 +70,6 @@ class FramesRequestParams(BaseModel):
             default=None, description="Optional description of the desired text style."
         ),
     )
-    reset_strategy_state: Optional[bool] = (
-        Field(
-            default=False,
-            description="If set, instructs the strategy to reset its state, if any.",
-        ),
-    )
     strategy: Optional[str] = (
         Field(
             default=None,
@@ -111,8 +108,7 @@ class StoryParamsModel(ClientTypeParamsModel):
     input_text: Optional[str] = None
     output_image_style: Optional[str] = None
     output_text_style: Optional[str] = None
-    reset_strategy_state: Optional[bool] = False
-    strategy: Optional[str] = None
+    strategy: Optional[StrategyName] = None
     image_to_text_model_config: Optional[str] = None
     text_to_image_model_config: Optional[str] = None
     text_to_text_model_config: Optional[str] = None

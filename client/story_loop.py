@@ -6,7 +6,6 @@ import cv2
 
 from calliope.inference import (
     caption_to_prompt,
-    image_file_to_text_inference,
     text_to_extended_text_inference,
     text_to_image_file_inference,
 )

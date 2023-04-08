@@ -18,6 +18,7 @@ from calliope.tables import (
     ClientTypeConfig,
     SparrowConfig,
 )
+from calliope.tables.model_config import InferenceModelConfig, StrategyConfig
 from calliope.utils.google import (
     delete_google_file,
     is_google_cloud_run_environment,
@@ -242,3 +243,22 @@ def _get_non_default_parameters(params_dict: Dict[str, Any]) -> Dict[str, Any]:
             non_default_request_params[field.alias] = value
 
     return non_default_request_params
+
+
+async def get_strategy_config(strategy_config_slug: str) -> Optional[StrategyConfig]:
+    """
+    Retrieves the given StrategyConfig, if any.
+    Also loads referenced model configs, models, and prompt templates.
+    """
+    return (
+        await StrategyConfig.objects(
+            StrategyConfig.text_to_image_inference_model_config,
+            StrategyConfig.text_to_text_inference_model_config,
+            InferenceModelConfig.model,
+            InferenceModelConfig.prompt_template,
+        )
+        .where(StrategyConfig.slug == strategy_config_slug)
+        .first()
+        .output(load_json=True)
+        .run()
+    )
