@@ -1,5 +1,6 @@
 from datetime import datetime
 from calliope.models import InferenceModelProvider, InferenceModelProviderVariant
+from calliope.tables.prompt_template import PromptTemplate
 
 from piccolo.table import Table
 from piccolo.columns import (
@@ -62,7 +63,7 @@ class InferenceModelConfig(Table):
 
     # Optional slug of the prompt template to use when invoking the model.
     prompt_template = ForeignKey(
-        references="PromptTemplate", target_column="slug", null=True
+        references=PromptTemplate, target_column="slug", null=True
     )
 
     # Parameters for the model (overriding those set in the InferenceModel).

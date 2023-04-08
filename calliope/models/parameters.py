@@ -2,8 +2,6 @@ from typing import Any, Dict, Optional
 
 from pydantic import BaseModel, root_validator
 
-from calliope.strategies import StrategyName
-
 
 """
 This doesn't work. Improper use of Field()...
@@ -108,7 +106,7 @@ class StoryParamsModel(ClientTypeParamsModel):
     input_text: Optional[str] = None
     output_image_style: Optional[str] = None
     output_text_style: Optional[str] = None
-    strategy: Optional[StrategyName] = None
+    strategy: Optional[str] = None
     image_to_text_model_config: Optional[str] = None
     text_to_image_model_config: Optional[str] = None
     text_to_text_model_config: Optional[str] = None

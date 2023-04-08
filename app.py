@@ -29,10 +29,14 @@ from calliope.settings import settings
 from calliope.tables import (
     ClientTypeConfig,
     Image,
+    InferenceModel,
+    InferenceModelConfig,
+    PromptTemplate,
     SparrowConfig,
     SparrowState,
     Story,
     StoryFrame,
+    StrategyConfig,
 )
 
 
@@ -49,8 +53,23 @@ def get_db_uri(user, passwd, host, db):
     return f"postgres://{user}:{passwd}@{host}:5432/{db}"
 
 
-MEDIA_ROOT = "./"
+PICCOLO_TABLES = [
+    ClientTypeConfig,
+    Image,
+    InferenceModel,
+    InferenceModelConfig,
+    PromptTemplate,
+    SparrowConfig,
+    SparrowState,
+    Story,
+    StoryFrame,
+    StrategyConfig,
+]
 
+
+# Use a custom TableConfig and LocalMediaStorage for local images...
+
+MEDIA_ROOT = "./"
 
 IMAGE_MEDIA = LocalMediaStorage(
     column=Image.url,
@@ -63,14 +82,8 @@ image_local_config = TableConfig(
     media_storage=[IMAGE_MEDIA],
 )
 
-
-PICCOLO_TABLES = [
-    ClientTypeConfig,
-    Image,
-    SparrowConfig,
-    SparrowState,
-    Story,
-    StoryFrame,
+LOCAL_PICCOLO_TABLES = [
+    image_local_config if table == Image else table for table in PICCOLO_TABLES
 ]
 
 
@@ -79,14 +92,7 @@ def config_piccolo_tables() -> Sequence[Union[Table, TableConfig]]:
         # TODO: GCP custom MediaStorage for images.
         return PICCOLO_TABLES
     else:
-        return [
-            ClientTypeConfig,
-            image_local_config,
-            SparrowConfig,
-            SparrowState,
-            Story,
-            StoryFrame,
-        ]
+        return LOCAL_PICCOLO_TABLES
 
 
 def create_app() -> FastAPI:

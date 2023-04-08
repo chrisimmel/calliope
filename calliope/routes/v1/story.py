@@ -228,6 +228,7 @@ async def handle_frames_request(
         story_frames_response = await strategy_class().get_frame_sequence(
             parameters,
             image_analysis,
+            strategy_config,
             inference_model_configs,
             keys,
             sparrow_state,

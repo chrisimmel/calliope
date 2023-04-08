@@ -13,6 +13,33 @@ gcloud builds submit --tag gcr.io/ardent-course-370411/calliope
 gcloud run deploy --image gcr.io/ardent-course-370411/calliope --platform managed
 ```
 
+# Generating and Executing Migrations
+To get to bash in calliope container:
+```
+docker-compose exec calliope /bin/bash
+```
+
+From within bash in container:
+```
+piccolo migrations new calliope --auto
+piccolo migrations forwards calliope
+# python calliope/storage/config_manager.py
+piccolo user create
+```
+
+Postgres
+From bash in postgres container:
+```
+psql
+```
+
+From psql:
+```
+\dt
+etc.
+```
+
+
 
 # Clio
 
