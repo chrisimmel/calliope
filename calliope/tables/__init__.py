@@ -6,9 +6,9 @@ from .image import Image
 from .model_config import (
     InferenceModel,
     InferenceModelConfig,
+    PromptTemplate,
     StrategyConfig,
 )
-from .prompt_template import PromptTemplate
 from .sparrow_state import SparrowState
 from .story import Story, StoryFrame
 

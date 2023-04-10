@@ -27,7 +27,7 @@ class ShowThisFrameStrategy(StoryStrategy):
     A strategy that simply shows a single frame with given image and text.
     """
 
-    strategy_name = "show_this_frame"
+    strategy_name = "show-this-frame"
 
     async def get_frame_sequence(
         self,

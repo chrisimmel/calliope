@@ -97,7 +97,7 @@ def calliope_request(filename: str) -> Response:
         "output_image_format": "image/png",
         "output_image_width": 320,
         "output_image_height": 320,
-        "strategy": "continuous_v0",
+        "strategy": "continuous-v0",
         "debug": True,
     }
     files = {"input_image": open(filename, "rb")}

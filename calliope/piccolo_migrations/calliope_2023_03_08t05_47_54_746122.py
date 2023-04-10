@@ -7,6 +7,11 @@ from piccolo.columns.indexes import IndexMethod
 from piccolo.table import Table
 
 
+ID = "2023-03-08T05:47:54:746122"
+VERSION = "0.106.0"
+DESCRIPTION = "Adding a foreign key to Story from the Image table."
+
+
 class Image(Table, tablename="image"):
     id = Serial(
         null=False,
@@ -18,11 +23,6 @@ class Image(Table, tablename="image"):
         db_column_name="id",
         secret=False,
     )
-
-
-ID = "2023-03-08T05:47:54:746122"
-VERSION = "0.106.0"
-DESCRIPTION = ""
 
 
 async def forwards():

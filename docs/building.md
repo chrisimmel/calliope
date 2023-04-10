@@ -28,9 +28,14 @@ piccolo user create
 ```
 
 Postgres
+To get to bash in postgres container:
+```
+docker-compose exec postgres /bin/bash
+```
+
 From bash in postgres container:
 ```
-psql
+psql -U postgres
 ```
 
 From psql:

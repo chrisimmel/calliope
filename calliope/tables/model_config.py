@@ -1,9 +1,9 @@
 from datetime import datetime
-from calliope.models import InferenceModelProvider, InferenceModelProviderVariant
-from calliope.tables.prompt_template import PromptTemplate
+from typing import Any, Dict
 
 from piccolo.table import Table
 from piccolo.columns import (
+    Boolean,
     ForeignKey,
     JSONB,
     Timestamptz,
@@ -11,66 +11,40 @@ from piccolo.columns import (
     Text,
 )
 
+from calliope.models import InferenceModelProvider, InferenceModelProviderVariant
 
-class StrategyConfig(Table):
+
+class PromptTemplate(Table):
     """
-    For example:
-    strategy_config = {
-        "slug": "continuous-v1-chris",
-        "text_to_text_model_config": "gpt-4-chris-desnos-calm",
-    },
+    A template for a text prompt to be sent to an inference model, with support for template
+    variables and control structures in Jinja2 format.
     """
 
-    # A slug naming the strategy config. No spaces or punctuation other than hyphens.
+    # A slug naming the prompt template. No spaces or punctuation other than hyphens.
     slug = Varchar(length=80, unique=True, index=True)
 
-    # Identifies the strategy.
-    strategy_name = Varchar(length=80, unique=True, index=True)
+    # Description and commentary on the template. What is it for? Which model(s) does it target?
+    description = Text()
 
-    # Description and commentary.
-    description = Text(null=True, required=False)
-
-    # The strategy parameters.
-    parameters = JSONB(null=True)
-
-    # THe default text -> text inference model config.
-    text_to_text_inference_model_config = ForeignKey(
-        references="InferenceModelConfig", target_column="slug", null=True
-    )
-
-    # THe default text -> image inference model config.
-    text_to_image_inference_model_config = ForeignKey(
-        references="InferenceModelConfig", target_column="slug", null=True
-    )
+    # The raw template text, in Jinja2 format.
+    text = Text()
 
     date_created = Timestamptz()
     date_updated = Timestamptz(auto_update=datetime.now)
 
+    def render(self, context: Dict[str, Any]) -> str:
+        """
+        Renders the template, replacing variables and executing control structures.
 
-class InferenceModelConfig(Table):
-    """
-    An inference model configuration,
-    """
+        Args:
+            context: a dictionary of context variables available in the template.
 
-    # A slug naming the model config. No spaces or punctuation other than hyphens.
-    slug = Varchar(length=80, unique=True, index=True)
-
-    # Description and commentary.
-    description = Text(null=True, required=False)
-
-    # THe inference model.
-    model = ForeignKey(references="InferenceModel", target_column="slug")
-
-    # Optional slug of the prompt template to use when invoking the model.
-    prompt_template = ForeignKey(
-        references=PromptTemplate, target_column="slug", null=True
-    )
-
-    # Parameters for the model (overriding those set in the InferenceModel).
-    model_parameters = JSONB(null=True)
-
-    date_created = Timestamptz()
-    date_updated = Timestamptz(auto_update=datetime.now)
+        Returns:
+            the rendered template.
+        """
+        environment = jinja2.Environment()
+        template = environment.from_string(self.text)
+        return template.render(context)
 
 
 class InferenceModel(Table):
@@ -109,7 +83,7 @@ class InferenceModel(Table):
     # The provider's name for this model. There may be multiple configurations per
     # provider model. For example, we may have multiple configurations that target
     # GPT-3 curie.
-    provider_model_name: Varchar(length=80)
+    provider_model_name = Varchar(length=80)
 
     # Any parameters the model takes (provider- and model-specific).
     # These are defaults that may be overridden elsewhere.
@@ -119,19 +93,87 @@ class InferenceModel(Table):
     date_updated = Timestamptz(auto_update=datetime.now)
 
 
+class InferenceModelConfig(Table):
+    """
+    An inference model configuration.
+    """
+
+    # A slug naming the model config. No spaces or punctuation other than hyphens.
+    slug = Varchar(length=80, unique=True, index=True)
+
+    # Description and commentary.
+    description = Text(null=True, required=False)
+
+    # THe inference model.
+    model = ForeignKey(references=InferenceModel, target_column=InferenceModel.slug)
+
+    # Optional slug of the prompt template to use when invoking the model.
+    prompt_template = ForeignKey(
+        references=PromptTemplate, target_column=PromptTemplate.slug, null=True
+    )
+
+    # Parameters for the model (overriding those set in the InferenceModel).
+    model_parameters = JSONB(null=True)
+
+    date_created = Timestamptz()
+    date_updated = Timestamptz(auto_update=datetime.now)
+
+
+class StrategyConfig(Table):
+    """
+    For example:
+    strategy_config = {
+        "slug": "continuous-v1-chris",
+        "text_to_text_model_config": "gpt-4-chris-desnos-calm",
+    },
+    """
+
+    # A slug naming the strategy config. No spaces or punctuation other than hyphens.
+    slug = Varchar(length=80, unique=True, index=True)
+
+    # Identifies the strategy.
+    strategy_name = Varchar(length=80, unique=True, index=True)
+
+    # Whether this is the default configuration for its strategy.
+    is_default = Boolean(default=False)
+
+    # Description and commentary.
+    description = Text(null=True, required=False)
+
+    # The strategy parameters.
+    parameters = JSONB(null=True)
+
+    # THe default text -> text inference model config.
+    text_to_text_inference_model_config = ForeignKey(
+        references=InferenceModelConfig,
+        target_column=InferenceModelConfig.slug,
+        null=True,
+    )
+
+    # THe default text -> image inference model config.
+    text_to_image_inference_model_config = ForeignKey(
+        references=InferenceModelConfig,
+        target_column=InferenceModelConfig.slug,
+        null=True,
+    )
+
+    date_created = Timestamptz()
+    date_updated = Timestamptz(auto_update=datetime.now)
+
+
 """
 A strategy has a default model config.
 The model config used by a strategy can be overridden via sparrow or API params.
 It would be desirable for default parameters to be configurable per strategy, so
-if I ask for strategy continuous_v1 I should get different default parameters than
-if I ask for strategy continuous_v0.
+if I ask for strategy continuous-v1 I should get different default parameters than
+if I ask for strategy continuous-v0.
 
 
 (Classic)
 sparrow config =
 {
     "debug": false,
-    "strategy": "continuous_v1",
+    "strategy": "continuous-v1",
     "extra_fields": {},
     "output_image_width": 512,
     "output_image_height": 512,
@@ -143,15 +185,15 @@ sparrow config =
 sparrow config =
 {
     "debug": false,
-    "strategy": "continuous_v1",
+    "strategy": "continuous-v1",
     "output_image_width": 512,
     "output_image_height": 512,
 
     "parameters_by_strategy": {
-        "continuous_v1": {
+        "continuous-v1": {
             "text_to_text_model_config": "openai_gpt_4"
         },
-        "continuous_v0": {
+        "continuous-v0": {
             "text_to_text_model_config": "huggingface_gpt_neo_2.7B"
         },
     },
@@ -161,7 +203,7 @@ sparrow config =
 sparrow/flock config =
 {
     "debug": false,
-    "strategy": "continuous_v1_chris",
+    "strategy": "continuous_=0v1_chris",
     "output_image_width": 512,
     "output_image_height": 512,
 }
@@ -200,8 +242,8 @@ model = {
 ....
 
 strategy_config = {
-    "slug": "continuous_v0",
-    "text_to_text_model_config": "huggingface_gpt_neo_2.7B"
+    "slug": "continuous-v0",
+    "text_to_text_model_config": "huggingface-gpt-neo-2.7B"
 },
 
 """

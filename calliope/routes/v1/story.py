@@ -178,7 +178,7 @@ async def handle_frames_request(
         keys,
         inference_model_configs,
     ) = await get_sparrow_story_parameters_and_keys(request_params, sparrow_state)
-    parameters.strategy = parameters.strategy or "continuous_v1"
+    parameters.strategy = parameters.strategy or "continuous-v1"
     parameters.debug = parameters.debug or False
     errors = []
 

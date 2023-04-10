@@ -21,17 +21,17 @@ the text. The `input_text` can be divided into multiple prompts using the `|` ch
 where each `|`-delimited phrase serves as the prompt for an individual output frame.
 This currently is the sole strategy capable of delivering multiple frames per request.
 
-### simple_one_frame
+### simple-one-frame
 The strategy of the original `/story/` endpoint.
 Returns a single frame based on input parameters (input image, input text). Doesn't
 attempt story continuation.
 
-### show_this_frame
+### show-this-frame
 A strategy that simply shows a single frame with the given image and text. The
 image must be uploaded and available at `<calliope-host>/media`. (Endpoint support
 to enable this is forthcoming.)
 
-### continuous_v0
+### continuous-v0
 Tries to keep a story going, carrying context from a previous frame, if any,
 to a new frame. This works in the manner of an "Exquisite Corpse" exercise,
 where each generation blindly adds something new to the story, based only on
@@ -46,7 +46,6 @@ Is very good at maintaining a relatively coherent stream of consciousness, but
 has an unfortunate tendency to wander into nerdy programmery jargon for long
 spans of time.
 
-### continuous_v1
-Builds on `continuous_v0`, but is meant to be used with larger text prompts
+### continuous-v1
+Builds on `continuous-v0`, but is meant to be used with larger text prompts
 and the GPT-3 models (e.g., `text_to_text_model_config = "openai_curie"`).
-Hasn't been tuned, and produces highly erratic results for now.

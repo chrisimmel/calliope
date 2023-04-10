@@ -32,7 +32,7 @@ class SimpleOneFrameStoryStrategy(StoryStrategy):
     Returns a single frame based on input parameters. Doesn't attempt story continuation.
     """
 
-    strategy_name = "simple_one_frame"
+    strategy_name = "simple-one-frame"
 
     async def get_frame_sequence(
         self,

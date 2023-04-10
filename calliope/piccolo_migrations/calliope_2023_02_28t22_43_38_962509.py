@@ -14,6 +14,11 @@ from piccolo.columns.indexes import IndexMethod
 from piccolo.table import Table
 
 
+ID = "2023-02-28T22:43:38:962509"
+VERSION = "0.106.0"
+DESCRIPTION = "Creating the original base tables: ClientTypeConfig, Story, StoryFrame, SparrowState, Image, and SparrowConfig."
+
+
 class Image(Table, tablename="image"):
     id = Serial(
         null=False,
@@ -38,11 +43,6 @@ class Story(Table, tablename="story"):
         db_column_name="id",
         secret=False,
     )
-
-
-ID = "2023-02-28T22:43:38:962509"
-VERSION = "0.106.0"
-DESCRIPTION = ""
 
 
 async def forwards():

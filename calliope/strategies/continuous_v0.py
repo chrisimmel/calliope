@@ -42,7 +42,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
     Returns a single frame.
     """
 
-    strategy_name = "continuous_v0"
+    strategy_name = "continuous-v0"
 
     async def get_frame_sequence(
         self,
