@@ -252,7 +252,7 @@ async def forwards():
                 date_updated=now,
             )
             print(f"Saving model {model}...")
-            await model.save()
+            await model.save().run()
 
     manager.add_raw(run)
 

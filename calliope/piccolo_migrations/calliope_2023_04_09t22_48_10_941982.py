@@ -139,7 +139,7 @@ async def forwards():
                 date_updated=now,
             )
             print(f"Saving model config {model_config}...")
-            await model_config.save()
+            await model_config.save().run()
 
     manager.add_raw(run)
 

@@ -174,7 +174,7 @@ async def forwards():
                 date_updated=now,
             )
             print(f"Saving strategy config {strategy_config}...")
-            await strategy_config.save()
+            await strategy_config.save().run()
 
     manager.add_raw(run)
 

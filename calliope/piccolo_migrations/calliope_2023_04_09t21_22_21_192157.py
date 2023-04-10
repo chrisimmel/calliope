@@ -261,7 +261,7 @@ async def forwards():
                 date_updated=now,
             )
             print(f"Saving prompt template {prompt_template}")
-            await prompt_template.save()
+            await prompt_template.save().run()
 
     manager.add_raw(run)
 
