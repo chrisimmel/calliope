@@ -14,7 +14,7 @@ from piccolo.columns import (
 from calliope.models import InferenceModelProvider, InferenceModelProviderVariant
 
 
-class PromptTemplate(Table):
+class PromptTemplate(Table, tablename="prompt_template"):
     """
     A template for a text prompt to be sent to an inference model, with support for template
     variables and control structures in Jinja2 format.
@@ -47,7 +47,7 @@ class PromptTemplate(Table):
         return template.render(context)
 
 
-class InferenceModel(Table):
+class InferenceModel(Table, tablename="inference_model"):
     """
     An inference model.
 
@@ -93,7 +93,7 @@ class InferenceModel(Table):
     date_updated = Timestamptz(auto_update=datetime.now)
 
 
-class InferenceModelConfig(Table):
+class ModelConfig(Table, tablename="model_config"):
     """
     An inference model configuration.
     """
@@ -119,7 +119,7 @@ class InferenceModelConfig(Table):
     date_updated = Timestamptz(auto_update=datetime.now)
 
 
-class StrategyConfig(Table):
+class StrategyConfig(Table, tablename="strategy_config"):
     """
     For example:
     strategy_config = {
@@ -144,16 +144,16 @@ class StrategyConfig(Table):
     parameters = JSONB(null=True)
 
     # THe default text -> text inference model config.
-    text_to_text_inference_model_config = ForeignKey(
-        references=InferenceModelConfig,
-        target_column=InferenceModelConfig.slug,
+    text_to_text_model_config = ForeignKey(
+        references=ModelConfig,
+        target_column=ModelConfig.slug,
         null=True,
     )
 
     # THe default text -> image inference model config.
-    text_to_image_inference_model_config = ForeignKey(
-        references=InferenceModelConfig,
-        target_column=InferenceModelConfig.slug,
+    text_to_image_model_config = ForeignKey(
+        references=ModelConfig,
+        target_column=ModelConfig.slug,
         null=True,
     )
 

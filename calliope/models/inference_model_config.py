@@ -198,7 +198,7 @@ class InferenceModelConfigsModel(BaseModel):
     ] = get_model_config_by_name("openai_whisper")
 
 
-def load_inference_model_configs(
+def load_model_configs(
     image_analysis_model_config: str = "azure_vision_analysis",
     image_ocr_model_config: str = "azure_vision_ocr",
     image_to_text_model_config: str = "huggingface_image_captioning",

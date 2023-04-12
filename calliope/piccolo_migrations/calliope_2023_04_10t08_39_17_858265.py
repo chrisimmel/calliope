@@ -16,7 +16,7 @@ VERSION = "0.106.0"
 DESCRIPTION = "Seeding the StrategyConfig table."
 
 
-class InferenceModelConfig(Table):
+class ModelConfig(Table):
     """
     A stub for the real model, needed just to resolve the foreign key.
     """
@@ -49,16 +49,16 @@ class StrategyConfig(Table):
     parameters = JSONB(null=True)
 
     # THe default text -> text inference model config.
-    text_to_text_inference_model_config = ForeignKey(
-        references=InferenceModelConfig,
-        target_column=InferenceModelConfig.slug,
+    text_to_text_model_config = ForeignKey(
+        references=ModelConfig,
+        target_column=ModelConfig.slug,
         null=True,
     )
 
     # THe default text -> image inference model config.
-    text_to_image_inference_model_config = ForeignKey(
-        references=InferenceModelConfig,
-        target_column=InferenceModelConfig.slug,
+    text_to_image_model_config = ForeignKey(
+        references=ModelConfig,
+        target_column=ModelConfig.slug,
         null=True,
     )
 
@@ -74,8 +74,8 @@ _strategy_config_specs = [
         "is_default": True,
         "description": """The default config for strategy continuous-v0.""",
         "parameters": {},
-        "text_to_text_inference_model_config": "gpt-neo-default",
-        "text_to_image_inference_model_config": "stability-stable-diffusion-1.5",
+        "text_to_text_model_config": "gpt-neo-default",
+        "text_to_image_model_config": "stability-stable-diffusion-1.5",
     },
     # for continuous-v1 w GPT-3 Curie
     {
@@ -84,8 +84,8 @@ _strategy_config_specs = [
         "is_default": False,
         "description": """The default config for strategy continuous-v1 with GPT-3 Curie.""",
         "parameters": {},
-        "text_to_text_inference_model_config": "curie-default",
-        "text_to_image_inference_model_config": "stability-stable-diffusion-1.5",
+        "text_to_text_model_config": "curie-default",
+        "text_to_image_model_config": "stability-stable-diffusion-1.5",
     },
     # for continuous-v1 w GPT-3 Davinci
     {
@@ -94,8 +94,8 @@ _strategy_config_specs = [
         "is_default": True,
         "description": """The default config for strategy continuous-v1 with GPT-3 Davinci.""",
         "parameters": {},
-        "text_to_text_inference_model_config": "davinci-default",
-        "text_to_image_inference_model_config": "stability-stable-diffusion-1.5",
+        "text_to_text_model_config": "davinci-default",
+        "text_to_image_model_config": "stability-stable-diffusion-1.5",
     },
     # for continuous-v1 w GPT-4
     {
@@ -104,8 +104,8 @@ _strategy_config_specs = [
         "is_default": False,
         "description": """The default config for strategy continuous-v1 with GPT-4.""",
         "parameters": {},
-        "text_to_text_inference_model_config": "gpt-4-default",
-        "text_to_image_inference_model_config": "stability-stable-diffusion-1.5",
+        "text_to_text_model_config": "gpt-4-default",
+        "text_to_image_model_config": "stability-stable-diffusion-1.5",
     },
     # for literal
     {
@@ -114,8 +114,8 @@ _strategy_config_specs = [
         "is_default": True,
         "description": """The default config for strategy literal.""",
         "parameters": {},
-        "text_to_text_inference_model_config": None,
-        "text_to_image_inference_model_config": "stability-stable-diffusion-1.5",
+        "text_to_text_model_config": None,
+        "text_to_image_model_config": "stability-stable-diffusion-1.5",
     },
     # for show-this-frame
     {
@@ -124,8 +124,8 @@ _strategy_config_specs = [
         "is_default": True,
         "description": """The default config for strategy show-this-frame.""",
         "parameters": {},
-        "text_to_text_inference_model_config": None,
-        "text_to_image_inference_model_config": None,
+        "text_to_text_model_config": None,
+        "text_to_image_model_config": None,
     },
     # for simple-one-frame
     {
@@ -134,8 +134,8 @@ _strategy_config_specs = [
         "is_default": True,
         "description": """The default config for strategy simple-one-frame.""",
         "parameters": {},
-        "text_to_text_inference_model_config": "gpt-neo-default",
-        "text_to_image_inference_model_config": "stability-stable-diffusion-1.5",
+        "text_to_text_model_config": "gpt-neo-default",
+        "text_to_image_model_config": "stability-stable-diffusion-1.5",
     },
     # for simple-one-frame w GPT-3 Davinci
     {
@@ -144,8 +144,8 @@ _strategy_config_specs = [
         "is_default": False,
         "description": """A config for strategy simple-one-frame with GPT-3 Davinci.""",
         "parameters": {},
-        "text_to_text_inference_model_config": "davinci-default",
-        "text_to_image_inference_model_config": "stability-stable-diffusion-1.5",
+        "text_to_text_model_config": "davinci-default",
+        "text_to_image_model_config": "stability-stable-diffusion-1.5",
     },
 ]
 
@@ -164,12 +164,8 @@ async def forwards():
                 is_default=config_spec["is_default"],
                 description=config_spec["description"],
                 parameters=config_spec["parameters"],
-                text_to_text_inference_model_config=config_spec[
-                    "text_to_text_inference_model_config"
-                ],
-                text_to_image_inference_model_config=config_spec[
-                    "text_to_image_inference_model_config"
-                ],
+                text_to_text_model_config=config_spec["text_to_text_model_config"],
+                text_to_image_model_config=config_spec["text_to_image_model_config"],
                 date_created=now,
                 date_updated=now,
             )

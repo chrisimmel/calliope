@@ -39,7 +39,7 @@ class SimpleOneFrameStoryStrategy(StoryStrategy):
         parameters: FramesRequestParamsModel,
         image_analysis: Optional[Dict[str, Any]],
         strategy_config: Optional[StrategyConfig],
-        inference_model_configs: InferenceModelConfigsModel,
+        model_configs: InferenceModelConfigsModel,
         keys: KeysModel,
         sparrow_state: SparrowState,
         story: Story,
@@ -67,7 +67,7 @@ class SimpleOneFrameStoryStrategy(StoryStrategy):
                 description = parameters.input_text
 
         text = await text_to_extended_text_inference(
-            aiohttp_session, description, inference_model_configs, keys
+            aiohttp_session, description, model_configs, keys
         )
         prompt_template = output_image_style + " {x}"
         print(text)
@@ -84,7 +84,7 @@ class SimpleOneFrameStoryStrategy(StoryStrategy):
                     aiohttp_session,
                     prompt,
                     output_image_filename_png,
-                    inference_model_configs,
+                    model_configs,
                     keys,
                     parameters.output_image_width,
                     parameters.output_image_height,

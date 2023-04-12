@@ -175,7 +175,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
         parameters: FramesRequestParamsModel,
         image_analysis: Optional[Dict[str, Any]],
         strategy_config: Optional[StrategyConfig],
-        inference_model_configs: InferenceModelConfigsModel,
+        model_configs: InferenceModelConfigsModel,
         keys: KeysModel,
         sparrow_state: SparrowState,
         story: Story,
@@ -227,7 +227,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
         story_continuation = await self._get_new_story_fragment(
             prompt,
             parameters,
-            inference_model_configs,
+            model_configs,
             keys,
             errors,
             story,
@@ -241,7 +241,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
             story_continuation = await self._get_new_story_fragment(
                 prompt,
                 parameters,
-                inference_model_configs,
+                model_configs,
                 keys,
                 errors,
                 story,
@@ -265,7 +265,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
                     aiohttp_session,
                     prompt,
                     output_image_filename_png,
-                    inference_model_configs,
+                    model_configs,
                     keys,
                     parameters.output_image_width,
                     parameters.output_image_height,
@@ -322,7 +322,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
         self,
         text: str,
         parameters: FramesRequestParamsModel,
-        inference_model_configs: InferenceModelConfigsModel,
+        model_configs: InferenceModelConfigsModel,
         keys: KeysModel,
         errors: List[str],
         story: Story,
@@ -331,7 +331,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
     ) -> str:
         try:
             text = await text_to_extended_text_inference(
-                aiohttp_session, text, inference_model_configs, keys
+                aiohttp_session, text, model_configs, keys
             )
             print(f"Raw output: '{text}'")
 

@@ -56,14 +56,14 @@ async def _hugging_face_request(
 async def _hugging_face_image_to_text_inference(
     aiohttp_session: aiohttp.ClientSession,
     image_data: bytes,
-    inference_model_config: InferenceModelConfigModel,
+    model_config: InferenceModelConfigModel,
     keys: KeysModel,
 ) -> str:
     """
     Takes the filename of an image. Returns a caption.
     """
     response = await _hugging_face_request(
-        aiohttp_session, image_data, inference_model_config.model_name, keys
+        aiohttp_session, image_data, model_config.model_name, keys
     )
     # predictions = json.loads(response.content.decode("utf-8"))
     predictions = await response.json()
@@ -94,13 +94,13 @@ def _azure_endpoint_to_api_url(azure_api_host: str, endpoint_name: str) -> str:
 async def _azure_vision_inference(
     aiohttp_session: aiohttp.ClientSession,
     image_data: bytes,
-    inference_model_config: InferenceModelConfigModel,
+    model_config: InferenceModelConfigModel,
     keys: KeysModel,
 ) -> Dict[str, Any]:
     api_host = keys.azure_api_host
     api_key = keys.azure_api_key
-    endpoint_name = inference_model_config.model_name
-    params = inference_model_config.parameters or {}
+    endpoint_name = model_config.model_name
+    params = model_config.parameters or {}
     api_url = _azure_endpoint_to_api_url(api_host, endpoint_name)
 
     if params:
@@ -231,13 +231,13 @@ def _interpret_azure_v4_metadata(raw_metadata: Dict[str, Any]) -> Dict[str, Any]
 async def image_analysis_inference(
     aiohttp_session: aiohttp.ClientSession,
     image_filename: str,
-    inference_model_configs: InferenceModelConfigsModel,
+    model_configs: InferenceModelConfigsModel,
     keys: KeysModel,
 ) -> Dict[str, Any]:
     """
     Takes the filename of an image. Returns a dictionary of metadata about the image.
     """
-    model_config = inference_model_configs.image_analysis_model_config
+    model_config = model_configs.image_analysis_model_config
 
     if model_config.provider == InferenceModelProvider.AZURE:
         # Don't know why, but Azure comp vision doesn't seem to like JPG files. Convert to PNG.
@@ -280,13 +280,13 @@ async def image_analysis_inference(
 async def image_ocr_inference(
     aiohttp_session: aiohttp.ClientSession,
     image_filename: str,
-    inference_model_configs: InferenceModelConfigsModel,
+    model_configs: InferenceModelConfigsModel,
     keys: KeysModel,
 ) -> Dict[str, Any]:
     """
     Takes the filename of an image. Returns a dictionary of metadata.
     """
-    model_config = inference_model_configs.image_ocr_model_config
+    model_config = model_configs.image_ocr_model_config
 
     if model_config.provider != InferenceModelProvider.AZURE:
         raise ValueError(
@@ -422,7 +422,7 @@ async def text_to_image_file_inference(
     aiohttp_session: aiohttp.ClientSession,
     text: str,
     output_image_filename: str,
-    inference_model_configs: InferenceModelConfigsModel,
+    model_configs: InferenceModelConfigsModel,
     keys: KeysModel,
     width: Optional[int] = None,
     height: Optional[int] = None,
@@ -430,7 +430,7 @@ async def text_to_image_file_inference(
     """
     Interprets a piece of text as an image. Returns the filename of the resulting image.
     """
-    model_config = inference_model_configs.text_to_image_model_config
+    model_config = model_configs.text_to_image_model_config
 
     if model_config.provider == InferenceModelProvider.HUGGINGFACE:
         print(f"text_to_image_file_inference.huggingface {model_config.model_name}")
@@ -478,10 +478,10 @@ async def text_to_image_file_inference(
 async def text_to_extended_text_inference(
     aiohttp_session: aiohttp.ClientSession,
     text: str,
-    inference_model_configs: InferenceModelConfigsModel,
+    model_configs: InferenceModelConfigsModel,
     keys: KeysModel,
 ) -> str:
-    model_config = inference_model_configs.text_to_text_model_config
+    model_config = model_configs.text_to_text_model_config
 
     if model_config.provider == InferenceModelProvider.HUGGINGFACE:
         print(f"text_to_extended_text_inference.huggingface {model_config.model_name}")

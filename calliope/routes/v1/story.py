@@ -176,7 +176,7 @@ async def handle_frames_request(
     (
         parameters,
         keys,
-        inference_model_configs,
+        model_configs,
     ) = await get_sparrow_story_parameters_and_keys(request_params, sparrow_state)
     parameters.strategy = parameters.strategy or "continuous-v1"
     parameters.debug = parameters.debug or False
@@ -217,7 +217,7 @@ async def handle_frames_request(
                 image_analysis = await image_analysis_inference(
                     aiohttp_session,
                     parameters.input_image_filename,
-                    inference_model_configs,
+                    model_configs,
                     keys,
                 )
 
@@ -229,7 +229,7 @@ async def handle_frames_request(
             parameters,
             image_analysis,
             strategy_config,
-            inference_model_configs,
+            model_configs,
             keys,
             sparrow_state,
             story,

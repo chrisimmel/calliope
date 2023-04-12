@@ -5,7 +5,7 @@ from .config import (
 from .image import Image
 from .model_config import (
     InferenceModel,
-    InferenceModelConfig,
+    ModelConfig,
     PromptTemplate,
     StrategyConfig,
 )
@@ -17,7 +17,7 @@ __all__ = [
     "ClientTypeConfig",
     "Image",
     "InferenceModel",
-    "InferenceModelConfig",
+    "ModelConfig",
     "PromptTemplate",
     "SparrowConfig",
     "SparrowState",

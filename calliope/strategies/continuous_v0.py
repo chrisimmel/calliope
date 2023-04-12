@@ -49,7 +49,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         parameters: FramesRequestParamsModel,
         image_analysis: Optional[Dict[str, Any]],
         strategy_config: Optional[StrategyConfig],
-        inference_model_configs: InferenceModelConfigsModel,
+        model_configs: InferenceModelConfigsModel,
         keys: KeysModel,
         sparrow_state: SparrowState,
         story: Story,
@@ -89,7 +89,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
             text_1 = await self._get_new_story_fragment(
                 text,
                 parameters,
-                inference_model_configs,
+                model_configs,
                 keys,
                 errors,
                 story,
@@ -99,7 +99,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
             text_2 = await self._get_new_story_fragment(
                 text_1,
                 parameters,
-                inference_model_configs,
+                model_configs,
                 keys,
                 errors,
                 story,
@@ -109,7 +109,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
             text_3 = await self._get_new_story_fragment(
                 text_2,
                 parameters,
-                inference_model_configs,
+                model_configs,
                 keys,
                 errors,
                 story,
@@ -136,7 +136,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
                     aiohttp_session,
                     prompt,
                     output_image_filename_png,
-                    inference_model_configs,
+                    model_configs,
                     keys,
                     parameters.output_image_width,
                     parameters.output_image_height,
@@ -167,7 +167,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         self,
         text: str,
         parameters: FramesRequestParamsModel,
-        inference_model_configs: InferenceModelConfigsModel,
+        model_configs: InferenceModelConfigsModel,
         keys: KeysModel,
         errors: List[str],
         story: StoryModel,
@@ -178,7 +178,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
 
         try:
             text = await text_to_extended_text_inference(
-                aiohttp_session, text, inference_model_configs, keys
+                aiohttp_session, text, model_configs, keys
             )
         except Exception as e:
             traceback.print_exc(file=sys.stderr)

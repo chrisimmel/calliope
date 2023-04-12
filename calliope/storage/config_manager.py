@@ -10,7 +10,7 @@ from calliope.models import (
     FramesRequestParamsModel,
     InferenceModelConfigsModel,
     KeysModel,
-    load_inference_model_configs,
+    load_model_configs,
     SparrowConfigModel,
     SparrowStateModel,
 )
@@ -18,7 +18,7 @@ from calliope.tables import (
     ClientTypeConfig,
     SparrowConfig,
 )
-from calliope.tables.model_config import InferenceModelConfig, StrategyConfig
+from calliope.tables.model_config import ModelConfig, StrategyConfig
 from calliope.utils.google import (
     delete_google_file,
     is_google_cloud_run_environment,
@@ -207,16 +207,16 @@ async def get_sparrow_story_parameters_and_keys(
             # the request take precedence.
             params_dict = {**client_type_config_dict, **params_dict}
 
-    inference_model_configs = _load_inference_model_configs(params_dict)
+    model_configs = _load_model_configs(params_dict)
 
     return (
         FramesRequestParamsModel(**params_dict),
         KeysModel(**keys_dict),
-        inference_model_configs,
+        model_configs,
     )
 
 
-def _load_inference_model_configs(
+def _load_model_configs(
     request_params_dict: Dict[str, Any]
 ) -> InferenceModelConfigsModel:
     config_names = {
@@ -231,7 +231,7 @@ def _load_inference_model_configs(
         )
         and name
     }
-    return load_inference_model_configs(**config_names)
+    return load_model_configs(**config_names)
 
 
 def _get_non_default_parameters(params_dict: Dict[str, Any]) -> Dict[str, Any]:
@@ -250,12 +250,11 @@ async def get_strategy_config(strategy_config_slug: str) -> Optional[StrategyCon
     Retrieves the given StrategyConfig, if any.
     Also loads referenced model configs, models, and prompt templates.
     """
+    print("Getting StrategyConfig and related objects...")
     return (
         await StrategyConfig.objects(
-            StrategyConfig.text_to_image_inference_model_config,
-            StrategyConfig.text_to_text_inference_model_config,
-            InferenceModelConfig.model,
-            InferenceModelConfig.prompt_template,
+            StrategyConfig.text_to_image_model_config.all_related(),
+            StrategyConfig.text_to_text_model_config.all_related(),
         )
         .where(StrategyConfig.slug == strategy_config_slug)
         .first()

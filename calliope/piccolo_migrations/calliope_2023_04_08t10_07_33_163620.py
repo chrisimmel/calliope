@@ -16,7 +16,9 @@ from piccolo.table import Table
 
 ID = "2023-04-08T10:07:33:163620"
 VERSION = "0.106.0"
-DESCRIPTION = "Adding InferenceModel, InferenceModelConfig, PromptTemplate, and StrategyConfig tables."
+DESCRIPTION = (
+    "Adding InferenceModel, ModelConfig, PromptTemplate, and StrategyConfig tables."
+)
 
 
 class InferenceModel(Table, tablename="inference_model"):
@@ -44,7 +46,7 @@ class InferenceModel(Table, tablename="inference_model"):
     )
 
 
-class InferenceModelConfig(Table, tablename="inference_model_config"):
+class ModelConfig(Table, tablename="model_config"):
     id = Serial(
         null=False,
         primary_key=True,
@@ -101,7 +103,7 @@ async def forwards():
 
     manager.add_table("InferenceModel", tablename="inference_model")
 
-    manager.add_table("InferenceModelConfig", tablename="inference_model_config")
+    manager.add_table("ModelConfig", tablename="model_config")
 
     manager.add_table("PromptTemplate", tablename="prompt_template")
 
@@ -286,8 +288,8 @@ async def forwards():
     )
 
     manager.add_column(
-        table_class_name="InferenceModelConfig",
-        tablename="inference_model_config",
+        table_class_name="ModelConfig",
+        tablename="model_config",
         column_name="slug",
         db_column_name="slug",
         column_class_name="Varchar",
@@ -307,8 +309,8 @@ async def forwards():
     )
 
     manager.add_column(
-        table_class_name="InferenceModelConfig",
-        tablename="inference_model_config",
+        table_class_name="ModelConfig",
+        tablename="model_config",
         column_name="description",
         db_column_name="description",
         column_class_name="Text",
@@ -327,8 +329,8 @@ async def forwards():
     )
 
     manager.add_column(
-        table_class_name="InferenceModelConfig",
-        tablename="inference_model_config",
+        table_class_name="ModelConfig",
+        tablename="model_config",
         column_name="model",
         db_column_name="model",
         column_class_name="ForeignKey",
@@ -350,8 +352,8 @@ async def forwards():
     )
 
     manager.add_column(
-        table_class_name="InferenceModelConfig",
-        tablename="inference_model_config",
+        table_class_name="ModelConfig",
+        tablename="model_config",
         column_name="prompt_template",
         db_column_name="prompt_template",
         column_class_name="ForeignKey",
@@ -373,8 +375,8 @@ async def forwards():
     )
 
     manager.add_column(
-        table_class_name="InferenceModelConfig",
-        tablename="inference_model_config",
+        table_class_name="ModelConfig",
+        tablename="model_config",
         column_name="model_parameters",
         db_column_name="model_parameters",
         column_class_name="JSONB",
@@ -393,8 +395,8 @@ async def forwards():
     )
 
     manager.add_column(
-        table_class_name="InferenceModelConfig",
-        tablename="inference_model_config",
+        table_class_name="ModelConfig",
+        tablename="model_config",
         column_name="date_created",
         db_column_name="date_created",
         column_class_name="Timestamptz",
@@ -413,8 +415,8 @@ async def forwards():
     )
 
     manager.add_column(
-        table_class_name="InferenceModelConfig",
-        tablename="inference_model_config",
+        table_class_name="ModelConfig",
+        tablename="model_config",
         column_name="date_updated",
         db_column_name="date_updated",
         column_class_name="Timestamptz",
@@ -639,12 +641,12 @@ async def forwards():
     manager.add_column(
         table_class_name="StrategyConfig",
         tablename="strategy_config",
-        column_name="text_to_text_inference_model_config",
-        db_column_name="text_to_text_inference_model_config",
+        column_name="text_to_text_model_config",
+        db_column_name="text_to_text_model_config",
         column_class_name="ForeignKey",
         column_class=ForeignKey,
         params={
-            "references": InferenceModelConfig,
+            "references": ModelConfig,
             "on_delete": OnDelete.cascade,
             "on_update": OnUpdate.cascade,
             "target_column": "slug",
@@ -662,12 +664,12 @@ async def forwards():
     manager.add_column(
         table_class_name="StrategyConfig",
         tablename="strategy_config",
-        column_name="text_to_image_inference_model_config",
-        db_column_name="text_to_image_inference_model_config",
+        column_name="text_to_image_model_config",
+        db_column_name="text_to_image_model_config",
         column_class_name="ForeignKey",
         column_class=ForeignKey,
         params={
-            "references": InferenceModelConfig,
+            "references": ModelConfig,
             "on_delete": OnDelete.cascade,
             "on_update": OnUpdate.cascade,
             "target_column": "slug",

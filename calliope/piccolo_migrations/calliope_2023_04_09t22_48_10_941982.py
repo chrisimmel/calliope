@@ -12,7 +12,7 @@ from piccolo.table import Table
 
 ID = "2023-04-09T22:48:10:941982"
 VERSION = "0.106.0"
-DESCRIPTION = "Seeding the InferenceModelConfig table."
+DESCRIPTION = "Seeding the ModelConfig table."
 
 
 class InferenceModel(Table):
@@ -31,7 +31,7 @@ class PromptTemplate(Table):
     slug = Varchar(length=80, unique=True, index=True)
 
 
-class InferenceModelConfig(Table):
+class ModelConfig(Table):
     """
     An inference model configuration.
     """
@@ -129,7 +129,7 @@ async def forwards():
         now = datetime.now()
 
         for config_spec in _model_config_specs:
-            model_config = InferenceModelConfig(
+            model_config = ModelConfig(
                 slug=config_spec["slug"],
                 description=config_spec["description"],
                 model=config_spec["model"],
