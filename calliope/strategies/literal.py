@@ -16,11 +16,7 @@ from calliope.models import (
 from calliope.models.frame_sequence_response import StoryFrameSequenceResponseModel
 from calliope.strategies.base import DEFAULT_MIN_DURATION_SECONDS, StoryStrategy
 from calliope.strategies.registry import StoryStrategyRegistry
-from calliope.tables import (
-    SparrowState,
-    Story,
-)
-from calliope.tables.model_config import StrategyConfig
+from calliope.tables import SparrowState, Story, StrategyConfig
 from calliope.utils.file import create_sequential_filename
 from calliope.utils.image import get_image_attributes
 
@@ -38,7 +34,6 @@ class LiteralStrategy(StoryStrategy):
         parameters: FramesRequestParamsModel,
         image_analysis: Optional[Dict[str, Any]],
         strategy_config: Optional[StrategyConfig],
-        model_configs: InferenceModelConfigsModel,
         keys: KeysModel,
         sparrow_state: SparrowState,
         story: Story,
@@ -76,7 +71,7 @@ class LiteralStrategy(StoryStrategy):
                     aiohttp_session,
                     full_prompt,
                     output_image_filename_png,
-                    model_configs,
+                    strategy_config.text_to_image_model_config,
                     keys,
                     parameters.output_image_width,
                     parameters.output_image_height,

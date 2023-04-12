@@ -1,7 +1,7 @@
 import asyncio
 from datetime import datetime, timezone
 from enum import Enum
-import glob
+import json
 import os
 from typing import Any, Dict, Optional, Tuple
 
@@ -250,8 +250,7 @@ async def get_strategy_config(strategy_config_slug: str) -> Optional[StrategyCon
     Retrieves the given StrategyConfig, if any.
     Also loads referenced model configs, models, and prompt templates.
     """
-    print("Getting StrategyConfig and related objects...")
-    return (
+    strategy_config = (
         await StrategyConfig.objects(
             StrategyConfig.text_to_image_model_config.all_related(),
             StrategyConfig.text_to_text_model_config.all_related(),
@@ -261,3 +260,41 @@ async def get_strategy_config(strategy_config_slug: str) -> Optional[StrategyCon
         .output(load_json=True)
         .run()
     )
+
+    if strategy_config.text_to_text_model_config and isinstance(
+        strategy_config.text_to_text_model_config.model_parameters, str
+    ):
+        strategy_config.text_to_text_model_config.model_parameters = json.loads(
+            strategy_config.text_to_text_model_config.model_parameters
+        )
+    if strategy_config.text_to_image_model_config and isinstance(
+        strategy_config.text_to_image_model_config.model_parameters, str
+    ):
+        strategy_config.text_to_image_model_config.model_parameters = json.loads(
+            strategy_config.text_to_image_model_config.model_parameters
+        )
+    if strategy_config.text_to_text_model_config.model and isinstance(
+        strategy_config.text_to_text_model_config.model.model_parameters, str
+    ):
+        strategy_config.text_to_text_model_config.model.model_parameters = json.loads(
+            strategy_config.text_to_text_model_config.model.model_parameters
+        )
+    if strategy_config.text_to_image_model_config.model and isinstance(
+        strategy_config.text_to_image_model_config.model.model_parameters, str
+    ):
+        strategy_config.text_to_image_model_config.model.model_parameters = json.loads(
+            strategy_config.text_to_image_model_config.model.model_parameters
+        )
+
+    print(
+        f"""strategy_config=
+      'slug:' {strategy_config.slug},
+      'strategy_name:' {strategy_config.strategy_name},
+      'is_default': {strategy_config.is_default},
+      'parameters': {strategy_config.parameters},
+      'text_to_text_model_config': {strategy_config.text_to_text_model_config},
+      'text_to_image_model_config': {strategy_config.text_to_image_model_config}
+      """
+    )
+
+    return strategy_config

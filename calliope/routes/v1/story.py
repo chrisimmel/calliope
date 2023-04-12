@@ -229,7 +229,6 @@ async def handle_frames_request(
             parameters,
             image_analysis,
             strategy_config,
-            model_configs,
             keys,
             sparrow_state,
             story,

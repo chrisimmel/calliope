@@ -34,7 +34,6 @@ class ShowThisFrameStrategy(StoryStrategy):
         parameters: FramesRequestParamsModel,
         image_analysis: Optional[Dict[str, Any]],
         strategy_config: Optional[StrategyConfig],
-        model_configs: InferenceModelConfigsModel,
         keys: KeysModel,
         sparrow_state: SparrowState,
         story: Story,

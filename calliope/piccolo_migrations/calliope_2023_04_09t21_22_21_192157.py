@@ -242,6 +242,31 @@ Continuation:
 {{ output_image_style }} {{ prompt_text }}"
         """,
     },
+    {
+        "slug": "desnos-seed",
+        "description": """
+        A parameterless seed for a Desnos-inspired story.
+        """,
+        "text": """
+To the right, the sky, to the left, the sea.
+And before your eyes, the grass and its flowers.
+A cloud, the road, follows its vertical way
+Parallel to the plumb line of the horizon,
+Parallel to the rider.
+The horse races towards its imminent fall
+And the other climbs interminably.
+How simple and strange everything is.
+Lying on my left side
+I take no interest in the landscape
+And I think only of things that are very vague,
+Very vague and very pleasant,
+Like the tired look you walk around with
+Through this beautiful summer afternoon
+To the right, to the left,
+Here, there,
+In the delirium of uselessness.
+""",
+    },
 ]
 
 

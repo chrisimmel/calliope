@@ -175,7 +175,6 @@ class ContinuousStoryV1Strategy(StoryStrategy):
         parameters: FramesRequestParamsModel,
         image_analysis: Optional[Dict[str, Any]],
         strategy_config: Optional[StrategyConfig],
-        model_configs: InferenceModelConfigsModel,
         keys: KeysModel,
         sparrow_state: SparrowState,
         story: Story,
@@ -227,7 +226,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
         story_continuation = await self._get_new_story_fragment(
             prompt,
             parameters,
-            model_configs,
+            strategy_config,
             keys,
             errors,
             story,
@@ -241,7 +240,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
             story_continuation = await self._get_new_story_fragment(
                 prompt,
                 parameters,
-                model_configs,
+                strategy_config,
                 keys,
                 errors,
                 story,
@@ -265,7 +264,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
                     aiohttp_session,
                     prompt,
                     output_image_filename_png,
-                    model_configs,
+                    strategy_config.text_to_image_model_config,
                     keys,
                     parameters.output_image_width,
                     parameters.output_image_height,
@@ -322,7 +321,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
         self,
         text: str,
         parameters: FramesRequestParamsModel,
-        model_configs: InferenceModelConfigsModel,
+        strategy_config: StrategyConfig,
         keys: KeysModel,
         errors: List[str],
         story: Story,
@@ -331,7 +330,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
     ) -> str:
         try:
             text = await text_to_extended_text_inference(
-                aiohttp_session, text, model_configs, keys
+                aiohttp_session, text, strategy_config.text_to_text_model_config, keys
             )
             print(f"Raw output: '{text}'")
 

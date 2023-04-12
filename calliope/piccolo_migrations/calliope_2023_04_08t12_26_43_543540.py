@@ -247,6 +247,7 @@ async def forwards():
                 description=model_config.description,
                 provider=model_config.provider,
                 provider_api_variant=model_config.provider_variant,
+                provider_model_name=model_config.model_name,
                 model_parameters=model_config.parameters,
                 date_created=now,
                 date_updated=now,
