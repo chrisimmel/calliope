@@ -261,40 +261,45 @@ async def get_strategy_config(strategy_config_slug: str) -> Optional[StrategyCon
         .run()
     )
 
-    if strategy_config.text_to_text_model_config and isinstance(
-        strategy_config.text_to_text_model_config.model_parameters, str
-    ):
-        strategy_config.text_to_text_model_config.model_parameters = json.loads(
-            strategy_config.text_to_text_model_config.model_parameters
-        )
-    if strategy_config.text_to_image_model_config and isinstance(
-        strategy_config.text_to_image_model_config.model_parameters, str
-    ):
-        strategy_config.text_to_image_model_config.model_parameters = json.loads(
-            strategy_config.text_to_image_model_config.model_parameters
-        )
-    if strategy_config.text_to_text_model_config.model and isinstance(
-        strategy_config.text_to_text_model_config.model.model_parameters, str
-    ):
-        strategy_config.text_to_text_model_config.model.model_parameters = json.loads(
-            strategy_config.text_to_text_model_config.model.model_parameters
-        )
-    if strategy_config.text_to_image_model_config.model and isinstance(
-        strategy_config.text_to_image_model_config.model.model_parameters, str
-    ):
-        strategy_config.text_to_image_model_config.model.model_parameters = json.loads(
-            strategy_config.text_to_image_model_config.model.model_parameters
-        )
+    if strategy_config:
+        if strategy_config.text_to_text_model_config and isinstance(
+            strategy_config.text_to_text_model_config.model_parameters, str
+        ):
+            strategy_config.text_to_text_model_config.model_parameters = json.loads(
+                strategy_config.text_to_text_model_config.model_parameters
+            )
+        if strategy_config.text_to_image_model_config and isinstance(
+            strategy_config.text_to_image_model_config.model_parameters, str
+        ):
+            strategy_config.text_to_image_model_config.model_parameters = json.loads(
+                strategy_config.text_to_image_model_config.model_parameters
+            )
+        if strategy_config.text_to_text_model_config.model and isinstance(
+            strategy_config.text_to_text_model_config.model.model_parameters, str
+        ):
+            strategy_config.text_to_text_model_config.model.model_parameters = (
+                json.loads(
+                    strategy_config.text_to_text_model_config.model.model_parameters
+                )
+            )
+        if strategy_config.text_to_image_model_config.model and isinstance(
+            strategy_config.text_to_image_model_config.model.model_parameters, str
+        ):
+            strategy_config.text_to_image_model_config.model.model_parameters = (
+                json.loads(
+                    strategy_config.text_to_image_model_config.model.model_parameters
+                )
+            )
 
-    print(
-        f"""strategy_config=
-      'slug:' {strategy_config.slug},
-      'strategy_name:' {strategy_config.strategy_name},
-      'is_default': {strategy_config.is_default},
-      'parameters': {strategy_config.parameters},
-      'text_to_text_model_config': {strategy_config.text_to_text_model_config},
-      'text_to_image_model_config': {strategy_config.text_to_image_model_config}
-      """
-    )
+        print(
+            f"""strategy_config=
+        'slug:' {strategy_config.slug},
+        'strategy_name:' {strategy_config.strategy_name},
+        'is_default': {strategy_config.is_default},
+        'parameters': {strategy_config.parameters},
+        'text_to_text_model_config': {strategy_config.text_to_text_model_config},
+        'text_to_image_model_config': {strategy_config.text_to_image_model_config}
+        """
+        )
 
     return strategy_config

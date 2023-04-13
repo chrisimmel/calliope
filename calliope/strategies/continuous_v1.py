@@ -215,6 +215,13 @@ class ContinuousStoryV1Strategy(StoryStrategy):
 
         # Get some recent text.
         last_text = await story.get_text(-1)
+        if not last_text or last_text.isspace():
+            last_text = (
+                strategy_config.seed_prompt_template.text
+                if strategy_config.seed_prompt_template
+                else ""
+            )
+
         last_text = (last_text.strip() + " ") if last_text else ""
         print(f"{last_text=}")
 

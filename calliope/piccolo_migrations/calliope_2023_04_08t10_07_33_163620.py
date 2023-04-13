@@ -687,6 +687,29 @@ async def forwards():
     manager.add_column(
         table_class_name="StrategyConfig",
         tablename="strategy_config",
+        column_name="seed_prompt_template",
+        db_column_name="seed_prompt_template",
+        column_class_name="ForeignKey",
+        column_class=ForeignKey,
+        params={
+            "references": PromptTemplate,
+            "on_delete": OnDelete.cascade,
+            "on_update": OnUpdate.cascade,
+            "target_column": "slug",
+            "null": True,
+            "primary_key": False,
+            "unique": False,
+            "index": False,
+            "index_method": IndexMethod.btree,
+            "choices": None,
+            "db_column_name": None,
+            "secret": False,
+        },
+    )
+
+    manager.add_column(
+        table_class_name="StrategyConfig",
+        tablename="strategy_config",
         column_name="date_created",
         db_column_name="date_created",
         column_class_name="Timestamptz",

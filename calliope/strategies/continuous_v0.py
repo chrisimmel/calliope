@@ -75,6 +75,13 @@ class ContinuousStoryV0Strategy(StoryStrategy):
 
         # Get last four frames of text.
         last_text = await story.get_text(-4)
+        if not last_text or last_text.isspace():
+            last_text = (
+                strategy_config.seed_prompt_template.text
+                if strategy_config.seed_prompt_template
+                else ""
+            )
+
         if last_text:
             last_text_tokens = last_text
             # last_text_tokens = last_text_tokens[int(len(last_text_tokens) / 2) :]
@@ -82,14 +89,6 @@ class ContinuousStoryV0Strategy(StoryStrategy):
             last_text = " ".join(last_text_tokens)
 
         text = f"{input_text} {last_text}"
-        if not text or text.isspace():
-            prompt_seed = (
-                await PromptTemplate.objects()
-                .where(PromptTemplate.slug == "desnos-seed")
-                .first()
-                .run()
-            )
-            text = prompt_seed.text if prompt_seed else ""
 
         print(f'Text prompt: "{text}"')
         if text and not text.isspace():

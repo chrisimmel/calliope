@@ -107,7 +107,7 @@ class ModelConfig(Table, tablename="model_config"):
     # THe inference model.
     model = ForeignKey(references=InferenceModel, target_column=InferenceModel.slug)
 
-    # Optional slug of the prompt template to use when invoking the model.
+    # Optional link to the prompt template to use when invoking the model.
     prompt_template = ForeignKey(
         references=PromptTemplate, target_column=PromptTemplate.slug, null=True
     )
@@ -143,18 +143,23 @@ class StrategyConfig(Table, tablename="strategy_config"):
     # The strategy parameters.
     parameters = JSONB(null=True)
 
-    # THe default text -> text inference model config.
+    # The default text -> text inference model config.
     text_to_text_model_config = ForeignKey(
         references=ModelConfig,
         target_column=ModelConfig.slug,
         null=True,
     )
-
     # THe default text -> image inference model config.
     text_to_image_model_config = ForeignKey(
         references=ModelConfig,
         target_column=ModelConfig.slug,
         null=True,
+    )
+
+    # Optional link to the prompt template to use as the hidden seed text to get a story
+    # going when there is no prior story text.
+    seed_prompt_template = ForeignKey(
+        references=PromptTemplate, target_column=PromptTemplate.slug, null=True
     )
 
     date_created = Timestamptz()

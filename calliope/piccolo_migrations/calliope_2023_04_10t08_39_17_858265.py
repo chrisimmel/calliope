@@ -24,6 +24,14 @@ class ModelConfig(Table):
     slug = Varchar(length=80, unique=True, index=True)
 
 
+class PromptTemplate(Table):
+    """
+    A stub for the real model, needed just to resolve the foreign key.
+    """
+
+    slug = Varchar(length=80, unique=True, index=True)
+
+
 class StrategyConfig(Table):
     """
     For example:
@@ -62,6 +70,12 @@ class StrategyConfig(Table):
         null=True,
     )
 
+    # Optional link to the prompt template to use as the hidden seed text to get a story
+    # going when there is no prior story text.
+    seed_prompt_template = ForeignKey(
+        references=PromptTemplate, target_column=PromptTemplate.slug, null=True
+    )
+
     date_created = Timestamptz()
     date_updated = Timestamptz(auto_update=datetime.now)
 
@@ -76,6 +90,7 @@ _strategy_config_specs = [
         "parameters": {},
         "text_to_text_model_config": "gpt-neo-default",
         "text_to_image_model_config": "stability-stable-diffusion-1.5",
+        "seed_prompt_template": "desnos-seed",
     },
     # for continuous-v1 w GPT-3 Curie
     {
@@ -86,6 +101,7 @@ _strategy_config_specs = [
         "parameters": {},
         "text_to_text_model_config": "curie-default",
         "text_to_image_model_config": "stability-stable-diffusion-1.5",
+        "seed_prompt_template": "desnos-seed",
     },
     # for continuous-v1 w GPT-3 Davinci
     {
@@ -96,6 +112,7 @@ _strategy_config_specs = [
         "parameters": {},
         "text_to_text_model_config": "davinci-default",
         "text_to_image_model_config": "stability-stable-diffusion-1.5",
+        "seed_prompt_template": "desnos-seed",
     },
     # for continuous-v1 w GPT-4
     {
@@ -106,6 +123,7 @@ _strategy_config_specs = [
         "parameters": {},
         "text_to_text_model_config": "gpt-4-default",
         "text_to_image_model_config": "stability-stable-diffusion-1.5",
+        "seed_prompt_template": "desnos-seed",
     },
     # for literal
     {
@@ -166,6 +184,7 @@ async def forwards():
                 parameters=config_spec["parameters"],
                 text_to_text_model_config=config_spec["text_to_text_model_config"],
                 text_to_image_model_config=config_spec["text_to_image_model_config"],
+                seed_prompt_template=config_spec.get("seed_prompt_template"),
                 date_created=now,
                 date_updated=now,
             )
