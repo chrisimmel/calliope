@@ -12,7 +12,6 @@ from calliope.inference import (
 from calliope.models import (
     FramesRequestParamsModel,
     KeysModel,
-    StoryModel,
 )
 from calliope.models.frame_sequence_response import StoryFrameSequenceResponseModel
 from calliope.strategies.base import DEFAULT_MIN_DURATION_SECONDS, StoryStrategy
@@ -76,6 +75,16 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         # Get last four frames of text.
         last_text = await story.get_text(-4)
         if not last_text or last_text.isspace():
+            if strategy_config.seed_prompt_template:
+                if isinstance(strategy_config.seed_prompt_template, str):
+                    strategy_config.seed_prompt_template = (
+                        await PromptTemplate.objects()
+                        .where(
+                            PromptTemplate.slug == strategy_config.seed_prompt_template
+                        )
+                        .first()
+                        .run()
+                    )
             last_text = (
                 strategy_config.seed_prompt_template.text
                 if strategy_config.seed_prompt_template

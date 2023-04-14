@@ -10,9 +10,9 @@ from piccolo.columns import (
 from piccolo.table import Table
 
 
-ID = "2023-04-09T22:48:10:941982"
+ID = "2023-04-14T13:02:38:011157"
 VERSION = "0.106.0"
-DESCRIPTION = "Seeding the ModelConfig table."
+DESCRIPTION = ""
 
 
 class InferenceModel(Table):
@@ -59,71 +59,11 @@ class ModelConfig(Table):
 
 _model_config_specs = [
     #
-    # Text-to-text models...
-    # for GTP-Neo
-    {
-        "slug": "gpt-neo-default",
-        "description": """The default configuration for GPT-NEO carries a simple pass-through prompt and no extra parameters.""",
-        "model": "huggingface-gpt-neo-2.7B",
-        "prompt_template": "continue-pass-through",
-        "model_parameters": {},
-    },
-    # for GPT-3 Curie
-    {
-        "slug": "curie-default",
-        "description": """The default configuration for GPT-3 Curie works well with strategy continuous-v1.""",
-        "model": "openai-curie",
-        "prompt_template": "continuous-v1-curie-simple",
-        "model_parameters": {},
-    },
-    # for GPT-3 Davinci
-    {
-        "slug": "davinci-default",
-        "description": """The default configuration for GPT-3 Davinci works well with strategy continuous-v1.""",
-        "model": "openai-davinci-03",
-        "prompt_template": "continuous-v1-davinci-few-shot-00",
-        "model_parameters": {},
-    },
-    # for GPT-4
-    {
-        "slug": "gpt-4-default",
-        "description": """The default configuration for GPT-4 works well with strategy continuous-v1.""",
-        "model": "openai-gpt-4",
-        "prompt_template": "continuous-v1-gpt-4-few-shot-00",
-        "model_parameters": {},
-    },
-    #
-    # Text-to-image models...
-    # for huggingface-stable-diffusion-1.5
-    {
-        "slug": "huggingface-stable-diffusion-1.5",
-        "description": """The default configuration for Hugging Face Stable Diffusion.""",
-        "model": "huggingface-stable-diffusion-1.5",
-        "prompt_template": "styled-image",
-        "model_parameters": {},
-    },
-    # for stability-stable-diffusion-1.5
-    {
-        "slug": "stability-stable-diffusion-1.5",
-        "description": """The default configuration for Stability Stable Diffusion.""",
-        "model": "stability-stable-diffusion-1.5",
-        "prompt_template": "styled-image",
-        "model_parameters": {},
-    },
-    # for openai-dall-e-2
-    {
-        "slug": "openai-dall-e-2",
-        "description": """The default configuration for DALL-E 2.""",
-        "model": "openai-dall-e-2",
-        "prompt_template": "styled-image",
-        "model_parameters": {},
-    },
-    #
     # Image-to-text models...
     # for azure-vision-analysis
     {
         "slug": "azure-vision-analysis",
-        "description": """The default configuration for Stability Stable Diffusion.""",
+        "description": """A configuration for Azure vision analysis.""",
         "model": "azure-vision-analysis",
         "prompt_template": None,
         "model_parameters": {},

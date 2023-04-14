@@ -12,20 +12,18 @@ from calliope.inference import (
 from calliope.models import (
     FramesRequestParamsModel,
     KeysModel,
-    InferenceModelConfigsModel,
-    # StoryFrameSequenceResponseModel,
 )
 from calliope.models.frame_sequence_response import StoryFrameSequenceResponseModel
 from calliope.strategies.base import DEFAULT_MIN_DURATION_SECONDS, StoryStrategy
 from calliope.strategies.registry import StoryStrategyRegistry
 from calliope.tables import (
+    PromptTemplate,
     SparrowState,
     Story,
 )
 from calliope.tables.model_config import StrategyConfig
 from calliope.utils.file import create_sequential_filename
 from calliope.utils.image import get_image_attributes
-from calliope.utils.string import split_into_sentences
 
 
 SHADOW_STORY = """
@@ -148,7 +146,9 @@ A door slams. A clock.
 And not only beings and things and physical sounds.
 But also me chasing myself or endlessly going beyond me.
 
-$scene, $text, $objects
+$scene
+$text
+$objects
 
 $poem"""
 
@@ -216,6 +216,16 @@ class ContinuousStoryV1Strategy(StoryStrategy):
         # Get some recent text.
         last_text = await story.get_text(-1)
         if not last_text or last_text.isspace():
+            if strategy_config.seed_prompt_template:
+                if isinstance(strategy_config.seed_prompt_template, str):
+                    strategy_config.seed_prompt_template = (
+                        await PromptTemplate.objects()
+                        .where(
+                            PromptTemplate.slug == strategy_config.seed_prompt_template
+                        )
+                        .first()
+                        .run()
+                    )
             last_text = (
                 strategy_config.seed_prompt_template.text
                 if strategy_config.seed_prompt_template
@@ -309,6 +319,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
         text: str,
         objects: str,
     ) -> str:
+        # TODO: Use the prompts from the strategy_config!
         if last_text:
             last_text_lines = last_text.split("\n")
             last_text_lines = last_text_lines[-8:]

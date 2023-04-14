@@ -96,7 +96,7 @@ _strategy_config_specs = [
     {
         "slug": "continuous-v1-curie",
         "strategy_name": "continuous-v1",
-        "is_default": False,
+        "is_default": True,
         "description": """The default config for strategy continuous-v1 with GPT-3 Curie.""",
         "parameters": {},
         "text_to_text_model_config": "curie-default",
@@ -107,7 +107,7 @@ _strategy_config_specs = [
     {
         "slug": "continuous-v1-davinci",
         "strategy_name": "continuous-v1",
-        "is_default": True,
+        "is_default": False,
         "description": """The default config for strategy continuous-v1 with GPT-3 Davinci.""",
         "parameters": {},
         "text_to_text_model_config": "davinci-default",

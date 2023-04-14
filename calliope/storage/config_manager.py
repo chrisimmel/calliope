@@ -115,7 +115,7 @@ def delete_client_type_config(client_type_id: str) -> None:
 
 async def get_sparrow_story_parameters_and_keys(
     request_params: FramesRequestParamsModel, sparrow_state: SparrowStateModel
-) -> Tuple[FramesRequestParamsModel, KeysModel, InferenceModelConfigsModel]:
+) -> Tuple[FramesRequestParamsModel, KeysModel]:
     """
     Gets the story parameters and keys given a set of request
     parameters, taking into account the sparrow and flock
@@ -207,31 +207,10 @@ async def get_sparrow_story_parameters_and_keys(
             # the request take precedence.
             params_dict = {**client_type_config_dict, **params_dict}
 
-    model_configs = _load_model_configs(params_dict)
-
     return (
         FramesRequestParamsModel(**params_dict),
         KeysModel(**keys_dict),
-        model_configs,
     )
-
-
-def _load_model_configs(
-    request_params_dict: Dict[str, Any]
-) -> InferenceModelConfigsModel:
-    config_names = {
-        key: name
-        for key, name in request_params_dict.items()
-        if key
-        in (
-            "image_to_text_model_config",
-            "text_to_image_model_config",
-            "text_to_text_model_config",
-            "audio_to_text_model_config",
-        )
-        and name
-    }
-    return load_model_configs(**config_names)
 
 
 def _get_non_default_parameters(params_dict: Dict[str, Any]) -> Dict[str, Any]:
@@ -250,6 +229,7 @@ async def get_strategy_config(strategy_config_slug: str) -> Optional[StrategyCon
     Retrieves the given StrategyConfig, if any.
     Also loads referenced model configs, models, and prompt templates.
     """
+    print(f"get_strategy_config({strategy_config_slug})")
     strategy_config = (
         await StrategyConfig.objects(
             StrategyConfig.text_to_image_model_config.all_related(),
@@ -260,6 +240,27 @@ async def get_strategy_config(strategy_config_slug: str) -> Optional[StrategyCon
         .output(load_json=True)
         .run()
     )
+
+    if not strategy_config:
+        print(
+            f"There isn't a strategy_config called {strategy_config_slug}. Looking for a default strategy_config for strategy {strategy_config_slug}."
+        )
+        # If StrategyConfig of the given slug is not found, then look for one that references
+        # a strategy of that name and for which is_default is True.
+        strategy_config = (
+            await StrategyConfig.objects(
+                StrategyConfig.text_to_image_model_config.all_related(),
+                StrategyConfig.text_to_text_model_config.all_related(),
+            )
+            .where(
+                (StrategyConfig.strategy_name == strategy_config_slug)
+                & (StrategyConfig.is_default == True)
+            )
+            .first()
+            .output(load_json=True)
+            .run()
+        )
+        print(f"Found {strategy_config.slug if strategy_config else None}.")
 
     if strategy_config:
         if strategy_config.text_to_text_model_config and isinstance(

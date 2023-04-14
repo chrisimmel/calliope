@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional
 
 import aiohttp
 from calliope.inference import image_analysis_inference
+from calliope.tables.model_config import InferenceModel, ModelConfig
 import cuid
 from fastapi import APIRouter, Depends, Request
 from fastapi.security.api_key import APIKey
@@ -102,8 +103,8 @@ async def get_frames(
     """
     base_url = get_base_url(request)
 
-    # return await handle_frames_request(request_params, base_url)
-    return await handle_frames_request_sleep(request_params, base_url)
+    return await handle_frames_request(request_params, base_url)
+    # return await handle_frames_request_sleep(request_params, base_url)
 
 
 async def handle_frames_request_sleep(
@@ -176,7 +177,6 @@ async def handle_frames_request(
     (
         parameters,
         keys,
-        model_configs,
     ) = await get_sparrow_story_parameters_and_keys(request_params, sparrow_state)
     parameters.strategy = parameters.strategy or "continuous-v1"
     parameters.debug = parameters.debug or False
@@ -217,13 +217,22 @@ async def handle_frames_request(
     async with aiohttp.ClientSession(raise_for_status=True) as aiohttp_session:
 
         if parameters.input_image_filename:
+            print(f"{parameters.input_image_filename=}")
+            model_config = (
+                await ModelConfig.objects(ModelConfig.model)
+                .where(ModelConfig.slug == "azure-vision-analysis")
+                .first()
+                .output(load_json=True)
+                .run()
+            )
             try:
                 image_analysis = await image_analysis_inference(
                     aiohttp_session,
                     parameters.input_image_filename,
-                    model_configs,
+                    model_config,
                     keys,
                 )
+                print(f"{image_analysis=}")
 
             except Exception as e:
                 traceback.print_exc(file=sys.stderr)

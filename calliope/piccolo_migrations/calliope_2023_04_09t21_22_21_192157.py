@@ -39,7 +39,9 @@ prompt_template_specs = [
         A prompt that simply passes through its input as the prompt.
         """,
         "text": """
-{{ scene }}, {{ text }}, {{ objects }}
+{% if scene %}{{ scene }}{% endif %}
+{% if text %}{{ text }}{% endif %}
+{% if objects %}{{ objects }}{% endif %}
 
 {{ poem }}""",
     },
@@ -67,7 +69,9 @@ A door slams. A clock.
 And not only beings and things and physical sounds.
 But also me chasing myself or endlessly going beyond me.
 
-{{ scene }}, {{ text }}, {{ objects }}
+{% if scene %}{{ scene }}{% endif %}
+{% if text %}{{ text }}{% endif %}
+{% if objects %}{{ objects }}{% endif %}
 
 {{ poem }}""",
     },
@@ -280,8 +284,8 @@ async def forwards():
         for template_spec in prompt_template_specs:
             prompt_template = PromptTemplate(
                 slug=template_spec["slug"],
-                description=template_spec["description"],
-                text=template_spec["text"],
+                description=template_spec["description"].strip(),
+                text=template_spec["text"].strip() + "\n",
                 date_created=now,
                 date_updated=now,
             )

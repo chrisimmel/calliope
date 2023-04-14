@@ -100,6 +100,11 @@ async def _azure_vision_inference(
 ) -> Dict[str, Any]:
     model = model_config.model
 
+    if isinstance(model.model_parameters, str):
+        model.model_parameters = json.loads(model.model_parameters)
+
+    print(f"{model.model_parameters=}")
+
     api_host = keys.azure_api_host
     api_key = keys.azure_api_key
     endpoint_name = model.provider_model_name
