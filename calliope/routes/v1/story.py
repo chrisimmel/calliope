@@ -187,6 +187,10 @@ async def handle_frames_request(
         strategy_config.strategy_name if strategy_config else parameters.strategy
     )
     strategy_class = StoryStrategyRegistry.get_strategy_class(strategy_name)
+    # TODO: Manage proper merge of parameters from all the classic and new config
+    # classes: model, model_config, strategy_config, sparrow_config, client_type.
+    # This is done today across sparrow_config and client_type, but not yet among
+    # the model, model_config, and strategy_config classes.
 
     story = sparrow_state.current_story
     if story and story.strategy_name != parameters.strategy:
