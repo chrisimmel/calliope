@@ -102,8 +102,8 @@ async def get_frames(
     """
     base_url = get_base_url(request)
 
-    return await handle_frames_request(request_params, base_url)
-    # return await handle_frames_request_sleep(request_params, base_url)
+    # return await handle_frames_request(request_params, base_url)
+    return await handle_frames_request_sleep(request_params, base_url)
 
 
 async def handle_frames_request_sleep(
