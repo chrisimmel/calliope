@@ -1,6 +1,6 @@
 import re
 import sys, traceback
-from typing import Any, Dict, List, Optional
+from typing import Any, cast, Dict, List, Optional
 
 import aiohttp
 
@@ -21,7 +21,7 @@ from calliope.tables import (
     SparrowState,
     Story,
 )
-from calliope.tables.model_config import StrategyConfig
+from calliope.tables.model_config import ModelConfig, StrategyConfig
 from calliope.utils.file import create_sequential_filename
 from calliope.utils.image import get_image_attributes
 
@@ -236,7 +236,13 @@ class ContinuousStoryV1Strategy(StoryStrategy):
         print(f"{last_text=}")
 
         prompt = self._compose_prompt(
-            parameters, story, last_text, image_scene, image_text, image_objects
+            parameters,
+            story,
+            last_text,
+            image_scene,
+            image_text,
+            image_objects,
+            strategy_config,
         )
 
         print(f'Text prompt: "{prompt}"')
@@ -318,21 +324,43 @@ class ContinuousStoryV1Strategy(StoryStrategy):
         scene: str,
         text: str,
         objects: str,
+        strategy_config: Optional[StrategyConfig],
     ) -> str:
-        # TODO: Use the prompts from the strategy_config!
         if last_text:
             last_text_lines = last_text.split("\n")
             last_text_lines = last_text_lines[-8:]
             last_text = "\n".join(last_text_lines)
-            prompt = STORY_PROMPT
         else:
-            last_text = parameters.input_text or SHADOW_STORY
-            prompt = STORY_PROMPT
+            last_text = parameters.input_text or (
+                strategy_config.seed_prompt_template
+                and strategy_config.seed_prompt_template.text
+            )
 
-        prompt = prompt.replace("$poem", last_text)
-        prompt = prompt.replace("$scene", scene)
-        prompt = prompt.replace("$text", text)
-        prompt = prompt.replace("$objects", objects)
+        model_config = (
+            cast(ModelConfig, strategy_config.text_to_text_model_config)
+            if strategy_config
+            else None
+        )
+        prompt_template = (
+            cast(PromptTemplate, model_config.prompt_template) if model_config else None
+        )
+
+        if prompt_template:
+            prompt = prompt_template.render(
+                {
+                    "poem": last_text,
+                    "scene": scene,
+                    "text": text,
+                    "objects": objects,
+                }
+            )
+        else:
+            prompt = STORY_PROMPT
+            prompt = prompt.replace("$poem", last_text)
+            prompt = prompt.replace("$scene", scene)
+            prompt = prompt.replace("$text", text)
+            prompt = prompt.replace("$objects", objects)
+
         return prompt
 
     async def _get_new_story_fragment(

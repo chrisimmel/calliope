@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Any, Dict
 
+import jinja2
 from piccolo.table import Table
 from piccolo.columns import (
     Boolean,
