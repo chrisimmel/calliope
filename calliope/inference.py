@@ -100,19 +100,18 @@ async def _azure_vision_inference(
 ) -> Dict[str, Any]:
     model = model_config.model
 
-    if isinstance(model.model_parameters, str):
-        model.model_parameters = json.loads(model.model_parameters)
-
-    print(f"{model.model_parameters=}")
+    parameters = {
+        **(model.model_parameters if model.model_parameters else {}),
+        **(model_config.model_parameters if model_config.model_parameters else {}),
+    }
 
     api_host = keys.azure_api_host
     api_key = keys.azure_api_key
     endpoint_name = model.provider_model_name
-    params = model.model_parameters or {}
     api_url = _azure_endpoint_to_api_url(api_host, endpoint_name)
 
-    if params:
-        params_str = urlencode(params)
+    if parameters:
+        params_str = urlencode(parameters)
         api_url += f"?{params_str}"
 
     headers = {
@@ -351,6 +350,11 @@ async def _text_to_image_file_inference_stability(
 ) -> str:
     model = model_config.model
 
+    parameters = {
+        **(model.model_parameters if model.model_parameters else {}),
+        **(model_config.model_parameters if model_config.model_parameters else {}),
+    }
+
     # I see no way to use aiohttp with the Stability Inference API. :-(
     stability_api = stability_client.StabilityInference(
         key=keys.stability_api_key,
@@ -373,7 +377,7 @@ async def _text_to_image_file_inference_stability(
         prompt=text,
         width=width,
         height=height,
-        **model.model_parameters,
+        **parameters,
     )
     for response in responses:
         for artifact in response.artifacts:
@@ -496,6 +500,11 @@ async def text_to_extended_text_inference(
     print(f"text_to_extended_text_inference: {model_config.slug}, {model_config.model}")
     model = model_config.model
 
+    parameters = {
+        **(model.model_parameters if model.model_parameters else {}),
+        **(model_config.model_parameters if model_config.model_parameters else {}),
+    }
+
     if model.provider == InferenceModelProvider.HUGGINGFACE:
         print(f"text_to_extended_text_inference.huggingface {model.provider_model_name}")
         text = text.replace(":", "")
@@ -525,7 +534,7 @@ async def text_to_extended_text_inference(
             response = await openai.ChatCompletion.acreate(
                 model=model.provider_model_name,
                 messages=messages,
-                **model.model_parameters,
+                **parameters,
             )
 
             extended_text = None
@@ -540,7 +549,7 @@ async def text_to_extended_text_inference(
             completion = await openai.Completion.acreate(
                 engine=model.provider_model_name,
                 prompt=text,
-                **model.model_parameters,
+                **parameters,
             )
             extended_text = completion.choices[0].text
         print(f'extended_text="{extended_text}"')
