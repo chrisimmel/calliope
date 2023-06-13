@@ -11,6 +11,7 @@ from piccolo.columns import (
     Varchar,
     Text,
 )
+from piccolo.columns.readable import Readable
 
 from calliope.models import InferenceModelProvider, InferenceModelProviderVariant
 
@@ -46,6 +47,10 @@ class PromptTemplate(Table, tablename="prompt_template"):
         environment = jinja2.Environment()
         template = environment.from_string(self.text)
         return template.render(context)
+
+    @classmethod
+    def get_readable(cls):
+        return Readable(template="%s", columns=[cls.slug])
 
 
 class InferenceModel(Table, tablename="inference_model"):
@@ -93,6 +98,10 @@ class InferenceModel(Table, tablename="inference_model"):
     date_created = Timestamptz()
     date_updated = Timestamptz(auto_update=datetime.now)
 
+    @classmethod
+    def get_readable(cls):
+        return Readable(template="%s", columns=[cls.slug])
+
 
 class ModelConfig(Table, tablename="model_config"):
     """
@@ -105,19 +114,21 @@ class ModelConfig(Table, tablename="model_config"):
     # Description and commentary.
     description = Text(null=True, required=False)
 
-    # THe inference model.
-    model = ForeignKey(references=InferenceModel, target_column=InferenceModel.slug)
+    # The inference model.
+    model = ForeignKey(references=InferenceModel)
 
     # Optional link to the prompt template to use when invoking the model.
-    prompt_template = ForeignKey(
-        references=PromptTemplate, target_column=PromptTemplate.slug, null=True
-    )
+    prompt_template = ForeignKey(references=PromptTemplate, null=True)
 
     # Parameters for the model (overriding those set in the InferenceModel).
     model_parameters = JSONB(null=True)
 
     date_created = Timestamptz()
     date_updated = Timestamptz(auto_update=datetime.now)
+
+    @classmethod
+    def get_readable(cls):
+        return Readable(template="%s", columns=[cls.slug])
 
 
 class StrategyConfig(Table, tablename="strategy_config"):
@@ -133,7 +144,7 @@ class StrategyConfig(Table, tablename="strategy_config"):
     slug = Varchar(length=80, unique=True, index=True)
 
     # Identifies the strategy.
-    strategy_name = Varchar(length=80, unique=True, index=True)
+    strategy_name = Varchar(length=80)
 
     # Whether this is the default configuration for its strategy.
     is_default = Boolean(default=False)
@@ -147,24 +158,24 @@ class StrategyConfig(Table, tablename="strategy_config"):
     # The default text -> text inference model config.
     text_to_text_model_config = ForeignKey(
         references=ModelConfig,
-        target_column=ModelConfig.slug,
         null=True,
     )
     # THe default text -> image inference model config.
     text_to_image_model_config = ForeignKey(
         references=ModelConfig,
-        target_column=ModelConfig.slug,
         null=True,
     )
 
     # Optional link to the prompt template to use as the hidden seed text to get a story
     # going when there is no prior story text.
-    seed_prompt_template = ForeignKey(
-        references=PromptTemplate, target_column=PromptTemplate.slug, null=True
-    )
+    seed_prompt_template = ForeignKey(references=PromptTemplate, null=True)
 
     date_created = Timestamptz()
     date_updated = Timestamptz(auto_update=datetime.now)
+
+    @classmethod
+    def get_readable(cls):
+        return Readable(template="%s", columns=[cls.slug])
 
 
 """

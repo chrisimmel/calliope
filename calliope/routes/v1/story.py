@@ -214,9 +214,11 @@ async def handle_frames_request(
 
         if parameters.input_image_filename:
             print(f"{parameters.input_image_filename=}")
+            # vision_model_slug = "azure-vision-analysis"
+            vision_model_slug = "mini-gpt-4"
             model_config = (
                 await ModelConfig.objects(ModelConfig.model)
-                .where(ModelConfig.slug == "azure-vision-analysis")
+                .where(ModelConfig.slug == vision_model_slug)
                 .first()
                 .output(load_json=True)
                 .run()

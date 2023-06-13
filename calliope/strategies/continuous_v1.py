@@ -102,13 +102,13 @@ In the night there are of course the seven wonders
 of the world and the greatness tragedy and enchantment.
 Forests collide with legendary creatures hiding in thickets.
 There is you.
-In the night there are the walker`s footsteps the murderer`s
-the town policeman`s light from the street lamp and the ragman`s lantern
+In the night there are the walker's footsteps the murderer's
+the town policeman's light from the street lamp and the ragman's lantern
 There is you.
 
 Continuation:
 In the night trains go past and boats
-and the fantasy of countries where it`s daytime. The last breaths
+and the fantasy of countries where it's daytime. The last breaths
 of twilight and the first shivers of dawn.
 There is you.
 A piano tune, a shout.
@@ -134,11 +134,11 @@ In the night there are of course the seven wonders
 of the world and the greatness tragedy and enchantment.
 Forests collide with legendary creatures hiding in thickets.
 There is you.
-In the night there are the walker`s footsteps the murderer`s
-the town policeman`s light from the street lamp and the ragman`s lantern
+In the night there are the walker's footsteps the murderer's
+the town policeman's light from the street lamp and the ragman's lantern
 There is you.
 In the night trains go past and boats
-and the fantasy of countries where it`s daytime. The last breaths
+and the fantasy of countries where it's daytime. The last breaths
 of twilight and the first shivers of dawn.
 There is you.
 A piano tune, a shout.
