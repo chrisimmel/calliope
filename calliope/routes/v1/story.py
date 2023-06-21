@@ -15,6 +15,7 @@ from calliope.models import FramesRequestParamsModel, StoryFrameModel
 from calliope.storage.config_manager import (
     get_sparrow_story_parameters_and_keys,
     get_strategy_config,
+    load_json_if_necessary,
 )
 from calliope.storage.state_manager import (
     get_sparrow_state,
@@ -214,8 +215,8 @@ async def handle_frames_request(
 
         if parameters.input_image_filename:
             print(f"{parameters.input_image_filename=}")
-            # vision_model_slug = "azure-vision-analysis"
-            vision_model_slug = "mini-gpt-4"
+            vision_model_slug = "azure-vision-analysis"
+            # vision_model_slug = "mini-gpt-4"
             model_config = (
                 await ModelConfig.objects(ModelConfig.model)
                 .where(ModelConfig.slug == vision_model_slug)
@@ -223,6 +224,12 @@ async def handle_frames_request(
                 .output(load_json=True)
                 .run()
             )
+            if (
+                model_config and model_config.model and model_config.model.model_parameters
+            ):
+                model_config.model.model_parameters = load_json_if_necessary(
+                    model_config.model.model_parameters
+                )
             try:
                 image_analysis = await image_analysis_inference(
                     aiohttp_session,

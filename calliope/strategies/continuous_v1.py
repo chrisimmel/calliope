@@ -217,7 +217,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
         last_text = await story.get_text(-1)
         if not last_text or last_text.isspace():
             if strategy_config.seed_prompt_template:
-                if isinstance(strategy_config.seed_prompt_template, str):
+                if isinstance(strategy_config.seed_prompt_template, int):
                     strategy_config.seed_prompt_template = (
                         await PromptTemplate.objects()
                         .where(
