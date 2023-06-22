@@ -95,7 +95,7 @@ export default function ClioApp() {
                 if (strategy) {
                     params.strategy = strategy
                 }
-                console.log("Consulting with Calliope...");
+                console.log("Calling Calliope...");
                 const response = await axios.post(
                     "/v1/frames/",
                     params,
