@@ -21,6 +21,8 @@ const getStrategy = () => {
     return queryParameters.get('strategy');
 };
 
+let last_image_url = "";
+
 export default function ClioApp() {
     const bottomRef = useRef(null);
 
@@ -29,7 +31,6 @@ export default function ClioApp() {
     const [frameData, setFrameData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [image_url, setImageUrl] = useState(null);
 
     const webcamRef = useRef(null);
     let uploadImage = null
@@ -95,7 +96,7 @@ export default function ClioApp() {
                 if (strategy) {
                     params.strategy = strategy
                 }
-                console.log("Consulting with Calliope...");
+
                 const response = await axios.post(
                     "/v1/frames/",
                     params,
@@ -112,13 +113,8 @@ export default function ClioApp() {
                 }
 
                 setFrameData(response.data);
-
                 const frame = getFrame(response.data);
                 if (frame) {
-                    if (frame.image && frame.image.url) {
-                        setImageUrl(`/${frame.image.url}`);
-                    }
-    
                     if (frame && frame.text) {
                         setAppendToPriorFrames(response.data.append_to_prior_frames)
                         if (response.data.append_to_prior_frames) {
@@ -131,6 +127,7 @@ export default function ClioApp() {
                 }
 
                 setError(null);
+
                 getFramesInterval = setInterval(getFrames, 20000);
             } catch (err) {
                 setError(err.message);
@@ -138,9 +135,7 @@ export default function ClioApp() {
                 setLoading(false);
             }
         }
-        // Wait a second before requesting the first frame, giving the
-        // Webcam a beat to initialize.
-        getFramesInterval = setInterval(getFrames, 1000);
+        getFrames()
 
         return () => {
             // Clear the interval when unmounting the component.
@@ -151,6 +146,11 @@ export default function ClioApp() {
     },
         []
     );
+
+    const frame = getFrame(frameData);
+    const image = frame ? frame.image : null;
+    const image_url = image ? `/${image.url}` : ""; // last_image_url;
+    // last_image_url = image_url;
 
     return <>
         <Webcam
@@ -180,3 +180,4 @@ audio={true}
 muted={true}
 audioConstraints={audioConstraints}
 */
+x``
