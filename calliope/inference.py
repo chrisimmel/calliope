@@ -508,8 +508,9 @@ async def text_to_extended_text_inference(
     if model.provider == InferenceModelProvider.HUGGINGFACE:
         print(f"text_to_extended_text_inference.huggingface {model.provider_model_name}")
         text = text.replace(":", "")
-        payload = {"inputs": text}
+        payload = {"inputs": text, "return_full_text": False, "max_new_tokens": 250}
         data = json.dumps(payload)
+        # data = text
         response = await _hugging_face_request(
             aiohttp_session, data, model.provider_model_name, keys
         )

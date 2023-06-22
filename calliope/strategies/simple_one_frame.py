@@ -64,6 +64,8 @@ class SimpleOneFrameStoryStrategy(StoryStrategy):
             else:
                 description = parameters.input_text
 
+        print(f"{description=} {strategy_config.text_to_text_model_config=}")
+
         text = await text_to_extended_text_inference(
             aiohttp_session, description, strategy_config.text_to_text_model_config, keys
         )
