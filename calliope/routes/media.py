@@ -61,7 +61,7 @@ async def put_media(
 ) -> None:
     """
     Puts a media file in place for later use. Typical usage would be to upload
-    an image for use by the 'show_this_frame' strategy.
+    an image for use by the 'show-this-frame' strategy.
     """
     local_filename = f"media/{filename}"
     try:

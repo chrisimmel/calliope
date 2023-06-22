@@ -1,28 +1,26 @@
 import re
 import sys, traceback
-from typing import List
+from typing import Any, Dict, List, Optional
 
 import aiohttp
 
 from calliope.inference import (
     caption_to_prompt,
-    image_analysis_inference,
     text_to_extended_text_inference,
     text_to_image_file_inference,
 )
 from calliope.models import (
     FramesRequestParamsModel,
     KeysModel,
-    InferenceModelConfigsModel,
-    SparrowStateModel,
-    StoryModel,
 )
 from calliope.models.frame_sequence_response import StoryFrameSequenceResponseModel
 from calliope.strategies.base import DEFAULT_MIN_DURATION_SECONDS, StoryStrategy
 from calliope.strategies.registry import StoryStrategyRegistry
 from calliope.tables import (
+    PromptTemplate,
     SparrowState,
     Story,
+    StrategyConfig,
 )
 from calliope.utils.file import create_sequential_filename
 from calliope.utils.image import get_image_attributes
@@ -42,12 +40,13 @@ class ContinuousStoryV0Strategy(StoryStrategy):
     Returns a single frame.
     """
 
-    strategy_name = "continuous_v0"
+    strategy_name = "continuous-v0"
 
     async def get_frame_sequence(
         self,
         parameters: FramesRequestParamsModel,
-        inference_model_configs: InferenceModelConfigsModel,
+        image_analysis: Optional[Dict[str, Any]],
+        strategy_config: Optional[StrategyConfig],
         keys: KeysModel,
         sparrow_state: SparrowState,
         story: Story,
@@ -60,37 +59,12 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         )
         debug_data = self._get_default_debug_data(parameters)
         errors = []
-        caption = ""
+        caption = image_analysis.get("description") if image_analysis else None
         prompt = None
         text = None
         image = None
-        frame_number = await story.get_num_frames()
-
-        if parameters.input_image_filename:
-            # caption = "Along the riverrun"
-            try:
-                """
-                caption = await image_file_to_text_inference(
-                    aiohttp_session,
-                    parameters.input_image_filename,
-                    inference_model_configs,
-                    keys,
-                )
-                """
-                analysis = await image_analysis_inference(
-                    aiohttp_session,
-                    parameters.input_image_filename,
-                    inference_model_configs,
-                    keys,
-                )
-                caption = analysis.get("description")
-                debug_data["i_see"] = caption
-
-            except Exception as e:
-                traceback.print_exc(file=sys.stderr)
-                errors.append(str(e))
-
         input_text = ""
+        frame_number = await story.get_num_frames()
 
         if parameters.input_text:
             if caption:
@@ -100,42 +74,56 @@ class ContinuousStoryV0Strategy(StoryStrategy):
 
         # Get last four frames of text.
         last_text = await story.get_text(-4)
+        if not last_text or last_text.isspace():
+            if strategy_config.seed_prompt_template:
+                if isinstance(strategy_config.seed_prompt_template, int):
+                    strategy_config.seed_prompt_template = await strategy_config.get_related(
+                        StrategyConfig.seed_prompt_template
+                    )
+                last_text = strategy_config.seed_prompt_template.text
+            else:
+                last_text = ""
+
         if last_text:
-            last_text_tokens = story.text.split()
+            last_text_tokens = last_text
             # last_text_tokens = last_text_tokens[int(len(last_text_tokens) / 2) :]
             last_text_tokens = last_text_tokens[-20:]
             last_text = " ".join(last_text_tokens)
 
         text = f"{input_text} {last_text}"
+
         print(f'Text prompt: "{text}"')
         if text and not text.isspace():
             text_1 = await self._get_new_story_fragment(
                 text,
                 parameters,
-                inference_model_configs,
+                strategy_config,
                 keys,
                 errors,
                 story,
+                last_text,
                 aiohttp_session,
             )
             print(f"{text_1=}")
             text_2 = await self._get_new_story_fragment(
                 text_1,
                 parameters,
-                inference_model_configs,
+                strategy_config,
                 keys,
                 errors,
                 story,
+                last_text,
                 aiohttp_session,
             )
             print(f"{text_2=}")
             text_3 = await self._get_new_story_fragment(
                 text_2,
                 parameters,
-                inference_model_configs,
+                strategy_config,
                 keys,
                 errors,
                 story,
+                last_text,
                 aiohttp_session,
             )
             print(f"{text_3=}")
@@ -159,7 +147,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
                     aiohttp_session,
                     prompt,
                     output_image_filename_png,
-                    inference_model_configs,
+                    strategy_config.text_to_image_model_config,
                     keys,
                     parameters.output_image_width,
                     parameters.output_image_height,
@@ -190,10 +178,11 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         self,
         text: str,
         parameters: FramesRequestParamsModel,
-        inference_model_configs: InferenceModelConfigsModel,
+        strategy_config: StrategyConfig,
         keys: KeysModel,
         errors: List[str],
-        story: StoryModel,
+        story: Story,
+        last_text: Optional[str],
         aiohttp_session: aiohttp.ClientSession,
     ) -> str:
         fragment_len = len(text)
@@ -201,7 +190,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
 
         try:
             text = await text_to_extended_text_inference(
-                aiohttp_session, text, inference_model_configs, keys
+                aiohttp_session, text, strategy_config.text_to_text_model_config, keys
             )
         except Exception as e:
             traceback.print_exc(file=sys.stderr)
@@ -222,7 +211,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
             print(msg)
             errors.append(msg)
             text = ""
-        elif stripped_text and stripped_text in story.text:
+        elif stripped_text and stripped_text in last_text:
             msg = f"Rejecting story continuation because it's already appeared in the story: {stripped_text[:100]}[...]"
             print(msg)
             errors.append(msg)

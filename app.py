@@ -29,10 +29,14 @@ from calliope.settings import settings
 from calliope.tables import (
     ClientTypeConfig,
     Image,
+    InferenceModel,
+    ModelConfig,
+    PromptTemplate,
     SparrowConfig,
     SparrowState,
     Story,
     StoryFrame,
+    StrategyConfig,
 )
 
 
@@ -49,8 +53,23 @@ def get_db_uri(user, passwd, host, db):
     return f"postgres://{user}:{passwd}@{host}:5432/{db}"
 
 
-MEDIA_ROOT = "./"
+PICCOLO_TABLES = [
+    ClientTypeConfig,
+    Image,
+    InferenceModel,
+    ModelConfig,
+    PromptTemplate,
+    SparrowConfig,
+    SparrowState,
+    Story,
+    StoryFrame,
+    StrategyConfig,
+]
 
+
+# Use a custom TableConfig and LocalMediaStorage for local images...
+
+MEDIA_ROOT = "./"
 
 IMAGE_MEDIA = LocalMediaStorage(
     column=Image.url,
@@ -63,30 +82,37 @@ image_local_config = TableConfig(
     media_storage=[IMAGE_MEDIA],
 )
 
+prompt_template_config = TableConfig(
+    table_class=PromptTemplate, link_column=PromptTemplate.slug
+)
+inference_model_config = TableConfig(
+    table_class=InferenceModel, link_column=InferenceModel.slug
+)
+model_config_config = TableConfig(table_class=ModelConfig, link_column=ModelConfig.slug)
+strategy_config_config = TableConfig(
+    table_class=StrategyConfig, link_column=StrategyConfig.slug
+)
 
-PICCOLO_TABLES = [
-    ClientTypeConfig,
-    Image,
-    SparrowConfig,
-    SparrowState,
-    Story,
-    StoryFrame,
-]
+
+def maybe_create_table_config(table: Table) -> Union[Table, TableConfig]:
+    return (
+        image_local_config
+        # TODO: GCP custom MediaStorage for images.
+        if table == Image and not is_google_cloud_run_environment
+        else prompt_template_config
+        if table == PromptTemplate
+        else inference_model_config
+        if table == InferenceModel
+        else model_config_config
+        if table == ModelConfig
+        else strategy_config_config
+        if table == StrategyConfig
+        else table
+    )
 
 
 def config_piccolo_tables() -> Sequence[Union[Table, TableConfig]]:
-    if is_google_cloud_run_environment:
-        # TODO: GCP custom MediaStorage for images.
-        return PICCOLO_TABLES
-    else:
-        return [
-            ClientTypeConfig,
-            image_local_config,
-            SparrowConfig,
-            SparrowState,
-            Story,
-            StoryFrame,
-        ]
+    return [maybe_create_table_config(table) for table in PICCOLO_TABLES]
 
 
 def create_app() -> FastAPI:

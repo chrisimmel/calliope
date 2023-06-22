@@ -1,31 +1,29 @@
 import re
 import sys, traceback
-from typing import List, Optional
+from typing import Any, cast, Dict, List, Optional
 
 import aiohttp
 
 from calliope.inference import (
     caption_to_prompt,
-    image_analysis_inference,
     text_to_extended_text_inference,
     text_to_image_file_inference,
 )
 from calliope.models import (
     FramesRequestParamsModel,
     KeysModel,
-    InferenceModelConfigsModel,
-    # StoryFrameSequenceResponseModel,
 )
 from calliope.models.frame_sequence_response import StoryFrameSequenceResponseModel
 from calliope.strategies.base import DEFAULT_MIN_DURATION_SECONDS, StoryStrategy
 from calliope.strategies.registry import StoryStrategyRegistry
 from calliope.tables import (
+    PromptTemplate,
     SparrowState,
     Story,
 )
+from calliope.tables.model_config import ModelConfig, StrategyConfig
 from calliope.utils.file import create_sequential_filename
 from calliope.utils.image import get_image_attributes
-from calliope.utils.string import split_into_sentences
 
 
 SHADOW_STORY = """
@@ -49,12 +47,14 @@ In the delirium of uselessness.
 """
 
 STORY_PROMPT_DAVINCI = """
-Given a scene, an optional text fragment, a list of objects, and a story, continue the story with four short, imaginative new sentences.
-Incorporate some of the scene and objects in the story. Use poetic, flowery prose in the style of Herman Melville.
-Nostalgia, solitude. Don't repeat sentences.
+Given a scene, an optional text fragment, a list of people and objects, and a story, continue the story with a few short sentences.
+Incorporate some of the scene, people, and objects in the story. Use a literary style as seen in the examples, surrealist.
 
 Below are three examples.
 
+----
+
+Example 1
 Scene: "a man standing in a hallway"
 Text: "Life is a movie"
 Objects: "wall, person, indoor, ceiling, building, man, plaster, smile, standing, glasses, door"
@@ -71,6 +71,9 @@ He touches the wall and looks to the ceiling.
 Stillness hovers around him.
 He thinks: Life is a movie.
 
+----
+
+Example 2
 Scene: "a black cat on a couch"
 Text: ""
 Objects: "cat, indoor, couch, table"
@@ -87,6 +90,9 @@ We shall finally hear the voice.
 A startled cat looks up, leaps from the couch where it was sleeping. 
 A ghostly seagull told me this great terrible silence was my love.
 
+----
+
+Example 3
 Scene: ""
 Text: ""
 Objects: ""
@@ -96,19 +102,23 @@ In the night there are of course the seven wonders
 of the world and the greatness tragedy and enchantment.
 Forests collide with legendary creatures hiding in thickets.
 There is you.
-In the night there are the walker`s footsteps the murderer`s
-the town policeman`s light from the street lamp and the ragman`s lantern
+In the night there are the walker's footsteps the murderer's
+the town policeman's light from the street lamp and the ragman's lantern
 There is you.
 
 Continuation:
 In the night trains go past and boats
-and the fantasy of countries where it`s daytime. The last breaths
+and the fantasy of countries where it's daytime. The last breaths
 of twilight and the first shivers of dawn.
 There is you.
 A piano tune, a shout.
 A door slams. A clock.
 And not only beings and things and physical sounds.
 But also me chasing myself or endlessly going beyond me.
+
+----
+
+Now, here is the real one...
 
 Scene: "$scene"
 Text: "$text"
@@ -124,11 +134,11 @@ In the night there are of course the seven wonders
 of the world and the greatness tragedy and enchantment.
 Forests collide with legendary creatures hiding in thickets.
 There is you.
-In the night there are the walker`s footsteps the murderer`s
-the town policeman`s light from the street lamp and the ragman`s lantern
+In the night there are the walker's footsteps the murderer's
+the town policeman's light from the street lamp and the ragman's lantern
 There is you.
 In the night trains go past and boats
-and the fantasy of countries where it`s daytime. The last breaths
+and the fantasy of countries where it's daytime. The last breaths
 of twilight and the first shivers of dawn.
 There is you.
 A piano tune, a shout.
@@ -158,12 +168,13 @@ class ContinuousStoryV1Strategy(StoryStrategy):
     Returns a single frame.
     """
 
-    strategy_name = "continuous_v1"
+    strategy_name = "continuous-v1"
 
     async def get_frame_sequence(
         self,
         parameters: FramesRequestParamsModel,
-        inference_model_configs: InferenceModelConfigsModel,
+        image_analysis: Optional[Dict[str, Any]],
+        strategy_config: Optional[StrategyConfig],
         keys: KeysModel,
         sparrow_state: SparrowState,
         story: Story,
@@ -179,31 +190,19 @@ class ContinuousStoryV1Strategy(StoryStrategy):
         prompt = None
         image = None
 
-        image_scene = ""
-        image_objects = ""
-        image_text = ""
         frame_number = await story.get_num_frames()
 
-        if parameters.input_image_filename:
-            try:
-                analysis = await image_analysis_inference(
-                    aiohttp_session,
-                    parameters.input_image_filename,
-                    inference_model_configs,
-                    keys,
-                )
-                image_scene = analysis.get("all_captions")
-                image_objects = analysis.get("all_tags_and_objects")
-                image_text = analysis.get("text")
+        if image_analysis:
+            image_scene = image_analysis.get("all_captions")
+            image_objects = image_analysis.get("all_tags_and_objects")
+            image_text = image_analysis.get("text")
 
-                if image_scene:
-                    image_scene = image_scene[0:1].upper() + image_scene[1:]
-
-                debug_data["i_see"] = analysis.get("description")
-
-            except Exception as e:
-                traceback.print_exc(file=sys.stderr)
-                errors.append(str(e))
+            if image_scene:
+                image_scene = image_scene[0:1].upper() + image_scene[1:]
+        else:
+            image_scene = ""
+            image_objects = ""
+            image_text = ""
 
         """
         Use input_text parameter only as the story seed, not for each frame.
@@ -216,18 +215,34 @@ class ContinuousStoryV1Strategy(StoryStrategy):
 
         # Get some recent text.
         last_text = await story.get_text(-1)
+        if not last_text or last_text.isspace():
+            if strategy_config.seed_prompt_template:
+                if isinstance(strategy_config.seed_prompt_template, int):
+                    strategy_config.seed_prompt_template = await strategy_config.get_related(
+                        StrategyConfig.seed_prompt_template
+                    )
+                last_text = strategy_config.seed_prompt_template.text
+            else:
+                last_text = ""
+
         last_text = (last_text.strip() + " ") if last_text else ""
         print(f"{last_text=}")
 
         prompt = self._compose_prompt(
-            parameters, story, last_text, image_scene, image_text, image_objects
+            parameters,
+            story,
+            last_text,
+            image_scene,
+            image_text,
+            image_objects,
+            strategy_config,
         )
 
         print(f'Text prompt: "{prompt}"')
         story_continuation = await self._get_new_story_fragment(
             prompt,
             parameters,
-            inference_model_configs,
+            strategy_config,
             keys,
             errors,
             story,
@@ -241,7 +256,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
             story_continuation = await self._get_new_story_fragment(
                 prompt,
                 parameters,
-                inference_model_configs,
+                strategy_config,
                 keys,
                 errors,
                 story,
@@ -265,7 +280,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
                     aiohttp_session,
                     prompt,
                     output_image_filename_png,
-                    inference_model_configs,
+                    strategy_config.text_to_image_model_config,
                     keys,
                     parameters.output_image_width,
                     parameters.output_image_height,
@@ -302,27 +317,50 @@ class ContinuousStoryV1Strategy(StoryStrategy):
         scene: str,
         text: str,
         objects: str,
+        strategy_config: Optional[StrategyConfig],
     ) -> str:
         if last_text:
             last_text_lines = last_text.split("\n")
             last_text_lines = last_text_lines[-8:]
             last_text = "\n".join(last_text_lines)
-            prompt = STORY_PROMPT
         else:
-            last_text = parameters.input_text or SHADOW_STORY
-            prompt = STORY_PROMPT
+            last_text = parameters.input_text or (
+                strategy_config.seed_prompt_template
+                and strategy_config.seed_prompt_template.text
+            )
 
-        prompt = prompt.replace("$poem", last_text)
-        prompt = prompt.replace("$scene", scene)
-        prompt = prompt.replace("$text", text)
-        prompt = prompt.replace("$objects", objects)
+        model_config = (
+            cast(ModelConfig, strategy_config.text_to_text_model_config)
+            if strategy_config
+            else None
+        )
+        prompt_template = (
+            cast(PromptTemplate, model_config.prompt_template) if model_config else None
+        )
+
+        if prompt_template:
+            prompt = prompt_template.render(
+                {
+                    "poem": last_text,
+                    "scene": scene,
+                    "text": text,
+                    "objects": objects,
+                }
+            )
+        else:
+            prompt = STORY_PROMPT
+            prompt = prompt.replace("$poem", last_text)
+            prompt = prompt.replace("$scene", scene)
+            prompt = prompt.replace("$text", text)
+            prompt = prompt.replace("$objects", objects)
+
         return prompt
 
     async def _get_new_story_fragment(
         self,
         text: str,
         parameters: FramesRequestParamsModel,
-        inference_model_configs: InferenceModelConfigsModel,
+        strategy_config: StrategyConfig,
         keys: KeysModel,
         errors: List[str],
         story: Story,
@@ -331,7 +369,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
     ) -> str:
         try:
             text = await text_to_extended_text_inference(
-                aiohttp_session, text, inference_model_configs, keys
+                aiohttp_session, text, strategy_config.text_to_text_model_config, keys
             )
             print(f"Raw output: '{text}'")
 

@@ -1,7 +1,22 @@
+from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, Optional
 
+from piccolo.apps.migrations.auto.migration_manager import MigrationManager
+from piccolo.columns import (
+    JSONB,
+    Timestamptz,
+    Varchar,
+    Text,
+)
+from piccolo.table import Table
 from pydantic import BaseModel, StrictStr
+
+from calliope.models import InferenceModelProvider, InferenceModelProviderVariant
+
+ID = "2023-04-08T12:26:43:543540"
+VERSION = "0.106.0"
+DESCRIPTION = "Seeding the InferenceModel table."
 
 
 class InferenceModelProvider(str, Enum):
@@ -21,6 +36,8 @@ class InferenceModelConfigModel(BaseModel):
     The configuration for a specific inference model.
     """
 
+    description: StrictStr
+
     # Who hosts the model?
     provider: InferenceModelProvider
 
@@ -38,7 +55,8 @@ class InferenceModelConfigModel(BaseModel):
 # performing inferences.
 _model_configs_by_name = {
     # Azure models...
-    "azure_vision_analysis": InferenceModelConfigModel(
+    "azure-vision-analysis": InferenceModelConfigModel(
+        description="Analyze images via the Azure Computer Vision API.",
         provider=InferenceModelProvider.AZURE,
         # model_name="/vision/v3.2/analyze",
         model_name="/computervision/imageanalysis:analyze",
@@ -50,20 +68,24 @@ _model_configs_by_name = {
             "api-version": "2022-10-12-preview",
         },
     ),
-    "azure_vision_ocr": InferenceModelConfigModel(
+    "azure-vision-ocr": InferenceModelConfigModel(
+        description="Perform OCR via the Azure Computer Vision API (now included in computervision/imageanalysis).",
         provider=InferenceModelProvider.AZURE,
         model_name="/vision/v3.2/ocr",
     ),
     # HuggingFace models...
-    "huggingface_image_captioning": InferenceModelConfigModel(
+    "huggingface-image-captioning": InferenceModelConfigModel(
+        description="Simple image captioning using Hugging Face",
         provider=InferenceModelProvider.HUGGINGFACE,
         model_name="nlpconnect/vit-gpt2-image-captioning",
     ),
-    "huggingface_stable_diffusion_1.5": InferenceModelConfigModel(
+    "huggingface-stable-diffusion-1.5": InferenceModelConfigModel(
+        description="Stable Diffusion, hosted by Hugging Face",
         provider=InferenceModelProvider.HUGGINGFACE,
         model_name="runwayml/stable-diffusion-v1-5",
     ),
-    "huggingface_gpt_neo_2.7B": InferenceModelConfigModel(
+    "huggingface-gpt-neo-2.7B": InferenceModelConfigModel(
+        description="GPT-NEO 2.7B, hosted by Hugging Face",
         provider=InferenceModelProvider.HUGGINGFACE,
         model_name="EleutherAI/gpt-neo-2.7B",
         parameters={
@@ -73,12 +95,14 @@ _model_configs_by_name = {
             # "repetition_penalty": 80,
         },
     ),
-    "huggingface_wav2vec2": InferenceModelConfigModel(
+    "huggingface-wav2vec2": InferenceModelConfigModel(
+        description="The Facebook wav2vec2 speech recognition model, hosted by Hugging Face",
         provider=InferenceModelProvider.HUGGINGFACE,
         model_name="facebook/wav2vec2-large-960h-lv60-self",
     ),
     # Stability.ai models...
-    "stability_stable_diffusion_1.5": InferenceModelConfigModel(
+    "stability-stable-diffusion-1.5": InferenceModelConfigModel(
+        description="The full Stable Diffusion, on Stability",
         provider=InferenceModelProvider.STABILITY,
         model_name="stable-diffusion-v1-5",  # engine
         # Available engines:
@@ -99,7 +123,8 @@ _model_configs_by_name = {
     ),
     # OpenAI models...
     # Text->Text:
-    "openai_gpt_4": InferenceModelConfigModel(
+    "openai-gpt-4": InferenceModelConfigModel(
+        description="OpenAI GPT-4",
         provider=InferenceModelProvider.OPENAI,
         provider_variant=InferenceModelProviderVariant.OPENAI_CHAT_COMPLETION,
         model_name="gpt-4",
@@ -110,7 +135,8 @@ _model_configs_by_name = {
             "frequency_penalty": 1.5,
         },
     ),
-    "openai_chat_gpt": InferenceModelConfigModel(
+    "openai-chat-gpt": InferenceModelConfigModel(
+        description="OpenAI ChatGPT Curie",
         provider=InferenceModelProvider.OPENAI,
         provider_variant=InferenceModelProviderVariant.OPENAI_CHAT_COMPLETION,
         model_name="curie",
@@ -121,7 +147,8 @@ _model_configs_by_name = {
             "frequency_penalty": 1.5,
         },
     ),
-    "openai_curie": InferenceModelConfigModel(
+    "openai-curie": InferenceModelConfigModel(
+        description="OpenAI GPT-3 Curie",
         provider=InferenceModelProvider.OPENAI,
         provider_variant=InferenceModelProviderVariant.OPENAI_COMPLETION,
         model_name="curie",
@@ -132,7 +159,8 @@ _model_configs_by_name = {
             "frequency_penalty": 1.5,
         },
     ),
-    "openai_davinci_03": InferenceModelConfigModel(
+    "openai-davinci-03": InferenceModelConfigModel(
+        description="OpenAI GPT-3 Davinci",
         provider=InferenceModelProvider.OPENAI,
         provider_variant=InferenceModelProviderVariant.OPENAI_COMPLETION,
         model_name="text-davinci-003",
@@ -144,13 +172,15 @@ _model_configs_by_name = {
         },
     ),
     # Text->Image...
-    "openai_dall_e_2": InferenceModelConfigModel(
+    "openai-dall-e-2": InferenceModelConfigModel(
+        description="OpenAI DALL-E 2",
         provider=InferenceModelProvider.OPENAI,
         model_name="DALL-E-2",
         parameters={},
     ),
     # Audio->Text...
-    "openai_whisper": InferenceModelConfigModel(
+    "openai-whisper": InferenceModelConfigModel(
+        description="OpenAI Whisper speech recognition",
         provider=InferenceModelProvider.OPENAI,
         model_name="whisper",
         parameters={},
@@ -158,61 +188,73 @@ _model_configs_by_name = {
 }
 
 
-def get_model_config_by_name(name: str) -> Optional[InferenceModelConfigModel]:
-    return _model_configs_by_name.get(name)
-
-
-class InferenceModelConfigsModel(BaseModel):
+class InferenceModel(Table):
     """
-    The configurations of all inference models.
+    An inference model.
+
+    For example:
+        model = {
+            "slug": "openai-gpt-4",
+            "provider": InferenceModelProvider.OPENAI,
+            "provider_api_variant": InferenceModelProviderVariant.OPENAI_CHAT_COMPLETION,
+            "provider_model_name": "gpt-4",
+            "model_parameters": {
+                "max_tokens": 512,
+                "temperature": 1,
+                "presence_penalty": 1.5,
+                "frequency_penalty": 1.5,
+            }
+        },
     """
 
-    # Image analysis
-    image_analysis_model_config: Optional[
-        InferenceModelConfigModel
-    ] = get_model_config_by_name("azure_vision_analysis")
+    # A slug naming the model. No spaces or punctuation other than hyphens.
+    slug = Varchar(length=80, unique=True, index=True)
 
-    # Image OCR
-    image_ocr_model_config: Optional[
-        InferenceModelConfigModel
-    ] = get_model_config_by_name("azure_vision_ocr")
+    # Description and commentary.
+    description = Text(null=True, required=False)
 
-    # Image -> text
-    image_to_text_model_config: Optional[
-        InferenceModelConfigModel
-    ] = get_model_config_by_name("huggingface_image_captioning")
+    # The model provider. Who hosts this model?
+    provider = Varchar(length=80, choices=InferenceModelProvider)
 
-    # Text -> image
-    text_to_image_model_config: Optional[
-        InferenceModelConfigModel
-    ] = get_model_config_by_name("stability_stable_diffusion_1.5")
-
-    # Text -> text
-    text_to_text_model_config: Optional[
-        InferenceModelConfigModel
-    ] = get_model_config_by_name("huggingface_gpt_neo_2.7B")
-
-    # Audio -> text
-    audio_to_text_model_config: Optional[
-        InferenceModelConfigModel
-    ] = get_model_config_by_name("openai_whisper")
-
-
-def load_model_configs(
-    image_analysis_model_config: str = "azure_vision_analysis",
-    image_ocr_model_config: str = "azure_vision_ocr",
-    image_to_text_model_config: str = "huggingface_image_captioning",
-    text_to_image_model_config: str = "stability_stable_diffusion_1.5",
-    text_to_text_model_config: str = "huggingface_gpt_neo_2.7B",
-    audio_to_text_model_config: str = "openai_whisper",
-) -> InferenceModelConfigsModel:
-    return InferenceModelConfigsModel(
-        image_analysis_model_config=get_model_config_by_name(
-            image_analysis_model_config
-        ),
-        image_ocr_model_config=get_model_config_by_name(image_ocr_model_config),
-        image_to_text_model_config=get_model_config_by_name(image_to_text_model_config),
-        text_to_image_model_config=get_model_config_by_name(text_to_image_model_config),
-        text_to_text_model_config=get_model_config_by_name(text_to_text_model_config),
-        audio_to_text_model_config=get_model_config_by_name(audio_to_text_model_config),
+    # The provider's API variant, if pertinent.
+    provider_api_variant = Varchar(
+        length=80, null=True, choices=InferenceModelProviderVariant
     )
+
+    # The provider's name for this model. There may be multiple configurations per
+    # provider model. For example, we may have multiple configurations that target
+    # GPT-3 curie.
+    provider_model_name = Varchar(length=80)
+
+    # Any parameters the model takes (provider- and model-specific).
+    # These are defaults that may be overridden elsewhere.
+    model_parameters = JSONB(null=True)
+
+    date_created = Timestamptz()
+    date_updated = Timestamptz(auto_update=datetime.now)
+
+
+async def forwards():
+    manager = MigrationManager(migration_id=ID, app_name="", description=DESCRIPTION)
+
+    async def run():
+        print(f"running {ID}")
+
+        for name, model_config in _model_configs_by_name.items():
+            now = datetime.now()
+            model = InferenceModel(
+                slug=name,
+                description=model_config.description,
+                provider=model_config.provider,
+                provider_api_variant=model_config.provider_variant,
+                provider_model_name=model_config.model_name,
+                model_parameters=model_config.parameters,
+                date_created=now,
+                date_updated=now,
+            )
+            print(f"Saving model {model}...")
+            await model.save().run()
+
+    manager.add_raw(run)
+
+    return manager

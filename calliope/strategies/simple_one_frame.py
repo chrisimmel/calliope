@@ -1,17 +1,16 @@
 import sys, traceback
+from typing import Any, Dict, Optional
 
 import aiohttp
 
 from calliope.inference import (
     caption_to_prompt,
-    image_file_to_text_inference,
     text_to_extended_text_inference,
     text_to_image_file_inference,
 )
 from calliope.models import (
     FramesRequestParamsModel,
     KeysModel,
-    InferenceModelConfigsModel,
 )
 from calliope.models.frame_sequence_response import StoryFrameSequenceResponseModel
 from calliope.strategies.base import DEFAULT_MIN_DURATION_SECONDS, StoryStrategy
@@ -20,6 +19,7 @@ from calliope.tables import (
     SparrowState,
     Story,
 )
+from calliope.tables.model_config import StrategyConfig
 from calliope.utils.file import create_sequential_filename
 from calliope.utils.image import get_image_attributes
 
@@ -31,12 +31,13 @@ class SimpleOneFrameStoryStrategy(StoryStrategy):
     Returns a single frame based on input parameters. Doesn't attempt story continuation.
     """
 
-    strategy_name = "simple_one_frame"
+    strategy_name = "simple-one-frame"
 
     async def get_frame_sequence(
         self,
         parameters: FramesRequestParamsModel,
-        inference_model_configs: InferenceModelConfigsModel,
+        image_analysis: Optional[Dict[str, Any]],
+        strategy_config: Optional[StrategyConfig],
         keys: KeysModel,
         sparrow_state: SparrowState,
         story: Story,
@@ -49,31 +50,24 @@ class SimpleOneFrameStoryStrategy(StoryStrategy):
         )
         debug_data = self._get_default_debug_data(parameters)
         errors = []
-        caption = ""
+        description = ""
         image = None
         frame_number = await story.get_num_frames()
 
-        if parameters.input_image_filename:
-            try:
-                caption = await image_file_to_text_inference(
-                    aiohttp_session,
-                    parameters.input_image_filename,
-                    inference_model_configs,
-                    keys,
-                )
-                debug_data["i_see"] = caption
-            except Exception as e:
-                traceback.print_exc(file=sys.stderr)
-                errors.append(str(e))
+        if image_analysis:
+            description = image_analysis.get("description") if image_analysis else None
+            debug_data["i_see"] = description
 
         if parameters.input_text:
-            if caption:
-                caption = f"{caption}. {parameters.input_text}"
+            if description:
+                description = f"{description}. {parameters.input_text}"
             else:
-                caption = parameters.input_text
+                description = parameters.input_text
+
+        print(f"{description=} {strategy_config.text_to_text_model_config=}")
 
         text = await text_to_extended_text_inference(
-            aiohttp_session, caption, inference_model_configs, keys
+            aiohttp_session, description, strategy_config.text_to_text_model_config, keys
         )
         prompt_template = output_image_style + " {x}"
         print(text)
@@ -90,7 +84,7 @@ class SimpleOneFrameStoryStrategy(StoryStrategy):
                     aiohttp_session,
                     prompt,
                     output_image_filename_png,
-                    inference_model_configs,
+                    strategy_config.text_to_image_model_config,
                     keys,
                     parameters.output_image_width,
                     parameters.output_image_height,

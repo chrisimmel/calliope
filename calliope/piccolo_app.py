@@ -11,6 +11,7 @@ APP_CONFIG = AppConfig(
         modules=[
             "calliope.tables.config",
             "calliope.tables.image",
+            "calliope.tables.model_config",
             "calliope.tables.sparrow_state",
             "calliope.tables.story",
         ],

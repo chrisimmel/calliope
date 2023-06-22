@@ -32,7 +32,6 @@ to either a POST or GET request.
 * `output_image_style`: string - The requested image style, given as English text, like "A watercolor of" or "A pencil drawing of".
 * `output_text_style`: string - The requested text style (currently unused).
 * `max_output_text_length`: int - The maximum output text length (currently unused).
-* `reset_strategy_state`: boolean - Whether to reset the strategy and begin a new story. Default is False.
 * `strategy`: string - The name of the strategy to be used to generate the frames.
 * `image_to_text_model_config`: string - The name of the inference model config used to generate text from an image.
 * `text_to_image_model_config`: string - The name of the inference model config used to generate an image from text. 

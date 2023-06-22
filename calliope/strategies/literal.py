@@ -1,25 +1,21 @@
 from datetime import datetime
 import sys, traceback
+from typing import Any, Dict, Optional
 
 import aiohttp
 
 from calliope.inference import (
     caption_to_prompt,
-    image_file_to_text_inference,
     text_to_image_file_inference,
 )
 from calliope.models import (
     FramesRequestParamsModel,
     KeysModel,
-    InferenceModelConfigsModel,
 )
 from calliope.models.frame_sequence_response import StoryFrameSequenceResponseModel
 from calliope.strategies.base import DEFAULT_MIN_DURATION_SECONDS, StoryStrategy
 from calliope.strategies.registry import StoryStrategyRegistry
-from calliope.tables import (
-    SparrowState,
-    Story,
-)
+from calliope.tables import SparrowState, Story, StrategyConfig
 from calliope.utils.file import create_sequential_filename
 from calliope.utils.image import get_image_attributes
 
@@ -35,7 +31,8 @@ class LiteralStrategy(StoryStrategy):
     async def get_frame_sequence(
         self,
         parameters: FramesRequestParamsModel,
-        inference_model_configs: InferenceModelConfigsModel,
+        image_analysis: Optional[Dict[str, Any]],
+        strategy_config: Optional[StrategyConfig],
         keys: KeysModel,
         sparrow_state: SparrowState,
         story: Story,
@@ -52,19 +49,10 @@ class LiteralStrategy(StoryStrategy):
         input_text = parameters.input_text
         prompts = input_text.split("|") if input_text else []
 
-        if parameters.input_image_filename:
-            try:
-                caption = await image_file_to_text_inference(
-                    aiohttp_session,
-                    parameters.input_image_filename,
-                    inference_model_configs,
-                    keys,
-                )
-                debug_data["i_see"] = caption
-                prompts.append(caption)
-            except Exception as e:
-                traceback.print_exc(file=sys.stderr)
-                errors.append(str(e))
+        if image_analysis:
+            description = image_analysis.get("description")
+            if description:
+                prompts.append(description)
 
         for prompt in prompts:
             frame_number = await story.get_num_frames()
@@ -82,7 +70,7 @@ class LiteralStrategy(StoryStrategy):
                     aiohttp_session,
                     full_prompt,
                     output_image_filename_png,
-                    inference_model_configs,
+                    strategy_config.text_to_image_model_config,
                     keys,
                     parameters.output_image_width,
                     parameters.output_image_height,

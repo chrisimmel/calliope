@@ -18,10 +18,10 @@ import stability_sdk.interfaces.gooseai.generation.generation_pb2 as generation
 
 from calliope.models import (
     InferenceModelProvider,
-    InferenceModelConfigModel,
-    InferenceModelConfigsModel,
     KeysModel,
+    InferenceModelProviderVariant,
 )
+from calliope.tables import ModelConfig
 
 # from PIL import Image
 # from image_captioning.model import predict
@@ -55,55 +55,22 @@ async def _hugging_face_request(
 async def _hugging_face_image_to_text_inference(
     aiohttp_session: aiohttp.ClientSession,
     image_data: bytes,
-    inference_model_config: InferenceModelConfigModel,
+    model_config: ModelConfig,
     keys: KeysModel,
 ) -> str:
     """
     Takes the filename of an image. Returns a caption.
     """
+    model = model_config.model
+
     response = await _hugging_face_request(
-        aiohttp_session, image_data, inference_model_config.model_name, keys
+        aiohttp_session, image_data, model.provider_model_name, keys
     )
     # predictions = json.loads(response.content.decode("utf-8"))
     predictions = await response.json()
     caption = predictions[0]["generated_text"]
 
     return caption
-
-
-async def image_file_to_text_inference(
-    aiohttp_session: aiohttp.ClientSession,
-    image_filename: str,
-    inference_model_configs: InferenceModelConfigsModel,
-    keys: KeysModel,
-) -> Optional[str]:
-    """
-    Takes the filename of an image. Returns a caption.
-    """
-    model_config = inference_model_configs.image_to_text_model_config
-
-    if model_config.provider == InferenceModelProvider.AZURE:
-        image_metadata = await image_analysis_inference(
-            aiohttp_session,
-            image_filename,
-            inference_model_configs,
-            keys,
-        )
-        return image_metadata.get("description")
-    elif model_config.provider != InferenceModelProvider.HUGGINGFACE:
-        raise ValueError(
-            f"Don't know how to do image->text inference for provider {model_config.provider}."
-        )
-
-    with open(image_filename, "rb") as f:
-        image_data = f.read()
-
-    if image_data:
-        return await _hugging_face_image_to_text_inference(
-            aiohttp_session, image_data, model_config, keys
-        )
-
-    return None
 
 
 def _convert_image_to_png(image_filename: str) -> str:
@@ -128,17 +95,23 @@ def _azure_endpoint_to_api_url(azure_api_host: str, endpoint_name: str) -> str:
 async def _azure_vision_inference(
     aiohttp_session: aiohttp.ClientSession,
     image_data: bytes,
-    inference_model_config: InferenceModelConfigModel,
+    model_config: ModelConfig,
     keys: KeysModel,
 ) -> Dict[str, Any]:
+    model = model_config.model
+
+    parameters = {
+        **(model.model_parameters if model.model_parameters else {}),
+        **(model_config.model_parameters if model_config.model_parameters else {}),
+    }
+
     api_host = keys.azure_api_host
     api_key = keys.azure_api_key
-    endpoint_name = inference_model_config.model_name
-    params = inference_model_config.parameters or {}
+    endpoint_name = model.provider_model_name
     api_url = _azure_endpoint_to_api_url(api_host, endpoint_name)
 
-    if params:
-        params_str = urlencode(params)
+    if parameters:
+        params_str = urlencode(parameters)
         api_url += f"?{params_str}"
 
     headers = {
@@ -265,36 +238,48 @@ def _interpret_azure_v4_metadata(raw_metadata: Dict[str, Any]) -> Dict[str, Any]
 async def image_analysis_inference(
     aiohttp_session: aiohttp.ClientSession,
     image_filename: str,
-    inference_model_configs: InferenceModelConfigsModel,
+    model_config: ModelConfig,
     keys: KeysModel,
 ) -> Dict[str, Any]:
     """
     Takes the filename of an image. Returns a dictionary of metadata about the image.
     """
-    model_config = inference_model_configs.image_analysis_model_config
+    model = model_config.model
 
-    if model_config.provider != InferenceModelProvider.AZURE:
-        raise ValueError(
-            f"Don't know how to do image analysis for provider {model_config.provider}."
-        )
+    if model.provider == InferenceModelProvider.AZURE:
+        # Don't know why, but Azure comp vision doesn't seem to like JPG files. Convert to PNG.
+        image_filename = _convert_image_to_png(image_filename)
 
-    # Don't know why, but Azure comp vision doesn't seem to like JPG files. Convert to PNG.
-    image_filename = _convert_image_to_png(image_filename)
     with open(image_filename, "rb") as f:
         image_data = f.read()
 
         if image_data:
-            raw_metadata = await _azure_vision_inference(
-                aiohttp_session, image_data, model_config, keys
-            )
+            if model.provider == InferenceModelProvider.HUGGINGFACE:
+                description = await _hugging_face_image_to_text_inference(
+                    aiohttp_session, image_data, model_config, keys
+                )
 
-            if not raw_metadata:
-                return ValueError("Unexpected empty response from image analysis API.")
+                return {
+                    "description": description,
+                }
+            elif model.provider == InferenceModelProvider.AZURE:
+                raw_metadata = await _azure_vision_inference(
+                    aiohttp_session, image_data, model_config, keys
+                )
 
-            if model_config.model_name.find("v3.2") >= 0:
-                return _interpret_azure_v3_metadata(raw_metadata)
+                if not raw_metadata:
+                    raise ValueError(
+                        "Unexpected empty response from image analysis API."
+                    )
+
+                if model.provider_model_name.find("v3.2") >= 0:
+                    return _interpret_azure_v3_metadata(raw_metadata)
+                else:
+                    return _interpret_azure_v4_metadata(raw_metadata)
             else:
-                return _interpret_azure_v4_metadata(raw_metadata)
+                raise ValueError(
+                    f"Don't know how to do image->text inference for provider {model.provider}."
+                )
 
     raise ValueError("No input image data to image_analysis_inference.")
 
@@ -302,15 +287,15 @@ async def image_analysis_inference(
 async def image_ocr_inference(
     aiohttp_session: aiohttp.ClientSession,
     image_filename: str,
-    inference_model_configs: InferenceModelConfigsModel,
+    model_config: ModelConfig,
     keys: KeysModel,
 ) -> Dict[str, Any]:
     """
     Takes the filename of an image. Returns a dictionary of metadata.
     """
-    model_config = inference_model_configs.image_ocr_model_config
+    model = model_config.model
 
-    if model_config.provider != InferenceModelProvider.AZURE:
+    if model.provider != InferenceModelProvider.AZURE:
         raise ValueError(
             f"Don't know how to do image OCR for provider {model_config.provider}."
         )
@@ -332,16 +317,18 @@ async def _text_to_image_file_inference_hugging_face(
     aiohttp_session: aiohttp.ClientSession,
     text: str,
     output_image_filename: str,
-    model_config: InferenceModelConfigModel,
+    model_config: ModelConfig,
     keys: KeysModel,
     width: Optional[int] = None,
     height: Optional[int] = None,
 ) -> str:
+    model = model_config.model
+
     # width and height are ignored by HuggingFace.
     payload = {"inputs": text}
     data = json.dumps(payload)
     response = await _hugging_face_request(
-        aiohttp_session, data, model_config.model_name, keys
+        aiohttp_session, data, model.provider_model_name, keys
     )
 
     if response.status == 200:
@@ -356,17 +343,24 @@ async def _text_to_image_file_inference_stability(
     aiohttp_session: aiohttp.ClientSession,
     text: str,
     output_image_filename: str,
-    model_config: InferenceModelConfigModel,
+    model_config: ModelConfig,
     keys: KeysModel,
     width: Optional[int] = None,
     height: Optional[int] = None,
 ) -> str:
+    model = model_config.model
+
+    parameters = {
+        **(model.model_parameters if model.model_parameters else {}),
+        **(model_config.model_parameters if model_config.model_parameters else {}),
+    }
+
     # I see no way to use aiohttp with the Stability Inference API. :-(
     stability_api = stability_client.StabilityInference(
         key=keys.stability_api_key,
         host=keys.stability_api_host,
         verbose=True,  # Print debug messages.
-        engine=model_config.model_name,  # Set the engine to use for generation.
+        engine=model.provider_model_name,  # Set the engine to use for generation.
         # Available engines: stable-diffusion-v1 stable-diffusion-v1-5 stable-diffusion-512-v2-0 stable-diffusion-768-v2-0
         # stable-diffusion-512-v2-1 stable-diffusion-768-v2-1 stable-inpainting-v1-0 stable-inpainting-512-v2-0
     )
@@ -383,7 +377,7 @@ async def _text_to_image_file_inference_stability(
         prompt=text,
         width=width,
         height=height,
-        **model_config.parameters,
+        **parameters,
     )
     for response in responses:
         for artifact in response.artifacts:
@@ -403,7 +397,7 @@ async def _text_to_image_file_inference_openai(
     aiohttp_session: aiohttp.ClientSession,
     text: str,
     output_image_filename: str,
-    model_config: InferenceModelConfigModel,
+    model_config: ModelConfig,
     keys: KeysModel,
     width: Optional[int] = None,
     height: Optional[int] = None,
@@ -444,7 +438,7 @@ async def text_to_image_file_inference(
     aiohttp_session: aiohttp.ClientSession,
     text: str,
     output_image_filename: str,
-    inference_model_configs: InferenceModelConfigsModel,
+    model_config: ModelConfig,
     keys: KeysModel,
     width: Optional[int] = None,
     height: Optional[int] = None,
@@ -452,10 +446,10 @@ async def text_to_image_file_inference(
     """
     Interprets a piece of text as an image. Returns the filename of the resulting image.
     """
-    model_config = inference_model_configs.text_to_image_model_config
+    model = model_config.model
 
-    if model_config.provider == InferenceModelProvider.HUGGINGFACE:
-        print(f"text_to_image_file_inference.huggingface {model_config.model_name}")
+    if model.provider == InferenceModelProvider.HUGGINGFACE:
+        print(f"text_to_image_file_inference.huggingface {model.provider_model_name}")
         return await _text_to_image_file_inference_hugging_face(
             aiohttp_session,
             text,
@@ -465,9 +459,9 @@ async def text_to_image_file_inference(
             width,
             height,
         )
-    elif model_config.provider == InferenceModelProvider.STABILITY:
+    elif model.provider == InferenceModelProvider.STABILITY:
         print(
-            f"text_to_image_file_inference.stability {model_config.model_name} ({width}x{height})"
+            f"text_to_image_file_inference.stability {model.provider_model_name} ({width}x{height})"
         )
         return await _text_to_image_file_inference_stability(
             aiohttp_session,
@@ -478,9 +472,9 @@ async def text_to_image_file_inference(
             width,
             height,
         )
-    elif model_config.provider == InferenceModelProvider.OPENAI:
+    elif model.provider == InferenceModelProvider.OPENAI:
         print(
-            f"text_to_image_file_inference.openai {model_config.model_name} ({width}x{height})"
+            f"text_to_image_file_inference.openai {model.provider_model_name} ({width}x{height})"
         )
         return await _text_to_image_file_inference_openai(
             aiohttp_session,
@@ -500,32 +494,65 @@ async def text_to_image_file_inference(
 async def text_to_extended_text_inference(
     aiohttp_session: aiohttp.ClientSession,
     text: str,
-    inference_model_configs: InferenceModelConfigsModel,
+    model_config: ModelConfig,
     keys: KeysModel,
 ) -> str:
-    model_config = inference_model_configs.text_to_text_model_config
+    print(f"text_to_extended_text_inference: {model_config.slug}, {model_config.model}")
+    model = model_config.model
 
-    if model_config.provider == InferenceModelProvider.HUGGINGFACE:
-        print(f"text_to_extended_text_inference.huggingface {model_config.model_name}")
+    parameters = {
+        **(model.model_parameters if model.model_parameters else {}),
+        **(model_config.model_parameters if model_config.model_parameters else {}),
+    }
+
+    if model.provider == InferenceModelProvider.HUGGINGFACE:
+        print(f"text_to_extended_text_inference.huggingface {model.provider_model_name}")
         text = text.replace(":", "")
-        payload = {"inputs": text}
+        payload = {"inputs": text, "return_full_text": False, "max_new_tokens": 250}
         data = json.dumps(payload)
+        # data = text
         response = await _hugging_face_request(
-            aiohttp_session, data, model_config.model_name, keys
+            aiohttp_session, data, model.provider_model_name, keys
         )
         predictions = await response.json()
         extended_text = predictions[0]["generated_text"]
-    elif model_config.provider == InferenceModelProvider.OPENAI:
-        print(f"text_to_extended_text_inference.openai {model_config.model_name}")
+    elif model.provider == InferenceModelProvider.OPENAI:
+        print(f"text_to_extended_text_inference.openai {model.provider_model_name}")
         openai.api_key = keys.openapi_api_key
-
         openai.aiosession.set(aiohttp_session)
-        completion = await openai.Completion.acreate(
-            engine=model_config.model_name,
-            prompt=text,
-            **model_config.parameters,
-        )
-        extended_text = completion.choices[0].text
+
+        if (
+            model.provider_api_variant
+            == InferenceModelProviderVariant.OPENAI_CHAT_COMPLETION
+        ):
+            messages = [
+                {
+                    "role": "user",
+                    "content": text,
+                }
+            ]
+
+            response = await openai.ChatCompletion.acreate(
+                model=model.provider_model_name,
+                messages=messages,
+                **parameters,
+            )
+
+            extended_text = None
+            print(f"Chat Completion response is: '{response}'")
+            if response:
+                choices = response.get("choices", [])
+                if len(choices):
+                    message = choices[0].get("message", {})
+                    if message:
+                        extended_text = message.get("content")
+        else:
+            completion = await openai.Completion.acreate(
+                engine=model.provider_model_name,
+                prompt=text,
+                **parameters,
+            )
+            extended_text = completion.choices[0].text
         print(f'extended_text="{extended_text}"')
     else:
         raise ValueError(

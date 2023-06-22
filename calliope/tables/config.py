@@ -5,7 +5,6 @@ from calliope.utils.file import FileMetadata
 from piccolo.table import Table
 from piccolo.columns import (
     Boolean,
-    ForeignKey,
     JSONB,
     Text,
     Timestamptz,

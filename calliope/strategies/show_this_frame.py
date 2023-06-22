@@ -1,12 +1,13 @@
 import os
+from typing import Any, Dict, Optional
 
 import aiohttp
+from calliope.tables.model_config import StrategyConfig
 from fastapi import HTTPException
 
 from calliope.models import (
     FramesRequestParamsModel,
     KeysModel,
-    InferenceModelConfigsModel,
 )
 from calliope.models.frame_sequence_response import StoryFrameSequenceResponseModel
 from calliope.strategies.base import DEFAULT_MIN_DURATION_SECONDS, StoryStrategy
@@ -25,12 +26,13 @@ class ShowThisFrameStrategy(StoryStrategy):
     A strategy that simply shows a single frame with given image and text.
     """
 
-    strategy_name = "show_this_frame"
+    strategy_name = "show-this-frame"
 
     async def get_frame_sequence(
         self,
         parameters: FramesRequestParamsModel,
-        inference_model_configs: InferenceModelConfigsModel,
+        image_analysis: Optional[Dict[str, Any]],
+        strategy_config: Optional[StrategyConfig],
         keys: KeysModel,
         sparrow_state: SparrowState,
         story: Story,

@@ -120,7 +120,7 @@ viewFrame model =
 getFrames : Cmd Msg
 getFrames =
   Http.get
-    { url = """http://localhost:8000/v1/frames/?api_key=xyzzy&client_id=chris&input_text=Mirrors and candles.&output_image_format=image/png&strategy=continuous_v0"""
+    { url = """http://localhost:8008/v1/frames/?api_key=xyzzy&client_id=chris&input_text=Mirrors and candles.&output_image_format=image/png&strategy=continuous-v0"""
     , expect = Http.expectJson GotFrames frameListDecoder
     }
 

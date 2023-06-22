@@ -4,7 +4,8 @@ from .inference_model_config import (
     InferenceModelConfigModel,
     InferenceModelConfigsModel,
     InferenceModelProvider,
-    load_inference_model_configs,
+    InferenceModelProviderVariant,
+    load_model_configs,
 )
 from .parameters import FramesRequestParamsModel, StoryParamsModel
 from .schedule import ScheduleModel, ScheduleStateModel, ScheduleStepModel
@@ -39,7 +40,8 @@ __all__ = [
     "InferenceModelConfigModel",
     "InferenceModelConfigsModel",
     "InferenceModelProvider",
-    "load_inference_model_configs",
+    "InferenceModelProviderVariant",
+    "load_model_configs",
     "OnLightTriggerConditionModel",
     "OnMotionTriggerConditionModel",
     "OnSoundTriggerConditionModel",
