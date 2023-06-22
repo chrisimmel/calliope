@@ -77,19 +77,12 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         if not last_text or last_text.isspace():
             if strategy_config.seed_prompt_template:
                 if isinstance(strategy_config.seed_prompt_template, int):
-                    strategy_config.seed_prompt_template = (
-                        await PromptTemplate.objects()
-                        .where(
-                            PromptTemplate.slug == strategy_config.seed_prompt_template
-                        )
-                        .first()
-                        .run()
+                    strategy_config.seed_prompt_template = await strategy_config.get_related(
+                        StrategyConfig.seed_prompt_template
                     )
-            last_text = (
-                strategy_config.seed_prompt_template.text
-                if strategy_config.seed_prompt_template
-                else ""
-            )
+                last_text = strategy_config.seed_prompt_template.text
+            else:
+                last_text = ""
 
         if last_text:
             last_text_tokens = last_text
