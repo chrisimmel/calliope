@@ -11,6 +11,9 @@
 .carousel-item {
     display: inline-flex;
 }
+.inner > * {
+    width: 100%;
+}
 
 .nav {
     display: flex;

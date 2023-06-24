@@ -49,13 +49,9 @@ const renderFrame = (frame, index) => {
 
 
 export default function ClioApp() {
-    const [storyText, setStoryText] = useState("")
-    const [append_to_prior_frames, setAppendToPriorFrames] = useState(false)
     const [frames, setFrames] = useState([]);
-    const [frameData, setFrameData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [image_url, setImageUrl] = useState(null);
 
     const webcamRef = useRef(null);
     const captureImage = useCallback(
@@ -100,11 +96,6 @@ export default function ClioApp() {
         setCapturing(false);
     }, [mediaRecorderRef, setCapturing]);
     */
-
-
-    const getFrame = (_frameData) => {
-        return (_frameData && _frameData['frames'].length) ? _frameData['frames'][0] : null;
-    };
 
     useEffect(
         () => {
