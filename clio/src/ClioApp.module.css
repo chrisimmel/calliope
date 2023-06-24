@@ -26,8 +26,6 @@ div#root {
 
 .image {
     display: grid;
-    min-height: 512px;
-    min-width: 512px;
 }
 
 img {
