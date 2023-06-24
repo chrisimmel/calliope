@@ -7,7 +7,11 @@ from .inference_model_config import (
     InferenceModelProviderVariant,
     load_model_configs,
 )
-from .parameters import FramesRequestParamsModel, StoryParamsModel
+from .parameters import (
+    FramesRequestParamsModel,
+    StoryParamsModel,
+    StoryRequestParamsModel,
+)
 from .schedule import ScheduleModel, ScheduleStateModel, ScheduleStepModel
 from .config import (
     ConfigModel,
@@ -54,6 +58,7 @@ __all__ = [
     "StoryFrameModel",
     "StoryModel",
     "StoryParamsModel",
+    "StoryRequestParamsModel",
     "TriggerConditionModel",
     "TriggerType",
 ]

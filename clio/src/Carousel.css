@@ -1,0 +1,24 @@
+.carousel {
+    height: 100vh;
+    overflow: hidden;
+}
+
+.inner {
+    white-space: nowrap;
+    transition: transform 0.3s;
+}
+
+.carousel-item {
+    display: inline-flex;
+}
+
+.nav {
+    display: flex;
+    justify-content: center;
+    position: absolute;
+    top: 200;
+}
+
+.nav > button {
+    margin: 5px;
+}

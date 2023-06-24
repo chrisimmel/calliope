@@ -26,6 +26,8 @@ div#root {
 
 .image {
     display: grid;
+    min-height: 512px;
+    min-width: 512px;
 }
 
 img {
@@ -60,14 +62,14 @@ img {
     flex-grow: 1;
     overflow: scroll;
     font-family: arial, sans-serif;
-    font-size: 14pt;
+    font-size: 11pt;
 }
 
 .webcamVideo {
-    z-index: -1;
+    /*z-index: -1;
     position: absolute;
     left: 0;
-    top: 0;
+    top: 0;*/
     max-height: 100vh;
     /*
     left: 60px;

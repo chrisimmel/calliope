@@ -5,13 +5,13 @@ from typing import Any, Dict, List, Optional
 
 import aiohttp
 from calliope.inference import image_analysis_inference
-from calliope.tables.model_config import InferenceModel, ModelConfig
+from calliope.tables.model_config import ModelConfig
 import cuid
 from fastapi import APIRouter, Depends, Request
 from fastapi.security.api_key import APIKey
 from pydantic import BaseModel
 
-from calliope.models import FramesRequestParamsModel, StoryFrameModel
+from calliope.models import FramesRequestParamsModel, StoryFrameModel, StoryRequestParamsModel
 from calliope.storage.config_manager import (
     get_sparrow_story_parameters_and_keys,
     get_strategy_config,
@@ -52,6 +52,12 @@ class StoryResponseV1(BaseModel):
     # Some frames of the story to display, with optional start/stop times.
     frames: List[StoryFrameModel]
 
+    # The story ID.
+    story_id: str
+
+    # The number of frames so far in the entire story.
+    story_frame_count: int
+
     # Whether these frames should be appended to those delivered
     # previously.
     append_to_prior_frames: bool = False
@@ -74,6 +80,20 @@ async def put_story_reset(
     sparrow_state = await get_sparrow_state(client_id)
     sparrow_state.current_story = None
     await put_sparrow_state(sparrow_state)
+
+
+@router.get("/story/", response_model=StoryResponseV1)
+async def get_story(
+    request: Request,
+    api_key: APIKey = Depends(get_api_key),
+    request_params=Depends(StoryRequestParamsModel),
+) -> StoryResponseV1:
+    """
+    Get some frames from the current story.
+    """
+    base_url = get_base_url(request)
+
+    return await handle_existing_frames_request(request_params, base_url)
 
 
 @router.post("/frames/", response_model=StoryResponseV1)
@@ -158,6 +178,8 @@ Calliope sleeps. She will awake shortly, improved.
 
     response = StoryResponseV1(
         frames=frame_models,
+        story_id=None,
+        story_frame_count=1,
         append_to_prior_frames=False,
         request_id=cuid.cuid(),
         generation_date=str(datetime.utcnow()),
@@ -271,11 +293,47 @@ async def handle_frames_request(
 
     response = StoryResponseV1(
         frames=frame_models,
+        story_id=story.cuid,
+        story_frame_count=await story.get_num_frames(),
         append_to_prior_frames=story_frames_response.append_to_prior_frames,
         request_id=cuid.cuid(),
         generation_date=str(datetime.utcnow()),
         debug_data=story_frames_response.debug_data if parameters.debug else {},
         errors=story_frames_response.errors + errors,
+    )
+    return response
+
+
+async def handle_existing_frames_request(
+    request_params: StoryRequestParamsModel,
+    base_url: str,
+) -> StoryResponseV1:
+    print("handle_existing_frames_request")
+    client_id = request_params.client_id
+    sparrow_state = await get_sparrow_state(client_id)
+
+    errors = []
+    story = sparrow_state.current_story
+
+    debug_data = {
+        "story_id": story.cuid,
+        "story_title": story.title,
+        "thoth_link": f"{base_url}thoth/story/{story.cuid}",
+    }
+
+    frames = await story.get_frames(include_images=True)
+    # await prepare_frame_images(request_params, frames)
+    frame_models = [frame.to_pydantic() for frame in frames]
+
+    response = StoryResponseV1(
+        frames=frame_models,
+        story_id=story.cuid,
+        story_frame_count=await story.get_num_frames(),
+        append_to_prior_frames=False,
+        request_id=cuid.cuid(),
+        generation_date=str(datetime.utcnow()),
+        debug_data=debug_data if request_params.debug else {},
+        errors=errors,
     )
     return response
 
