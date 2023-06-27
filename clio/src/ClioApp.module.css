@@ -44,7 +44,7 @@ img {
 .textContainer {
     display: flex;
     flex-direction: column;
-    max-height: 100vh;
+    max-height: 86vh;
     padding-right: 60px;
 }
 
@@ -64,10 +64,10 @@ img {
 }
 
 .webcamVideo {
-    /*z-index: -1;
+    z-index: -1;
     position: absolute;
     left: 0;
-    top: 0;*/
+    top: 0;
     max-height: 100vh;
     /*
     left: 60px;
@@ -76,4 +76,50 @@ img {
     position: absolute;
     right: 100%;
     */
+}
+
+
+.navLeft {
+    display: flex;
+    justify-content: center;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 40px;
+    height: 100vh;
+}
+
+.navRight {
+    display: flex;
+    justify-content: center;
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 40px;
+    height: 100vh;
+}
+
+.navButton {
+    margin: 0;
+    background: transparent;
+    color: white;
+    border: none;
+}
+
+svg {
+    width: 36px;
+    height: 36px;
+}
+
+.spinnerFrame {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: transparent;
+    display:inline-flex;
+    vertical-align:top;
+    justify-content:center;
+    align-items:center;
 }

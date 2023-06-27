@@ -14,14 +14,3 @@
 .inner > * {
     width: 100%;
 }
-
-.nav {
-    display: flex;
-    justify-content: center;
-    position: absolute;
-    top: 200;
-}
-
-.nav > button {
-    margin: 5px;
-}

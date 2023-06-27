@@ -3,8 +3,14 @@ import axios from "axios"
 import Webcam from "react-webcam";
 import browserID from "browser-id";
 import Carousel, { CarouselItem } from "./Carousel";
+import IconRefresh from "./icons/IconRefresh";
 
+import './Clio.css';
 import styles from './ClioApp.module.css';
+
+import IconChevronLeft from "./icons/IconChevronLeft";
+import IconChevronRight from "./icons/IconChevronRight";
+import Toolbar from "./Toolbar";
 
 const videoConstraints = {
     width: 512,
@@ -50,8 +56,33 @@ const renderFrame = (frame, index) => {
 
 export default function ClioApp() {
     const [frames, setFrames] = useState([]);
+    const [selectedFrameNumber, setSelectedFrameNumber] = useState(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [captureActive, setCaptureActive] = useState(false);
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [canSwitchCamera, setCanSwitchCamera] = useState(true);
+    const [cameraDeviceId, setCameraDeviceId] = useState(null);
+    const [isMenuActive, setIsMenuActive] = useState(false);
+
+    const toggleIsPlaying = useCallback(
+        () => {
+            setIsPlaying(isPlaying => !isPlaying);
+        },
+        [isPlaying]
+    );
+    const switchCamera = useCallback(
+        () => {
+            // TODO
+        },
+        [cameraDeviceId]
+    );
+    const activateMenu = useCallback(
+        () => {
+            setIsMenuActive(true);
+        },
+        [isMenuActive]
+    );
 
     const webcamRef = useRef(null);
     const captureImage = useCallback(
@@ -67,15 +98,10 @@ export default function ClioApp() {
         () => {
             return <CarouselItem>
                 <div className={styles.clio_app}>
-                    <Webcam
-                        ref={webcamRef}
-                        className={styles.webcamVideo}
-                        videoConstraints={videoConstraints}
-                    />
                 </div>
             </CarouselItem>;
         },
-        [webcamRef]
+        [webcamRef, captureActive]
     );
 
     /*
@@ -117,7 +143,9 @@ export default function ClioApp() {
                         },
                     );
                     console.log(`Got ${response.data?.frames?.length} frames.`);
-                    setFrames(response.data?.frames);
+                    const newFrames = response.data?.frames || [];
+                    setFrames(newFrames);
+                    setSelectedFrameNumber(newFrames ? newFrames.length - 1 : 0);
                 } catch (err) {
                     setError(err.message);
                 } finally {
@@ -127,7 +155,7 @@ export default function ClioApp() {
 
             getStory();
         },
-        []
+        [setFrames, setSelectedFrameNumber]
     );
 
     const getFrames = useCallback(
@@ -152,6 +180,7 @@ export default function ClioApp() {
                 }
                 const imagePrefix = uploadImage ? uploadImage.substr(0, 20) : "(none)";
                 console.log(`Calling Calliope with image ${imagePrefix}...`);
+                setCaptureActive(false);
                 const response = await axios.post(
                     "/v1/frames/",
                     params,
@@ -164,28 +193,12 @@ export default function ClioApp() {
                 console.log(response.data);
                 const caption = response.data?.debug_data?.i_see;
                 if (caption) {
-                    console.log(`I think I see ${caption}.`);
+                    console.log(`I think I see: ${caption}.`);
                 }
 
                 const newFrames = response.data?.frames;
                 if (newFrames) {
                     setFrames(frames => [...frames, ...newFrames]);
-
-                    /*
-                    if (frame.image && frame.image.url) {
-                        setImageUrl(`/${frame.image.url}`);
-                    }
-    
-                    if (frame && frame.text) {
-                        setAppendToPriorFrames(response.data.append_to_prior_frames)
-                        if (response.data.append_to_prior_frames) {
-                            setStoryText(storyText => storyText + frame.text);
-                        }
-                        else {
-                            setStoryText(frame.text);
-                        }
-                    }
-                    */
                 }
 
                 setError(null);
@@ -195,20 +208,59 @@ export default function ClioApp() {
             } finally {
                 setLoading(false);
             }
+            setCaptureActive(false);
         },
-        [thisBrowserID, frames]
+        [thisBrowserID, frames, setCaptureActive]
     );
 
-    const onSelectItem = useCallback(
-        async (newIndex) => {
-            console.log(`New index is ${newIndex}, total frames: ${frames.length}.`);
-            if (newIndex >= frames.length) {
-                // Wait a half-second before capturing an image, giving the
-                // Webcam a beat to initialize.
-                getFramesInterval = setInterval(getFrames, 500);
+    const selectFrameNumber = useCallback(
+        async (newSelectedFrameNumber) => {
+            const frameCount = frames.length;
+            if (newSelectedFrameNumber < 0) {
+                newSelectedFrameNumber = 0;
+            } else if (newSelectedFrameNumber > frameCount) {
+                newSelectedFrameNumber = frameCount;
+            }
+    
+            if (newSelectedFrameNumber != selectedFrameNumber) {
+                setSelectedFrameNumber(newSelectedFrameNumber);
+
+                console.log(`New index is ${newSelectedFrameNumber}, total frames: ${frameCount}.`);
+                if (newSelectedFrameNumber >= frames.length) {
+                    setCaptureActive(true);
+                    // Wait a moment before capturing an image, giving the
+                    // Webcam a beat to initialize.
+    
+                    getFramesInterval = setInterval(getFrames, 500);
+                }
             }
         },
-        [frames, getFrames]
+        [frames, getFrames, selectedFrameNumber, setCaptureActive, setSelectedFrameNumber]
+    );
+
+    const aheadOne = useCallback(
+        () => {
+            selectFrameNumber(selectedFrameNumber + 1);
+        },
+        [selectedFrameNumber, selectFrameNumber]
+    );
+    const backOne = useCallback(
+        () => {
+            selectFrameNumber(selectedFrameNumber - 1);
+        },
+        [selectedFrameNumber, selectFrameNumber]
+    );
+    const toStart = useCallback(
+        () => {
+            selectFrameNumber(0);
+        },
+        [selectedFrameNumber, selectFrameNumber]
+    );
+    const toEnd = useCallback(
+        () => {
+            selectFrameNumber(frames.length - 1);
+        },
+        [selectedFrameNumber, selectFrameNumber, frames]
     );
 
     /*
@@ -220,9 +272,61 @@ export default function ClioApp() {
     story.
     */
     return <>
-        <Carousel onSelectItem={onSelectItem} defaultIndex={frames.length - 1}>
+        <div className={styles.navLeft}>
+            <button
+                className={styles.navButton}
+                onClick={() => {
+                    backOne();
+                }}
+            >
+                <IconChevronLeft/>
+            </button>
+        </div>
+        <div className={styles.clio_app}>
+            { true &&
+                <Webcam
+                    ref={webcamRef}
+                    className={styles.webcamVideo}
+                    videoConstraints={videoConstraints}
+                />
+            }
+        </div>
+        <Carousel
+            selectedIndex={selectedFrameNumber}
+            incrementSelectedIndex={aheadOne}
+            decrementSelectedIndex={backOne}
+        >
             {frames.map(renderFrame)}
             {renderEmptyFrame()}
         </Carousel>
+        <div className={styles.navRight}>
+            <button
+                className={styles.navButton}
+                onClick={() => {
+                    aheadOne();
+                }}
+            >
+                <IconChevronRight/>
+            </button>
+        </div>
+        <Toolbar
+            toStart={toStart}
+            toEnd={toEnd}
+            toggleIsPlaying={toggleIsPlaying}
+            isPlaying={isPlaying}
+            switchCamera={switchCamera}
+            canSwitchCamera={canSwitchCamera}
+            activateMenu={activateMenu}
+        />
+        {
+            loading &&
+            <div className={styles.spinnerFrame}>
+                <IconRefresh style={{
+                    animation: 'rotate 2s linear infinite',
+                    display: "block",
+                    margin: "auto"
+                }}/>
+            </div>
+       }
     </>;
 }
