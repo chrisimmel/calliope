@@ -18,8 +18,6 @@ div#root {
 
 .clio_app {
     display: grid;
-    grid-template-columns: 381px auto;
-
     grid-template-columns: repeat(2, 1fr);
     grid-template-rows: auto;
 }
@@ -27,13 +25,49 @@ div#root {
 .image {
     display: grid;
     min-height: 100vh;
-    min-width: 50vw;
+    min-width: 100vh;
 }
 
 img {
     align-self: center;
     justify-self: center;
     max-height: 100vh;
+}
+
+@media only screen 
+  and (min-device-width: 320px) 
+  and (max-device-width: 480px)
+  and (-webkit-min-device-pixel-ratio: 2)
+  and (orientation: landscape) {
+    .clio_app {
+        grid-template-columns: repeat(2, 1fr);
+        grid-template-rows: auto;
+    }
+    .image {
+        min-height: 100vh;
+        min-width: 50vw;
+    }
+    img {
+        max-height: 100vh;
+    }
+}
+@media only screen 
+  and (min-device-width: 320px) 
+  and (max-device-width: 480px)
+  and (-webkit-min-device-pixel-ratio: 2)
+  and (orientation: portrait) {
+    .clio_app {
+        grid-template-rows: repeat(2, 1fr);
+        grid-template-columns: auto;
+    }
+    
+    .image {
+        min-height: 100vw;
+        min-width: 100vw;
+    }
+    img {
+        max-width: 100vw;
+    }
 }
 
 .textFrame {
@@ -47,7 +81,7 @@ img {
     display: flex;
     flex-direction: column;
     max-height: calc(100vh - 30px);
-    padding-right: 60px;
+    padding-right: 30px;
 }
 
 .textInner {
@@ -56,6 +90,45 @@ img {
     max-height: 100vh;
     display: flex;
     flex-direction: column;
+}
+
+@media only screen 
+  and (min-device-width: 320px) 
+  and (max-device-width: 480px)
+  and (-webkit-min-device-pixel-ratio: 2)
+  and (orientation: landscape) {
+    .textContainer {
+        max-height: calc(100vh - 30px);
+        padding-right: 60px;
+    }
+    .textInner {
+        min-height: 0;
+        max-height: 100vh;
+    }
+}
+
+@media only screen 
+  and (min-device-width: 320px) 
+  and (max-device-width: 480px)
+  and (-webkit-min-device-pixel-ratio: 2)
+  and (orientation: portrait) {
+    .textFrame {
+        margin-top: 20px;
+        margin-left: 40px;
+        margin-right: 40px;
+    }
+    .textContainer {
+        max-height: calc(100vh - (50vw + 36px));
+        padding: 0;
+    }
+    .textInner {
+        min-height: 50vh;
+        max-height: 50vh;
+        padding: 0;
+    }
+    .textScroll {
+        max-height: calc(100vh - (100vw + 70px));
+    }
 }
 
 .textScroll {
@@ -71,6 +144,7 @@ img {
     left: 0;
     top: 0;
     max-height: 100vh;
+    max-width: 100vw;
     /*
     left: 60px;
     top: 60px;
@@ -99,6 +173,22 @@ img {
     right: 0;
     width: 40px;
     height: 100vh;
+}
+@media only screen 
+  and (min-device-width: 320px) 
+  and (max-device-width: 480px)
+  and (-webkit-min-device-pixel-ratio: 2)
+  and (orientation: portrait) {
+    .navLeft {
+        top: 100vw;
+        height: 50vh;
+        z-index: 100;
+    }
+    .navRight {
+        top: 100vw;
+        height: 50vh;
+        z-index: 100;
+    }
 }
 
 .navButton {
