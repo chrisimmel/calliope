@@ -26,6 +26,8 @@ div#root {
 
 .image {
     display: grid;
+    min-height: 100vh;
+    min-width: 50vw;
 }
 
 img {
@@ -44,7 +46,7 @@ img {
 .textContainer {
     display: flex;
     flex-direction: column;
-    max-height: 86vh;
+    max-height: calc(100vh - 30px);
     padding-right: 60px;
 }
 
