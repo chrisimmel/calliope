@@ -24,13 +24,11 @@ div#root {
 
 .image {
     /*display: grid;*/
-    min-height: 100vh;
-    min-width: 100vh;
 }
 
 img {
-    align-self: center;
-    justify-self: center;
+    /*align-self: center;
+    justify-self: center;*/
     object-fit: contain;
 }
 
@@ -42,7 +40,7 @@ img {
     }
     .image {
         min-height: 100vh;
-        min-width: 50vw;
+        min-width: calc(50vw - 40px);
     }
     img {
         height: 100vh;
@@ -56,50 +54,17 @@ img {
         grid-template-columns: auto;
     }
     .image {
-        min-height: 100vw;
         min-width: 100vw;
+        height: 100vw;
+        width: 100vw;
     }
     img {
         height: 100vw;
         width: 100vw;
     }
 }
-/*
-@media only screen 
-  and (min-device-width: 320px) 
-  and (max-device-width: 480px)
-  and (-webkit-min-device-pixel-ratio: 2)
-  and (orientation: landscape) {
-    .clio_app {
-        grid-template-columns: repeat(2, 1fr);
-        grid-template-rows: auto;
-    }
-}
-*/
-
-@media only screen 
-  and (min-device-width: 320px) 
-  and (max-device-width: 480px)
-  and (-webkit-min-device-pixel-ratio: 2)
-  and (orientation: portrait) {
-    .clio_app {
-        grid-template-rows: repeat(2, 1fr);
-        grid-template-columns: auto;
-    }
-    .image {
-        min-height: 100vw;
-        min-width: 100vw;
-    }
-    img {
-        max-width: 100vw;
-    }
-}
 
 .textFrame {
-    /*width: 50%;
-    justify-self: center;
-    margin: 60px;
-    */
 }
 
 .textContainer {
@@ -117,14 +82,12 @@ img {
     flex-direction: column;
 }
 
-@media only screen 
-  and (min-device-width: 320px) 
-  and (max-device-width: 480px)
-  and (-webkit-min-device-pixel-ratio: 2)
-  and (orientation: landscape) {
+@media (orientation: landscape) {
     .textContainer {
+        padding-left: 20px;
+        margin-top: calc((100vh - 48vw) / 2);
         max-height: calc(100vh - 30px);
-        padding-right: 60px;
+        padding-right: 48px;
     }
     .textInner {
         min-height: 0;
@@ -132,13 +95,10 @@ img {
     }
 }
 
-@media only screen 
-  and (min-device-width: 320px) 
-  and (max-device-width: 480px)
-  and (-webkit-min-device-pixel-ratio: 2)
-  and (orientation: portrait) {
+@media (orientation: portrait) {
     .textFrame {
-        margin-top: 20px;
+        height: calc(100vh - (100vw + 50px));
+        padding-top: 20px;
         margin-left: 40px;
         margin-right: 40px;
     }
@@ -170,13 +130,6 @@ img {
     top: 0;
     max-height: 100vh;
     max-width: 100vw;
-    /*
-    left: 60px;
-    top: 60px;
-    display: block;
-    position: absolute;
-    right: 100%;
-    */
 }
 
 
@@ -201,11 +154,7 @@ img {
     height: 100vh;
     z-index: 100;
 }
-@media only screen 
-  and (min-device-width: 320px) 
-  and (max-device-width: 480px)
-  and (-webkit-min-device-pixel-ratio: 2)
-  and (orientation: portrait) {
+@media (orientation: portrait) {
     .navLeft {
         top: 100vw;
         height: calc(100vh - 100vw);
