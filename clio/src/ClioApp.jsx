@@ -21,6 +21,7 @@ const getStrategy = () => {
     return queryParameters.get('strategy');
 };
 
+
 export default function ClioApp() {
     const bottomRef = useRef(null);
 
@@ -30,6 +31,17 @@ export default function ClioApp() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [image_url, setImageUrl] = useState(null);
+
+    const getPanels = () => {
+        /*
+        One panel for each frame, including an empty rightmost panel whose selection
+        triggers a request for a new frame. When the new rightmost panel contents
+        arrive, a _new_ rightmost panel is made available for the same purpose.
+
+        It is also always possible to scroll back through all prior frames of the
+        story.
+        */
+    }
 
     const webcamRef = useRef(null);
     let uploadImage = null

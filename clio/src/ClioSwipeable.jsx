@@ -6,7 +6,7 @@ import Carousel, { CarouselItem } from "./Carousel";
 import IconRefresh from "./icons/IconRefresh";
 
 import './Clio.css';
-import styles from './ClioApp.module.css';
+import styles from './ClioApp.css';
 
 import IconChevronLeft from "./icons/IconChevronLeft";
 import IconChevronRight from "./icons/IconChevronRight";
@@ -36,14 +36,14 @@ const renderFrame = (frame, index) => {
     const image_url = (frame.image && frame.image.url) ? `/${frame.image.url}` : '';
 
     return <CarouselItem key={index}>
-        <div className={styles.clio_app}>
-            <div className={styles.image}>
+        <div className="clio_app">
+            <div className="image">
                 {image_url && <img src={image_url} />}
             </div>
-            <div className={styles.textFrame}>
-                <div className={styles.textContainer}>
-                    <div className={styles.textInner}>
-                        <div className={styles.textScroll}>
+            <div className="textFrame">
+                <div className="textContainer">
+                    <div className="textInner">
+                        <div className="textScroll">
                             {frame.text}
                         </div>
                     </div>
@@ -56,7 +56,7 @@ const renderFrame = (frame, index) => {
 
 export default function ClioApp() {
     const [frames, setFrames] = useState([]);
-    const [selectedFrameNumber, setSelectedFrameNumber] = useState(0);
+    const [selectedFrameNumber, setSelectedFrameNumber] = useState(-1);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [captureActive, setCaptureActive] = useState(false);
@@ -90,14 +90,13 @@ export default function ClioApp() {
             const imageSrc = webcamRef.current.getScreenshot();
             const parts = imageSrc ? imageSrc.split(",") : null;
             uploadImage = (parts && parts.length > 1) ? parts[1] : null;
-            console.log(`captureImage, uploadImage=${uploadImage}`);
         },
         [webcamRef]
     );
     const renderEmptyFrame = useCallback(
         () => {
             return <CarouselItem>
-                <div className={styles.clio_app}>
+                <div className="clio_app">
                 </div>
             </CarouselItem>;
         },
@@ -122,41 +121,6 @@ export default function ClioApp() {
         setCapturing(false);
     }, [mediaRecorderRef, setCapturing]);
     */
-
-    useEffect(
-        () => {
-            const getStory = async () => {
-                setLoading(true)
-                try {
-                    let params = {
-                        client_id: thisBrowserID,
-                        debug: true,
-                    };
-                    console.log("Getting story...");
-                    const response = await axios.get(
-                        "/v1/story/",
-                        {
-                            headers: {
-                                "X-Api-Key": "xyzzy",
-                            },
-                            params: params,
-                        },
-                    );
-                    console.log(`Got ${response.data?.frames?.length} frames.`);
-                    const newFrames = response.data?.frames || [];
-                    setFrames(newFrames);
-                    setSelectedFrameNumber(newFrames ? newFrames.length - 1 : 0);
-                } catch (err) {
-                    setError(err.message);
-                } finally {
-                    setLoading(false);
-                }
-            };
-
-            getStory();
-        },
-        [setFrames, setSelectedFrameNumber]
-    );
 
     const getFrames = useCallback(
         async () => {
@@ -211,6 +175,50 @@ export default function ClioApp() {
             setCaptureActive(false);
         },
         [thisBrowserID, frames, setCaptureActive]
+    );
+
+    useEffect(
+        () => {
+            const getStory = async () => {
+                setLoading(true)
+                try {
+                    let params = {
+                        client_id: thisBrowserID,
+                        debug: true,
+                    };
+                    console.log("Getting story...");
+                    const response = await axios.get(
+                        "/v1/story/",
+                        {
+                            headers: {
+                                "X-Api-Key": "xyzzy",
+                            },
+                            params: params,
+                        },
+                    );
+                    console.log(`Got ${response.data?.frames?.length} frames.`);
+                    const newFrames = response.data?.frames || [];
+                    setFrames(newFrames);
+                    setSelectedFrameNumber(newFrames ? newFrames.length - 1 : 0);
+
+                    if (!newFrames.length) {
+                        // If the story is empty, get a new frame.
+                        setCaptureActive(true);
+                        // Wait a moment before capturing an image, giving the
+                        // Webcam a beat to initialize.
+        
+                        getFramesInterval = setInterval(getFrames, 500);
+                    }
+                } catch (err) {
+                    setError(err.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            getStory();
+        },
+        [setFrames, setSelectedFrameNumber]
     );
 
     const selectFrameNumber = useCallback(
@@ -272,9 +280,9 @@ export default function ClioApp() {
     story.
     */
     return <>
-        <div className={styles.navLeft}>
+        <div className="navLeft">
             <button
-                className={styles.navButton}
+                className="navButton"
                 onClick={() => {
                     backOne();
                 }}
@@ -282,11 +290,11 @@ export default function ClioApp() {
                 <IconChevronLeft/>
             </button>
         </div>
-        <div className={styles.clio_app}>
+        <div className="clio_app">
             { true &&
                 <Webcam
                     ref={webcamRef}
-                    className={styles.webcamVideo}
+                    className="webcamVideo"
                     videoConstraints={videoConstraints}
                 />
             }
@@ -299,9 +307,9 @@ export default function ClioApp() {
             {frames.map(renderFrame)}
             {renderEmptyFrame()}
         </Carousel>
-        <div className={styles.navRight}>
+        <div className="navRight">
             <button
-                className={styles.navButton}
+                className="navButton"
                 onClick={() => {
                     aheadOne();
                 }}
@@ -320,7 +328,7 @@ export default function ClioApp() {
         />
         {
             loading &&
-            <div className={styles.spinnerFrame}>
+            <div className="spinnerFrame">
                 <IconRefresh style={{
                     animation: 'rotate 2s linear infinite',
                     display: "block",

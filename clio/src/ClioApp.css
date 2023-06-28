@@ -23,7 +23,7 @@ div#root {
 }
 
 .image {
-    display: grid;
+    /*display: grid;*/
     min-height: 100vh;
     min-width: 100vh;
 }
@@ -31,9 +31,40 @@ div#root {
 img {
     align-self: center;
     justify-self: center;
-    max-height: 100vh;
+    object-fit: contain;
 }
 
+@media (orientation: landscape) {
+    .clio_app {
+        padding-left: 40px;
+        grid-template-columns: repeat(2, 1fr);
+        grid-template-rows: auto;
+    }
+    .image {
+        min-height: 100vh;
+        min-width: 50vw;
+    }
+    img {
+        height: 100vh;
+        width: calc(50vw - 40px);
+    }
+}
+
+@media (orientation: portrait) {
+    .clio_app {
+        grid-template-rows: repeat(2, 1fr);
+        grid-template-columns: auto;
+    }
+    .image {
+        min-height: 100vw;
+        min-width: 100vw;
+    }
+    img {
+        height: 100vw;
+        width: 100vw;
+    }
+}
+/*
 @media only screen 
   and (min-device-width: 320px) 
   and (max-device-width: 480px)
@@ -43,14 +74,9 @@ img {
         grid-template-columns: repeat(2, 1fr);
         grid-template-rows: auto;
     }
-    .image {
-        min-height: 100vh;
-        min-width: 50vw;
-    }
-    img {
-        max-height: 100vh;
-    }
 }
+*/
+
 @media only screen 
   and (min-device-width: 320px) 
   and (max-device-width: 480px)
@@ -60,7 +86,6 @@ img {
         grid-template-rows: repeat(2, 1fr);
         grid-template-columns: auto;
     }
-    
     .image {
         min-height: 100vw;
         min-width: 100vw;
@@ -163,6 +188,7 @@ img {
     left: 0;
     width: 40px;
     height: 100vh;
+    z-index: 100;
 }
 
 .navRight {
@@ -173,6 +199,7 @@ img {
     right: 0;
     width: 40px;
     height: 100vh;
+    z-index: 100;
 }
 @media only screen 
   and (min-device-width: 320px) 
@@ -181,13 +208,11 @@ img {
   and (orientation: portrait) {
     .navLeft {
         top: 100vw;
-        height: 50vh;
-        z-index: 100;
+        height: calc(100vh - 100vw);
     }
     .navRight {
         top: 100vw;
-        height: 50vh;
-        z-index: 100;
+        height: calc(100vh - 100vw);
     }
 }
 

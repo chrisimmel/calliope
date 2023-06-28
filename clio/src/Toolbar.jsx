@@ -1,4 +1,4 @@
-import styles from './Toolbar.module.css';
+import styles from './Toolbar.css';
 import IconFastForward from "./icons/IconFastForward";
 import IconPause from "./icons/IconPause";
 import IconPlay from "./icons/IconPlay";
@@ -16,9 +16,9 @@ export default function Toolbar({
     activateMenu
 }) {
     return <>
-        <div className={styles.nav}>
+        <div className="nav">
             <button
-                className={styles.navButton}
+                className="navButton"
                 onClick={() => {
                     toStart();
                 }}
@@ -26,7 +26,7 @@ export default function Toolbar({
                 <IconRewind/>
             </button>
             <button
-                className={styles.navButton}
+                className="navButton"
                 onClick={() => {
                     toggleIsPlaying();
                 }}
@@ -41,7 +41,7 @@ export default function Toolbar({
                 }
             </button>
             <button
-                className={styles.navButton}
+                className="navButton"
                 onClick={() => {
                     toEnd();
                 }}
@@ -51,7 +51,7 @@ export default function Toolbar({
             {
                 canSwitchCamera &&
                 <button
-                    className={styles.navButton}
+                    className="navButton"
                     onClick={() => {
                         switchCamera();
                     }}
@@ -60,7 +60,7 @@ export default function Toolbar({
                 </button>
             }
             <button
-                className={styles.navButton}
+                className="navButton"
                 onClick={() => {
                     activateMenu();
                 }}
