@@ -222,6 +222,7 @@ async def handle_frames_request(
             created_for_sparrow_id=client_id,
         )
         await put_story(story)
+        print(f"Created new story: {story.to_dict()}")
 
     if sparrow_state.current_story != story.id:
         # We're starting a new story.
@@ -314,6 +315,27 @@ async def handle_existing_frames_request(
 
     errors = []
     story = sparrow_state.current_story
+
+    frame_parameters = FramesRequestParamsModel(
+        **request_params.dict()
+    )
+
+    (
+        frame_parameters,
+        keys,
+        strategy_config,
+    ) = await get_sparrow_story_parameters_and_keys(frame_parameters, sparrow_state)
+
+    if not story:
+        story = Story.create_new(
+            strategy_name=frame_parameters.strategy,
+            created_for_sparrow_id=client_id,
+        )
+        story.created_for_sparrow_id = client_id
+        await put_story(story)
+        sparrow_state.current_story = story.id
+        await put_sparrow_state(sparrow_state)
+        print(f"Created new story: {story.to_dict()}")
 
     debug_data = {
         "story_id": story.cuid,

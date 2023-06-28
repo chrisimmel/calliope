@@ -50,6 +50,9 @@ async def get_sparrow_state(sparrow_id: str) -> SparrowState:
         )
         await put_sparrow_state(sparrow_state)
 
+    if sparrow_state.current_story and not sparrow_state.current_story.id:
+        sparrow_state.current_story = None
+
     return sparrow_state
 
 
