@@ -1,3 +1,9 @@
+:root {
+    --vp-height: 100vh;
+    --vp-height: -webkit-fill-available;
+    /* Also set from JavaScript. */
+}
+
 html {
     background-color: black
 }
@@ -13,7 +19,7 @@ div {
 }
 
 div#root {
-    height: 100vh;
+    height: var(--vp-height);
 }
 
 .clio_app {
@@ -23,12 +29,12 @@ div#root {
 }
 
 .image {
-    /*display: grid;*/
+    display: grid;
 }
 
 img {
-    /*align-self: center;
-    justify-self: center;*/
+    align-self: center;
+    justify-self: center;
     object-fit: contain;
 }
 
@@ -39,11 +45,12 @@ img {
         grid-template-rows: auto;
     }
     .image {
-        min-height: 100vh;
+        max-height: calc(var(--vp-height) - 36px);
         min-width: calc(50vw - 40px);
     }
     img {
-        height: 100vh;
+        /*height: var(--vp-height);*/
+        height: calc(var(--vp-height) - 36px);
         width: calc(50vw - 40px);
     }
 }
@@ -70,14 +77,12 @@ img {
 .textContainer {
     display: flex;
     flex-direction: column;
-    max-height: calc(100vh - 30px);
     padding-right: 30px;
 }
 
 .textInner {
     padding: 12px;
-    min-height: 0;
-    max-height: 100vh;
+    max-height: var(--vp-height);
     display: flex;
     flex-direction: column;
 }
@@ -85,50 +90,38 @@ img {
 @media (orientation: landscape) {
     .textContainer {
         padding-left: 20px;
-        max-height: calc(100vh - 30px);
+        height: calc(50vw - 30px);
+        max-height: var(--vp-height);
         padding-right: 48px;
         margin-top: 6px;
     }
     .textInner {
-        min-height: 0;
-        max-height: 100vh;
+        height: calc(50vw - 36px);
+        max-height: calc(var(--vp-height) - 62px)
     }
 }
 @media (orientation: landscape) and (max-aspect-ratio: 2) {
     .textContainer {
-        margin-top: calc((100vh - 48vw) / 2);
+        margin-top: calc((var(--vp-height) - 48vw) / 2);
+        max-height: calc(var(--vp-height) - 36px);
     }
 }
 
 @media (orientation: portrait) {
     .textFrame {
-        height: calc(100vh - (100vw + 50px));
-        padding-top: 20px;
+        height: calc(var(--vp-height) - (100vw + 68px));
+        height: calc(var(--vp-height) - (100vw + 86px));
+        padding-top: 14px;
         margin-left: 40px;
         margin-right: 40px;
     }
     .textContainer {
-        max-height: calc(100vh - (50vw + 36px));
+        height: calc(var(--vp-height) - (100vw + 68px));
         padding: 0;
     }
     .textInner {
-        min-height: 50vh;
-        max-height: 50vh;
+        height: calc(var(--vp-height) - (100vw + 72px));
         padding: 0;
-    }
-    .textScroll {
-        max-height: calc(100vh - (100vw + 70px));
-    }
-}
-@supports (-webkit-appearance: none) and (orientation: portrait) {
-    .textFrame {
-        height: calc(-webkit-fill-available - (100vw + 50px));
-    }
-    .textContainer {
-        max-height: calc(-webkit-fill-available - (50vw + 36px));
-    }
-    .textScroll {
-        max-height: calc(-webkit-fill-available - (100vw + 70px));
     }
 }
 
@@ -166,27 +159,21 @@ img {
     top: 0;
     right: 0;
     width: 40px;
-    height: 100vh;
+    height: var(--vp-height);
     z-index: 100;
 }
+
 @media (orientation: portrait) {
     .navLeft {
         top: 100vw;
-        height: calc(100vh - 100vw);
+        height: calc(var(--vp-height) - 100vw);
     }
     .navRight {
         top: 100vw;
-        height: calc(100vh - 100vw);
+        height: calc(var(--vp-height) - 100vw);
     }
 }
-@supports (-webkit-appearance: none) and (orientation: portrait) {
-    .navLeft {
-        height: calc(-webkit-fill-availabl - 100vw);
-    }
-    .navRight {
-        height: calc(-webkit-fill-availabl - 100vw);
-    }
-}
+
 .navButton {
     margin: 0;
     background: transparent;
@@ -204,7 +191,7 @@ svg {
     top: 0;
     left: 0;
     width: 100vw;
-    height: 100vh;
+    height: var(--vp-height);
     background: transparent;
     display:inline-flex;
     vertical-align:top;

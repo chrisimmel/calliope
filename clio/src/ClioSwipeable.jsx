@@ -65,6 +65,22 @@ export default function ClioApp() {
     const [cameraDeviceId, setCameraDeviceId] = useState(null);
     const [isMenuActive, setIsMenuActive] = useState(false);
 
+    useEffect(() => {
+        function handleResize() {
+            const root = document.querySelector(':root');
+            const vp_height = `${window.innerHeight}px`;
+            root.style.setProperty('--vp-height', vp_height);
+            console.log(`Set --vp-height to ${vp_height}`)
+        };
+
+        handleResize();
+        window.addEventListener('resize', handleResize)
+
+        return () => {
+            window.removeEventListener('resize', handleResize)
+        }
+    }, []);
+
     const toggleIsPlaying = useCallback(
         () => {
             setIsPlaying(isPlaying => !isPlaying);
