@@ -6,17 +6,12 @@ import Carousel, { CarouselItem } from "./Carousel";
 import IconRefresh from "./icons/IconRefresh";
 
 import './Clio.css';
-import styles from './ClioApp.css';
+import './ClioApp.css';
 
 import IconChevronLeft from "./icons/IconChevronLeft";
 import IconChevronRight from "./icons/IconChevronRight";
 import Toolbar from "./Toolbar";
 
-const videoConstraints = {
-    width: 512,
-    height: 512,
-    facingMode: "user",
-};
 const audioConstraints = {
     suppressLocalAudioPlayback: true,
     noiseSuppression: true,
@@ -61,9 +56,64 @@ export default function ClioApp() {
     const [error, setError] = useState(null);
     const [captureActive, setCaptureActive] = useState(false);
     const [isPlaying, setIsPlaying] = useState(false);
+    const [cameras, setCameras] = useState([]);
     const [canSwitchCamera, setCanSwitchCamera] = useState(true);
     const [cameraDeviceId, setCameraDeviceId] = useState(null);
     const [isMenuActive, setIsMenuActive] = useState(false);
+
+    const handleMediaDevices = useCallback(
+        (mediaDevices) => {
+            const cameras = mediaDevices.filter(({ kind }) => kind === "videoinput");
+            /*
+            const cameras = [
+                {
+                    deviceId: "abc",
+                    label: "Camera 0",
+                },
+                {
+                    deviceId: "def",
+                    label: "Camera 1",
+                },
+                {
+                    deviceId: "ghi",
+                    label: "Camera 2",
+                },
+                {
+                    deviceId: "jkl",
+                    label: "Camera 3",
+                },
+            ];
+            */
+            setCameras(cameras);
+            console.log(`Found ${cameras.length} cameras.`);
+            if (cameras) {
+                //setCanSwitchCamera(cameras.length > 1);
+
+                cameras.map((camera) => {
+                    console.log(`Camera ${camera.deviceId}, '${camera.label || camera.deviceId}'`)
+                });
+                if (!cameraDeviceId && cameras.length > 0) {
+                    console.log(`Initializing cameraDeviceId to ${cameras[0].deviceId}.`);
+                    setCameraDeviceId(cameras[0].deviceId);
+                }
+            }
+        },
+        [setCameras, cameraDeviceId, cameras]
+    );
+
+    const checkMediaDevices = useCallback(
+        () => {
+            navigator.mediaDevices.enumerateDevices().then(handleMediaDevices);
+        },
+        [handleMediaDevices]
+    );
+
+    useEffect(
+        () => {
+            checkMediaDevices();
+        },
+        []
+    );
 
     useEffect(() => {
         function handleResize() {
@@ -74,11 +124,25 @@ export default function ClioApp() {
         };
 
         handleResize();
-        window.addEventListener('resize', handleResize)
 
+        window.addEventListener('resize', handleResize)
+        if (window.screen && window.screen.orientation) {
+            try {
+                window.addEventListener('orientationchange', handleResize);
+                window.screen.orientation.onchange = handleResize;
+            }
+            catch (e) {
+                console.error(e);
+            }
+        }
         return () => {
             window.removeEventListener('resize', handleResize)
+            window.removeEventListener('orientationchange', handleResize);
+            if (window.screen && window.screen.orientation) {
+                window.screen.orientation.onchange = null;
+            }
         }
+
     }, []);
 
     const toggleIsPlaying = useCallback(
@@ -89,9 +153,19 @@ export default function ClioApp() {
     );
     const switchCamera = useCallback(
         () => {
-            // TODO
+            checkMediaDevices();
+            if (cameras) {
+                console.log(`cameraDeviceId=${cameraDeviceId}`);
+                console.log(`There are ${cameras ? cameras.length : 0} cameras.`);
+                const cameraIndex = cameras.findIndex(camera => camera.deviceId == cameraDeviceId);
+                const newCameraIndex = (cameraIndex + 1) % cameras.length;
+                const newCameraDeviceId = cameras[newCameraIndex].deviceId;
+                console.log(`cameraIndex, newCameraIndex, id = ${cameraIndex}, ${newCameraIndex}, ${newCameraDeviceId}`);
+                setCameraDeviceId(newCameraDeviceId);
+                console.log(`Set camera to ${cameras[newCameraIndex].label || newCameraDeviceId}.`);
+            }
         },
-        [cameraDeviceId]
+        [cameraDeviceId, setCameraDeviceId, cameras]
     );
     const activateMenu = useCallback(
         () => {
@@ -120,7 +194,7 @@ export default function ClioApp() {
     );
 
     /*
-    const handleStartCaptureClick = React.useCallback(() => {
+    const handleStartCaptureClick = useCallback(() => {
         setCapturing(true);
         mediaRecorderRef.current = new MediaRecorder(webcamRef.current.stream, {
             mimeType: "audio/wav",
@@ -132,7 +206,7 @@ export default function ClioApp() {
         mediaRecorderRef.current.start();
     }, [webcamElement, setCapturing, mediaRecorderRef, handleDataAvailable]);
 
-    const handleStopCaptureClick = React.useCallback(() => {
+    const handleStopCaptureClick = useCallback(() => {
         mediaRecorderRef.current.stop();
         setCapturing(false);
     }, [mediaRecorderRef, setCapturing]);
@@ -286,6 +360,17 @@ export default function ClioApp() {
         },
         [selectedFrameNumber, selectFrameNumber, frames]
     );
+
+    const videoConstraints = {
+        width: 512,
+        height: 512,
+    };
+    if (cameraDeviceId) {
+        videoConstraints.deviceId = cameraDeviceId;
+    }
+    else {
+        videoConstraints.facingMode = "user";
+    }
 
     /*
     One panel for each frame, including an empty rightmost panel whose selection

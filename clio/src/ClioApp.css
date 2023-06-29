@@ -81,7 +81,7 @@ img {
 }
 
 .textInner {
-    padding: 12px;
+    /*padding: 12px;*/
     max-height: var(--vp-height);
     display: flex;
     flex-direction: column;
@@ -96,8 +96,9 @@ img {
         margin-top: 6px;
     }
     .textInner {
-        height: calc(50vw - 36px);
-        max-height: calc(var(--vp-height) - 62px)
+        height: calc(50vw - 44px);
+        /*max-height: calc(var(--vp-height) - 62px);*/
+        max-height: calc(var(--vp-height) - 50px);
     }
 }
 @media (orientation: landscape) and (max-aspect-ratio: 2) {
