@@ -85,13 +85,18 @@ img {
 @media (orientation: landscape) {
     .textContainer {
         padding-left: 20px;
-        margin-top: calc((100vh - 48vw) / 2);
         max-height: calc(100vh - 30px);
         padding-right: 48px;
+        margin-top: 6px;
     }
     .textInner {
         min-height: 0;
         max-height: 100vh;
+    }
+}
+@media (orientation: landscape) and (max-aspect-ratio: 2) {
+    .textContainer {
+        margin-top: calc((100vh - 48vw) / 2);
     }
 }
 
@@ -115,6 +120,17 @@ img {
         max-height: calc(100vh - (100vw + 70px));
     }
 }
+@supports (-webkit-appearance: none) and (orientation: portrait) {
+    .textFrame {
+        height: calc(-webkit-fill-available - (100vw + 50px));
+    }
+    .textContainer {
+        max-height: calc(-webkit-fill-available - (50vw + 36px));
+    }
+    .textScroll {
+        max-height: calc(-webkit-fill-available - (100vw + 70px));
+    }
+}
 
 .textScroll {
     flex-grow: 1;
@@ -131,7 +147,6 @@ img {
     max-height: 100vh;
     max-width: 100vw;
 }
-
 
 .navLeft {
     display: flex;
@@ -164,7 +179,14 @@ img {
         height: calc(100vh - 100vw);
     }
 }
-
+@supports (-webkit-appearance: none) and (orientation: portrait) {
+    .navLeft {
+        height: calc(-webkit-fill-availabl - 100vw);
+    }
+    .navRight {
+        height: calc(-webkit-fill-availabl - 100vw);
+    }
+}
 .navButton {
     margin: 0;
     background: transparent;
