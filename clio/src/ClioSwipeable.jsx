@@ -23,7 +23,6 @@ const getStrategy = () => {
     return queryParameters.get('strategy');
 };
 
-let uploadImage = null;
 let getFramesInterval = null;
 
 
@@ -50,6 +49,7 @@ const renderFrame = (frame, index) => {
 
 
 export default function ClioApp() {
+    const stateRef = useRef();
     const [frames, setFrames] = useState([]);
     const [selectedFrameNumber, setSelectedFrameNumber] = useState(-1);
     const [loading, setLoading] = useState(true);
@@ -60,6 +60,7 @@ export default function ClioApp() {
     const [canSwitchCamera, setCanSwitchCamera] = useState(true);
     const [cameraDeviceId, setCameraDeviceId] = useState(null);
     const [isMenuActive, setIsMenuActive] = useState(false);
+    const [getFramesDelay, setGetFramesDelay] = useState(null);
 
     const handleMediaDevices = useCallback(
         (mediaDevices) => {
@@ -147,9 +148,21 @@ export default function ClioApp() {
 
     const toggleIsPlaying = useCallback(
         () => {
-            setIsPlaying(isPlaying => !isPlaying);
+            const newIsPlaying = !isPlaying;
+            console.log(`Setting isPlaying to ${newIsPlaying}.`);
+            setIsPlaying(newIsPlaying);
+            if (newIsPlaying) {
+                // Kick things off by generating and moving to a new frame.
+                selectFrameNumber(frames.length);
+            }
+            else {
+                if (getFramesInterval) {
+                    clearInterval(getFramesInterval);
+                    getFramesInterval = null;
+                }
+            }
         },
-        [isPlaying]
+        [isPlaying, frames, selectFrameNumber]
     );
     const switchCamera = useCallback(
         () => {
@@ -179,7 +192,7 @@ export default function ClioApp() {
         () => {
             const imageSrc = webcamRef.current.getScreenshot();
             const parts = imageSrc ? imageSrc.split(",") : null;
-            uploadImage = (parts && parts.length > 1) ? parts[1] : null;
+            return (parts && parts.length > 1) ? parts[1] : null;
         },
         [webcamRef]
     );
@@ -214,14 +227,14 @@ export default function ClioApp() {
 
     const getFrames = useCallback(
         async () => {
+            console.log(`Enter getFrames. isPlaying=${isPlaying}`)
             setLoading(true)
             try {
                 if (getFramesInterval) {
                     clearInterval(getFramesInterval);
+                    getFramesInterval = null;
                 }
-                const strategy = getStrategy();
-
-                await captureImage();
+                const uploadImage = captureImage();
     
                 let params = {
                     client_id: thisBrowserID,
@@ -229,12 +242,15 @@ export default function ClioApp() {
                     input_image: uploadImage,
                     debug: true,
                 };
+
+                const strategy = getStrategy();
                 if (strategy) {
-                    params.strategy = strategy
+                    params.strategy = strategy;
                 }
                 const imagePrefix = uploadImage ? uploadImage.substr(0, 20) : "(none)";
                 console.log(`Calling Calliope with image ${imagePrefix}...`);
                 setCaptureActive(false);
+                setSelectedFrameNumber(frames ? frames.length: 0);
                 const response = await axios.post(
                     "/v1/frames/",
                     params,
@@ -256,7 +272,11 @@ export default function ClioApp() {
                 }
 
                 setError(null);
-                //getFramesInterval = setInterval(getFrames, 20000);
+                console.log(`Got frames. isPlaying=${isPlaying}`)
+                if (isPlaying) {
+                    console.log("Scheduling frames request in 20s.");
+                    getFramesInterval = setInterval(() => stateRef.getFrames(), 20000);
+                }
             } catch (err) {
                 setError(err.message);
             } finally {
@@ -264,8 +284,9 @@ export default function ClioApp() {
             }
             setCaptureActive(false);
         },
-        [thisBrowserID, frames, setCaptureActive]
+        [thisBrowserID, frames, setCaptureActive, isPlaying]
     );
+    stateRef.getFrames = getFrames;
 
     useEffect(
         () => {
@@ -291,13 +312,14 @@ export default function ClioApp() {
                     setFrames(newFrames);
                     setSelectedFrameNumber(newFrames ? newFrames.length - 1 : 0);
 
-                    if (!newFrames.length) {
+                    if (!newFrames.length && !getFramesInterval) {
                         // If the story is empty, get a new frame.
                         setCaptureActive(true);
                         // Wait a moment before capturing an image, giving the
                         // Webcam a beat to initialize.
         
-                        getFramesInterval = setInterval(getFrames, 500);
+                        console.log("Scheduling a request for an initial frame.");
+                        getFramesInterval = setInterval(() => stateRef.getFrames(), 500);
                     }
                 } catch (err) {
                     setError(err.message);
@@ -308,7 +330,7 @@ export default function ClioApp() {
 
             getStory();
         },
-        [setFrames, setSelectedFrameNumber]
+        []
     );
 
     const selectFrameNumber = useCallback(
@@ -324,12 +346,13 @@ export default function ClioApp() {
                 setSelectedFrameNumber(newSelectedFrameNumber);
 
                 console.log(`New index is ${newSelectedFrameNumber}, total frames: ${frameCount}.`);
-                if (newSelectedFrameNumber >= frames.length) {
+                if (newSelectedFrameNumber >= frames.length && !getFramesInterval) {
                     setCaptureActive(true);
                     // Wait a moment before capturing an image, giving the
                     // Webcam a beat to initialize.
     
-                    getFramesInterval = setInterval(getFrames, 500);
+                    console.log(`newSelectedFrameNumber=${newSelectedFrameNumber}, frames.length=${frames.length}. Scheduling frames request.`);
+                    getFramesInterval = setInterval(() => stateRef.getFrames(), 500);
                 }
             }
         },

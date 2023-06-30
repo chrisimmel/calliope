@@ -1,4 +1,4 @@
-import styles from './Toolbar.css';
+import './Toolbar.css';
 import IconFastForward from "./icons/IconFastForward";
 import IconPause from "./icons/IconPause";
 import IconPlay from "./icons/IconPlay";
