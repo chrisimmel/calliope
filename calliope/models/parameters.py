@@ -107,10 +107,6 @@ class StoryParamsModel(ClientTypeParamsModel):
     output_image_style: Optional[str] = None
     output_text_style: Optional[str] = None
     strategy: Optional[str] = None
-    image_to_text_model_config: Optional[str] = None
-    text_to_image_model_config: Optional[str] = None
-    text_to_text_model_config: Optional[str] = None
-    audio_to_text_model_config: Optional[str] = None
     debug: Optional[bool] = False
     extra_fields: Optional[Dict[str, Any]] = None
 
@@ -131,3 +127,10 @@ class StoryParamsModel(ClientTypeParamsModel):
 
 class FramesRequestParamsModel(StoryParamsModel):
     client_id: str
+
+
+class StoryRequestParamsModel(BaseModel):
+    client_id: str
+    start_frame: Optional[int] = None
+    num_frames: Optional[int] = None
+    debug: Optional[bool] = False

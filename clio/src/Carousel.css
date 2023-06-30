@@ -1,0 +1,16 @@
+.carousel {
+    height: 100vh;
+    overflow: hidden;
+}
+
+.inner {
+    white-space: nowrap;
+    transition: transform 0.3s;
+}
+
+.carousel-item {
+    display: inline-flex;
+}
+.inner > * {
+    width: 100%;
+}

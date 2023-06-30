@@ -1,0 +1,201 @@
+:root {
+    --vp-height: 100vh;
+    --vp-height: -webkit-fill-available;
+    /* Also set from JavaScript. */
+}
+
+html {
+    background-color: black
+}
+
+body {
+    margin: 0;
+}
+
+div {
+    background-color: black;
+    color: white;
+    white-space: pre-wrap;
+}
+
+div#root {
+    height: var(--vp-height);
+}
+
+.clio_app {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: auto;
+}
+
+.image {
+    display: grid;
+}
+
+img {
+    align-self: center;
+    justify-self: center;
+    object-fit: contain;
+}
+
+@media (orientation: landscape) {
+    .clio_app {
+        padding-left: 40px;
+        grid-template-columns: repeat(2, 1fr);
+        grid-template-rows: auto;
+    }
+    .image {
+        max-height: calc(var(--vp-height) - 36px);
+        min-width: calc(50vw - 40px);
+    }
+    img {
+        /*height: var(--vp-height);*/
+        height: calc(var(--vp-height) - 36px);
+        width: calc(50vw - 40px);
+    }
+}
+
+@media (orientation: portrait) {
+    .clio_app {
+        grid-template-rows: repeat(2, 1fr);
+        grid-template-columns: auto;
+    }
+    .image {
+        min-width: 100vw;
+        height: 100vw;
+        width: 100vw;
+    }
+    img {
+        height: 100vw;
+        width: 100vw;
+    }
+}
+
+.textFrame {
+}
+
+.textContainer {
+    display: flex;
+    flex-direction: column;
+    padding-right: 30px;
+}
+
+.textInner {
+    /*padding: 12px;*/
+    max-height: var(--vp-height);
+    display: flex;
+    flex-direction: column;
+}
+
+@media (orientation: landscape) {
+    .textContainer {
+        padding-left: 20px;
+        height: calc(50vw - 30px);
+        max-height: var(--vp-height);
+        padding-right: 48px;
+        margin-top: 6px;
+    }
+    .textInner {
+        height: calc(50vw - 44px);
+        /*max-height: calc(var(--vp-height) - 62px);*/
+        max-height: calc(var(--vp-height) - 50px);
+    }
+}
+@media (orientation: landscape) and (max-aspect-ratio: 2) {
+    .textContainer {
+        margin-top: calc((var(--vp-height) - 48vw) / 2);
+        max-height: calc(var(--vp-height) - 36px);
+    }
+}
+
+@media (orientation: portrait) {
+    .textFrame {
+        height: calc(var(--vp-height) - (100vw + 68px));
+        height: calc(var(--vp-height) - (100vw + 86px));
+        padding-top: 14px;
+        margin-left: 40px;
+        margin-right: 40px;
+    }
+    .textContainer {
+        height: calc(var(--vp-height) - (100vw + 68px));
+        padding: 0;
+    }
+    .textInner {
+        height: calc(var(--vp-height) - (100vw + 72px));
+        padding: 0;
+    }
+}
+
+.textScroll {
+    flex-grow: 1;
+    overflow: scroll;
+    font-family: arial, sans-serif;
+    font-size: 11pt;
+}
+
+.webcamVideo {
+    z-index: -1;
+    position: absolute;
+    left: 0;
+    top: 0;
+    max-height: 100vh;
+    max-width: 100vw;
+}
+
+.navLeft {
+    display: flex;
+    justify-content: center;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 40px;
+    height: 100vh;
+    z-index: 100;
+}
+
+.navRight {
+    display: flex;
+    justify-content: center;
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 40px;
+    height: var(--vp-height);
+    z-index: 100;
+}
+
+@media (orientation: portrait) {
+    .navLeft {
+        top: 100vw;
+        height: calc(var(--vp-height) - 100vw);
+    }
+    .navRight {
+        top: 100vw;
+        height: calc(var(--vp-height) - 100vw);
+    }
+}
+
+.navButton {
+    margin: 0;
+    background: transparent;
+    color: white;
+    border: none;
+}
+
+svg {
+    width: 36px;
+    height: 36px;
+}
+
+.spinnerFrame {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: var(--vp-height);
+    background: transparent;
+    display:inline-flex;
+    vertical-align:top;
+    justify-content:center;
+    align-items:center;
+}

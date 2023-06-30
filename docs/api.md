@@ -33,10 +33,6 @@ to either a POST or GET request.
 * `output_text_style`: string - The requested text style (currently unused).
 * `max_output_text_length`: int - The maximum output text length (currently unused).
 * `strategy`: string - The name of the strategy to be used to generate the frames.
-* `image_to_text_model_config`: string - The name of the inference model config used to generate text from an image.
-* `text_to_image_model_config`: string - The name of the inference model config used to generate an image from text. 
-* `text_to_text_model_config`: string -  The name of the inference model config used to generate extended text from text.
-* `audio_to_text_model_config`: string - The name of the inference model config used to generate text from audio.
 * `debug`: boolean - Whether to include extra diagnostic information in the response.
 
 Hint: Some image generation models (notably Stable Diffusion) constrain output image dimensions to multiples of 64.
