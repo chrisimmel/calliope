@@ -1,24 +1,23 @@
-import asyncio
 from datetime import datetime, timezone
 from enum import Enum
 import json
 import os
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Sequence, Tuple, Union
 
 
 from calliope.models import (
     FramesRequestParamsModel,
-    InferenceModelConfigsModel,
     KeysModel,
-    load_model_configs,
     SparrowConfigModel,
     SparrowStateModel,
+    StrategyConfigDescriptortModel,
 )
+from calliope.storage.state_manager import get_sparrow_state
 from calliope.tables import (
     ClientTypeConfig,
     SparrowConfig,
 )
-from calliope.tables.model_config import ModelConfig, StrategyConfig
+from calliope.tables.model_config import StrategyConfig
 from calliope.utils.google import (
     delete_google_file,
     is_google_cloud_run_environment,
@@ -49,7 +48,7 @@ def _delete_config(config_type: ConfigType, config_id: str) -> None:
     if is_google_cloud_run_environment():
         try:
             delete_google_file(folder, filename)
-        except Exception as e:
+        except Exception:
             return None
 
     if not os.path.isfile(local_filename):
@@ -115,7 +114,7 @@ def delete_client_type_config(client_type_id: str) -> None:
 
 async def get_sparrow_story_parameters_and_keys(
     request_params: FramesRequestParamsModel, sparrow_state: SparrowStateModel
-) -> Tuple[FramesRequestParamsModel, KeysModel]:
+) -> Tuple[FramesRequestParamsModel, KeysModel, StrategyConfig]:
     """
     Gets the story parameters and keys given a set of request
     parameters, taking into account the sparrow and flock
@@ -185,7 +184,8 @@ async def get_sparrow_story_parameters_and_keys(
                 # Avoid inheritance loops.
                 if sparrow_or_flock_id in sparrows_and_flocks_visited:
                     raise ValueError(
-                        f"Flock inheritance loop: {','.join(new_sparrows_and_flocks_visited)}"
+                        "Flock inheritance loop: "
+                        f"{','.join(new_sparrows_and_flocks_visited)}"
                     )
                 sparrows_and_flocks_visited = new_sparrows_and_flocks_visited
         else:
@@ -258,10 +258,11 @@ async def get_strategy_config(strategy_config_slug: str) -> Optional[StrategyCon
 
     if not strategy_config:
         print(
-            f"There isn't a strategy_config called {strategy_config_slug}. Looking for a default strategy_config for strategy {strategy_config_slug}."
+            f"There isn't a strategy_config called {strategy_config_slug}. "
+            "Looking for a default strategy_config for strategy {strategy_config_slug}."
         )
-        # If StrategyConfig of the given slug is not found, then look for one that references
-        # a strategy of that name and for which is_default is True.
+        # If StrategyConfig of the given slug is not found, then look for one that
+        # references a strategy of that name and for which is_default is True.
         strategy_config = (
             await StrategyConfig.objects(
                 StrategyConfig.text_to_image_model_config.all_related(),
@@ -305,3 +306,35 @@ async def get_strategy_config(strategy_config_slug: str) -> Optional[StrategyCon
                 )
 
     return strategy_config
+
+
+async def get_strategy_config_descriptors(
+    client_id: Optional[str],
+) -> Sequence[StrategyConfigDescriptortModel]:
+    if client_id:
+        frames_request = FramesRequestParamsModel(client_id=client_id)
+        sparrow_state = await get_sparrow_state(client_id)
+
+        _, _, default_strategy_config = await get_sparrow_story_parameters_and_keys(
+            frames_request, sparrow_state
+        )
+    else:
+        default_strategy_config = None
+
+    strategy_configs = await StrategyConfig.objects(
+        StrategyConfig.text_to_image_model_config.all_related(),
+        StrategyConfig.text_to_text_model_config.all_related(),
+    ).run()
+
+    descriptors = [
+        StrategyConfigDescriptortModel(
+            slug=strategy_config.slug,
+            strategy_name=strategy_config.strategy_name,
+            description=strategy_config.description,
+            is_default_for_client=default_strategy_config
+            and strategy_config.slug == default_strategy_config.slug,
+        )
+        for strategy_config in strategy_configs
+    ]
+
+    return descriptors

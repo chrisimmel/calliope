@@ -17,6 +17,7 @@ from .config import (
     ConfigModel,
     ClientTypeConfigModel,
     SparrowConfigModel,
+    StrategyConfigDescriptortModel,
 )
 from .sparrow_state import SparrowStateModel
 from .story import StoryModel
@@ -59,6 +60,7 @@ __all__ = [
     "StoryModel",
     "StoryParamsModel",
     "StoryRequestParamsModel",
+    "StrategyConfigDescriptortModel",
     "TriggerConditionModel",
     "TriggerType",
 ]

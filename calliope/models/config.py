@@ -55,3 +55,22 @@ class ClientTypeConfigModel(ConfigModel):
 
     # Optional client type parameters.
     parameters: Optional[ClientTypeParamsModel]
+
+
+class StrategyConfigDescriptortModel(BaseModel):
+    """
+    A small amount of information about a strategy config. 
+    """
+
+    # The unique slug for this strategy config.
+    slug: str
+
+    # Identifies the strategy.
+    strategy_name: str
+
+    # A human-readable description.
+    description: str
+
+    # Whether this strategy config is the default for the
+    # requesting client.
+    is_default_for_client: bool
