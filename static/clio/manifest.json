@@ -1,0 +1,16 @@
+{
+    "name": "Clio",
+    "short_name": "Clio",
+    "description": "Clio, messenger of Calliope.",
+    "display": "fullscreen",
+    "start_url": "",
+    "background_color": "#000000",
+    "theme_color": "#0f4a73",
+    "icons": [
+      {
+        "src": "Calliope-icon-large.png",
+        "sizes": "512×512",
+        "type": "image/png"
+      }
+    ]
+  }
