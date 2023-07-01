@@ -116,7 +116,11 @@ export default function ClioApp() {
 
     useEffect(
         () => {
+            // Check the media devices once immediately. This seems to be enough
+            // in a browser running on a desktop.
             checkMediaDevices();
+
+            // But on an iPhone, we need to wait a few seconds and try again.
             checkMediaDevicesInterval = setInterval(() => {
                 clearInterval(checkMediaDevicesInterval);
                 checkMediaDevicesInterval = null;
@@ -173,22 +177,6 @@ export default function ClioApp() {
             }
         },
         [isPlaying, frames, selectFrameNumber]
-    );
-    const switchCamera = useCallback(
-        () => {
-            checkMediaDevices();
-            if (cameras) {
-                console.log(`cameraDeviceId=${cameraDeviceId}`);
-                console.log(`There are ${cameras ? cameras.length : 0} cameras.`);
-                const cameraIndex = cameras.findIndex(camera => camera.deviceId == cameraDeviceId);
-                const newCameraIndex = (cameraIndex + 1) % cameras.length;
-                const newCameraDeviceId = cameras[newCameraIndex].deviceId;
-                console.log(`cameraIndex, newCameraIndex, id = ${cameraIndex}, ${newCameraIndex}, ${newCameraDeviceId}`);
-                setCameraDeviceId(newCameraDeviceId);
-                console.log(`Set camera to ${cameras[newCameraIndex].label || newCameraDeviceId}.`);
-            }
-        },
-        [cameraDeviceId, setCameraDeviceId, cameras]
     );
 
     const webcamRef = useRef(null);
