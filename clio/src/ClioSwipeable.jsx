@@ -26,6 +26,7 @@ const getDefaultStrategy = () => {
 };
 
 let getFramesInterval = null;
+let checkMediaDevicesInterval = null;
 
 
 const renderFrame = (frame, index) => {
@@ -61,7 +62,7 @@ export default function ClioApp() {
     const [cameras, setCameras] = useState([]);
     const [strategies, setStrategies] = useState([]);
     const [strategy, setStrategy] = useState(getDefaultStrategy());
-    const [cameraDeviceId, setCameraDeviceId] = useState(null);
+    const [cameraDeviceId, setCameraDeviceId] = useState("default");
 
     const handleMediaDevices = useCallback(
         (mediaDevices) => {
@@ -107,6 +108,7 @@ export default function ClioApp() {
 
     const checkMediaDevices = useCallback(
         () => {
+            console.log(`checkMediaDevices()...`);
             navigator.mediaDevices.enumerateDevices().then(handleMediaDevices);
         },
         [handleMediaDevices]
@@ -115,6 +117,11 @@ export default function ClioApp() {
     useEffect(
         () => {
             checkMediaDevices();
+            checkMediaDevicesInterval = setInterval(() => {
+                clearInterval(checkMediaDevicesInterval);
+                checkMediaDevicesInterval = null;
+                checkMediaDevices();
+            }, 3000);
         },
         []
     );
@@ -187,7 +194,7 @@ export default function ClioApp() {
     const webcamRef = useRef(null);
     const captureImage = useCallback(
         () => {
-            const imageSrc = webcamRef.current.getScreenshot();
+            const imageSrc = webcamRef.current ? webcamRef.current.getScreenshot() : null;
             const parts = imageSrc ? imageSrc.split(",") : null;
             return (parts && parts.length > 1) ? parts[1] : null;
         },
@@ -231,6 +238,7 @@ export default function ClioApp() {
                     clearInterval(getFramesInterval);
                     getFramesInterval = null;
                 }
+                console.log(`captureImage().`)
                 const uploadImage = captureImage();
     
                 let params = {
@@ -414,11 +422,11 @@ export default function ClioApp() {
         width: 512,
         height: 512,
     };
-    if (cameraDeviceId) {
+    if (cameraDeviceId != "default") {
         videoConstraints.deviceId = cameraDeviceId;
     }
     else {
-        videoConstraints.facingMode = "user";
+        videoConstraints.facingMode = "environment";
     }
 
     /*
