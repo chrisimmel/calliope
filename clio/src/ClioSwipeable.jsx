@@ -11,6 +11,8 @@ import './ClioApp.css';
 import IconChevronLeft from "./icons/IconChevronLeft";
 import IconChevronRight from "./icons/IconChevronRight";
 import Toolbar from "./Toolbar";
+import MainMenu from "./MainMenu";
+
 
 const audioConstraints = {
     suppressLocalAudioPlayback: true,
@@ -18,7 +20,7 @@ const audioConstraints = {
 };
 const thisBrowserID = browserID();
 
-const getStrategy = () => {
+const getDefaultStrategy = () => {
     const queryParameters = new URLSearchParams(window.location.search);
     return queryParameters.get('strategy');
 };
@@ -57,10 +59,9 @@ export default function ClioApp() {
     const [captureActive, setCaptureActive] = useState(false);
     const [isPlaying, setIsPlaying] = useState(false);
     const [cameras, setCameras] = useState([]);
-    const [canSwitchCamera, setCanSwitchCamera] = useState(true);
+    const [strategies, setStrategies] = useState([]);
+    const [strategy, setStrategy] = useState(getDefaultStrategy());
     const [cameraDeviceId, setCameraDeviceId] = useState(null);
-    const [isMenuActive, setIsMenuActive] = useState(false);
-    const [getFramesDelay, setGetFramesDelay] = useState(null);
 
     const handleMediaDevices = useCallback(
         (mediaDevices) => {
@@ -85,11 +86,13 @@ export default function ClioApp() {
                 },
             ];
             */
+            cameras.push({
+                label: "Camera Off",
+                deviceId: null,
+            });
             setCameras(cameras);
-            console.log(`Found ${cameras.length} cameras.`);
+            console.log(`Found ${cameras.length} cameras: ${cameras}`);
             if (cameras) {
-                //setCanSwitchCamera(cameras.length > 1);
-
                 cameras.map((camera) => {
                     console.log(`Camera ${camera.deviceId}, '${camera.label || camera.deviceId}'`)
                 });
@@ -180,12 +183,6 @@ export default function ClioApp() {
         },
         [cameraDeviceId, setCameraDeviceId, cameras]
     );
-    const activateMenu = useCallback(
-        () => {
-            setIsMenuActive(true);
-        },
-        [isMenuActive]
-    );
 
     const webcamRef = useRef(null);
     const captureImage = useCallback(
@@ -243,12 +240,11 @@ export default function ClioApp() {
                     debug: true,
                 };
 
-                const strategy = getStrategy();
                 if (strategy) {
                     params.strategy = strategy;
                 }
                 const imagePrefix = uploadImage ? uploadImage.substr(0, 20) : "(none)";
-                console.log(`Calling Calliope with image ${imagePrefix}...`);
+                console.log(`Calling Calliope with strategy ${strategy}, image ${imagePrefix}...`);
                 setCaptureActive(false);
                 setSelectedFrameNumber(frames ? frames.length: 0);
                 const response = await axios.post(
@@ -284,7 +280,7 @@ export default function ClioApp() {
             }
             setCaptureActive(false);
         },
-        [thisBrowserID, frames, setCaptureActive, isPlaying]
+        [thisBrowserID, frames, setCaptureActive, isPlaying, strategy]
     );
     stateRef.getFrames = getFrames;
 
@@ -359,6 +355,36 @@ export default function ClioApp() {
         [frames, getFrames, selectedFrameNumber, setCaptureActive, setSelectedFrameNumber]
     );
 
+    useEffect(
+        () => {
+            const getStrategies = async () => {
+                try {
+                    let params = {
+                        client_id: thisBrowserID,
+                    };
+                    console.log("Getting strategies...");
+                    const response = await axios.get(
+                        "/v1/config/strategy/",
+                        {
+                            headers: {
+                                "X-Api-Key": "xyzzy",
+                            },
+                            params: params,
+                        },
+                    );
+                    const newStrategies = response.data || [];
+                    console.log(`Got ${response.data?.length} strategies.`);
+                    setStrategies(newStrategies);
+                } catch (err) {
+                    setError(err.message);
+                }
+            };
+
+            getStrategies();
+        },
+        []
+    );
+
     const aheadOne = useCallback(
         () => {
             selectFrameNumber(selectedFrameNumber + 1);
@@ -415,7 +441,7 @@ export default function ClioApp() {
             </button>
         </div>
         <div className="clio_app">
-            { true &&
+            { cameraDeviceId &&
                 <Webcam
                     ref={webcamRef}
                     className="webcamVideo"
@@ -446,9 +472,14 @@ export default function ClioApp() {
             toEnd={toEnd}
             toggleIsPlaying={toggleIsPlaying}
             isPlaying={isPlaying}
-            switchCamera={switchCamera}
-            canSwitchCamera={canSwitchCamera}
-            activateMenu={activateMenu}
+            menu={<MainMenu
+                strategies={strategies}
+                strategy={strategy}
+                setStrategy={setStrategy}
+                cameras={cameras}
+                camera={cameraDeviceId}
+                setCamera={setCameraDeviceId}
+            />}
         />
         {
             loading &&

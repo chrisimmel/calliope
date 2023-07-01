@@ -13,7 +13,7 @@ export default function Toolbar({
     isPlaying,
     switchCamera,
     canSwitchCamera,
-    activateMenu
+    menu,
 }) {
     return <>
         <div className="nav">
@@ -59,14 +59,7 @@ export default function Toolbar({
                     <IconCameraReverse/>
                 </button>
             }
-            <button
-                className="navButton"
-                onClick={() => {
-                    activateMenu();
-                }}
-            >
-                <IconMenu/>
-            </button>
+            {menu}
         </div>
     </>;
 }

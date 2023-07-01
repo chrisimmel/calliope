@@ -20,3 +20,10 @@ svg {
     width: 36px;
     height: 36px;
 }
+
+.szh-menu__item {
+    font-family: arial, sans-serif;
+    background-color: white;
+    color: black;
+}
+
