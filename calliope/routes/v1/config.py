@@ -1,8 +1,11 @@
+from typing import Optional, Sequence
+
 from calliope.storage.config_manager import (
     delete_client_type_config,
     delete_sparrow_config,
     get_client_type_config,
     put_client_type_config,
+    get_strategy_config_descriptors,
     get_sparrow_config,
     put_sparrow_config,
 )
@@ -12,6 +15,7 @@ from fastapi.security.api_key import APIKey
 from calliope.models import (
     ClientTypeConfigModel,
     SparrowConfigModel,
+    StrategyConfigDescriptortModel,
 )
 from calliope.utils.authentication import get_api_key
 
@@ -69,3 +73,11 @@ async def request_delete_client_type_config(
     api_key: APIKey = Depends(get_api_key),
 ) -> None:
     return await delete_client_type_config(client_type)
+
+
+@router.get("/strategy/")
+async def request_get_strategy_configs(
+    client_id: Optional[str],
+    api_key: APIKey = Depends(get_api_key),
+) -> Sequence[StrategyConfigDescriptortModel]:
+    return await get_strategy_config_descriptors(client_id)
