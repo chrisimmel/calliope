@@ -14,7 +14,7 @@ from calliope.models import (
     KeysModel,
 )
 from calliope.models.frame_sequence_response import StoryFrameSequenceResponseModel
-from calliope.strategies.base import DEFAULT_MIN_DURATION_SECONDS, StoryStrategy
+from calliope.strategies.base import StoryStrategy
 from calliope.strategies.registry import StoryStrategyRegistry
 from calliope.tables import (
     PromptTemplate,
@@ -218,8 +218,10 @@ class ContinuousStoryV1Strategy(StoryStrategy):
         if not last_text or last_text.isspace():
             if strategy_config.seed_prompt_template:
                 if isinstance(strategy_config.seed_prompt_template, int):
-                    strategy_config.seed_prompt_template = await strategy_config.get_related(
-                        StrategyConfig.seed_prompt_template
+                    strategy_config.seed_prompt_template = (
+                        await strategy_config.get_related(
+                            StrategyConfig.seed_prompt_template
+                        )
                     )
                 last_text = strategy_config.seed_prompt_template.text
             else:
