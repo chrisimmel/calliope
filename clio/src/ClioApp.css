@@ -6,6 +6,10 @@
     --toolbar-height: 60px;
 }
 
+#root.fullscreen {
+    --toolbar-height: 0;
+}
+
 html {
     background-color: black
 }
@@ -51,9 +55,11 @@ img {
         min-width: calc(50vw - var(--toolbar-height));
     }
     img {
-        /*height: var(--vp-height);*/
         height: calc(var(--vp-height) - var(--toolbar-height));
         width: calc(50vw - var(--toolbar-height));
+    }
+    .fullscreen img {
+        height: var(--vp-height);
     }
 }
 
@@ -125,6 +131,10 @@ img {
         height: calc(var(--vp-height) - (100vw + 10px + var(--toolbar-height)));
         padding: 0;
     }
+
+    .fullscreen .textFrame {
+        padding: 30px;
+    }
 }
 
 .textScroll {
@@ -149,7 +159,6 @@ img {
     position: absolute;
     top: 0;
     left: 0;
-    width: var(--toolbar-height);
     height: 100vh;
     z-index: 100;
     background: transparent;
@@ -161,7 +170,6 @@ img {
     position: absolute;
     top: 0;
     right: 0;
-    width: var(--toolbar-height);
     height: var(--vp-height);
     z-index: 100;
     background: transparent;
@@ -183,6 +191,16 @@ img {
     background: transparent;
     color: white;
     border: none;
+    transition: opacity 1s;
+    padding: 10px;
+}
+
+#root.fullscreen .navButton {
+    opacity: 0;
+}
+
+#root.fullscreen.show-overlays .navButton {
+    opacity: 1;
 }
 
 svg {

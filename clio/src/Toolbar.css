@@ -10,19 +10,6 @@
     background: transparent;
 }
 
-.navButton {
-    margin: 0;
-    background: transparent;
-    color: white;
-    border: none;
-    padding: 10px;
-}
-
-svg {
-    width: 38px;
-    height: 38px;
-}
-
 .szh-menu__item {
     font-family: arial, sans-serif;
     background-color: white;

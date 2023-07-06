@@ -27,6 +27,7 @@ const getDefaultStrategy = () => {
 
 let getFramesInterval = null;
 let checkMediaDevicesInterval = null;
+let hideOverlaysInterval = null;
 
 
 const renderFrame = (frame, index) => {
@@ -63,30 +64,44 @@ export default function ClioApp() {
     const [strategies, setStrategies] = useState([]);
     const [strategy, setStrategy] = useState(getDefaultStrategy());
     const [cameraDeviceId, setCameraDeviceId] = useState("default");
+    const [isFullScreen, setIsFullScreen] = useState(false);
+
+    function handleResize() {
+        const root = document.querySelector(':root');
+        const vp_height = `${window.innerHeight}px`;
+        root.style.setProperty('--vp-height', vp_height);
+        console.log(`Set --vp-height to ${vp_height}`)
+    };
+
+    useEffect(() => {
+            function handleMouseMove(e) {
+                e.preventDefault();
+
+                if (isFullScreen && !hideOverlaysInterval) {
+                    console.log(`Show overlays!.`)
+                    const rootElement = document.getElementById("root");
+                    rootElement.classList.add("show-overlays");
+
+                    hideOverlaysInterval = setInterval(() => {
+                        console.log(`Hide overlays!.`)
+                        clearInterval(hideOverlaysInterval);
+                        hideOverlaysInterval = null;
+                        rootElement.classList.remove('show-overlays');
+                    }, 2000);
+                }
+            }
+
+            window.addEventListener("mousemove", handleMouseMove);
+            return () => {
+                window.removeEventListener("mousemove", handleMouseMove);
+            };
+        },
+        [isFullScreen, hideOverlaysInterval]
+    );
 
     const handleMediaDevices = useCallback(
         (mediaDevices) => {
             const cameras = mediaDevices.filter(({ kind }) => kind === "videoinput");
-            /*
-            const cameras = [
-                {
-                    deviceId: "abc",
-                    label: "Camera 0",
-                },
-                {
-                    deviceId: "def",
-                    label: "Camera 1",
-                },
-                {
-                    deviceId: "ghi",
-                    label: "Camera 2",
-                },
-                {
-                    deviceId: "jkl",
-                    label: "Camera 3",
-                },
-            ];
-            */
             cameras.push({
                 label: "Camera Off",
                 deviceId: null,
@@ -131,13 +146,6 @@ export default function ClioApp() {
     );
 
     useEffect(() => {
-        function handleResize() {
-            const root = document.querySelector(':root');
-            const vp_height = `${window.innerHeight}px`;
-            root.style.setProperty('--vp-height', vp_height);
-            console.log(`Set --vp-height to ${vp_height}`)
-        };
-
         handleResize();
 
         window.addEventListener('resize', handleResize)
@@ -178,6 +186,50 @@ export default function ClioApp() {
         },
         [isPlaying, frames, selectFrameNumber]
     );
+
+    const toggleFullscreen = useCallback(
+        () => {
+            const newIsFullscreen = !isFullScreen;
+            console.log(`Setting isFullScreen to ${newIsFullscreen}.`);
+            setIsFullScreen(newIsFullscreen);
+            if (newIsFullscreen) {
+                document.documentElement.requestFullscreen();
+            }
+            else {
+                document.exitFullscreen();
+            }
+        },
+        [isFullScreen]
+    );
+
+    const handleFullscreen = useCallback(
+        () => {
+            const isCurrentlyFullscreen = !!document.fullscreenElement;
+            console.log(`handleFullscreen, isCurrentlyFullscreen=${isCurrentlyFullscreen}`);
+            handleResize();
+
+            const rootElement = document.getElementById("root");
+            if (isCurrentlyFullscreen) {
+                rootElement.classList.add("fullscreen");
+                setIsFullScreen(true);
+            }
+            else {
+                rootElement.classList.remove('fullscreen');
+                setIsFullScreen(false);
+            }
+        },
+        [isFullScreen]
+    );
+
+    stateRef.handleFullscreen = handleFullscreen;
+    useEffect(() => {
+        const dynHandleFullscreen = () => stateRef.handleFullscreen();
+
+        document.addEventListener('fullscreenchange', dynHandleFullscreen);
+        return () => {
+            document.removeEventListener('fullscreenchange', dynHandleFullscreen);
+        }
+    }, []);
 
     const webcamRef = useRef(null);
     const captureImage = useCallback(
@@ -426,16 +478,19 @@ export default function ClioApp() {
     story.
     */
     return <>
-        <div className="navLeft">
-            <button
-                className="navButton"
-                onClick={() => {
-                    backOne();
-                }}
-            >
-                <IconChevronLeft/>
-            </button>
-        </div>
+        {
+            /*!isFullScreen &&*/
+            <div className="navLeft">
+                <button
+                    className="navButton"
+                    onClick={() => {
+                        backOne();
+                    }}
+                >
+                    <IconChevronLeft/>
+                </button>
+            </div>
+        }
         <div className="clio_app">
             { cameraDeviceId &&
                 <Webcam
@@ -453,30 +508,37 @@ export default function ClioApp() {
             {frames.map(renderFrame)}
             {renderEmptyFrame()}
         </Carousel>
-        <div className="navRight">
-            <button
-                className="navButton"
-                onClick={() => {
-                    aheadOne();
-                }}
-            >
-                <IconChevronRight/>
-            </button>
-        </div>
-        <Toolbar
-            toStart={toStart}
-            toEnd={toEnd}
-            toggleIsPlaying={toggleIsPlaying}
-            isPlaying={isPlaying}
-            menu={<MainMenu
-                strategies={strategies}
-                strategy={strategy}
-                setStrategy={setStrategy}
-                cameras={cameras}
-                camera={cameraDeviceId}
-                setCamera={setCameraDeviceId}
-            />}
-        />
+        {
+            /*!isFullScreen &&*/
+            <div className="navRight">
+                <button
+                    className="navButton"
+                    onClick={() => {
+                        aheadOne();
+                    }}
+                >
+                    <IconChevronRight/>
+                </button>
+            </div>
+        }
+        {
+            /*!isFullScreen &&*/
+            <Toolbar
+                toStart={toStart}
+                toEnd={toEnd}
+                toggleIsPlaying={toggleIsPlaying}
+                isPlaying={isPlaying}
+                toggleFullscreen={toggleFullscreen}
+                menu={<MainMenu
+                    strategies={strategies}
+                    strategy={strategy}
+                    setStrategy={setStrategy}
+                    cameras={cameras}
+                    camera={cameraDeviceId}
+                    setCamera={setCameraDeviceId}
+                />}
+            />
+        }
         {
             loading &&
             <div className="spinnerFrame">
@@ -486,6 +548,6 @@ export default function ClioApp() {
                     margin: "auto"
                 }}/>
             </div>
-       }
+        }
     </>;
 }
