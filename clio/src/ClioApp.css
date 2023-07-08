@@ -7,7 +7,7 @@
 }
 
 #root.fullscreen {
-    --toolbar-height: 0;
+    --toolbar-height: 0px;
 }
 
 html {
@@ -123,18 +123,27 @@ img {
         margin-left:  var(--toolbar-height);
         margin-right:  var(--toolbar-height);
     }
+    .fullscreen .textFrame {
+        height: calc(var(--vp-height) - (100vw + 88px));
+    }
     .textContainer {
         height: calc(var(--vp-height) - (100vw + 10px + var(--toolbar-height)));
         padding: 0;
+    }
+    .fullscreen .textContainer {
+        height: calc(var(--vp-height) - (100vw + 88px));
     }
     .textInner {
         height: calc(var(--vp-height) - (100vw + 10px + var(--toolbar-height)));
         padding: 0;
     }
-
-    .fullscreen .textFrame {
-        padding: 30px;
+    .fullscreen .textInner {
+        height: calc(var(--vp-height) - (100vw + 88px));
     }
+}
+
+.fullscreen .textFrame {
+    padding: 30px;
 }
 
 .textScroll {
@@ -162,6 +171,7 @@ img {
     height: 100vh;
     z-index: 100;
     background: transparent;
+    margin-left: -10px;
 }
 
 .navRight {
@@ -173,6 +183,7 @@ img {
     height: var(--vp-height);
     z-index: 100;
     background: transparent;
+    margin-right: -10px;
 }
 
 @media (orientation: portrait) {

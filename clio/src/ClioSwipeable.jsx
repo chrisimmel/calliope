@@ -77,13 +77,12 @@ export default function ClioApp() {
             function handleMouseMove(e) {
                 e.preventDefault();
 
-                if (isFullScreen && !hideOverlaysInterval) {
-                    console.log(`Show overlays!.`)
+                //if (isFullScreen && !hideOverlaysInterval) {
+                if (!hideOverlaysInterval) {
                     const rootElement = document.getElementById("root");
                     rootElement.classList.add("show-overlays");
 
                     hideOverlaysInterval = setInterval(() => {
-                        console.log(`Hide overlays!.`)
                         clearInterval(hideOverlaysInterval);
                         hideOverlaysInterval = null;
                         rootElement.classList.remove('show-overlays');
@@ -210,11 +209,11 @@ export default function ClioApp() {
 
             const rootElement = document.getElementById("root");
             if (isCurrentlyFullscreen) {
-                rootElement.classList.add("fullscreen");
+                //rootElement.classList.add("fullscreen");
                 setIsFullScreen(true);
             }
             else {
-                rootElement.classList.remove('fullscreen');
+                //rootElement.classList.remove('fullscreen');
                 setIsFullScreen(false);
             }
         },
