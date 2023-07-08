@@ -26,9 +26,13 @@ services:
       - POSTGRESQL_USERNAME=postgres
       - POSTGRESQL_PASSWORD=postgres
       - POSTGRESQL_DATABASE=calliope
+      - CLOUDSDK_CONFIG=/gcp/config
+      - GOOGLE_APPLICATION_CREDENTIALS=/gcp/config/application_default_credentials.json
     ports:
       - 8008:8008
     tty: true
     volumes:
       - .:/app
       - /app/.venv
+      - $HOME/.config/gcloud:/gcp/config:ro
+      - /gcp/config/logs
