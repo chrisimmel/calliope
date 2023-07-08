@@ -20,7 +20,7 @@ from calliope.utils.image import (
 router = APIRouter(prefix="/media", tags=["media"])
 
 
-@router.get("/{filename}")
+@router.get("/{filename}", response_model=None)
 async def get_media(
     filename: str,
     # api_key: APIKey = Depends(get_api_key),

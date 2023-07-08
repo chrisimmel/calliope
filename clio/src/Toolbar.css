@@ -7,18 +7,7 @@
     flex-direction: row;
     justify-content: center;
     align-items: center;
-}
-
-.navButton {
-    margin: 0;
     background: transparent;
-    color: white;
-    border: none;
-}
-
-svg {
-    width: 36px;
-    height: 36px;
 }
 
 .szh-menu__item {

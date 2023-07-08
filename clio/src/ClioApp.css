@@ -1,7 +1,13 @@
 :root {
+    /* --vp-height is also set dynamically from JavaScript. */
     --vp-height: 100vh;
     --vp-height: -webkit-fill-available;
-    /* Also set from JavaScript. */
+
+    --toolbar-height: 60px;
+}
+
+#root.fullscreen {
+    --toolbar-height: 0px;
 }
 
 html {
@@ -40,18 +46,20 @@ img {
 
 @media (orientation: landscape) {
     .clio_app {
-        padding-left: 40px;
+        padding-left: var(--toolbar-height);
         grid-template-columns: repeat(2, 1fr);
         grid-template-rows: auto;
     }
     .image {
-        max-height: calc(var(--vp-height) - 36px);
-        min-width: calc(50vw - 40px);
+        max-height: calc(var(--vp-height) - var(--toolbar-height));
+        min-width: calc(50vw - var(--toolbar-height));
     }
     img {
-        /*height: var(--vp-height);*/
-        height: calc(var(--vp-height) - 36px);
-        width: calc(50vw - 40px);
+        height: calc(var(--vp-height) - var(--toolbar-height));
+        width: calc(50vw - var(--toolbar-height));
+    }
+    .fullscreen img {
+        height: var(--vp-height);
     }
 }
 
@@ -90,40 +98,52 @@ img {
 @media (orientation: landscape) {
     .textContainer {
         padding-left: 20px;
-        height: calc(50vw - 30px);
+        height: calc(50vw - (var(--toolbar-height) - 6px));
         max-height: var(--vp-height);
         padding-right: 48px;
-        margin-top: 6px;
+        /*margin-top: 6px;*/
     }
     .textInner {
-        height: calc(50vw - 44px);
-        /*max-height: calc(var(--vp-height) - 62px);*/
-        max-height: calc(var(--vp-height) - 50px);
+        height: calc(50vw - (var(--toolbar-height)));
+        max-height: calc(var(--vp-height) - 62px);
+        /*max-height: calc(var(--vp-height) - 50px);*/
     }
 }
 @media (orientation: landscape) and (max-aspect-ratio: 2) {
     .textContainer {
-        margin-top: calc((var(--vp-height) - 48vw) / 2);
-        max-height: calc(var(--vp-height) - 36px);
+        margin-top: calc((var(--vp-height) - 50vw) / 2);
+        max-height: calc(var(--vp-height) - var(--toolbar-height));
     }
 }
 
 @media (orientation: portrait) {
     .textFrame {
-        height: calc(var(--vp-height) - (100vw + 68px));
-        height: calc(var(--vp-height) - (100vw + 86px));
+        height: calc(var(--vp-height) - (100vw + 10px + var(--toolbar-height)));
         padding-top: 14px;
-        margin-left: 40px;
-        margin-right: 40px;
+        margin-left:  var(--toolbar-height);
+        margin-right:  var(--toolbar-height);
+    }
+    .fullscreen .textFrame {
+        height: calc(var(--vp-height) - (100vw + 88px));
     }
     .textContainer {
-        height: calc(var(--vp-height) - (100vw + 68px));
+        height: calc(var(--vp-height) - (100vw + 10px + var(--toolbar-height)));
         padding: 0;
+    }
+    .fullscreen .textContainer {
+        height: calc(var(--vp-height) - (100vw + 88px));
     }
     .textInner {
-        height: calc(var(--vp-height) - (100vw + 72px));
+        height: calc(var(--vp-height) - (100vw + 10px + var(--toolbar-height)));
         padding: 0;
     }
+    .fullscreen .textInner {
+        height: calc(var(--vp-height) - (100vw + 88px));
+    }
+}
+
+.fullscreen .textFrame {
+    padding: 30px;
 }
 
 .textScroll {
@@ -148,9 +168,10 @@ img {
     position: absolute;
     top: 0;
     left: 0;
-    width: 40px;
     height: 100vh;
     z-index: 100;
+    background: transparent;
+    margin-left: -10px;
 }
 
 .navRight {
@@ -159,9 +180,10 @@ img {
     position: absolute;
     top: 0;
     right: 0;
-    width: 40px;
     height: var(--vp-height);
     z-index: 100;
+    background: transparent;
+    margin-right: -10px;
 }
 
 @media (orientation: portrait) {
@@ -180,11 +202,21 @@ img {
     background: transparent;
     color: white;
     border: none;
+    transition: opacity 1s;
+    padding: 10px;
+}
+
+#root.fullscreen .navButton {
+    opacity: 0;
+}
+
+#root.fullscreen.show-overlays .navButton {
+    opacity: 1;
 }
 
 svg {
-    width: 36px;
-    height: 36px;
+    width: 38px;
+    height: 38px;
 }
 
 .spinnerFrame {

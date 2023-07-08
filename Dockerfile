@@ -1,4 +1,4 @@
-FROM python:3.10.2-buster
+FROM python:3.11-buster
 ENV APP_HOME /app
 RUN mkdir $APP_HOME
 RUN mkdir $APP_HOME/config
