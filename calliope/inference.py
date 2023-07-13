@@ -368,13 +368,21 @@ async def _text_to_image_file_inference_stability(
     width = width or 512
     height = height or 512
 
-    # Stable Diffusion accepts only multiples of 64 for image dimensions. Can scale or crop
-    # afterward to match requested size.
+    # Stable Diffusion accepts only multiples of 64 for image dimensions. Can scale or
+    # crop afterward to match requested size.
     width = math.ceil(width / 64) * 64
     height = math.ceil(height / 64) * 64
 
+    prompt = [
+        generation.Prompt(text=text, parameters=generation.PromptParameters(weight=1)),
+        generation.Prompt(
+            text="Signature, photorealism, cell phones, weird faces or hands, artist name, artist logo.",
+            parameters=generation.PromptParameters(weight=-1),
+        ),
+    ]
+
     responses = stability_api.generate(
-        prompt=text,
+        prompt=prompt,
         width=width,
         height=height,
         **parameters,

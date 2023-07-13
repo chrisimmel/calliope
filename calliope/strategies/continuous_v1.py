@@ -3,6 +3,7 @@ import sys, traceback
 from typing import Any, cast, Dict, List, Optional
 
 import aiohttp
+from google.cloud import translate_v2 as translate
 
 from calliope.inference import (
     caption_to_prompt,
@@ -183,7 +184,8 @@ class ContinuousStoryV1Strategy(StoryStrategy):
         print(f"Begin processing strategy {self.strategy_name}...")
         client_id = parameters.client_id
         output_image_style = (
-            parameters.output_image_style or "A watercolor, paper texture."
+            parameters.output_image_style
+            or "The entire image must be a watercolor on paper. We should see washes of the watercolor paint and the texture of the paper. Prefer abstraction and softer colors or grayscale. Avoid photorealism. No signature. Don't sign the painting."
         )
         debug_data = self._get_default_debug_data(parameters)
         errors = []
@@ -270,8 +272,19 @@ class ContinuousStoryV1Strategy(StoryStrategy):
             story_continuation = image_scene + "\n"
 
         if story_continuation:
+            if (
+                strategy_config.text_to_text_model_config
+                and strategy_config.text_to_text_model_config
+                and strategy_config.text_to_text_model_config.prompt_template
+                and strategy_config.text_to_text_model_config.prompt_template.target_language
+                != "en"
+            ):
+                en_story = translate_text("en", story_continuation)
+            else:
+                en_story = story_continuation
+
             prompt_template = output_image_style + " {x}"
-            prompt = caption_to_prompt(story_continuation, prompt_template)
+            prompt = caption_to_prompt(en_story, prompt_template)
             print(f'Image prompt: "{prompt}"')
 
             try:
@@ -450,3 +463,26 @@ class ContinuousStoryV1Strategy(StoryStrategy):
                 text = ""
 
         return text
+
+
+def translate_text(target: str, text: str) -> str:
+    """Translates text into the target language.
+
+    Target must be an ISO 639-1 language code.
+    See https://g.co/cloud/translate/v2/translate-reference#supported_languages
+    """
+    translate_client = translate.Client()
+
+    if isinstance(text, bytes):
+        text = text.decode("utf-8")
+
+    # Text can also be a sequence of strings, in which case this method
+    # will return a sequence of results for each text.
+    result = translate_client.translate(text, target_language=target)
+
+    translation = result.get("translatedText", text) if result else text
+
+    print("Translation: {}".format(translation))
+    print("Detected source language: {}".format(result["detectedSourceLanguage"]))
+
+    return translation

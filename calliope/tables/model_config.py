@@ -31,6 +31,9 @@ class PromptTemplate(Table, tablename="prompt_template"):
     # The raw template text, in Jinja2 format.
     text = Text()
 
+    # The language this prompt is expected to produce.
+    target_language = Varchar(length=10, default="en")
+
     date_created = Timestamptz()
     date_updated = Timestamptz(auto_update=datetime.now)
 
