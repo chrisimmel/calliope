@@ -1,5 +1,6 @@
 import re
-import sys, traceback
+import sys
+import traceback
 from typing import Any, cast, Dict, List, Optional
 
 import aiohttp
@@ -182,9 +183,11 @@ class ContinuousStoryV1Strategy(StoryStrategy):
     ) -> StoryFrameSequenceResponseModel:
         print(f"Begin processing strategy {self.strategy_name}...")
         client_id = parameters.client_id
-        output_image_style = (
-            parameters.output_image_style
-            or "The entire image must be a watercolor on paper. We should see washes of the watercolor paint and the texture of the paper. Prefer abstraction and softer colors or grayscale. Avoid photorealism. No signature. Don't sign the painting."
+        output_image_style = parameters.output_image_style or (
+            "The entire image must be a watercolor on paper. "
+            "We should see washes of the watercolor paint and the texture of the paper. "
+            "Prefer abstraction and softer colors or grayscale. Avoid photorealism. "
+            "No signature. Don't sign the painting."
         )
         debug_data = self._get_default_debug_data(parameters)
         errors = []
@@ -437,17 +440,26 @@ class ContinuousStoryV1Strategy(StoryStrategy):
         input_text = parameters.input_text
 
         if input_text and stripped_text.find(input_text) >= 0:
-            msg = f"Rejecting story continuation because it contains the input text: {stripped_text[:100]}[...]"
+            msg = (
+                "Rejecting story continuation because it contains the input text: "
+                f"{stripped_text[:100]}[...]"
+            )
             print(msg)
             errors.append(msg)
             text = ""
         elif re.search(r"[<>#^#\\{}]|0x|://", text):
-            msg = f"Rejecting story continuation because it smells like code: {stripped_text[:100]}[...]"
+            msg = (
+                "Rejecting story continuation because it smells like code: "
+                f"{stripped_text[:100]}[...]"
+            )
             print(msg)
             errors.append(msg)
             text = ""
         elif stripped_text and stripped_text in last_text:
-            msg = f"Rejecting story continuation because it's already appeared in the story: {stripped_text[:100]}[...]"
+            msg = (
+                "Rejecting story continuation because it's already appeared in the "
+                f"story: {stripped_text[:100]}[...]"
+            )
             print(msg)
             errors.append(msg)
             text = ""
@@ -455,7 +467,10 @@ class ContinuousStoryV1Strategy(StoryStrategy):
         prompt_words = ("Scene:", "Text:", "Objects:", "Continuation:")
         for prompt_word in prompt_words:
             if text.find(prompt_word) >= 0:
-                msg = f"Rejecting story continuation because it contains a prompt word: '{text}'"
+                msg = (
+                    "Rejecting story continuation because it contains a prompt word: "
+                    f"'{text}'"
+                )
                 print(msg)
                 errors.append(msg)
                 text = ""

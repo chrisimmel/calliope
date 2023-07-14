@@ -1,5 +1,6 @@
 import re
-import sys, traceback
+import sys
+import traceback
 from typing import Any, Dict, List, Optional
 
 import aiohttp
@@ -13,10 +14,9 @@ from calliope.models import (
     KeysModel,
 )
 from calliope.models.frame_sequence_response import StoryFrameSequenceResponseModel
-from calliope.strategies.base import DEFAULT_MIN_DURATION_SECONDS, StoryStrategy
+from calliope.strategies.base import StoryStrategy
 from calliope.strategies.registry import StoryStrategyRegistry
 from calliope.tables import (
-    PromptTemplate,
     SparrowState,
     Story,
     StrategyConfig,
@@ -59,7 +59,6 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         debug_data = self._get_default_debug_data(parameters)
         errors = []
         caption = image_analysis.get("description") if image_analysis else None
-        prompt = None
         text = None
         image = None
         input_text = ""
@@ -202,17 +201,26 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         input_text = parameters.input_text
 
         if input_text and text.find(input_text) >= 0:
-            msg = f"Rejecting story continuation because it contains the input text: {stripped_text[:100]}[...]"
+            msg = (
+                "Rejecting story continuation because it contains the input text: "
+                f"{stripped_text[:100]}[...]"
+            )
             print(msg)
             errors.append(msg)
             text = ""
         elif re.search(r"[<>#^#\\{}]|0x|://", text):
-            msg = f"Rejecting story continuation because it smells like code: {stripped_text[:100]}[...]"
+            msg = (
+                "Rejecting story continuation because it smells like code: "
+                f"{stripped_text[:100]}[...]"
+            )
             print(msg)
             errors.append(msg)
             text = ""
         elif stripped_text and stripped_text in last_text:
-            msg = f"Rejecting story continuation because it's already appeared in the story: {stripped_text[:100]}[...]"
+            msg = (
+                "Rejecting story continuation because it's already appeared in the "
+                f"story: {stripped_text[:100]}[...]"
+            )
             print(msg)
             errors.append(msg)
             text = ""
