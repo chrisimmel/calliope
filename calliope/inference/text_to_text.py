@@ -3,7 +3,7 @@ import json
 import aiohttp
 from langchain.chat_models import ChatOpenAI
 from langchain.llms import OpenAI
-from langchain.schema import AIMessage, HumanMessage
+from langchain.schema import HumanMessage
 import openai
 
 from calliope.inference.engines.hugging_face import hugging_face_request
@@ -75,7 +75,9 @@ async def text_to_text_inference(
 
             extended_text = None
             chat = ChatOpenAI(
-                openai_api_key=keys.openapi_api_key, model_name=model.provider_model_name
+                openai_api_key=keys.openapi_api_key,
+                model_name=model.provider_model_name,
+                **parameters,
             )
             llm_result = await chat.agenerate([[HumanMessage(content=text)]])
             print(f"Chat Completion response is: '{llm_result}'")
@@ -87,12 +89,31 @@ async def text_to_text_inference(
                 # generations=[[ChatGeneration(text='The room was bathed in soft, muted
                 extended_text = llm_result.generations[0][0].text
         else:
+            """
             completion = await openai.Completion.acreate(
                 engine=model.provider_model_name,
                 prompt=text,
                 **parameters,
             )
             extended_text = completion.choices[0].text
+            """
+
+            extended_text = None
+            chat = OpenAI(
+                openai_api_key=keys.openapi_api_key,
+                model_name=model.provider_model_name,
+                **parameters,
+            )
+            llm_result = await chat.agenerate([text])
+            print(f"Completion response is: '{llm_result}'")
+            if (
+                llm_result.generations
+                and llm_result.generations[0]
+                and llm_result.generations[0][0]
+            ):
+                # generations=[[Generation(text="\nA portrait of a moment in time
+                extended_text = llm_result.generations[0][0].text
+
         print(f'extended_text="{extended_text}"')
     else:
         raise ValueError(
