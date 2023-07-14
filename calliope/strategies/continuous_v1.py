@@ -6,8 +6,7 @@ import aiohttp
 from google.cloud import translate_v2 as translate
 
 from calliope.inference import (
-    caption_to_prompt,
-    text_to_extended_text_inference,
+    text_to_text_inference,
     text_to_image_file_inference,
 )
 from calliope.models import (
@@ -283,9 +282,8 @@ class ContinuousStoryV1Strategy(StoryStrategy):
             else:
                 en_story = story_continuation
 
-            prompt_template = output_image_style + " {x}"
-            prompt = caption_to_prompt(en_story, prompt_template)
-            print(f'Image prompt: "{prompt}"')
+            image_prompt = output_image_style + " " + en_story
+            print(f'Image prompt: "{image_prompt}"')
 
             try:
                 output_image_filename_png = create_sequential_filename(
@@ -293,7 +291,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
                 )
                 await text_to_image_file_inference(
                     aiohttp_session,
-                    prompt,
+                    image_prompt,
                     output_image_filename_png,
                     strategy_config.text_to_image_model_config,
                     keys,
@@ -383,7 +381,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
         aiohttp_session: aiohttp.ClientSession,
     ) -> str:
         try:
-            text = await text_to_extended_text_inference(
+            text = await text_to_text_inference(
                 aiohttp_session, text, strategy_config.text_to_text_model_config, keys
             )
             print(f"Raw output: '{text}'")

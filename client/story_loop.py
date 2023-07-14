@@ -5,7 +5,7 @@ from typing import Any
 import cv2
 
 from calliope.inference import (
-    text_to_extended_text_inference,
+    text_to_text_inference,
     text_to_image_file_inference,
 )
 from calliope.models import KeysModel
@@ -54,7 +54,7 @@ def story_loop_inference_api(image_style: str) -> None:
             text = f"{caption} {last_text}"
             fragment_len = len(text)
             try:
-                text = text_to_extended_text_inference(text, keys)
+                text = text_to_text_inference(text, keys)
             except Exception as e:
                 traceback.print_exc(file=sys.stderr)
 

@@ -5,7 +5,6 @@ from typing import Any, Dict, Optional
 import aiohttp
 
 from calliope.inference import (
-    caption_to_prompt,
     text_to_image_file_inference,
 )
 from calliope.models import (
@@ -56,9 +55,8 @@ class LiteralStrategy(StoryStrategy):
 
         for prompt in prompts:
             frame_number = await story.get_num_frames()
-            prompt_template = output_image_style + " {x}"
-            full_prompt = caption_to_prompt(prompt, prompt_template)
-            print(f'Image prompt: "{full_prompt}"')
+            image_prompt = output_image_style + " " + (prompt or "")
+            print(f'Image prompt: "{image_prompt}"')
 
             image = None
 
@@ -68,7 +66,7 @@ class LiteralStrategy(StoryStrategy):
                 )
                 await text_to_image_file_inference(
                     aiohttp_session,
-                    full_prompt,
+                    image_prompt,
                     output_image_filename_png,
                     strategy_config.text_to_image_model_config,
                     keys,
