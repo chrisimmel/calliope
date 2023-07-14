@@ -1,4 +1,3 @@
-import asyncio
 import io
 import json
 import math
@@ -8,10 +7,8 @@ from urllib.parse import urlencode
 import aiohttp
 import aiofiles
 from calliope.utils.file import get_file_extension
-import cv2
 import openai
 from PIL import Image
-import requests
 from requests.models import Response
 from stability_sdk import client as stability_client
 import stability_sdk.interfaces.gooseai.generation.generation_pb2 as generation
@@ -22,9 +19,6 @@ from calliope.models import (
     InferenceModelProviderVariant,
 )
 from calliope.tables import ModelConfig
-
-# from PIL import Image
-# from image_captioning.model import predict
 
 
 # image_to_text_model = "ydshieh/vit-gpt2-coco-en-ckpts"
@@ -568,19 +562,3 @@ async def text_to_extended_text_inference(
         )
 
     return extended_text
-
-
-CAPTION_TOKEN = "{x}"
-
-
-def caption_to_prompt(caption: str, prompt_template: str) -> Optional[str]:
-    prompt = prompt_template.replace(CAPTION_TOKEN, caption) if caption else None
-
-    """
-    # Try to prevent caching in inference API. Salt the prompt with a timestamp...
-    import datetime
-    timestamp = str(datetime.datetime.now())
-    prompt = f"{prompt} {timestamp}"
-    """
-
-    return prompt
