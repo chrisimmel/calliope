@@ -69,11 +69,14 @@ class SimpleOneFrameStoryStrategy(StoryStrategy):
         text = await text_to_extended_text_inference(
             aiohttp_session, description, strategy_config.text_to_text_model_config, keys
         )
+        if not text or text.isspace():
+            text = description
+
         prompt_template = output_image_style + " {x}"
         print(text)
 
         if text:
-            prompt = caption_to_prompt(text, prompt_template)
+            image_prompt = caption_to_prompt(text, prompt_template)
 
             try:
                 output_image_filename_png = create_sequential_filename(
@@ -82,7 +85,7 @@ class SimpleOneFrameStoryStrategy(StoryStrategy):
 
                 await text_to_image_file_inference(
                     aiohttp_session,
-                    prompt,
+                    image_prompt,
                     output_image_filename_png,
                     strategy_config.text_to_image_model_config,
                     keys,
