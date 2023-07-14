@@ -53,12 +53,14 @@ async def text_to_image_file_inference_stability(
         # Things we don't want (negative prompt):
         generation.Prompt(
             text=",".join(
-                "Signature",
-                "photorealism",
-                "cell phones",
-                "weird faces or hands",
-                "artist name",
-                "artist logo.",
+                [
+                    "Signature",
+                    "photorealism",
+                    "cell phones",
+                    "weird faces or hands",
+                    "artist name",
+                    "artist logo.",
+                ]
             ),
             parameters=generation.PromptParameters(weight=-1),
         ),
