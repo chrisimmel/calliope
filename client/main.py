@@ -9,7 +9,6 @@ from requests.models import Response
 # from PIL import Image
 # from image_captioning.model import predict
 from calliope.inference import (
-    caption_to_prompt,
     text_to_image_file_inference,
 )
 from calliope.models import KeysModel
@@ -53,7 +52,7 @@ def image_loop_inference_api() -> None:
                 traceback.print_exc(file=sys.stderr)
 
             if caption:
-                prompt = caption_to_prompt(caption)
+                prompt = "A watercolor of " + caption
                 print(caption)
 
             if prompt:

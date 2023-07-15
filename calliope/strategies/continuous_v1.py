@@ -1,13 +1,13 @@
 import re
-import sys, traceback
+import sys
+import traceback
 from typing import Any, cast, Dict, List, Optional
 
 import aiohttp
 from google.cloud import translate_v2 as translate
 
 from calliope.inference import (
-    caption_to_prompt,
-    text_to_extended_text_inference,
+    text_to_text_inference,
     text_to_image_file_inference,
 )
 from calliope.models import (
@@ -183,9 +183,11 @@ class ContinuousStoryV1Strategy(StoryStrategy):
     ) -> StoryFrameSequenceResponseModel:
         print(f"Begin processing strategy {self.strategy_name}...")
         client_id = parameters.client_id
-        output_image_style = (
-            parameters.output_image_style
-            or "The entire image must be a watercolor on paper. We should see washes of the watercolor paint and the texture of the paper. Prefer abstraction and softer colors or grayscale. Avoid photorealism. No signature. Don't sign the painting."
+        output_image_style = parameters.output_image_style or (
+            "The entire image must be a watercolor on paper. "
+            "We should see washes of the watercolor paint and the texture of the paper. "
+            "Prefer abstraction and softer colors or grayscale. Avoid photorealism. "
+            "No signature. Don't sign the painting."
         )
         debug_data = self._get_default_debug_data(parameters)
         errors = []
@@ -283,9 +285,8 @@ class ContinuousStoryV1Strategy(StoryStrategy):
             else:
                 en_story = story_continuation
 
-            prompt_template = output_image_style + " {x}"
-            prompt = caption_to_prompt(en_story, prompt_template)
-            print(f'Image prompt: "{prompt}"')
+            image_prompt = output_image_style + " " + en_story
+            print(f'Image prompt: "{image_prompt}"')
 
             try:
                 output_image_filename_png = create_sequential_filename(
@@ -293,7 +294,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
                 )
                 await text_to_image_file_inference(
                     aiohttp_session,
-                    prompt,
+                    image_prompt,
                     output_image_filename_png,
                     strategy_config.text_to_image_model_config,
                     keys,
@@ -383,7 +384,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
         aiohttp_session: aiohttp.ClientSession,
     ) -> str:
         try:
-            text = await text_to_extended_text_inference(
+            text = await text_to_text_inference(
                 aiohttp_session, text, strategy_config.text_to_text_model_config, keys
             )
             print(f"Raw output: '{text}'")
@@ -439,17 +440,26 @@ class ContinuousStoryV1Strategy(StoryStrategy):
         input_text = parameters.input_text
 
         if input_text and stripped_text.find(input_text) >= 0:
-            msg = f"Rejecting story continuation because it contains the input text: {stripped_text[:100]}[...]"
+            msg = (
+                "Rejecting story continuation because it contains the input text: "
+                f"{stripped_text[:100]}[...]"
+            )
             print(msg)
             errors.append(msg)
             text = ""
         elif re.search(r"[<>#^#\\{}]|0x|://", text):
-            msg = f"Rejecting story continuation because it smells like code: {stripped_text[:100]}[...]"
+            msg = (
+                "Rejecting story continuation because it smells like code: "
+                f"{stripped_text[:100]}[...]"
+            )
             print(msg)
             errors.append(msg)
             text = ""
         elif stripped_text and stripped_text in last_text:
-            msg = f"Rejecting story continuation because it's already appeared in the story: {stripped_text[:100]}[...]"
+            msg = (
+                "Rejecting story continuation because it's already appeared in the "
+                f"story: {stripped_text[:100]}[...]"
+            )
             print(msg)
             errors.append(msg)
             text = ""
@@ -457,7 +467,10 @@ class ContinuousStoryV1Strategy(StoryStrategy):
         prompt_words = ("Scene:", "Text:", "Objects:", "Continuation:")
         for prompt_word in prompt_words:
             if text.find(prompt_word) >= 0:
-                msg = f"Rejecting story continuation because it contains a prompt word: '{text}'"
+                msg = (
+                    "Rejecting story continuation because it contains a prompt word: "
+                    f"'{text}'"
+                )
                 print(msg)
                 errors.append(msg)
                 text = ""

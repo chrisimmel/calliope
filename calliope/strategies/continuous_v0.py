@@ -1,12 +1,12 @@
 import re
-import sys, traceback
+import sys
+import traceback
 from typing import Any, Dict, List, Optional
 
 import aiohttp
 
 from calliope.inference import (
-    caption_to_prompt,
-    text_to_extended_text_inference,
+    text_to_text_inference,
     text_to_image_file_inference,
 )
 from calliope.models import (
@@ -14,10 +14,9 @@ from calliope.models import (
     KeysModel,
 )
 from calliope.models.frame_sequence_response import StoryFrameSequenceResponseModel
-from calliope.strategies.base import DEFAULT_MIN_DURATION_SECONDS, StoryStrategy
+from calliope.strategies.base import StoryStrategy
 from calliope.strategies.registry import StoryStrategyRegistry
 from calliope.tables import (
-    PromptTemplate,
     SparrowState,
     Story,
     StrategyConfig,
@@ -60,7 +59,6 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         debug_data = self._get_default_debug_data(parameters)
         errors = []
         caption = image_analysis.get("description") if image_analysis else None
-        prompt = None
         text = None
         image = None
         input_text = ""
@@ -77,8 +75,10 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         if not last_text or last_text.isspace():
             if strategy_config.seed_prompt_template:
                 if isinstance(strategy_config.seed_prompt_template, int):
-                    strategy_config.seed_prompt_template = await strategy_config.get_related(
-                        StrategyConfig.seed_prompt_template
+                    strategy_config.seed_prompt_template = (
+                        await strategy_config.get_related(
+                            StrategyConfig.seed_prompt_template
+                        )
                     )
                 last_text = strategy_config.seed_prompt_template.text
             else:
@@ -135,9 +135,8 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         last_text = text
 
         if text:
-            prompt_template = output_image_style + " {x}"
-            prompt = caption_to_prompt(text, prompt_template)
-            print(f'Image prompt: "{prompt}"')
+            image_prompt = output_image_style + " " + text
+            print(f'Image prompt: "{image_prompt}"')
 
             try:
                 output_image_filename_png = create_sequential_filename(
@@ -145,7 +144,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
                 )
                 await text_to_image_file_inference(
                     aiohttp_session,
-                    prompt,
+                    image_prompt,
                     output_image_filename_png,
                     strategy_config.text_to_image_model_config,
                     keys,
@@ -189,7 +188,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         print(f'_get_new_story_fragment: "{text=}"')
 
         try:
-            text = await text_to_extended_text_inference(
+            text = await text_to_text_inference(
                 aiohttp_session, text, strategy_config.text_to_text_model_config, keys
             )
         except Exception as e:
@@ -202,17 +201,26 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         input_text = parameters.input_text
 
         if input_text and text.find(input_text) >= 0:
-            msg = f"Rejecting story continuation because it contains the input text: {stripped_text[:100]}[...]"
+            msg = (
+                "Rejecting story continuation because it contains the input text: "
+                f"{stripped_text[:100]}[...]"
+            )
             print(msg)
             errors.append(msg)
             text = ""
         elif re.search(r"[<>#^#\\{}]|0x|://", text):
-            msg = f"Rejecting story continuation because it smells like code: {stripped_text[:100]}[...]"
+            msg = (
+                "Rejecting story continuation because it smells like code: "
+                f"{stripped_text[:100]}[...]"
+            )
             print(msg)
             errors.append(msg)
             text = ""
         elif stripped_text and stripped_text in last_text:
-            msg = f"Rejecting story continuation because it's already appeared in the story: {stripped_text[:100]}[...]"
+            msg = (
+                "Rejecting story continuation because it's already appeared in the "
+                f"story: {stripped_text[:100]}[...]"
+            )
             print(msg)
             errors.append(msg)
             text = ""

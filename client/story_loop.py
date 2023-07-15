@@ -5,8 +5,7 @@ from typing import Any
 import cv2
 
 from calliope.inference import (
-    caption_to_prompt,
-    text_to_extended_text_inference,
+    text_to_text_inference,
     text_to_image_file_inference,
 )
 from calliope.models import KeysModel
@@ -19,7 +18,7 @@ output_image_file = "output_image.jpg"
 CAPTION_TOKEN = "{x}"
 
 
-def story_loop_inference_api(prompt_template: str) -> None:
+def story_loop_inference_api(image_style: str) -> None:
     """
     Read images from the camera, caption them, interpret the captions as images.
     Run forever.
@@ -55,7 +54,7 @@ def story_loop_inference_api(prompt_template: str) -> None:
             text = f"{caption} {last_text}"
             fragment_len = len(text)
             try:
-                text = text_to_extended_text_inference(text, keys)
+                text = text_to_text_inference(text, keys)
             except Exception as e:
                 traceback.print_exc(file=sys.stderr)
 
@@ -66,7 +65,7 @@ def story_loop_inference_api(prompt_template: str) -> None:
             text = text.strip()
             if not text:
                 text = caption
-            prompt = caption_to_prompt(text, prompt_template)
+            prompt = image_style + text
 
             last_text = text
             print(text)
@@ -82,5 +81,5 @@ def story_loop_inference_api(prompt_template: str) -> None:
 
 
 if __name__ == "__main__":
-    prompt_template = "A watercolor of {x}"
-    story_loop_inference_api(prompt_template)
+    image_style = "A watercolor of "
+    story_loop_inference_api(image_style)
