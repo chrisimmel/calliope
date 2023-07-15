@@ -8,7 +8,7 @@ from calliope.inference.engines.azure_vision import (
     interpret_azure_v3_metadata,
     interpret_azure_v4_metadata,
 )
-from calliope.inference.engines.hugging_face import hugging_face_image_to_text_inference
+from calliope.inference.engines.hugging_face import image_to_text_inference_hugging_face
 from calliope.models import (
     InferenceModelProvider,
     KeysModel,
@@ -58,7 +58,7 @@ async def image_analysis_inference(
 
         if image_data:
             if model.provider == InferenceModelProvider.HUGGINGFACE:
-                description = await hugging_face_image_to_text_inference(
+                description = await image_to_text_inference_hugging_face(
                     aiohttp_session, image_data, model_config, keys
                 )
 
