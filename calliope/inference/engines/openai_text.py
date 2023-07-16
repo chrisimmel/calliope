@@ -1,4 +1,6 @@
 import aiohttp
+from typing import Optional
+
 from langchain.chat_models import ChatOpenAI
 from langchain.llms import OpenAI
 from langchain.schema import HumanMessage
@@ -16,7 +18,7 @@ async def openai_text_to_text_inference(
     text: str,
     model_config: ModelConfig,
     keys: KeysModel,
-) -> str:
+) -> Optional[str]:
     model = model_config.model
 
     parameters = {

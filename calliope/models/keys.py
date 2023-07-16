@@ -14,3 +14,4 @@ class KeysModel(BaseModel):
     openapi_api_key: Optional[str]
     stability_api_host: Optional[str]
     stability_api_key: Optional[str]
+    replicate_api_key: Optional[str]

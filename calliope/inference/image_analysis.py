@@ -1,3 +1,4 @@
+import asyncio
 from typing import Any, Dict
 
 import aiohttp
@@ -9,6 +10,7 @@ from calliope.inference.engines.azure_vision import (
     interpret_azure_v4_metadata,
 )
 from calliope.inference.engines.hugging_face import image_to_text_inference_hugging_face
+from calliope.inference.engines.replicate import replicate_vision_inference
 from calliope.models import (
     InferenceModelProvider,
     KeysModel,
@@ -37,55 +39,122 @@ def _convert_image_to_png(image_filename: str) -> str:
     return image_filename
 
 
+async def _image_analysis_inference(
+    aiohttp_session: aiohttp.ClientSession,
+    image_filename: str,
+    provider: InferenceModelProvider,
+    model_config: ModelConfig,
+    keys: KeysModel,
+) -> str:
+    """
+    Takes the filename of an image. Returns a description of the image.
+    """
+    model = model_config.model
+    print(f"_image_analysis_inference: {provider=}")
+
+    if provider == InferenceModelProvider.REPLICATE:
+        description = await replicate_vision_inference(
+            aiohttp_session, image_filename, model_config, keys
+        )
+        return {
+            "all_captions": description,
+            "description": description,
+        }
+    elif provider == InferenceModelProvider.AZURE:
+        # Don't know why, but Azure comp vision doesn't seem to like JPG files.
+        # Convert to PNG.
+        image_filename = _convert_image_to_png(image_filename)
+
+        with open(image_filename, "rb") as f:
+            image_data = f.read()
+            if not image_data:
+                raise ValueError("No input image data to image_analysis_inference.")
+
+            raw_metadata = await azure_vision_inference(
+                aiohttp_session, image_data, model_config, keys
+            )
+
+            if not raw_metadata:
+                raise ValueError("Unexpected empty response from image analysis API.")
+
+            if model.provider_model_name.find("v3.2") >= 0:
+                return interpret_azure_v3_metadata(raw_metadata)
+            else:
+                return interpret_azure_v4_metadata(raw_metadata)
+
+    elif provider == InferenceModelProvider.HUGGINGFACE:
+        with open(image_filename, "rb") as f:
+            image_data = f.read()
+            if not image_data:
+                raise ValueError("No input image data to image_analysis_inference.")
+
+            description = await image_to_text_inference_hugging_face(
+                aiohttp_session, image_data, model_config, keys
+            )
+
+            return {
+                "all_captions": description,
+                "description": description,
+            }
+    else:
+        raise ValueError(
+            "Don't know how to do image->text inference for provider "
+            f"{model.provider}."
+        )
+
+
 async def image_analysis_inference(
     aiohttp_session: aiohttp.ClientSession,
     image_filename: str,
     model_config: ModelConfig,
     keys: KeysModel,
-) -> Dict[str, Any]:
+) -> str:
     """
-    Takes the filename of an image. Returns a dictionary of metadata about the image.
+    Takes the filename of an image. Returns a description of the image.
     """
-    model = model_config.model
+    mini_gpt_4_task = asyncio.create_task(
+        _image_analysis_inference(
+            aiohttp_session,
+            image_filename,
+            InferenceModelProvider.REPLICATE,
+            model_config,
+            keys,
+        )
+    )
 
-    if model.provider == InferenceModelProvider.AZURE:
-        # Don't know why, but Azure comp vision doesn't seem to like JPG files.
-        # Convert to PNG.
-        image_filename = _convert_image_to_png(image_filename)
+    azure_cv_task = asyncio.create_task(
+        _image_analysis_inference(
+            aiohttp_session,
+            image_filename,
+            InferenceModelProvider.AZURE,
+            model_config,
+            keys,
+        )
+    )
 
-    with open(image_filename, "rb") as f:
-        image_data = f.read()
+    # Parallel execution of Azure CV and MiniGPT-4 so we can use both.
+    # Even though MiniGPT-4 gives a richer description of the scene. Azure is useful
+    # because it lists objects and reads text.
+    mini_gpt_4_analysis = await mini_gpt_4_task
+    print(f"{mini_gpt_4_analysis=}")
 
-        if image_data:
-            if model.provider == InferenceModelProvider.HUGGINGFACE:
-                description = await image_to_text_inference_hugging_face(
-                    aiohttp_session, image_data, model_config, keys
-                )
+    azure_analysis = await azure_cv_task
+    print(f"{azure_analysis=}")
 
-                return {
-                    "description": description,
-                }
-            elif model.provider == InferenceModelProvider.AZURE:
-                raw_metadata = await azure_vision_inference(
-                    aiohttp_session, image_data, model_config, keys
-                )
+    analysis = {
+        **azure_analysis,
+        "description": (
+            f"{mini_gpt_4_analysis.get('description', '')} "
+            f"{azure_analysis.get('description', '')}"
+        ),
+        "all_captions": (
+            f"{mini_gpt_4_analysis.get('all_captions', '')} "
+            f"{azure_analysis.get('all_captions', '')}"
+        ),
+    }
+    print(f"{analysis=}")
 
-                if not raw_metadata:
-                    raise ValueError(
-                        "Unexpected empty response from image analysis API."
-                    )
-
-                if model.provider_model_name.find("v3.2") >= 0:
-                    return interpret_azure_v3_metadata(raw_metadata)
-                else:
-                    return interpret_azure_v4_metadata(raw_metadata)
-            else:
-                raise ValueError(
-                    "Don't know how to do image->text inference for provider "
-                    f"{model.provider}."
-                )
-
-    raise ValueError("No input image data to image_analysis_inference.")
+    return analysis
 
 
 async def image_ocr_inference(
