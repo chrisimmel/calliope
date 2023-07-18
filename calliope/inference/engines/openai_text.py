@@ -1,4 +1,6 @@
 import aiohttp
+from typing import Any, Dict, Optional, Tuple
+
 from langchain.chat_models import ChatOpenAI
 from langchain.llms import OpenAI
 from langchain.schema import HumanMessage
@@ -11,18 +13,35 @@ from calliope.models import (
 from calliope.tables import ModelConfig
 
 
+def _filter_langchain_parameters(
+    parameters: Dict[str, Any]
+) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    kw_params = ("presence_penalty", "frequency_penalty")
+    langchain_parameters = {}
+    langchain_kw_params = {}
+
+    for key, value in parameters.items():
+        if key in kw_params:
+            langchain_kw_params[key] = value
+        else:
+            langchain_parameters[key] = value
+    return langchain_parameters, langchain_kw_params
+
+
 async def openai_text_to_text_inference(
     aiohttp_session: aiohttp.ClientSession,
     text: str,
     model_config: ModelConfig,
     keys: KeysModel,
-) -> str:
+) -> Optional[str]:
     model = model_config.model
 
     parameters = {
         **(model.model_parameters if model.model_parameters else {}),
         **(model_config.model_parameters if model_config.model_parameters else {}),
     }
+
+    parameters, kw_params = _filter_langchain_parameters(parameters)
 
     openai.api_key = keys.openapi_api_key
     openai.aiosession.set(aiohttp_session)
@@ -60,6 +79,7 @@ async def openai_text_to_text_inference(
             openai_api_key=keys.openapi_api_key,
             model_name=model.provider_model_name,
             **parameters,
+            model_kwargs=kw_params,
         )
         llm_result = await chat.agenerate([[HumanMessage(content=text)]])
         print(f"Chat Completion response is: '{llm_result}'")
@@ -85,6 +105,7 @@ async def openai_text_to_text_inference(
             openai_api_key=keys.openapi_api_key,
             model_name=model.provider_model_name,
             **parameters,
+            model_kwargs=kw_params,
         )
         llm_result = await chat.agenerate([text])
         print(f"Completion response is: '{llm_result}'")
