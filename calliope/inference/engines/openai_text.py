@@ -13,19 +13,26 @@ from calliope.models import (
 from calliope.tables import ModelConfig
 
 
-def _filter_langchain_parameters(
+def _filter_langchain_chat_parameters(
     parameters: Dict[str, Any]
 ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    """
+    Separates model parameters into those that should be passed as first-class
+    parameters to ChatOpenAI from those that should be passed in model_kwargs.
+
+    Note that this filtering is appropriate only when using the Chat API, not
+    the Completion API.
+    """
     kw_params = ("presence_penalty", "frequency_penalty")
     langchain_parameters = {}
-    langchain_kw_params = {}
+    langchain_model_kwargs = {}
 
     for key, value in parameters.items():
         if key in kw_params:
-            langchain_kw_params[key] = value
+            langchain_model_kwargs[key] = value
         else:
             langchain_parameters[key] = value
-    return langchain_parameters, langchain_kw_params
+    return langchain_parameters, langchain_model_kwargs
 
 
 async def openai_text_to_text_inference(
@@ -40,8 +47,6 @@ async def openai_text_to_text_inference(
         **(model.model_parameters if model.model_parameters else {}),
         **(model_config.model_parameters if model_config.model_parameters else {}),
     }
-
-    parameters, kw_params = _filter_langchain_parameters(parameters)
 
     openai.api_key = keys.openapi_api_key
     openai.aiosession.set(aiohttp_session)
@@ -75,11 +80,13 @@ async def openai_text_to_text_inference(
         """
 
         extended_text = None
+        parameters, model_kwargs = _filter_langchain_chat_parameters(parameters)
+
         chat = ChatOpenAI(
             openai_api_key=keys.openapi_api_key,
             model_name=model.provider_model_name,
             **parameters,
-            model_kwargs=kw_params,
+            model_kwargs=model_kwargs,
         )
         llm_result = await chat.agenerate([[HumanMessage(content=text)]])
         print(f"Chat Completion response is: '{llm_result}'")
@@ -105,7 +112,6 @@ async def openai_text_to_text_inference(
             openai_api_key=keys.openapi_api_key,
             model_name=model.provider_model_name,
             **parameters,
-            model_kwargs=kw_params,
         )
         llm_result = await chat.agenerate([text])
         print(f"Completion response is: '{llm_result}'")
