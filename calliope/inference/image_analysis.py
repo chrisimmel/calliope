@@ -108,7 +108,7 @@ async def image_analysis_inference(
     image_filename: str,
     model_config: ModelConfig,
     keys: KeysModel,
-) -> str:
+) -> Dict[str, Any]:
     """
     Takes the filename of an image. Returns a description of the image.
     """
@@ -132,14 +132,24 @@ async def image_analysis_inference(
         )
     )
 
-    # Parallel execution of Azure CV and MiniGPT-4 so we can use both.
+    # Execute Azure CV and MiniGPT-4 analsysi in parallel so we can use both
+    # without suffering a time penalty.
     # Even though MiniGPT-4 gives a richer description of the scene. Azure is useful
-    # because it lists objects and reads text.
-    mini_gpt_4_analysis = await mini_gpt_4_task
-    print(f"{mini_gpt_4_analysis=}")
+    # because it lists objects and reads text. The combination gives the LLM much
+    # more context.
+    try:
+        mini_gpt_4_analysis = await asyncio.wait_for(mini_gpt_4_task, 10.0)
+        print(f"{mini_gpt_4_analysis=}")
+    except Exception as e:
+        mini_gpt_4_analysis = {}
+        print(f"Error running MiniGTP-4: {e}")
 
-    azure_analysis = await azure_cv_task
-    print(f"{azure_analysis=}")
+    try:
+        azure_analysis = await azure_cv_task
+        print(f"{azure_analysis=}")
+    except Exception as e:
+        azure_analysis = {}
+        print(f"Error running Azure Computer Vision: {e}")
 
     analysis = {
         **azure_analysis,
@@ -152,8 +162,8 @@ async def image_analysis_inference(
             f"{azure_analysis.get('all_captions', '')}"
         ),
     }
-    print(f"{analysis=}")
 
+    # Return the combined image analysis.
     return analysis
 
 
