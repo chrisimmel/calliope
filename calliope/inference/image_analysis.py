@@ -19,6 +19,11 @@ from calliope.tables import ModelConfig
 from calliope.utils.file import get_file_extension
 
 
+# The number of seconds to wait for a Replicate request to complete.
+# This is to prevent long waits for model cold starts.
+REPLICATE_REQUEST_TIMEOUT_SECONDS = 10
+
+
 # image_to_text_model = "ydshieh/vit-gpt2-coco-en-ckpts"
 # image_to_text_model = "nlpconnect/vit-gpt2-image-captioning"
 # text_to_image_model = "runwayml/stable-diffusion-v1-5"
@@ -110,7 +115,8 @@ async def image_analysis_inference(
     keys: KeysModel,
 ) -> Dict[str, Any]:
     """
-    Takes the filename of an image. Returns a description of the image.
+    Takes the filename of an image. Returns a dictionary of information about
+    the contents of the image.
     """
     mini_gpt_4_task = asyncio.create_task(
         _image_analysis_inference(
@@ -137,8 +143,13 @@ async def image_analysis_inference(
     # Even though MiniGPT-4 gives a richer description of the scene. Azure is useful
     # because it lists objects and reads text. The combination gives the LLM much
     # more context.
+    #
+    # On cold starts, a Replicate request can take a very long time while the model
+    # loads. Wait only 10s, falling back to just Azure in this case.
     try:
-        mini_gpt_4_analysis = await asyncio.wait_for(mini_gpt_4_task, 10.0)
+        mini_gpt_4_analysis = await asyncio.wait_for(
+            mini_gpt_4_task, REPLICATE_REQUEST_TIMEOUT_SECONDS
+        )
         print(f"{mini_gpt_4_analysis=}")
     except Exception as e:
         mini_gpt_4_analysis = {}
