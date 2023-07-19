@@ -53,6 +53,8 @@ def interpret_azure_v3_metadata(raw_metadata: Dict[str, Any]) -> Dict[str, Any]:
         caption.get("text", "")
         for caption in raw_metadata.get("description", {}).get("captions", [])
     ]
+    captions = [caption[0:1].upper() + caption[1:] for caption in captions]
+
     tags = [tag.get("name", "") for tag in raw_metadata.get("tags", [])]
     for tag in raw_metadata.get("description", {}).get("tags", []):
         if tag not in tags:
@@ -105,6 +107,7 @@ def interpret_azure_v4_metadata(raw_metadata: Dict[str, Any]) -> Dict[str, Any]:
         description.get("text", "").replace("taking a selfie", "looking at me")
         for description in raw_metadata.get("descriptionResult", {}).get("values", [])
     ]
+    captions = [caption[0:1].upper() + caption[1:] for caption in captions]
     tags = [
         tag.get("name", "")
         for tag in raw_metadata.get("tagsResult", {}).get("values", [])

@@ -11,7 +11,11 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.security.api_key import APIKey
 from pydantic import BaseModel
 
-from calliope.models import FramesRequestParamsModel, StoryFrameModel, StoryRequestParamsModel
+from calliope.models import (
+    FramesRequestParamsModel,
+    StoryFrameModel,
+    StoryRequestParamsModel,
+)
 from calliope.storage.config_manager import (
     get_sparrow_story_parameters_and_keys,
     get_strategy_config,
@@ -132,7 +136,6 @@ async def handle_frames_request_sleep(
     request_params: FramesRequestParamsModel,
     base_url: str,
 ) -> StoryResponseV1:
-
     image_filename = "media/Calliope-sleeps.png"
 
     if is_google_cloud_run_environment():
@@ -235,7 +238,6 @@ async def handle_frames_request(
     image_analysis = None
 
     async with aiohttp.ClientSession(raise_for_status=True) as aiohttp_session:
-
         if parameters.input_image_filename:
             print(f"{parameters.input_image_filename=}")
             vision_model_slug = "azure-vision-analysis"
@@ -248,7 +250,9 @@ async def handle_frames_request(
                 .run()
             )
             if (
-                model_config and model_config.model and model_config.model.model_parameters
+                model_config
+                and model_config.model
+                and model_config.model.model_parameters
             ):
                 model_config.model.model_parameters = load_json_if_necessary(
                     model_config.model.model_parameters
@@ -283,7 +287,8 @@ async def handle_frames_request(
         "thoth_link": f"{base_url}thoth/story/{story.cuid}",
     }
     if image_analysis:
-        story_frames_response.debug_data["i_see"] = image_analysis.get("description")
+        i_see = image_analysis.get("description")
+        story_frames_response.debug_data["i_see"] = i_see
 
     await prepare_frame_images(parameters, story_frames_response.frames)
 
@@ -316,9 +321,7 @@ async def handle_existing_frames_request(
     errors = []
     story = sparrow_state.current_story
 
-    frame_parameters = FramesRequestParamsModel(
-        **request_params.dict()
-    )
+    frame_parameters = FramesRequestParamsModel(**request_params.dict())
 
     (
         frame_parameters,

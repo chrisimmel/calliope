@@ -1,5 +1,5 @@
-from datetime import datetime
-import sys, traceback
+import sys
+import traceback
 from typing import Any, Dict, Optional
 
 import aiohttp
@@ -12,7 +12,7 @@ from calliope.models import (
     KeysModel,
 )
 from calliope.models.frame_sequence_response import StoryFrameSequenceResponseModel
-from calliope.strategies.base import DEFAULT_MIN_DURATION_SECONDS, StoryStrategy
+from calliope.strategies.base import StoryStrategy
 from calliope.strategies.registry import StoryStrategyRegistry
 from calliope.tables import SparrowState, Story, StrategyConfig
 from calliope.utils.file import create_sequential_filename
@@ -22,7 +22,8 @@ from calliope.utils.image import get_image_attributes
 @StoryStrategyRegistry.register()
 class LiteralStrategy(StoryStrategy):
     """
-    Takes the input_text as the prompt to generate an image in a single frame. Echos back the text.
+    Takes the input_text as the prompt to generate an image in a single frame.
+    Echos back the text.
     """
 
     strategy_name = "literal"
@@ -52,6 +53,7 @@ class LiteralStrategy(StoryStrategy):
             description = image_analysis.get("description")
             if description:
                 prompts.append(description)
+            debug_data["i_see"] = description
 
         for prompt in prompts:
             frame_number = await story.get_num_frames()

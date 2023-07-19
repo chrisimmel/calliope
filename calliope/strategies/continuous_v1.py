@@ -27,135 +27,6 @@ from calliope.utils.file import create_sequential_filename
 from calliope.utils.image import get_image_attributes
 
 
-SHADOW_STORY = """
-To the right, the sky, to the left, the sea.
-And before your eyes, the grass and its flowers.
-A cloud, the road, follows its vertical way
-Parallel to the plumb line of the horizon,
-Parallel to the rider.
-The horse races towards its imminent fall
-And the other climbs interminably.
-How simple and strange everything is.
-Lying on my left side
-I take no interest in the landscape
-And I think only of things that are very vague,
-Very vague and very pleasant,
-Like the tired look you walk around with
-Through this beautiful summer afternoon
-To the right, to the left,
-Here, there,
-In the delirium of uselessness.
-"""
-
-STORY_PROMPT_DAVINCI = """
-Given a scene, an optional text fragment, a list of people and objects, and a story, continue the story with a few short sentences.
-Incorporate some of the scene, people, and objects in the story. Use a literary style as seen in the examples, surrealist.
-
-Below are three examples.
-
-----
-
-Example 1
-Scene: "a man standing in a hallway"
-Text: "Life is a movie"
-Objects: "wall, person, indoor, ceiling, building, man, plaster, smile, standing, glasses, door"
-
-Story:
-A frightening stillness will mark that day.
-And the shadow of streetlights and fire-alarms will exhaust the light.
-All things, the quietest and the loudest, will be silent.
-The tugboats the locomotives the wind will glide by in silence.
-
-Continuation:
-Smiling in silence, a man stands in the hallway.
-He touches the wall and looks to the ceiling.
-Stillness hovers around him.
-He thinks: Life is a movie.
-
-----
-
-Example 2
-Scene: "a black cat on a couch"
-Text: ""
-Objects: "cat, indoor, couch, table"
-
-Story:
-A frightening stillness will mark that day.
-And the shadow of streetlights and fire-alarms will exhaust the light.
-All things, the quietest and the loudest, will be silent.
-The tugboats the locomotives the wind will glide by in silence.
-
-Continuation:
-When the dust the stones the missing tears form the sun's robe on the huge deserted squares.
-We shall finally hear the voice.
-A startled cat looks up, leaps from the couch where it was sleeping. 
-A ghostly seagull told me this great terrible silence was my love.
-
-----
-
-Example 3
-Scene: ""
-Text: ""
-Objects: ""
-
-Story:
-In the night there are of course the seven wonders
-of the world and the greatness tragedy and enchantment.
-Forests collide with legendary creatures hiding in thickets.
-There is you.
-In the night there are the walker's footsteps the murderer's
-the town policeman's light from the street lamp and the ragman's lantern
-There is you.
-
-Continuation:
-In the night trains go past and boats
-and the fantasy of countries where it's daytime. The last breaths
-of twilight and the first shivers of dawn.
-There is you.
-A piano tune, a shout.
-A door slams. A clock.
-And not only beings and things and physical sounds.
-But also me chasing myself or endlessly going beyond me.
-
-----
-
-Now, here is the real one...
-
-Scene: "$scene"
-Text: "$text"
-Objects: "$objects"
-
-Story: "$poem"
-
-Continuation:
-"""
-
-STORY_PROMPT_CURIE = """
-In the night there are of course the seven wonders
-of the world and the greatness tragedy and enchantment.
-Forests collide with legendary creatures hiding in thickets.
-There is you.
-In the night there are the walker's footsteps the murderer's
-the town policeman's light from the street lamp and the ragman's lantern
-There is you.
-In the night trains go past and boats
-and the fantasy of countries where it's daytime. The last breaths
-of twilight and the first shivers of dawn.
-There is you.
-A piano tune, a shout.
-A door slams. A clock.
-And not only beings and things and physical sounds.
-But also me chasing myself or endlessly going beyond me.
-
-$scene
-$text
-$objects
-
-$poem"""
-
-STORY_PROMPT = STORY_PROMPT_CURIE
-
-
 @StoryStrategyRegistry.register()
 class ContinuousStoryV1Strategy(StoryStrategy):
     """
@@ -200,9 +71,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
             image_scene = image_analysis.get("all_captions")
             image_objects = image_analysis.get("all_tags_and_objects")
             image_text = image_analysis.get("text")
-
-            if image_scene:
-                image_scene = image_scene[0:1].upper() + image_scene[1:]
+            debug_data["i_see"] = image_analysis.get("description")
         else:
             image_scene = ""
             image_objects = ""
@@ -258,7 +127,14 @@ class ContinuousStoryV1Strategy(StoryStrategy):
 
         if not story_continuation or story_continuation.isspace():
             # Allow one retry.
-            prompt += " " + SHADOW_STORY
+            prompt += (
+                " "
+                + (
+                    strategy_config.seed_prompt_template
+                    and strategy_config.seed_prompt_template.text
+                )
+                or ""
+            )
             story_continuation = await self._get_new_story_fragment(
                 prompt,
                 parameters,
@@ -364,11 +240,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
                 }
             )
         else:
-            prompt = STORY_PROMPT
-            prompt = prompt.replace("$poem", last_text)
-            prompt = prompt.replace("$scene", scene)
-            prompt = prompt.replace("$text", text)
-            prompt = prompt.replace("$objects", objects)
+            prompt = last_text + "\n" + scene + "\n" + text + "\n" + objects
 
         return prompt
 
