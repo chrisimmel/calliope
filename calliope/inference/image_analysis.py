@@ -153,7 +153,7 @@ async def image_analysis_inference(
         print(f"{mini_gpt_4_analysis=}")
     except Exception as e:
         mini_gpt_4_analysis = {}
-        print(f"Error running MiniGTP-4: {e}")
+        print(f"Error running MiniGPT-4: {e}")
 
     try:
         azure_analysis = await azure_cv_task

@@ -38,7 +38,6 @@ class ShowThisFrameStrategy(StoryStrategy):
         story: Story,
         aiohttp_session: aiohttp.ClientSession,
     ) -> StoryFrameSequenceResponseModel:
-
         debug_data = self._get_default_debug_data(parameters)
         errors = []
 
@@ -51,11 +50,7 @@ class ShowThisFrameStrategy(StoryStrategy):
         text = parameters.input_text
 
         last_frame = await story.get_frames(max_frames=-1, include_images=True)
-        if (
-            not last_frame
-            or last_frame.image != frame.image
-            or last_frame.text != frame.text
-        ):
+        if not last_frame or last_frame.image != image or last_frame.text != text:
             # Create a new frame only if it differs from the story's last frame.
             frame_number = await story.get_num_frames()
             text = text + "\n"

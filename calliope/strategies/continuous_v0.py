@@ -64,6 +64,8 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         input_text = ""
         frame_number = await story.get_num_frames()
 
+        debug_data["i_see"] = caption
+
         if parameters.input_text:
             if caption:
                 input_text = f"{caption}. {parameters.input_text}"
