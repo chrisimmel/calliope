@@ -28,7 +28,7 @@ templates = Jinja2Templates(directory="calliope/templates")
 
 
 @router.get("/thoth/", response_class=HTMLResponse)
-async def thoth_root(request: Request):
+async def thoth_root(request: Request, meta: Optional[str] = False):
     stories = cast(
         Sequence[Story],
         await Story.objects(Story.thumbnail_image).order_by(
@@ -47,12 +47,13 @@ async def thoth_root(request: Request):
         "request": request,
         "stories": stories,
         "story_thumbs_by_story_id": story_thumbs_by_story_id,
+        "show_metadata": meta,
     }
     return templates.TemplateResponse("thoth.html", context)
 
 
 @router.get("/thoth/story/{story_cuid}", response_class=HTMLResponse)
-async def thoth_story(request: Request, story_cuid: str):
+async def thoth_story(request: Request, story_cuid: str, meta: Optional[str] = False):
     story: Optional[Story] = (
         await Story.objects().where(Story.cuid == story_cuid).first().run()
     )
@@ -68,7 +69,7 @@ async def thoth_story(request: Request, story_cuid: str):
         "request": request,
         "story": story,
         "frames": frames,
-        "show_metadata": False,
+        "show_metadata": meta,
     }
     return templates.TemplateResponse("thoth_story.html", context)
 

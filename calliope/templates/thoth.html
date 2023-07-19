@@ -18,7 +18,7 @@
 
     {% for story in stories %}
     <div class="story">
-        <a class="story-link" href="story/{{story.cuid}}">
+        <a class="story-link" href="story/{{story.cuid}}{{'?meta=true' if show_metadata else ''}}">
             <div class="story-thumb">
                 {% if story_thumbs_by_story_id.get(story.cuid) %}
                 <img src="/{{story_thumbs_by_story_id.get(story.cuid).url}}"
