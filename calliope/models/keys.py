@@ -12,6 +12,7 @@ class KeysModel(BaseModel):
     azure_api_host: Optional[str]
     huggingface_api_key: Optional[str]
     openapi_api_key: Optional[str]
+    pinecone_api_key: Optional[str]
+    replicate_api_key: Optional[str]
     stability_api_host: Optional[str]
     stability_api_key: Optional[str]
-    replicate_api_key: Optional[str]

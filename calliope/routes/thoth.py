@@ -112,7 +112,6 @@ def _prepare_frame_image(frame: StoryFrameModel) -> bool:
                     print(f"Oddly named PNG found: {local_filename}")
                     # We already have a PNG locally! Use it!
                     frame.source_image = get_image_attributes(local_filename)
-                    rewrite_frame = True
 
             if found and is_google_cloud_run_environment():
                 try:
@@ -130,7 +129,7 @@ def _prepare_frame_image(frame: StoryFrameModel) -> bool:
                         frame_modified = True
                         print(f"Found in GCS: {local_filename}")
                         found = True
-                    except Exception as e:
+                    except Exception:
                         print(f"Not found in GCS: {local_filename} ({filename=}")
                         # This is ok. We'll convert and copy back to GCS below.
 
@@ -144,9 +143,11 @@ def _prepare_frame_image(frame: StoryFrameModel) -> bool:
                             frame.image.url,
                         )
                         original_found = True
-                    except Exception as e:
+                    except Exception:
                         print(
-                            f"Original not found in GCS: {get_base_filename_and_extension(frame.image.url)} ({frame.image.ur=}"
+                            "Original not found in GCS: "
+                            f"{get_base_filename_and_extension(frame.image.url)} "
+                            f"({frame.image.ur=}"
                         )
 
                 if original_found:

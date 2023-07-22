@@ -6,6 +6,7 @@ from calliope.utils.file import FileMetadata
 import cuid
 from piccolo.table import Table
 from piccolo.columns import (
+    Boolean,
     ForeignKey,
     Integer,
     JSONB,
@@ -50,6 +51,8 @@ class StoryFrame(Table):
     # Anything else someone may want to know about this frame?
     # Information about how and when it was generated, etc.
     metadata = JSONB(null=True)
+
+    indexed_for_search = Boolean(default=False)
 
     date_created = Timestamptz()
     date_updated = Timestamptz(auto_update=datetime.now)
@@ -149,7 +152,10 @@ class Story(Table):
     date_updated = Timestamptz(auto_update=datetime.now)
 
     async def get_frames(
-        self, max_frames: int = 0, include_images: bool = False
+        self,
+        max_frames: int = 0,
+        include_images: bool = False,
+        include_indexed_for_search: bool = True,
     ) -> Sequence[StoryFrame]:
         """
         Gets the story's frames.
@@ -165,11 +171,15 @@ class Story(Table):
             else StoryFrame.objects()
         ).where(StoryFrame.story.id == self.id)
 
+        if not include_indexed_for_search:
+            qs = qs.where(StoryFrame.indexed_for_search.eq(True))
+
         if max_frames > 0:
             # First n frames.
             qs = qs.order_by(StoryFrame.number).limit(max_frames)
         elif max_frames < 0:
-            # Last n frames. These are reversed, so need to reverse again after retrieved.
+            # Last n frames. These are reversed, so need to reverse again after
+            # retrieved.
             qs = qs.order_by(StoryFrame.number, ascending=False).limit(-max_frames)
         else:
             # All frames.
@@ -178,7 +188,7 @@ class Story(Table):
         frames = await qs.output(load_json=True).run()
         if include_images:
             for frame in frames:
-                # This seems like a hack necessitated by a quirk or Piccolo.
+                # This seems like a hack necessitated by a Piccolo quirk.
                 if frame.image and not frame.image.id:
                     frame.image = None
                 if frame.source_image and not frame.source_image.id:
@@ -208,7 +218,8 @@ class Story(Table):
             # First n frames.
             qs = qs.order_by(StoryFrame.number).limit(max_frames)
         elif max_frames < 0:
-            # Last n frames. These are reversed, so need to reverse again after retrieved.
+            # Last n frames. These are reversed, so need to reverse again after
+            # retrieved.
             qs = qs.order_by(StoryFrame.number, ascending=False).limit(-max_frames)
         else:
             # All frames.
@@ -263,7 +274,6 @@ class Story(Table):
         strategy_name = model.strategy_name
         created_for_sparrow_id = model.created_for_id
 
-        now = datetime.now(timezone.utc)
         date_created = datetime.fromisoformat(model.date_created)
         date_updated = datetime.fromisoformat(model.date_updated)
 

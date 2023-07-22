@@ -18,7 +18,6 @@ from calliope.models import (
 )
 from calliope.storage.config_manager import (
     get_sparrow_story_parameters_and_keys,
-    get_strategy_config,
     load_json_if_necessary,
 )
 from calliope.storage.state_manager import (
@@ -79,7 +78,8 @@ async def put_story_reset(
     api_key: APIKey = Depends(get_api_key),
 ) -> None:
     """
-    Resets the client's story state, forcing Calliope to begin a new story for this client.
+    Resets the client's story state, forcing Calliope to begin a new story for this
+    client.
     """
     sparrow_state = await get_sparrow_state(client_id)
     sparrow_state.current_story = None
