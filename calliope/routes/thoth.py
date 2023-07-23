@@ -6,7 +6,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
 from calliope.models import ImageFormat, StoryModel, StoryFrameModel
-from calliope.tables import Story
+from calliope.tables import Story, StoryFrame
 from calliope.utils.file import (
     get_base_filename,
     get_base_filename_and_extension,
@@ -21,6 +21,7 @@ from calliope.utils.image import (
     convert_rgb565_to_png,
     get_image_attributes,
 )
+from calliope.storage.vector_manager import semantic_search
 
 
 router = APIRouter()
@@ -72,6 +73,38 @@ async def thoth_story(request: Request, story_cuid: str, meta: Optional[str] = F
         "show_metadata": meta,
     }
     return templates.TemplateResponse("thoth_story.html", context)
+
+
+@router.get("/thoth/search/", response_class=HTMLResponse)
+async def thoth_search(request: Request, query: str, meta: Optional[str] = False):
+    results = semantic_search(query)
+
+    result_frames = []
+    for result in results:
+        frame_id = int(result[0].metadata.get("frame_id", 0))
+        frame: Optional[StoryFrame] = (
+            await StoryFrame.objects(
+                StoryFrame.image, StoryFrame.source_image, StoryFrame.story
+            )
+            .where(StoryFrame.id == frame_id)
+            .first()
+            .run()
+        )
+        if frame:
+            # This seems like a hack necessitated by a Piccolo quirk.
+            if frame.image and not frame.image.id:
+                frame.image = None
+            if frame.source_image and not frame.source_image.id:
+                frame.source_image = None
+            result_frames.append(frame)
+
+    context = {
+        "request": request,
+        "query": query,
+        "results": result_frames,
+        "show_metadata": meta,
+    }
+    return templates.TemplateResponse("thoth_search.html", context)
 
 
 def _prepare_frame_image(frame: StoryFrameModel) -> bool:

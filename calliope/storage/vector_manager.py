@@ -153,7 +153,18 @@ async def _get_frames(
     return frames
 
 
-async def index_unindexed_frames(keys: KeysModel, max_frames: int = 500) -> int:
+async def index_unindexed_frames(
+    keys: Optional[KeysModel] = None, max_frames: int = 1000
+) -> int:
+    """
+    Send max_frames unindexed story frames to the semantic search index.
+    Designed to be run as a regularly scheduled batch process.
+    Does almost no work if there is nothing to index.
+    """
+    if not keys or not keys.pinecone_api_key:
+        pinecone_api_key = os.environ.get("PINECONE_API_KEY")
+        keys = KeysModel(pinecone_api_key=pinecone_api_key)
+
     frames = await _get_frames(max_frames=max_frames, include_indexed_for_search=False)
 
     if not frames:
@@ -190,7 +201,11 @@ async def index_unindexed_frames(keys: KeysModel, max_frames: int = 500) -> int:
     return num_frames
 
 
-async def send_all_stories_to_pinecone(keys: KeysModel) -> None:
+async def send_all_stories_to_pinecone(keys: Optional[KeysModel] = None) -> None:
+    if not keys or not keys.pinecone_api_key:
+        pinecone_api_key = os.environ.get("PINECONE_API_KEY")
+        keys = KeysModel(pinecone_api_key=pinecone_api_key)
+
     stories = cast(
         Sequence[Story],
         await Story.objects().order_by(Story.date_updated, ascending=False),
@@ -201,12 +216,14 @@ async def send_all_stories_to_pinecone(keys: KeysModel) -> None:
         await _send_story_to_pinecone(story.cuid, keys)
 
 
-def semantic_search(query: str) -> Sequence[Document]:
-    keys = KeysModel(
-        pinecone_api_key="3cec2c81-5836-4dc0-8fe5-077a408d05f9",
-    )
+def semantic_search(
+    query: str, pinecone_api_key: Optional[str] = None, max_results: int = 20
+) -> Sequence[Document]:
+    if not pinecone_api_key:
+        pinecone_api_key = os.environ.get("PINECONE_API_KEY")
+
     pinecone.init(
-        api_key=keys.pinecone_api_key, environment=os.environ.get("PINECONE_ENVIRONMENT")
+        api_key=pinecone_api_key, environment=os.environ.get("PINECONE_ENVIRONMENT")
     )
     index_name = os.environ.get("SEMANTIC_SEARCH_INDEX")
 
@@ -214,16 +231,15 @@ def semantic_search(query: str) -> Sequence[Document]:
     embeddings = SentenceTransformerEmbeddings(model_name=model_name)
     docsearch = Pinecone.from_existing_index(index_name, embeddings)
 
-    documents_and_scores = docsearch.similarity_search_with_score(query, k=20)
-
     # For now, all cloud environments share the same (free) Pinecone index,
-    # so we need to discriminate among them by filtering after we query.
+    # so we need to discriminate among them by filtering in the query.
     cloud_env = get_cloud_environment()
-    return [
-        doc_and_score
-        for doc_and_score in documents_and_scores
-        if doc_and_score[0].metadata.get("env") == cloud_env
-    ]
+    filter = {"env": {"$eq": cloud_env}}
+    documents_and_scores = docsearch.similarity_search_with_score(
+        query, k=max_results, filter=filter
+    )
+
+    return documents_and_scores
 
 
 """

@@ -29,6 +29,7 @@ services:
       - CLOUDSDK_CONFIG=/gcp/config
       - GOOGLE_APPLICATION_CREDENTIALS=/gcp/config/application_default_credentials.json
       - CLOUD_ENV=local
+      - PINECONE_API_KEY=$PINECONE_API_KEY
       - PINECONE_ENVIRONMENT=us-west1-gcp-free
       - SEMANTIC_SEARCH_INDEX=story-semantic-search
     ports:
