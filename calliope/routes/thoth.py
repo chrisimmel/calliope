@@ -4,6 +4,7 @@ from typing import cast, Optional, Sequence
 from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+from markupsafe import Markup
 
 from calliope.models import ImageFormat, StoryModel, StoryFrameModel
 from calliope.tables import Story, StoryFrame
@@ -96,6 +97,12 @@ async def thoth_search(request: Request, query: str, meta: Optional[str] = False
                 frame.image = None
             if frame.source_image and not frame.source_image.id:
                 frame.source_image = None
+
+            frame.text = frame.text.replace(
+                result[0].page_content,
+                f"<mark>{result[0].page_content}</mark>",
+            )
+
             result_frames.append(frame)
 
     context = {

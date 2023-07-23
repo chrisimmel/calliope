@@ -34,6 +34,10 @@
     display: inline-block;
 }
 
+mark {
+    background-color: darkseagreen;
+}
+
 form#search {
     display: grid;
     grid-template-columns: 38px auto;

@@ -1,0 +1,42 @@
+<html>
+
+<head>
+    <title>Searching all stories for "{{ query }}"</title>
+    <link href="/thoth/styles.css" rel="stylesheet">
+</head>
+
+<body>
+    <div class="story-summary">
+        <div class="summary-line">
+            Searching for "{{ query }}"...
+        </div>
+    </div>
+
+    {% for frame in results %}
+    <div class="story-summary">
+        <div class="summary-line">
+            Frame {{frame.number}} of story <a href="/thoth/story/{{frame.story.cuid}}{{'?meta=true' if show_metadata else ''}}#f{{frame.number}}">"{{frame.story.title}}"</a>
+        </div>
+        <div class="summary-line">
+            Made by strategy {{frame.story.strategy_name}} at {{frame.date_created}}.
+        </div>
+    </div>
+    <div class="story-frame">
+        <div class="frame-image">
+            {%- if frame.source_image -%}
+            <img src="/{{frame.source_image.url}}" />
+            {%- endif %}
+        </div>
+        <div class="frame-text">
+            {{frame.text|safe}}
+        </div>
+        {% if show_metadata %}
+        <div class="frame-metadata">
+            {{frame.pretty_metadata}}
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+</body>
+
+</html>
