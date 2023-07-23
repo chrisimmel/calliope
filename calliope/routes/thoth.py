@@ -1,3 +1,4 @@
+import datetime
 import os
 from typing import cast, Optional, Sequence
 
@@ -67,6 +68,9 @@ async def thoth_story(request: Request, story_cuid: str, meta: Optional[str] = F
 
     frames = await story.get_frames(include_images=True)
 
+    story.date_created = story.date_created.date()
+    story.date_updated = story.date_updated.date()
+
     context = {
         "request": request,
         "story": story,
@@ -98,10 +102,14 @@ async def thoth_search(request: Request, query: str, meta: Optional[str] = False
             if frame.source_image and not frame.source_image.id:
                 frame.source_image = None
 
-            frame.text = frame.text.replace(
-                result[0].page_content,
-                f"<mark>{result[0].page_content}</mark>",
+            frame.text = Markup(
+                frame.text.replace(
+                    result[0].page_content,
+                    f"<mark>{result[0].page_content}</mark>",
+                )
             )
+
+            frame.date_created = frame.date_created.date()
 
             result_frames.append(frame)
 
