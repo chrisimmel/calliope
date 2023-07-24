@@ -1,3 +1,4 @@
+import asyncio
 import os
 from typing import cast, List, Optional, Sequence
 
@@ -153,17 +154,22 @@ async def _get_frames(
     return frames
 
 
-async def index_unindexed_frames(
-    keys: Optional[KeysModel] = None, max_frames: int = 1000
+async def index_frames(
+    keys: Optional[KeysModel] = None, max_frames: int = 1000, force_reindex: bool = False
 ) -> int:
     """
     Send max_frames unindexed story frames to the semantic search index.
     Designed to be run as a regularly scheduled batch process.
     Does almost no work if there is nothing to index.
     """
+    print(f"index_frames({max_frames=}, {force_reindex=})")
     if not keys or not keys.pinecone_api_key:
         pinecone_api_key = os.environ.get("PINECONE_API_KEY")
         keys = KeysModel(pinecone_api_key=pinecone_api_key)
+
+    if force_reindex:
+        # Clear the indexed_for_search field for all frames.
+        await StoryFrame.update({StoryFrame.indexed_for_search: False}, force=True).run()
 
     frames = await _get_frames(max_frames=max_frames, include_indexed_for_search=False)
 
@@ -198,6 +204,8 @@ async def index_unindexed_frames(
             frame.indexed_for_search = True
             await frame.save().run()
 
+    print(f"Indexed {num_frames} frames.")
+
     return num_frames
 
 
@@ -219,25 +227,32 @@ async def send_all_stories_to_pinecone(keys: Optional[KeysModel] = None) -> None
 def semantic_search(
     query: str, pinecone_api_key: Optional[str] = None, max_results: int = 20
 ) -> Sequence[Document]:
+    print(f"Semantic search for '{query}'...")
     if not pinecone_api_key:
         pinecone_api_key = os.environ.get("PINECONE_API_KEY")
 
     pinecone.init(
         api_key=pinecone_api_key, environment=os.environ.get("PINECONE_ENVIRONMENT")
     )
+    print("Initialized Pinecone.")
     index_name = os.environ.get("SEMANTIC_SEARCH_INDEX")
 
     model_name = "all-MiniLM-L6-v2"
     embeddings = SentenceTransformerEmbeddings(model_name=model_name)
+    print(f"Initialized SentenceTransformerEmbeddings, {model_name=}.")
+
     docsearch = Pinecone.from_existing_index(index_name, embeddings)
+    print(f"Initialized Pinecone index {index_name}.")
 
     # For now, all cloud environments share the same (free) Pinecone index,
     # so we need to discriminate among them by filtering in the query.
     cloud_env = get_cloud_environment()
     filter = {"env": {"$eq": cloud_env}}
+    print(f"Searching in env {cloud_env}...")
     documents_and_scores = docsearch.similarity_search_with_score(
         query, k=max_results, filter=filter
     )
+    print(f"Found {len(documents_and_scores)} documents:\n{documents_and_scores}")
 
     return documents_and_scores
 
