@@ -32,7 +32,8 @@ class StateType(Enum):
 
 async def get_sparrow_state(sparrow_id: str) -> SparrowState:
     """
-    Retrieves the state of the given sparrow. If a stored state isn't found, creates a new one.
+    Retrieves the state of the given sparrow. If a stored state isn't found, creates a
+    new one.
     """
 
     sparrow_state = (
@@ -133,7 +134,7 @@ def get_legacy_story(story_id: str) -> Optional[StoryModel]:
     if is_google_cloud_run_environment():
         try:
             get_google_file(local_filename, local_filename)
-        except Exception as e:
+        except Exception:
             return None
 
     if not os.path.isfile(local_filename):

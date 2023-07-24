@@ -14,6 +14,24 @@
                 Messenger and recorder of the deities, master of knowledge.
             </div>
         </div>
+
+        <div class="header-search">
+            <form action="/thoth/search/" method="get" id="search">
+                <a href="javascript: submit()">
+                    <img src="/thoth/search_icon.png" width="32" , height="32">
+                 </a>
+                <input type="search" name="query" class="search-query" placeholder="(search for a phrase, idea, or mood)">
+                {% if show_metadata %}
+                    <input type="hidden" name="meta" value="true"/>
+                {% endif %}
+            </form>
+            <script>
+                function submit(){
+                    form.submit();
+                    alert("Searching...");
+                }
+            </script>
+        </div>
     </div>
 
     {% for story in stories %}

@@ -1,30 +1,34 @@
 <html>
 
 <head>
-    <title>{{ story.title }}</title>
+    <title>Searching all stories for "{{ query }}"</title>
     <link href="/thoth/styles.css" rel="stylesheet">
 </head>
 
 <body>
     <div class="story-summary">
         <div class="summary-line">
-            Made by strategy {{story.strategy_name}} on {{story.date_created}} for client
-            {{story.created_for_sparrow_id}}.
-        </div>
-        <div class="summary-line">
-            Last updated on {{story.date_updated}}.
+            Searching for "{{ query }}"...
         </div>
     </div>
 
-    {% for frame in frames %}
-    <div class="story-frame" id="f{{frame.number}}">
+    {% for frame in results %}
+    <div class="story-summary">
+        <div class="summary-line">
+            Frame {{frame.number}} of story <a href="/thoth/story/{{frame.story.cuid}}{{'?meta=true' if show_metadata else ''}}#f{{frame.number}}">"{{frame.story.title}}"</a>
+        </div>
+        <div class="summary-line">
+            Made by strategy {{frame.story.strategy_name}} on {{frame.date_created}}.
+        </div>
+    </div>
+    <div class="story-frame">
         <div class="frame-image">
             {%- if frame.source_image -%}
             <img src="/{{frame.source_image.url}}" />
             {%- endif %}
         </div>
         <div class="frame-text">
-            {{frame.text}}
+            {{frame.text|safe}}
         </div>
         {% if show_metadata %}
         <div class="frame-metadata">

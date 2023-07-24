@@ -1,12 +1,14 @@
+import datetime
 import os
 from typing import cast, Optional, Sequence
 
 from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+from markupsafe import Markup
 
 from calliope.models import ImageFormat, StoryModel, StoryFrameModel
-from calliope.tables import Story
+from calliope.tables import Story, StoryFrame
 from calliope.utils.file import (
     get_base_filename,
     get_base_filename_and_extension,
@@ -21,6 +23,7 @@ from calliope.utils.image import (
     convert_rgb565_to_png,
     get_image_attributes,
 )
+from calliope.storage.vector_manager import semantic_search
 
 
 router = APIRouter()
@@ -65,6 +68,9 @@ async def thoth_story(request: Request, story_cuid: str, meta: Optional[str] = F
 
     frames = await story.get_frames(include_images=True)
 
+    story.date_created = story.date_created.date()
+    story.date_updated = story.date_updated.date()
+
     context = {
         "request": request,
         "story": story,
@@ -72,6 +78,48 @@ async def thoth_story(request: Request, story_cuid: str, meta: Optional[str] = F
         "show_metadata": meta,
     }
     return templates.TemplateResponse("thoth_story.html", context)
+
+
+@router.get("/thoth/search/", response_class=HTMLResponse)
+async def thoth_search(request: Request, query: str, meta: Optional[str] = False):
+    results = semantic_search(query)
+
+    result_frames = []
+    for result in results:
+        frame_id = int(result[0].metadata.get("frame_id", 0))
+        frame: Optional[StoryFrame] = (
+            await StoryFrame.objects(
+                StoryFrame.image, StoryFrame.source_image, StoryFrame.story
+            )
+            .where(StoryFrame.id == frame_id)
+            .first()
+            .run()
+        )
+        if frame:
+            # This seems like a hack necessitated by a Piccolo quirk.
+            if frame.image and not frame.image.id:
+                frame.image = None
+            if frame.source_image and not frame.source_image.id:
+                frame.source_image = None
+
+            frame.text = Markup(
+                frame.text.replace(
+                    result[0].page_content,
+                    f"<mark>{result[0].page_content}</mark>",
+                )
+            )
+
+            frame.date_created = frame.date_created.date()
+
+            result_frames.append(frame)
+
+    context = {
+        "request": request,
+        "query": query,
+        "results": result_frames,
+        "show_metadata": meta,
+    }
+    return templates.TemplateResponse("thoth_search.html", context)
 
 
 def _prepare_frame_image(frame: StoryFrameModel) -> bool:
@@ -112,7 +160,6 @@ def _prepare_frame_image(frame: StoryFrameModel) -> bool:
                     print(f"Oddly named PNG found: {local_filename}")
                     # We already have a PNG locally! Use it!
                     frame.source_image = get_image_attributes(local_filename)
-                    rewrite_frame = True
 
             if found and is_google_cloud_run_environment():
                 try:
@@ -130,7 +177,7 @@ def _prepare_frame_image(frame: StoryFrameModel) -> bool:
                         frame_modified = True
                         print(f"Found in GCS: {local_filename}")
                         found = True
-                    except Exception as e:
+                    except Exception:
                         print(f"Not found in GCS: {local_filename} ({filename=}")
                         # This is ok. We'll convert and copy back to GCS below.
 
@@ -144,9 +191,11 @@ def _prepare_frame_image(frame: StoryFrameModel) -> bool:
                             frame.image.url,
                         )
                         original_found = True
-                    except Exception as e:
+                    except Exception:
                         print(
-                            f"Original not found in GCS: {get_base_filename_and_extension(frame.image.url)} ({frame.image.ur=}"
+                            "Original not found in GCS: "
+                            f"{get_base_filename_and_extension(frame.image.url)} "
+                            f"({frame.image.ur=}"
                         )
 
                 if original_found:

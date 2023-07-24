@@ -1,7 +1,5 @@
-from dataclasses import dataclass
-from datetime import datetime
 import os
-from typing import Sequence, Tuple
+from typing import Sequence
 
 from google.cloud import storage
 
@@ -9,12 +7,18 @@ from calliope.settings import settings
 from calliope.utils.file import FileMetadata
 
 GOOGLE_CLOUD_MARKER_VARIABLE = "K_SERVICE"
+CLOUD_ENV_VARIABLE = "CLOUD_ENV"
+CLOUD_ENV_GCP_PROD = "gcp-prod"
+CLOUD_ENV_LOCAL = "local"
+
+
+def get_cloud_environment() -> str:
+    return os.environ.get(CLOUD_ENV_VARIABLE) or CLOUD_ENV_LOCAL
 
 
 def is_google_cloud_run_environment() -> bool:
-    # TODO: Make this work also from command line (e.g. Cloud Run Jobs,
-    # not just Cloud Run Services).
-    return bool(os.environ.get(GOOGLE_CLOUD_MARKER_VARIABLE))
+    # return bool(os.environ.get(GOOGLE_CLOUD_MARKER_VARIABLE))
+    return get_cloud_environment() == CLOUD_ENV_GCP_PROD
 
 
 def put_media_file(filename: str) -> None:
