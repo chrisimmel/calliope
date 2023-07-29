@@ -4,7 +4,9 @@ from typing import cast, List, Optional, Sequence
 from langchain.docstore.document import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import Pinecone
-from langchain.embeddings.sentence_transformer import SentenceTransformerEmbeddings
+
+# from langchain.embeddings.sentence_transformer import SentenceTransformerEmbeddings
+from langchain.embeddings.openai import OpenAIEmbeddings
 import pinecone
 
 from calliope.models import KeysModel
@@ -93,8 +95,9 @@ async def _send_story_to_pinecone(
         story_cuid, include_indexed_for_search=include_indexed_for_search
     )
     documents = await _get_frame_documents(frames, story_cuid)
-    model_name = "all-MiniLM-L6-v2"
-    embeddings = SentenceTransformerEmbeddings(model_name=model_name)
+    # model_name = "all-MiniLM-L6-v2"
+    # embeddings = SentenceTransformerEmbeddings(model_name=model_name)
+    embeddings = OpenAIEmbeddings(openai_api_key=keys.openai_api_key)
     ids = [document.metadata["frame_id"] for document in documents]
 
     pinecone.init(
@@ -162,9 +165,14 @@ async def index_frames(
     Does almost no work if there is nothing to index.
     """
     print(f"index_frames({max_frames=}, {force_reindex=})")
-    if not keys or not keys.pinecone_api_key:
-        pinecone_api_key = os.environ.get("PINECONE_API_KEY")
-        keys = KeysModel(pinecone_api_key=pinecone_api_key)
+    if not keys:
+        keys = KeysModel()
+
+    if not keys.pinecone_api_key:
+        keys.pinecone_api_key = os.environ.get("PINECONE_API_KEY")
+
+    if not keys.openai_api_key:
+        keys.openai_api_key = os.environ.get("OPENAI_API_KEY")
 
     if force_reindex:
         # Clear the indexed_for_search field for all frames.
@@ -180,8 +188,11 @@ async def index_frames(
     print(f"Indexing {num_frames} frames...")
 
     documents = await _get_frame_documents(frames)
-    model_name = "all-MiniLM-L6-v2"
-    embeddings = SentenceTransformerEmbeddings(model_name=model_name)
+    # model_name = "all-MiniLM-L6-v2"
+    # modelPath = f"./{model_name}"
+
+    # embeddings = SentenceTransformerEmbeddings(model_name=modelPath)
+    embeddings = OpenAIEmbeddings(openai_api_key=keys.openai_api_key)
     ids = [document.metadata["frame_id"] for document in documents]
 
     pinecone.init(
@@ -209,9 +220,14 @@ async def index_frames(
 
 
 async def send_all_stories_to_pinecone(keys: Optional[KeysModel] = None) -> None:
-    if not keys or not keys.pinecone_api_key:
-        pinecone_api_key = os.environ.get("PINECONE_API_KEY")
-        keys = KeysModel(pinecone_api_key=pinecone_api_key)
+    if not keys:
+        keys = KeysModel()
+
+    if not keys.pinecone_api_key:
+        keys.pinecone_api_key = os.environ.get("PINECONE_API_KEY")
+
+    if not keys.openai_api_key:
+        keys.openai_api_key = os.environ.get("OPENAI_API_KEY")
 
     stories = cast(
         Sequence[Story],
@@ -224,11 +240,17 @@ async def send_all_stories_to_pinecone(keys: Optional[KeysModel] = None) -> None
 
 
 def semantic_search(
-    query: str, pinecone_api_key: Optional[str] = None, max_results: int = 20
+    query: str,
+    pinecone_api_key: Optional[str] = None,
+    openai_api_key: Optional[str] = None,
+    max_results: int = 20,
 ) -> Sequence[Document]:
     print(f"Semantic search for '{query}'...")
     if not pinecone_api_key:
         pinecone_api_key = os.environ.get("PINECONE_API_KEY")
+
+    if not openai_api_key:
+        openai_api_key = os.environ.get("OPENAI_API_KEY")
 
     pinecone.init(
         api_key=pinecone_api_key, environment=os.environ.get("PINECONE_ENVIRONMENT")
@@ -236,9 +258,10 @@ def semantic_search(
     print("Initialized Pinecone.")
     index_name = os.environ.get("SEMANTIC_SEARCH_INDEX")
 
-    model_name = "all-MiniLM-L6-v2"
-    embeddings = SentenceTransformerEmbeddings(model_name=model_name)
-    print(f"Initialized SentenceTransformerEmbeddings, {model_name=}.")
+    # model_name = "all-MiniLM-L6-v2"
+    # embeddings = SentenceTransformerEmbeddings(model_name=model_name)
+    # print(f"Initialized SentenceTransformerEmbeddings, {model_name=}.")
+    embeddings = OpenAIEmbeddings(openai_api_key=openai_api_key)
 
     docsearch = Pinecone.from_existing_index(index_name, embeddings)
     print(f"Initialized Pinecone index {index_name}.")
@@ -254,3 +277,15 @@ def semantic_search(
     print(f"Found {len(documents_and_scores)} documents:\n{documents_and_scores}")
 
     return documents_and_scores
+
+
+"""
+def save_sentence_transformer_model():
+    from sentence_transformers import SentenceTransformer
+
+    model_name = "all-MiniLM-L6-v2"
+    modelPath = f"./{model_name}"
+
+    model = SentenceTransformer(model_name)
+    model.save(modelPath)
+"""
