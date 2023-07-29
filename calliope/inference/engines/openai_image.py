@@ -35,7 +35,7 @@ async def text_to_image_file_inference_openai(
         params["size"] = f"{width}x{height}"
     # If width and height aren't given, we let them default in the API/model.
 
-    openai.api_key = keys.openapi_api_key
+    openai.api_key = keys.openai_api_key
     openai.aiosession.set(aiohttp_session)
     openai_response = await openai.Image.acreate(**params)
 

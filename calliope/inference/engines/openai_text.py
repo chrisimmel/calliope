@@ -48,7 +48,7 @@ async def openai_text_to_text_inference(
         **(model_config.model_parameters if model_config.model_parameters else {}),
     }
 
-    openai.api_key = keys.openapi_api_key
+    openai.api_key = keys.openai_api_key
     openai.aiosession.set(aiohttp_session)
 
     if (
@@ -83,7 +83,7 @@ async def openai_text_to_text_inference(
         parameters, model_kwargs = _filter_langchain_chat_parameters(parameters)
 
         chat = ChatOpenAI(
-            openai_api_key=keys.openapi_api_key,
+            openai_api_key=keys.openai_api_key,
             model_name=model.provider_model_name,
             **parameters,
             model_kwargs=model_kwargs,
@@ -109,7 +109,7 @@ async def openai_text_to_text_inference(
 
         extended_text = None
         chat = OpenAI(
-            openai_api_key=keys.openapi_api_key,
+            openai_api_key=keys.openai_api_key,
             model_name=model.provider_model_name,
             **parameters,
         )
