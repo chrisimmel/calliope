@@ -8,7 +8,7 @@ import IconRefresh from "./icons/IconRefresh";
 import './Clio.css';
 import './ClioApp.css';
 
-import { Frame, MediaDevice, Strategy } from './Types'; 
+import { DEVICE_ID_DEFAULT, DEVICE_ID_NONE, Frame, MediaDevice } from './Types'; 
 import IconChevronLeft from "./icons/IconChevronLeft";
 import IconChevronRight from "./icons/IconChevronRight";
 import Toolbar from "./Toolbar";
@@ -70,7 +70,7 @@ export default function ClioApp() {
     const [cameras, setCameras] = useState<MediaDevice[]>([]);
     const [strategies, setStrategies] = useState([]);
     const [strategy, setStrategy] = useState<string | null>(getDefaultStrategy());
-    const [cameraDeviceId, setCameraDeviceId] = useState<string>("default");
+    const [cameraDeviceId, setCameraDeviceId] = useState<string>(DEVICE_ID_DEFAULT);
     const [isFullScreen, setIsFullScreen] = useState<boolean>(false);
 
     function handleResize() {
@@ -117,7 +117,7 @@ export default function ClioApp() {
             cameras.push({
                 kind: "videoinput",
                 label: "Camera Off",
-                deviceId: "default",
+                deviceId: DEVICE_ID_NONE,
             });
             setCameras(cameras);
             console.log(`Found ${cameras.length} cameras: ${cameras}`);
@@ -125,7 +125,7 @@ export default function ClioApp() {
                 cameras.map((camera) => {
                     console.log(`Camera ${camera.deviceId}, '${camera.label || camera.deviceId}'`)
                 });
-                if (!cameraDeviceId && cameras.length > 0) {
+                if (cameraDeviceId == DEVICE_ID_DEFAULT && cameras.length > 0) {
                     console.log(`Initializing cameraDeviceId to ${cameras[0].deviceId}.`);
                     setCameraDeviceId(cameras[0].deviceId);
                 }
@@ -485,7 +485,7 @@ export default function ClioApp() {
         deviceId: undefined,
         facingMode: undefined,
     };
-    if (cameraDeviceId != "default") {
+    if (cameraDeviceId != DEVICE_ID_DEFAULT && cameraDeviceId != DEVICE_ID_NONE) {
         videoConstraints.deviceId = cameraDeviceId;
     }
     else {
@@ -515,7 +515,7 @@ export default function ClioApp() {
             </div>
         }
         <div className="clio_app">
-            { cameraDeviceId &&
+            { cameraDeviceId && cameraDeviceId != DEVICE_ID_NONE &&
                 <Webcam
                     ref={webcamRef}
                     className="webcamVideo"
