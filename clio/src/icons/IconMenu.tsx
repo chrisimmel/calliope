@@ -1,7 +1,7 @@
 // icon:bx-dots-vertical-rounded | Boxicons https://boxicons.com/ | Atisa
 import * as React from "react";
 
-function IconMenu(props) {
+function IconMenu(props: any) {
   return (
     <svg
       viewBox="0 0 24 24"

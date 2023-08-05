@@ -1,7 +1,7 @@
-// icon:bx-rewind | Boxicons https://boxicons.com/ | Atisa
+// icon:bx-fast-forward | Boxicons https://boxicons.com/ | Atisa
 import * as React from "react";
 
-function IconRewind(props) {
+function IconFastForward(props: any) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -10,9 +10,9 @@ function IconRewind(props) {
       width="1em"
       {...props}
     >
-      <path d="M12 12V7l-7 5 7 5zm7-5l-7 5 7 5z" />
+      <path d="M19 12l-7-5v10zM5 7v10l7-5z" />
     </svg>
   );
 }
 
-export default IconRewind;
+export default IconFastForward;

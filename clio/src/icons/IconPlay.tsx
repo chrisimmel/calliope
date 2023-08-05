@@ -1,7 +1,7 @@
-// icon:bx-fast-forward | Boxicons https://boxicons.com/ | Atisa
+// icon:bx-play | Boxicons https://boxicons.com/ | Atisa
 import * as React from "react";
 
-function IconFastForward(props) {
+function IconPlay(props: any) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -10,9 +10,9 @@ function IconFastForward(props) {
       width="1em"
       {...props}
     >
-      <path d="M19 12l-7-5v10zM5 7v10l7-5z" />
+      <path d="M7 6v12l10-6z" />
     </svg>
   );
 }
 
-export default IconFastForward;
+export default IconPlay;

@@ -5,10 +5,20 @@ import '@szhsin/react-menu/dist/theme-dark.css';
 import './Toolbar.css';
 
 import IconMenu from "./icons/IconMenu";
+import { MediaDevice, Strategy } from './Types'; 
 
-export default function MainMenu({strategies, strategy, setStrategy, cameras, camera, setCamera}) {
+type MainMenuProps = {
+    strategies: Strategy[],
+    strategy: string | null,
+    setStrategy: (strategy: string | null) => void,
+    cameras: MediaDevice[],
+    camera: string | null,
+    setCamera: (camera: string) => void,
+}
+
+export default function MainMenu({strategies, strategy, setStrategy, cameras, camera, setCamera}: MainMenuProps) {
     strategies ||= [];
-    strategy ||= strategies.find(strategy => strategy.is_default_for_client);
+    strategy ||= (strategies.find(strategy => strategy.is_default_for_client) || {slug: null}).slug;
     cameras ||= [];
     strategy ||= null;
 

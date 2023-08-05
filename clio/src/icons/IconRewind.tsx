@@ -1,7 +1,7 @@
-// icon:bx-pause | Boxicons https://boxicons.com/ | Atisa
+// icon:bx-rewind | Boxicons https://boxicons.com/ | Atisa
 import * as React from "react";
 
-function IconPause(props) {
+function IconRewind(props: any) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -10,9 +10,9 @@ function IconPause(props) {
       width="1em"
       {...props}
     >
-      <path d="M8 7h3v10H8zm5 0h3v10h-3z" />
+      <path d="M12 12V7l-7 5 7 5zm7-5l-7 5 7 5z" />
     </svg>
   );
 }
 
-export default IconPause;
+export default IconRewind;
