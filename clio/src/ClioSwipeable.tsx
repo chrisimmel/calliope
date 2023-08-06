@@ -8,6 +8,7 @@ import IconRefresh from "./icons/IconRefresh";
 import './Clio.css';
 import './ClioApp.css';
 
+import { DEVICE_ID_DEFAULT, DEVICE_ID_NONE, Frame, MediaDevice } from './Types'; 
 import IconChevronLeft from "./icons/IconChevronLeft";
 import IconChevronRight from "./icons/IconChevronRight";
 import Toolbar from "./Toolbar";
@@ -20,17 +21,18 @@ const audioConstraints = {
 };
 const thisBrowserID = browserID();
 
-const getDefaultStrategy = () => {
+const getDefaultStrategy: () => string | null = () => {
     const queryParameters = new URLSearchParams(window.location.search);
     return queryParameters.get('strategy');
 };
 
-let getFramesInterval = null;
-let checkMediaDevicesInterval = null;
-let hideOverlaysInterval = null;
+let getFramesInterval: ReturnType<typeof setTimeout> | null = null;
+let checkMediaDevicesInterval: ReturnType<typeof setTimeout> | null = null;
+let hideOverlaysInterval: ReturnType<typeof setTimeout> | null = null;
 
 
-const renderFrame = (frame, index) => {
+
+const renderFrame = (frame: Frame, index: number) => {
     const image_url = (frame.image && frame.image.url) ? `/${frame.image.url}` : '';
 
     return <CarouselItem key={index}>
@@ -53,40 +55,51 @@ const renderFrame = (frame, index) => {
 
 
 export default function ClioApp() {
-    const stateRef = useRef();
-    const [frames, setFrames] = useState([]);
-    const [selectedFrameNumber, setSelectedFrameNumber] = useState(-1);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [captureActive, setCaptureActive] = useState(false);
-    const [isPlaying, setIsPlaying] = useState(false);
-    const [cameras, setCameras] = useState([]);
+    type ClioState = {
+        handleFullscreen: () => void,
+        getFrames: () => void,
+    }
+
+    const stateRef = useRef<ClioState>({handleFullscreen: () => null, getFrames: () => null});
+    const [frames, setFrames] = useState<Frame[]>([]);
+    const [selectedFrameNumber, setSelectedFrameNumber] = useState<number>(-1);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
+    const [captureActive, setCaptureActive] = useState<boolean>(false);
+    const [isPlaying, setIsPlaying] = useState<boolean>(false);
+    const [cameras, setCameras] = useState<MediaDevice[]>([]);
     const [strategies, setStrategies] = useState([]);
-    const [strategy, setStrategy] = useState(getDefaultStrategy());
-    const [cameraDeviceId, setCameraDeviceId] = useState("default");
-    const [isFullScreen, setIsFullScreen] = useState(false);
+    const [strategy, setStrategy] = useState<string | null>(getDefaultStrategy());
+    const [cameraDeviceId, setCameraDeviceId] = useState<string>(DEVICE_ID_DEFAULT);
+    const [isFullScreen, setIsFullScreen] = useState<boolean>(false);
 
     function handleResize() {
-        const root = document.querySelector(':root');
-        const vp_height = `${window.innerHeight}px`;
-        root.style.setProperty('--vp-height', vp_height);
-        console.log(`Set --vp-height to ${vp_height}`)
+        const root: HTMLElement | null = document.querySelector(':root');
+        if (root) {
+            const vp_height = `${window.innerHeight}px`;
+            root.style.setProperty('--vp-height', vp_height);
+            console.log(`Set --vp-height to ${vp_height}`)
+        }
     };
 
     useEffect(() => {
-            function handleMouseMove(e) {
+            function handleMouseMove(e: any) {
                 e.preventDefault();
 
                 //if (isFullScreen && !hideOverlaysInterval) {
                 if (!hideOverlaysInterval) {
-                    const rootElement = document.getElementById("root");
-                    rootElement.classList.add("show-overlays");
+                    const rootElement: HTMLElement | null = document.getElementById("root");
+                    if (rootElement) {
+                        rootElement.classList.add("show-overlays");
 
-                    hideOverlaysInterval = setInterval(() => {
-                        clearInterval(hideOverlaysInterval);
-                        hideOverlaysInterval = null;
-                        rootElement.classList.remove('show-overlays');
-                    }, 2000);
+                        hideOverlaysInterval = setInterval(() => {
+                            if (hideOverlaysInterval) {
+                                clearInterval(hideOverlaysInterval);
+                                hideOverlaysInterval = null;
+                            }
+                            rootElement.classList.remove('show-overlays');
+                        }, 2000);
+                    }
                 }
             }
 
@@ -99,11 +112,12 @@ export default function ClioApp() {
     );
 
     const handleMediaDevices = useCallback(
-        (mediaDevices) => {
-            const cameras = mediaDevices.filter(({ kind }) => kind === "videoinput");
+        (mediaDevices: MediaDevice[]) => {
+            const cameras = mediaDevices.filter((device: MediaDevice) => device.kind === "videoinput");
             cameras.push({
+                kind: "videoinput",
                 label: "Camera Off",
-                deviceId: null,
+                deviceId: DEVICE_ID_NONE,
             });
             setCameras(cameras);
             console.log(`Found ${cameras.length} cameras: ${cameras}`);
@@ -111,7 +125,7 @@ export default function ClioApp() {
                 cameras.map((camera) => {
                     console.log(`Camera ${camera.deviceId}, '${camera.label || camera.deviceId}'`)
                 });
-                if (!cameraDeviceId && cameras.length > 0) {
+                if (cameraDeviceId == DEVICE_ID_DEFAULT && cameras.length > 0) {
                     console.log(`Initializing cameraDeviceId to ${cameras[0].deviceId}.`);
                     setCameraDeviceId(cameras[0].deviceId);
                 }
@@ -136,8 +150,10 @@ export default function ClioApp() {
 
             // But on an iPhone, we need to wait a few seconds and try again.
             checkMediaDevicesInterval = setInterval(() => {
-                clearInterval(checkMediaDevicesInterval);
-                checkMediaDevicesInterval = null;
+                if (checkMediaDevicesInterval) {
+                    clearInterval(checkMediaDevicesInterval);
+                    checkMediaDevicesInterval = null;
+                }
                 checkMediaDevices();
             }, 3000);
         },
@@ -166,25 +182,6 @@ export default function ClioApp() {
         }
 
     }, []);
-
-    const toggleIsPlaying = useCallback(
-        () => {
-            const newIsPlaying = !isPlaying;
-            console.log(`Setting isPlaying to ${newIsPlaying}.`);
-            setIsPlaying(newIsPlaying);
-            if (newIsPlaying) {
-                // Kick things off by generating and moving to a new frame.
-                selectFrameNumber(frames.length);
-            }
-            else {
-                if (getFramesInterval) {
-                    clearInterval(getFramesInterval);
-                    getFramesInterval = null;
-                }
-            }
-        },
-        [isPlaying, frames, selectFrameNumber]
-    );
 
     const toggleFullscreen = useCallback(
         () => {
@@ -220,9 +217,9 @@ export default function ClioApp() {
         [isFullScreen]
     );
 
-    stateRef.handleFullscreen = handleFullscreen;
+    stateRef.current.handleFullscreen = handleFullscreen;
     useEffect(() => {
-        const dynHandleFullscreen = () => stateRef.handleFullscreen();
+        const dynHandleFullscreen = () => stateRef.current.handleFullscreen();
 
         document.addEventListener('fullscreenchange', dynHandleFullscreen);
         return () => {
@@ -230,7 +227,7 @@ export default function ClioApp() {
         }
     }, []);
 
-    const webcamRef = useRef(null);
+    const webcamRef = useRef<Webcam>(null);
     const captureImage = useCallback(
         () => {
             const imageSrc = webcamRef.current ? webcamRef.current.getScreenshot() : null;
@@ -280,7 +277,7 @@ export default function ClioApp() {
                 console.log(`captureImage().`)
                 const uploadImage = captureImage();
     
-                let params = {
+                let params: {client_id: string, client_type: string, input_image: string | null, debug: boolean, strategy?: string} = {
                     client_id: thisBrowserID,
                     client_type: "clio",
                     input_image: uploadImage,
@@ -318,9 +315,9 @@ export default function ClioApp() {
                 console.log(`Got frames. isPlaying=${isPlaying}`)
                 if (isPlaying) {
                     console.log("Scheduling frames request in 20s.");
-                    getFramesInterval = setInterval(() => stateRef.getFrames(), 20000);
+                    getFramesInterval = setInterval(() => stateRef.current.getFrames(), 20000);
                 }
-            } catch (err) {
+            } catch (err: any) {
                 setError(err.message);
             } finally {
                 setLoading(false);
@@ -329,7 +326,7 @@ export default function ClioApp() {
         },
         [thisBrowserID, frames, setCaptureActive, isPlaying, strategy]
     );
-    stateRef.getFrames = getFrames;
+    stateRef.current.getFrames = getFrames;
 
     useEffect(
         () => {
@@ -362,9 +359,9 @@ export default function ClioApp() {
                         // Webcam a beat to initialize.
         
                         console.log("Scheduling a request for an initial frame.");
-                        getFramesInterval = setInterval(() => stateRef.getFrames(), 500);
+                        getFramesInterval = setInterval(() => stateRef.current.getFrames(), 500);
                     }
-                } catch (err) {
+                } catch (err: any) {
                     setError(err.message);
                 } finally {
                     setLoading(false);
@@ -377,7 +374,7 @@ export default function ClioApp() {
     );
 
     const selectFrameNumber = useCallback(
-        async (newSelectedFrameNumber) => {
+        async (newSelectedFrameNumber: number) => {
             const frameCount = frames.length;
             if (newSelectedFrameNumber < 0) {
                 newSelectedFrameNumber = 0;
@@ -395,11 +392,30 @@ export default function ClioApp() {
                     // Webcam a beat to initialize.
     
                     console.log(`newSelectedFrameNumber=${newSelectedFrameNumber}, frames.length=${frames.length}. Scheduling frames request.`);
-                    getFramesInterval = setInterval(() => stateRef.getFrames(), 500);
+                    getFramesInterval = setInterval(() => stateRef.current.getFrames(), 500);
                 }
             }
         },
         [frames, getFrames, selectedFrameNumber, setCaptureActive, setSelectedFrameNumber]
+    );
+
+    const toggleIsPlaying = useCallback(
+        () => {
+            const newIsPlaying = !isPlaying;
+            console.log(`Setting isPlaying to ${newIsPlaying}.`);
+            setIsPlaying(newIsPlaying);
+            if (newIsPlaying) {
+                // Kick things off by generating and moving to a new frame.
+                selectFrameNumber(frames.length);
+            }
+            else {
+                if (getFramesInterval) {
+                    clearInterval(getFramesInterval);
+                    getFramesInterval = null;
+                }
+            }
+        },
+        [isPlaying, frames, selectFrameNumber]
     );
 
     useEffect(
@@ -422,7 +438,7 @@ export default function ClioApp() {
                     const newStrategies = response.data || [];
                     console.log(`Got ${response.data?.length} strategies.`);
                     setStrategies(newStrategies);
-                } catch (err) {
+                } catch (err: any) {
                     setError(err.message);
                 }
             };
@@ -457,11 +473,19 @@ export default function ClioApp() {
         [selectedFrameNumber, selectFrameNumber, frames]
     );
 
-    const videoConstraints = {
+    type VideoConstraints = {
+        width?: number,
+        height?: number,
+        deviceId?: string,
+        facingMode?: string,
+    }
+    const videoConstraints: VideoConstraints = {
         width: 512,
         height: 512,
+        deviceId: undefined,
+        facingMode: undefined,
     };
-    if (cameraDeviceId != "default") {
+    if (cameraDeviceId != DEVICE_ID_DEFAULT && cameraDeviceId != DEVICE_ID_NONE) {
         videoConstraints.deviceId = cameraDeviceId;
     }
     else {
@@ -491,7 +515,7 @@ export default function ClioApp() {
             </div>
         }
         <div className="clio_app">
-            { cameraDeviceId &&
+            { cameraDeviceId && cameraDeviceId != DEVICE_ID_NONE &&
                 <Webcam
                     ref={webcamRef}
                     className="webcamVideo"

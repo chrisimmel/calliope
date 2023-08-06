@@ -1,7 +1,7 @@
 // icon:camera-reverse-outline | Ionicons https://ionicons.com/ | Ionic Framework
 import * as React from "react";
 
-function IconCameraReverse(props) {
+function IconCameraReverse(props: any) {
   return (
     <svg
       viewBox="0 0 512 512"

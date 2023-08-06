@@ -26,12 +26,18 @@
     "babel-loader": "^8.3.0",
     "css-loader": "^6.7.2",
     "html-webpack-plugin": "^5.5.0",
+    "ts-loader": "^9.4.4",
+    "typescript": "^5.1.6",
     "webpack": "^5.88.0",
     "webpack-cli": "^4.10.0",
     "webpack-dev-server": "^4.11.1"
   },
   "dependencies": {
     "@szhsin/react-menu": "^4.0.0",
+    "@types/jest": "^29.5.3",
+    "@types/node": "^20.4.7",
+    "@types/react": "^18.2.18",
+    "@types/react-dom": "^18.2.7",
     "axios": "^1.2.1",
     "browser-id": "^2.0.16",
     "react": "^18.2.0",

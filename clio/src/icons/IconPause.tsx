@@ -1,7 +1,7 @@
-// icon:bx-play | Boxicons https://boxicons.com/ | Atisa
+// icon:bx-pause | Boxicons https://boxicons.com/ | Atisa
 import * as React from "react";
 
-function IconPlay(props) {
+function IconPause(props: any) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -10,9 +10,9 @@ function IconPlay(props) {
       width="1em"
       {...props}
     >
-      <path d="M7 6v12l10-6z" />
+      <path d="M8 7h3v10H8zm5 0h3v10h-3z" />
     </svg>
   );
 }
 
-export default IconPlay;
+export default IconPause;
