@@ -114,13 +114,13 @@ async def openai_text_to_text_inference(
             **parameters,
         )
         llm_result = await chat.agenerate([text])
-        print(f"Completion response is: '{llm_result}'")
         if (
             llm_result.generations
             and llm_result.generations[0]
             and llm_result.generations[0][0]
         ):
-            # generations=[[Generation(text="\nA portrait of a moment in time
+            # llm_result.generations looks like this:
+            # [[Generation(text="\nA portrait of a moment in time"...
             extended_text = llm_result.generations[0][0].text
 
     return extended_text
