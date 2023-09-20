@@ -10,6 +10,7 @@ class InferenceModelProvider(str, Enum):
     OPENAI = "openai"
     AZURE = "azure"
     REPLICATE = "replicate"
+    MODAL_STABLE_DIFFUSION = "modal_stable_diffusion"
 
 
 class InferenceModelProviderVariant(str, Enum):

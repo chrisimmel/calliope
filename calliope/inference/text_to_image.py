@@ -9,6 +9,9 @@ from calliope.inference.engines.openai_image import text_to_image_file_inference
 from calliope.inference.engines.stability_image import (
     text_to_image_file_inference_stability,
 )
+from calliope.inference.engines.modal_stable_diffusion_image import (
+    text_to_image_file_inference_modal_stable
+)
 from calliope.models import (
     InferenceModelProvider,
     KeysModel,
@@ -61,6 +64,16 @@ async def text_to_image_file_inference(
             f"({width}x{height})"
         )
         return await text_to_image_file_inference_openai(
+            aiohttp_session,
+            text,
+            output_image_filename,
+            model_config,
+            keys,
+            width,
+            height,
+        )
+    elif model.provider == InferenceModelProvider.MODAL_STABLE_DIFFUSION:
+        return await text_to_image_file_inference_modal_stable(
             aiohttp_session,
             text,
             output_image_filename,
