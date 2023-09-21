@@ -2,7 +2,6 @@ import asyncio
 from typing import Any, Dict
 
 import aiohttp
-from PIL import Image
 
 from calliope.inference.engines.azure_vision import (
     azure_vision_inference,
@@ -16,7 +15,7 @@ from calliope.models import (
     KeysModel,
 )
 from calliope.tables import ModelConfig
-from calliope.utils.file import get_file_extension
+from calliope.utils.image import convert_pil_image_to_png
 
 
 # The number of seconds to wait for a Replicate request to complete.
@@ -24,6 +23,7 @@ from calliope.utils.file import get_file_extension
 REPLICATE_REQUEST_TIMEOUT_SECONDS = 10
 
 
+# Some interesting models not currently in use...
 # image_to_text_model = "ydshieh/vit-gpt2-coco-en-ckpts"
 # image_to_text_model = "nlpconnect/vit-gpt2-image-captioning"
 # text_to_image_model = "runwayml/stable-diffusion-v1-5"
@@ -33,26 +33,42 @@ REPLICATE_REQUEST_TIMEOUT_SECONDS = 10
 # voice_activity_detection_model = "pyannote/voice-activity-detection"
 
 
-def _convert_image_to_png(image_filename: str) -> str:
-    extension = get_file_extension(image_filename)
-    if extension != "png":
-        image_filename_png = image_filename + ".png"
-        img = Image.open(image_filename)
-        img.save(image_filename_png)
-        image_filename = image_filename_png
-
-    return image_filename
-
-
 async def _image_analysis_inference(
     aiohttp_session: aiohttp.ClientSession,
     image_filename: str,
     provider: InferenceModelProvider,
     model_config: ModelConfig,
     keys: KeysModel,
-) -> str:
+) -> Dict[str, Any]:
     """
-    Takes the filename of an image. Returns a description of the image.
+    Takes the filename of an image. Returns a dictionary of information about
+    the contents of the image.
+
+    Args:
+        aiohttp_session: the async HTTP session.
+        image_filename: the filename of the input image.
+        provider: the InferenceModelProvider.
+        model_config: the model configuration.
+        keys: API keys, etc.
+
+    Returns:
+        a dictionary containing the image analysis. The
+        analysis adheres to the following schema:
+
+            "captions": a list of captions describing the image.
+            "all_captions": the captions list, concatenated into a
+                string for humans or LLMs to read.
+            "tags": a list of tags appropriate to the image.
+            "objects": a list of objects detected in the image.
+            "all_tags_and_objects": the tags and objects lists,
+                concatenated into a single string for humans
+                and LLMs. 
+            "text": any text seen in the image.
+            "description": a text description, summarizing all the
+                above.
+
+        The description and all_captions fields are provided at a
+        minimum, regardless of the InferenceModelProvider.
     """
     model = model_config.model
     print(f"_image_analysis_inference: {provider=}")
@@ -68,7 +84,7 @@ async def _image_analysis_inference(
     elif provider == InferenceModelProvider.AZURE:
         # Don't know why, but Azure comp vision doesn't seem to like JPG files.
         # Convert to PNG.
-        image_filename = _convert_image_to_png(image_filename)
+        image_filename = convert_pil_image_to_png(image_filename)
 
         with open(image_filename, "rb") as f:
             image_data = f.read()
@@ -116,8 +132,54 @@ async def image_analysis_inference(
 ) -> Dict[str, Any]:
     """
     Takes the filename of an image. Returns a dictionary of information about
-    the contents of the image.
+    the contents of the image. The analysis is drawn from two distinct
+    resources:
+        Azure Computer Vision: The Azure Computer Vision API is used to
+           generate a high-level image description, lists of recognized
+           objects and tags, and any text detected in the image.
+
+        Mini-GPT-4: The multi-modal Mini-GPT-4 model is used to generate
+           a very rich image description with much more detail than Azure
+           produces. This includes text seen in the image, but also a
+           much more human-like summary of the scene.
+
+    API calls are made to both Azure and Mini-GPT-4 simultaneously, and
+    the results are combined in the returned analysis. Because cold start
+    on the Replicate service that hosts Mini-GPT-4 can be lengthy (up to
+    a minute or so to load the model it hasn't been used recently), we set
+    a 10-second timeout on the Mini-GPT-4 call, and just return the Azure
+    analysis if there is a problem.
+
+    Args:
+        aiohttp_session: the async HTTP session.
+        image_filename: the filename of the input image.
+        provider: the InferenceModelProvider.
+        model_config: the model configuration.
+        keys: API keys, etc.
+
+    Returns:
+        a dictionary containing the image analysis. The
+        analysis adheres to the following schema:
+
+            "captions": a list of captions describing the image.
+            "all_captions": the captions list, concatenated into a
+                string for humans or LLMs to read.
+            "tags": a list of tags appropriate to the image.
+            "objects": a list of objects detected in the image.
+            "all_tags_and_objects": the tags and objects lists,
+                concatenated into a single string for humans
+                and LLMs. 
+            "text": any text seen in the image.
+            "description": a text description, summarizing all the
+                above.
+
+        The description and all_captions fields are provided at a
+        minimum, regardless of the InferenceModelProvider.
     """
+
+    # Note that we ignore model_config.model.provider. For now this
+    # is hardcoded to always use InferenceModelProvider.REPLICATE
+    # and InferenceModelProvider.AZURE.
     mini_gpt_4_task = asyncio.create_task(
         _image_analysis_inference(
             aiohttp_session,
@@ -138,7 +200,7 @@ async def image_analysis_inference(
         )
     )
 
-    # Execute Azure CV and MiniGPT-4 analsysi in parallel so we can use both
+    # Execute Azure CV and MiniGPT-4 analysis in parallel so we can use both
     # without suffering a time penalty.
     # Even though MiniGPT-4 gives a richer description of the scene. Azure is useful
     # because it lists objects and reads text. The combination gives the LLM much
@@ -162,6 +224,7 @@ async def image_analysis_inference(
         azure_analysis = {}
         print(f"Error running Azure Computer Vision: {e}")
 
+    # Merge the Azure and Mini-GPT-4 analyses.
     analysis = {
         **azure_analysis,
         "description": (
@@ -191,12 +254,12 @@ async def image_ocr_inference(
 
     if model.provider != InferenceModelProvider.AZURE:
         raise ValueError(
-            f"Don't know how to do image OCR for provider {model_config.provider}."
+            f"Don't know how to do image OCR for provider {model.provider}."
         )
 
     # Don't know why, but Azure comp vision doesn't seem to like JPG files.
     # Convert to PNG.
-    image_filename = _convert_image_to_png(image_filename)
+    image_filename = convert_pil_image_to_png(image_filename)
     with open(image_filename, "rb") as f:
         image_data = f.read()
 

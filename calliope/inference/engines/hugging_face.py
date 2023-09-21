@@ -22,6 +22,19 @@ async def _hugging_face_request(
     keys: KeysModel,
     content_type: Optional[str] = None,
 ) -> Response:
+    """
+    Makes a request to the HuggingFace inference API.
+
+    Args:
+        aiohttp_session: the async HTTP session.
+        data: input data to pass with the request.
+        model_name: the name of the model to invoke.
+        keys: API keys, etc.
+        content_type: the expected content type.
+
+    Returns:
+        the API response.
+    """
     api_key = keys.huggingface_api_key
     api_url = _hugging_face_model_to_api_url(model_name)
     headers = {"Authorization": f"Bearer {api_key}"}
@@ -39,6 +52,15 @@ async def _text_to_text_inference_hugging_face_http(
 ) -> Optional[str]:
     """
     Does a text->text inference on HuggingFace Hub via a simple HTTP POST.
+
+    Args:
+        aiohttp_session: the async HTTP session.
+        text: the input text, to be sent as a prompt.
+        model_config: the ModelConfig with model and parameters.
+        keys: API keys, etc.
+
+    Returns:
+        the generated text.
     """
     model = model_config.model
     text = text.replace(":", "")
@@ -59,6 +81,15 @@ async def _text_to_text_inference_hugging_face_langchain(
 ) -> Optional[str]:
     """
     Does a text->text inference on HuggingFace Hub via LangChain.
+
+    Args:
+        aiohttp_session: the async HTTP session.
+        text: the input text, to be sent as a prompt.
+        model_config: the ModelConfig with model and parameters.
+        keys: API keys, etc.
+
+    Returns:
+        the generated text.
     """
     model = model_config.model
 
@@ -95,6 +126,19 @@ async def text_to_text_inference_hugging_face(
     model_config: ModelConfig,
     keys: KeysModel,
 ) -> Optional[str]:
+    """
+    Performs a text->text inference using a HuggingFace-hosted language
+    model.
+
+    Args:
+        aiohttp_session: the async HTTP session.
+        text: the input text, to be sent as a prompt.
+        model_config: the ModelConfig with model and parameters.
+        keys: API keys, etc.
+
+    Returns:
+        the generated text.
+    """
     return await _text_to_text_inference_hugging_face_http(
         aiohttp_session, text, model_config, keys
     )
@@ -109,6 +153,23 @@ async def text_to_image_file_inference_hugging_face(
     width: Optional[int] = None,
     height: Optional[int] = None,
 ) -> str:
+    """
+    Performs a text->image inference using a HuggingFace-hosted model
+    such as Stable Diffusion.
+
+    Args:
+        aiohttp_session: the async HTTP session.
+        text: the input text, to be sent as a prompt.
+        output_image_filename: the filename indicating where to write the
+            generated image.
+        model_config: the ModelConfig with model and parameters.
+        keys: API keys, etc.
+        width: the desired image width in pixels (ignored).
+        height: the desired image height in pixels (ignored).
+
+    Returns:
+        the filename of the generated image.
+    """
     model = model_config.model
 
     # width and height are ignored by HuggingFace.
@@ -134,13 +195,23 @@ async def image_to_text_inference_hugging_face(
 ) -> str:
     """
     Takes the filename of an image. Returns text derived from the image.
+    The specified model must be one that supports this kind of data flow,
+    such as an image captioning model.
+
+    Args:
+        aiohttp_session: the async HTTP session.
+        image_data: the bytes of the input image.
+        model_config: the model configuration.
+        keys: API keys, etc.
+
+    Returns:
+        a string describing the image.
     """
     model = model_config.model
 
     response = await _hugging_face_request(
         aiohttp_session, image_data, model.provider_model_name, keys
     )
-    # predictions = json.loads(response.content.decode("utf-8"))
     predictions = await response.json()
     caption = predictions[0]["generated_text"]
 

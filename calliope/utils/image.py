@@ -171,6 +171,32 @@ def convert_grayscale16_to_png(
         )
 
 
+def convert_pil_image_to_png(image_filename: str) -> str:
+    """
+    Converts a standard image file (one understood by
+    the PIL library) to PNG format, if it isn't already, in
+    a new file with the .png extension.
+
+    Note that this won't work with the specialized grayscale
+    and RGB565 formats that Calliope provides for Sparrow hardware,
+    as PIL doesn't support these.
+
+    Args:
+        image_filename: the filename of an image.
+
+    Returns:
+        the filename of the new or existing PNG file.
+    """
+    extension = get_file_extension(image_filename)
+    if extension != "png":
+        image_filename_png = image_filename + ".png"
+        img = PIL.Image.open(image_filename)
+        img.save(image_filename_png)
+        image_filename = image_filename_png
+
+    return image_filename
+
+
 def resize_image_if_needed(
     input_image: Image,
     output_image_width: int,

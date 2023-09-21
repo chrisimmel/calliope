@@ -44,7 +44,21 @@ class StoryStrategy(object, metaclass=ABCMeta):
         aiohttp_session: aiohttp.ClientSession,
     ) -> StoryFrameSequenceResponseModel:
         """
-        Requests a sequence of story frames.
+        Generates, stores, and returns a new sequence of story frames based on API
+        parameters, the sparrow state, and the story context. This is the core method
+        of every story strategy.
+
+        Args:
+            parameters: the parsed API parameters.
+            image_analysis: the analysis of the input image, if any.
+            strategy_config: the persisted configuration of the strategy.
+            keys: API keys and secrets.
+            sparrow_state: the persisted Sparrow (client) state.
+            story: the story up to now.
+            aiohttp_session: the async HTTP session.
+
+        Returns:
+            A sequence of new frames that have been added to the story.
         """
 
     async def _add_frame(
@@ -58,6 +72,17 @@ class StoryStrategy(object, metaclass=ABCMeta):
     ) -> StoryFrame:
         """
         Adds a new frame to a story and persists everything.
+
+        Args:
+            story: the story up to now.
+            image: the image for this frame, if any.
+            text: the text for this frame, if any.
+            frame_number: the sequence number of this frame.
+            debug_data: any debug data to be logged with the frame.
+            errors: any non-fatal errors that occurred while generating the frame.
+
+        Returns:
+            the new frame.
         """
         if image:
             image.date_updated = datetime.now(timezone.utc)
@@ -103,6 +128,17 @@ class StoryStrategy(object, metaclass=ABCMeta):
     def _get_default_debug_data(
         self, parameters: FramesRequestParamsModel
     ) -> Dict[str, Any]:
+        """
+        Composes the default dictionary of debug data for a frame request.
+        Strategies are encouraged to enhance this dictionary with their own
+        supplemental data.
+
+        Args:
+            parameters: the parsed API parameters.
+
+        Returns:
+            a dictionary with the default debug data.
+        """
         return {
             "parameters": {
                 key: value
