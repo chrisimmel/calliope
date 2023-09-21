@@ -48,4 +48,4 @@ spans of time.
 
 ### continuous-v1
 Builds on `continuous-v0`, but is meant to be used with larger text prompts
-and the GPT-3 models (e.g., `text_to_text_model_config = "openai_curie"`).
+and the GPT-3, GPT-4, etc. models (e.g., `text_to_text_model_config = "openai_curie"`).
