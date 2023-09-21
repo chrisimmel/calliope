@@ -8,7 +8,11 @@ In Greek mythology, Calliope (/kəˈlaɪ.əpi/ kə-LY-ə-pee; Ancient Greek: Κ�
 
 Calliope is a framework meant to make modern AI tools like generative AI (large language models and image generation models), computer vision, and vector databases accessible for use by artists creating interactive art works. The core system is a flexible framework, service, and API that enables an artist to build repeatable interaction strategies. The API can accept inputs such as images, text, and voice, then process these through an artist-defined pipeline of AI models to generate text and image output.
 
-* AI models can be either commercial or open models accessed via APIs (HuggingFace, OpenAI, Stability, Replicate, Azure, etc.) or locally or cloud hosted open source and/or fine-tuned models. (GPT-4, GPT-3, Stable Diffusion, DALL-E, MiniGPT-4, LLaMa 2, etc.)
+The focus is on enabling the creation of works that are "aware" of the environment in which they are installed or running, in the sense that they can see, hear, and react to things or people in that environment. This is currently limited to image input, such as from a Webcam, but the hope is to extend that to cover audio input as well, including speech recognition.
+
+* Processing is driven by pluggable modules called _story strategies_, meant to be experimented with and extended by the artist-engineers who make use of the framework.
+
+* AI models can be either commercial or open models accessed via APIs (HuggingFace, OpenAI, Stability, Replicate, Azure, etc.) or locally or cloud hosted open source and/or fine-tuned models. (GPT-4, GPT-3, Stable Diffusion, DALL-E 2, MiniGPT-4, LLaMa 2, Claude, FLAN, etc.)
 
 * Images are interpreted by a combination of a multimodal LLM (MiniGPT-4) and the Azure computer vision API to generate a rich text description, lists of recognized objects and text, and metadata that can be passed to other components as input.
 
@@ -31,3 +35,4 @@ its story API. The two existing clients are:
 - [Scheduling](https://github.com/chrisimmel/calliope/tree/main/docs/scheduling.md)
 - [Clio](https://github.com/chrisimmel/calliope/tree/main/docs/Clio.md)
 - [Thoth](https://github.com/chrisimmel/calliope/tree/main/docs/Thoth.md)
+- [Calliope Admin](https://github.com/chrisimmel/calliope/tree/main/docs/Admin.md)
