@@ -47,7 +47,7 @@ async def text_to_text_inference(
     else:
         raise ValueError(
             "Don't know how to do text->text inference for provider "
-            f"{model_config.provider}."
+            f"{model.provider}."
         )
 
     return extended_text

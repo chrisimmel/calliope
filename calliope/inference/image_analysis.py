@@ -254,7 +254,7 @@ async def image_ocr_inference(
 
     if model.provider != InferenceModelProvider.AZURE:
         raise ValueError(
-            f"Don't know how to do image OCR for provider {model_config.provider}."
+            f"Don't know how to do image OCR for provider {model.provider}."
         )
 
     # Don't know why, but Azure comp vision doesn't seem to like JPG files.

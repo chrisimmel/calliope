@@ -87,5 +87,5 @@ async def text_to_image_file_inference(
     else:
         raise ValueError(
             "Don't know how to do text->image inference for provider "
-            f"{model_config.provider}."
+            f"{model.provider}."
         )
