@@ -15,6 +15,20 @@ async def text_to_text_inference(
     model_config: ModelConfig,
     keys: KeysModel,
 ) -> str:
+    """
+    Performs a text->text inference using an LLM. Only OpenAI and HuggingFace-hosted
+    models are currently supported, but it would be trivial to add support for other
+    LLMs here.
+
+    Args:
+        aiohttp_session: the async HTTP session.
+        text: the input text, to be sent as a prompt.
+        model_config: the ModelConfig with model and parameters.
+        keys: API keys, etc.
+
+    Returns:
+        the generated text.
+    """
     print(f"text_to_text_inference: {model_config.slug}, {model_config.model}")
     model = model_config.model
 

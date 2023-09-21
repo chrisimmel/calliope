@@ -14,8 +14,7 @@ class StoryStrategyRegistry:
     @classmethod
     def register(cls) -> Callable:
         """
-        Registers a block model class, along with valid and invalid example attribute
-        dictionaries.
+        Registers a story strategy class.
         """
 
         def register_strategy(strategy_class: Type) -> Callable[[Type[Any]], Type[Any]]:
@@ -31,12 +30,12 @@ class StoryStrategyRegistry:
     @classmethod
     def get_strategy_class(cls, strategy_name: str) -> Type[StoryStrategy]:
         """
-        Gets the block class for a given block type.
+        Gets the strategy class by name.
 
         Returns:
-            The block class.
+            The story strategy class.
         Raises:
-            ValueError if the block class isn't found.
+            ValueError if the story strategy class isn't found.
         """
         if strategy_name not in cls._story_strategies_by_name:
             raise ValueError(f"Unknown story strategy: {strategy_name}")

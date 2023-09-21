@@ -20,6 +20,23 @@ async def text_to_image_file_inference_stability(
     width: Optional[int] = None,
     height: Optional[int] = None,
 ) -> str:
+    """
+    Uses Stable Diffusion via the Stability API to interpret a piece of text as
+    an image.
+
+    Args:
+        aiohttp_session: the async HTTP session.
+        text: the input text, to be sent as a prompt.
+        output_image_filename: the filename indicating where to write the
+            generated image.
+        model_config: the ModelConfig with model and parameters.
+        keys: API keys, etc.
+        width: the desired image width in pixels.
+        height: the desired image height in pixels.
+
+    Returns:
+        the filename of the generated image.
+    """
     model = model_config.model
 
     parameters = {

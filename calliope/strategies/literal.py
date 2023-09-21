@@ -22,8 +22,11 @@ from calliope.utils.image import get_image_attributes
 @StoryStrategyRegistry.register()
 class LiteralStrategy(StoryStrategy):
     """
-    Takes the input_text as the prompt to generate an image in a single frame.
-    Echos back the text.
+    Takes the input_text and/or input image analysis as the prompt to generate an
+    output image in a single frame. Echos back the input text.
+
+    Is useful mainly for testing image understanding and generation, or for generating
+    a short, fixed frame sequence based on a sequence of input prompts separated by "|".
     """
 
     strategy_name = "literal"

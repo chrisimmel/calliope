@@ -26,7 +26,22 @@ async def text_to_image_file_inference(
     height: Optional[int] = None,
 ) -> str:
     """
-    Interprets a piece of text as an image. Returns the filename of the resulting image.
+    Interprets a piece of text as an image. The supported providers are at this
+    point Stability (Stable Diffusion), OpenAI (DALL-E), and HuggingFace (Stable
+    Diffusion and others).
+
+    Args:
+        aiohttp_session: the async HTTP session.
+        text: the input text, to be sent as a prompt.
+        output_image_filename: the filename indicating where to write the
+            generated image.
+        model_config: the ModelConfig with model and parameters.
+        keys: API keys, etc.
+        width: the desired image width in pixels.
+        height: the desired image height in pixels.
+
+    Returns:
+        the filename of the generated image.
     """
     model = model_config.model
 

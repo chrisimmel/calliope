@@ -31,7 +31,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
     Tries to keep a story going, carrying context from a previous frame, if any,
     to a new frame. This works in the manner of an "Exquisite Corpse" exercise,
     where each generation blindly adds something new to the story, based only on
-    the step immediately precedent.
+    the tail of the story so far.
 
     This is largely tuned for the EleutherAI/gpt-neo-2.7B model, so uses very short
     text fragments.
@@ -88,7 +88,6 @@ class ContinuousStoryV0Strategy(StoryStrategy):
 
         if last_text:
             last_text_tokens = last_text
-            # last_text_tokens = last_text_tokens[int(len(last_text_tokens) / 2) :]
             last_text_tokens = last_text_tokens[-20:]
             last_text = " ".join(last_text_tokens)
 
@@ -96,6 +95,8 @@ class ContinuousStoryV0Strategy(StoryStrategy):
 
         print(f'Text prompt: "{text}"')
         if text and not text.isspace():
+            # gpt-neo-2.7B produces very short text, so collect 3 of its
+            # responses as the frame text.
             text_1 = await self._get_new_story_fragment(
                 text,
                 parameters,
@@ -137,6 +138,8 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         last_text = text
 
         if text:
+            # Generate an image for the frame, composing a prompt from
+            # the frame's text...
             image_prompt = output_image_style + " " + text
             print(f'Image prompt: "{image_prompt}"')
 
@@ -159,6 +162,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
                 traceback.print_exc(file=sys.stderr)
                 errors.append(str(e))
 
+        # Append and persist the frame to the story.
         frame = await self._add_frame(
             story,
             image,
@@ -168,6 +172,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
             errors,
         )
 
+        # Return the new frame.
         return StoryFrameSequenceResponseModel(
             frames=[frame],
             debug_data=debug_data,
@@ -186,6 +191,9 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         last_text: Optional[str],
         aiohttp_session: aiohttp.ClientSession,
     ) -> str:
+        """
+        Gets a new story fragment to be used in building the frame's text.
+        """
         fragment_len = len(text)
         print(f'_get_new_story_fragment: "{text=}"')
 
@@ -202,7 +210,9 @@ class ContinuousStoryV0Strategy(StoryStrategy):
 
         input_text = parameters.input_text
 
+        # Filter out some basic nonsense we don't like to see in stories...
         if input_text and text.find(input_text) >= 0:
+            # Don't want to see the input text parroted back.
             msg = (
                 "Rejecting story continuation because it contains the input text: "
                 f"{stripped_text[:100]}[...]"
@@ -211,6 +221,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
             errors.append(msg)
             text = ""
         elif re.search(r"[<>#^#\\{}]|0x|://", text):
+            # Don't want to see computer code or similar digital detritus.
             msg = (
                 "Rejecting story continuation because it smells like code: "
                 f"{stripped_text[:100]}[...]"
@@ -219,6 +230,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
             errors.append(msg)
             text = ""
         elif stripped_text and stripped_text in last_text:
+            # Don't want to literally repeat ourselves.
             msg = (
                 "Rejecting story continuation because it's already appeared in the "
                 f"story: {stripped_text[:100]}[...]"

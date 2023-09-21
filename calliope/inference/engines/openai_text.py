@@ -41,6 +41,21 @@ async def openai_text_to_text_inference(
     model_config: ModelConfig,
     keys: KeysModel,
 ) -> Optional[str]:
+    """
+    Performs a text->text inference using an OpenAI-provided LLM.
+
+    Note that model.provider_api_variant determines whether the
+    completion or chat completion API is used.
+
+    Args:
+        aiohttp_session: the async HTTP session.
+        text: the input text, to be sent as a prompt.
+        model_config: the ModelConfig with model and parameters.
+        keys: API keys, etc.
+
+    Returns:
+        the generated text.
+    """
     model = model_config.model
 
     parameters = {
@@ -55,30 +70,6 @@ async def openai_text_to_text_inference(
         model.provider_api_variant
         == InferenceModelProviderVariant.OPENAI_CHAT_COMPLETION
     ):
-        """
-        messages = [
-            {
-                "role": "user",
-                "content": text,
-            }
-        ]
-
-        response = await openai.ChatCompletion.acreate(
-            model=model.provider_model_name,
-            messages=messages,
-            **parameters,
-        )
-
-        extended_text = None
-        print(f"Chat Completion response is: '{response}'")
-        if response:
-            choices = response.get("choices", [])
-            if len(choices):
-                message = choices[0].get("message", {})
-                if message:
-                    extended_text = message.get("content")
-        """
-
         extended_text = None
         parameters, model_kwargs = _filter_langchain_chat_parameters(parameters)
 
@@ -95,18 +86,10 @@ async def openai_text_to_text_inference(
             and llm_result.generations[0]
             and llm_result.generations[0][0]
         ):
-            # generations=[[ChatGeneration(text='The room was bathed in soft, muted
+            # llm_result.generations looks like:
+            # [[ChatGeneration(text='The room was bathed in soft, muted...
             extended_text = llm_result.generations[0][0].text
     else:
-        """
-        completion = await openai.Completion.acreate(
-            engine=model.provider_model_name,
-            prompt=text,
-            **parameters,
-        )
-        extended_text = completion.choices[0].text
-        """
-
         extended_text = None
         chat = OpenAI(
             openai_api_key=keys.openai_api_key,
@@ -120,7 +103,8 @@ async def openai_text_to_text_inference(
             and llm_result.generations[0]
             and llm_result.generations[0][0]
         ):
-            # generations=[[Generation(text="\nA portrait of a moment in time
+            # llm_result.generations looks like:
+            # [[Generation(text="\nA portrait of a moment in time...
             extended_text = llm_result.generations[0][0].text
 
     return extended_text
