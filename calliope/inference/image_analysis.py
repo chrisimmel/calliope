@@ -200,7 +200,7 @@ async def image_analysis_inference(
         )
     )
 
-    # Execute Azure CV and MiniGPT-4 analyis in parallel so we can use both
+    # Execute Azure CV and MiniGPT-4 analysis in parallel so we can use both
     # without suffering a time penalty.
     # Even though MiniGPT-4 gives a richer description of the scene. Azure is useful
     # because it lists objects and reads text. The combination gives the LLM much
