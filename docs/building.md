@@ -9,8 +9,8 @@ docker run --env PORT=8080 --publish 127.0.0.1:8080:8080/tcp calliope
 
 ```
 gcloud auth application-default login
-gcloud builds submit --tag gcr.io/ardent-course-370411/calliope
-gcloud run deploy --image gcr.io/ardent-course-370411/calliope --platform managed
+gcloud builds submit --tag <your project tag>
+gcloud run deploy --image <your project tag> --platform managed
 ```
 
 # Generating and Executing Migrations
