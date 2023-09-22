@@ -33,7 +33,7 @@ You can try Calliope and Clio [here](https://calliope-ugaidvq5sa-uc.a.run.app/cl
 
 
 Hints:
-* Clio constructs a story for you, one frame at a time. You request a new frame by swiping to the left. You can review previoius frames by swiping to the right. (Clicking the arrows also works.)
+* Clio constructs a story for you, one frame at a time. You request a new frame by swiping to the left. You can review previous frames by swiping to the right. (Clicking the arrows also works.)
 * It will ask to access your camera. If you grant it access, it will take a shot of whatever is in the camera view each time you request a new story frame, and use whatever it sees to inform the story.
 * You can choose which camera to use from the menu at the lower right:
 
