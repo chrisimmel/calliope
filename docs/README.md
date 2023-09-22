@@ -25,6 +25,26 @@ its story API. The two existing clients are:
 * An [ESP32-Sparrow](https://github.com/mikalhart/ESP32-Sparrow) -- one of a family of bespoke hardware devices with a screen and optional input sensors such as camera and microphone.
 * [Clio](https://github.com/chrisimmel/calliope/tree/main/docs/Clio.md) -- a small TypeScript client included in this repo, runnable in any browser on desktop or mobile devices. Clio accepts image input from any accessible webcam and passes this with its request for a story continuation. Calliope uses this input to condition its continuation of the story.
 
+
+## Try it Out!
+You can try Calliope and Clio [here}(https://calliope-ugaidvq5sa-uc.a.run.app/clio/).
+
+<img src="https://github.com/chrisimmel/calliope/assets/17924059/7e4f77b0-4bbb-4aba-ba42-4914c580b6d1" alt="drawing" height="400"/>
+
+
+Hints:
+* Clio constructs a story for you, one frame at a time. You request a new frame by swiping to the left. You can review previoius frames by swiping to the right. (Clicking the arrows also works.)
+* It will ask to access your camera. If you grant it access, it will take a shot of whatever is in the camera view each time you request a new story frame, and use whatever it sees to inform the story.
+* You can choose which camera to use from the menu at the lower right:
+
+<img src="https://github.com/chrisimmel/calliope/assets/17924059/bcb62949-0aa9-4470-8801-52b341ab584f" alt="drawing" width="200"/>
+
+If you're on a mobile device, the back camera is the one facing away from you, and is used by default. The front camera is the one facing you.
+* Input images are not kept on the Calliope server, so you don't need to worry about it collecting a cache of your photos! (It analyzes the input image, then forgets it, where it is deleted when the ephemeral file storage is cleaned up.)
+* You can also turn the camera off from this same menu.
+* The default strategy is chosen to give the best results for most people most of the time, but you can also experiment with choosing different strategies from the menu. If you change the strategy and request a new frame, a new story is begun using the new strategy.
+
+
 ## Table of Contents
 
 - [Building](https://github.com/chrisimmel/calliope/tree/main/docs/building.md)
@@ -35,4 +55,5 @@ its story API. The two existing clients are:
 - [Scheduling](https://github.com/chrisimmel/calliope/tree/main/docs/scheduling.md)
 - [Clio](https://github.com/chrisimmel/calliope/tree/main/docs/Clio.md)
 - [Thoth](https://github.com/chrisimmel/calliope/tree/main/docs/Thoth.md)
+- [Storage](https://github.com/chrisimmel/calliope/tree/main/docs/storage.md)
 - [Calliope Admin](https://github.com/chrisimmel/calliope/tree/main/docs/Admin.md)
