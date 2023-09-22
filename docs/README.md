@@ -55,4 +55,5 @@ If you're on a mobile device, the back camera is the one facing away from you, a
 - [Scheduling](https://github.com/chrisimmel/calliope/tree/main/docs/scheduling.md)
 - [Clio](https://github.com/chrisimmel/calliope/tree/main/docs/Clio.md)
 - [Thoth](https://github.com/chrisimmel/calliope/tree/main/docs/Thoth.md)
+- [Storage](https://github.com/chrisimmel/calliope/tree/main/docs/storage.md)
 - [Calliope Admin](https://github.com/chrisimmel/calliope/tree/main/docs/Admin.md)
