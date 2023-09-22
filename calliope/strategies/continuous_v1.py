@@ -76,7 +76,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
             image_text = ""
 
         # Get some recent text.
-        last_text = await story.get_text(-1)
+        last_text = await story.get_text(-3)
         if not last_text or last_text.isspace():
             if strategy_config.seed_prompt_template:
                 if isinstance(strategy_config.seed_prompt_template, int):
@@ -157,26 +157,29 @@ class ContinuousStoryV1Strategy(StoryStrategy):
             image_prompt = output_image_style + " " + en_story
             print(f'Image prompt: "{image_prompt}"')
 
-            try:
-                output_image_filename_png = create_sequential_filename(
-                    "media", client_id, "out", "png", story.cuid, frame_number
-                )
-                await text_to_image_file_inference(
-                    aiohttp_session,
-                    image_prompt,
-                    output_image_filename_png,
-                    strategy_config.text_to_image_model_config,
-                    keys,
-                    parameters.output_image_width,
-                    parameters.output_image_height,
-                )
-                output_image_filename = output_image_filename_png
-                print(f"Wrote image to file {output_image_filename}.")
-                image = get_image_attributes(output_image_filename)
-                print(f"Image: {image}.")
-            except Exception as e:
-                traceback.print_exc(file=sys.stderr)
-                errors.append(str(e))
+            for _ in range(2):
+                # Allow a retry.
+                try:
+                    output_image_filename_png = create_sequential_filename(
+                        "media", client_id, "out", "png", story.cuid, frame_number
+                    )
+                    await text_to_image_file_inference(
+                        aiohttp_session,
+                        image_prompt,
+                        output_image_filename_png,
+                        strategy_config.text_to_image_model_config,
+                        keys,
+                        parameters.output_image_width,
+                        parameters.output_image_height,
+                    )
+                    output_image_filename = output_image_filename_png
+                    print(f"Wrote image to file {output_image_filename}.")
+                    image = get_image_attributes(output_image_filename)
+                    print(f"Image: {image}.")
+                    break
+                except Exception as e:
+                    traceback.print_exc(file=sys.stderr)
+                    errors.append(str(e))
 
         # Append and persist the frame to the story.
         frame = await self._add_frame(
