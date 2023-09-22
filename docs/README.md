@@ -27,7 +27,7 @@ its story API. The two existing clients are:
 
 
 ## Try it Out!
-You can try Calliope and Clio [here}(https://calliope-ugaidvq5sa-uc.a.run.app/clio/).
+You can try Calliope and Clio [here](https://calliope-ugaidvq5sa-uc.a.run.app/clio/).
 
 <img src="https://github.com/chrisimmel/calliope/assets/17924059/7e4f77b0-4bbb-4aba-ba42-4914c580b6d1" alt="drawing" height="400"/>
 
