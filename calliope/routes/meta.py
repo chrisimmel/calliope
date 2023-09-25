@@ -2,6 +2,7 @@ from fastapi import (
     APIRouter,
     Depends,
     Request,
+    Response,
 )
 
 from fastapi.openapi.docs import get_swagger_ui_html
@@ -31,7 +32,7 @@ async def get_favicon() -> FileResponse:
 async def get_documentation(
     request: Request,
     api_key: APIKey = Depends(get_api_key),
-):
+) -> Response:
     domain = get_base_url(request)
 
     response = get_swagger_ui_html(openapi_url="/openapi.json", title="docs")
@@ -49,7 +50,7 @@ async def get_documentation(
 @router.get("/logout", tags=["authentication"])
 async def route_logout_and_remove_cookie(
     request: Request,
-):
+) -> Response:
     domain = get_base_url(request)
     response = RedirectResponse(url="/")
     response.delete_cookie("api_key", domain=domain)

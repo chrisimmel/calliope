@@ -73,7 +73,7 @@ def delete_google_file(google_folder: str, base_filename: str) -> str:
     blob.delete()
 
 
-def list_google_files_with_prefix(prefix, delimiter=None) -> Sequence[str]:
+def list_google_files_with_prefix(prefix: str, delimiter: str = None) -> Sequence[str]:
     """
     Lists the filenames (the names of the blobs) in the bucket that begin
     with the prefix.

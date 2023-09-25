@@ -1,8 +1,9 @@
-import unicodedata
 import re
+from typing import Any, List
+import unicodedata
 
 
-def slugify(value, allow_unicode=False):
+def slugify(value: Any, allow_unicode=False) -> str:
     """
     Taken from https://github.com/django/django/blob/master/django/utils/text.py
     Convert to ASCII if 'allow_unicode' is False. Convert spaces or repeated
@@ -32,7 +33,7 @@ websites = "[.](com|net|org|io|gov|edu|me)"
 digits = "([0-9])"
 
 
-def split_into_sentences(text):
+def split_into_sentences(text: str) -> List[str]:
     """
     Splits text into a list of sentences.
     Courtesy: https://stackoverflow.com/questions/4576077/how-can-i-split-a-text-into-sentences

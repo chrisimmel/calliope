@@ -27,7 +27,7 @@ class ModelAndMetadata:
     metadata: FileMetadata
 
 
-def get_file_metadata(filename) -> FileMetadata:
+def get_file_metadata(filename: str) -> FileMetadata:
     # Get the file creation timestamp as a float, seconds since epoch.
     creation_time = os.path.getctime(filename)
     # Convert to a datetime.
@@ -40,7 +40,7 @@ def get_file_metadata(filename) -> FileMetadata:
     return FileMetadata(filename, creation_datetime, updated_datetime)
 
 
-def get_base_filename(filename) -> str:
+def get_base_filename(filename: str) -> str:
     """
     Gets the lowercase "base name" of a full filename, that is, the part of the filename
     after the path and just before the extension. Raises a ValueError if there is no
@@ -52,7 +52,7 @@ def get_base_filename(filename) -> str:
     return basename[0]
 
 
-def get_file_extension(filename) -> str:
+def get_file_extension(filename: str) -> str:
     """
     Gets the lowercase extension of a filename, or raises a ValueError if there
     is no extension.
@@ -63,7 +63,7 @@ def get_file_extension(filename) -> str:
     return basename[1].lower()
 
 
-def get_base_filename_and_extension(filename) -> str:
+def get_base_filename_and_extension(filename: str) -> str:
     """
     Gets the base name and extension together.
     """

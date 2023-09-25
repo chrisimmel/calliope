@@ -30,7 +30,9 @@ templates = Jinja2Templates(directory="calliope/templates")
 
 
 @router.get("/thoth/", response_class=HTMLResponse)
-async def thoth_root(request: Request, meta: Optional[str] = False):
+async def thoth_root(
+    request: Request, meta: Optional[str] = False
+) -> HTMLResponse:
     stories = cast(
         Sequence[Story],
         await Story.objects(Story.thumbnail_image).order_by(
@@ -55,7 +57,9 @@ async def thoth_root(request: Request, meta: Optional[str] = False):
 
 
 @router.get("/thoth/story/{story_cuid}", response_class=HTMLResponse)
-async def thoth_story(request: Request, story_cuid: str, meta: Optional[str] = False):
+async def thoth_story(
+    request: Request, story_cuid: str, meta: Optional[str] = False
+) -> HTMLResponse:
     story: Optional[Story] = (
         await Story.objects().where(Story.cuid == story_cuid).first().run()
     )
@@ -80,7 +84,9 @@ async def thoth_story(request: Request, story_cuid: str, meta: Optional[str] = F
 
 
 @router.get("/thoth/search/", response_class=HTMLResponse)
-async def thoth_search(request: Request, query: str, meta: Optional[str] = False):
+async def thoth_search(
+    request: Request, query: str, meta: Optional[str] = False
+) -> HTMLResponse:
     results = semantic_search(query)
 
     result_frames = []
