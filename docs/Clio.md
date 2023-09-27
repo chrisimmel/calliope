@@ -1,6 +1,6 @@
 # Clio
 Clio is a Calliope client that runs as a JavaScript app in a Web browser. Today, Clio
-can be found online at https://calliope-ugaidvq5sa-uc.a.run.app/clio.
+can be found online at [https://calliope.chrisimmel.com/clio/](https://calliope.chrisimmel.com/clio/)
 
 In Greek mythology, Clio (traditionally /ˈklaɪoʊ/, but now more frequently
 /ˈkliːoʊ/; Greek: Κλειώ), is the muse of history, or in a few mythological accounts,
