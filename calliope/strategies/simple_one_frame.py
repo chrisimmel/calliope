@@ -1,5 +1,5 @@
 import sys, traceback
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import aiohttp
 
@@ -36,7 +36,7 @@ class SimpleOneFrameStoryStrategy(StoryStrategy):
         self,
         parameters: FramesRequestParamsModel,
         image_analysis: Optional[Dict[str, Any]],
-        strategy_config: Optional[StrategyConfig],
+        strategy_config: StrategyConfig,
         keys: KeysModel,
         sparrow_state: SparrowState,
         story: Story,
@@ -48,13 +48,13 @@ class SimpleOneFrameStoryStrategy(StoryStrategy):
             parameters.output_image_style or "A watercolor, paper texture."
         )
         debug_data = self._get_default_debug_data(parameters)
-        errors = []
+        errors: List[str] = []
         description = ""
         image = None
         frame_number = await story.get_num_frames()
 
         if image_analysis:
-            description = image_analysis.get("description") if image_analysis else None
+            description = image_analysis.get("description") or ""
             debug_data["i_see"] = description
 
         if parameters.input_text:

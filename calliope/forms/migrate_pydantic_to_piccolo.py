@@ -44,7 +44,9 @@ class MigrateFromPydanticFormModel(BaseModel):
 
 
 # Migrate action handler
-async def migrate_from_pydantic_endpoint(request, data: MigrateFromPydanticFormModel):
+async def migrate_from_pydantic_endpoint(
+    request, data: MigrateFromPydanticFormModel
+) -> str:
     await main()
     return "Data migrated"
 
@@ -86,7 +88,9 @@ async def copy_configs_to_piccolo() -> None:
     legacy_configs = list_legacy_configs()
 
     for model_and_metadata in legacy_configs:
-        print(f"Copying model {model_and_metadata.model.id}")
+        print(
+            f"Copying model {model_and_metadata.model.id}"  # type: ignore[attr-defined]
+        )
         if isinstance(model_and_metadata.model, SparrowConfigModel):
             config = await SparrowConfig.from_pydantic(
                 model_and_metadata.model, model_and_metadata.metadata
@@ -99,7 +103,10 @@ async def copy_configs_to_piccolo() -> None:
 
     for model_and_metadata in legacy_configs:
         if isinstance(model_and_metadata.model, SparrowConfigModel):
-            print(f"Connecting flocks for {model_and_metadata.model.id}")
+            print(
+                "Connecting flocks for "
+                f"{model_and_metadata.model.id}"  # type: ignore[attr-defined]
+            )
             config = await SparrowConfig.from_pydantic(
                 model_and_metadata.model, model_and_metadata.metadata
             )
@@ -187,8 +194,10 @@ async def copy_stories_to_piccolo() -> None:
             frame = await StoryFrame.from_pydantic(
                 frame_model, frame_file_metadata, story.cuid, frame_number
             )
-            frame.image = image.id if image else None
-            frame.source_image = source_image.id if source_image else None
+            frame.image = image.id if image else None  # type: ignore[attr-defined]
+            frame.source_image = (
+                source_image.id if source_image else None  # type: ignore[attr-defined]
+            )
             frame.story = story.id
             await frame.save().run()
 

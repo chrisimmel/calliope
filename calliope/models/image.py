@@ -11,8 +11,8 @@ class ImageFormat(str, Enum):
     GRAYSCALE16 = "image/grayscale16"
     RGB565 = "image/rgb565"
 
-    def fromMediaFormat(mediaFormat: str) -> "ImageFormat":
-        if mediaFormat == None:
+    def fromMediaFormat(mediaFormat: Optional[str]) -> Optional["ImageFormat"]:
+        if mediaFormat is None:
             return None
         if mediaFormat == "image/raw":
             mediaFormat = "image/rgb565"

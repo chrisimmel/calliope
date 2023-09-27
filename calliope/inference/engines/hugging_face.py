@@ -2,10 +2,10 @@ import aiofiles
 import aiohttp
 import json
 import os
-from typing import Any, Optional
+from typing import Any, cast, Dict, Optional
 
 from langchain import HuggingFaceHub
-from requests.models import Response
+# from requests.models import Response
 
 from calliope.models import KeysModel
 from calliope.tables import ModelConfig
@@ -21,7 +21,7 @@ async def _hugging_face_request(
     model_name: str,
     keys: KeysModel,
     content_type: Optional[str] = None,
-) -> Response:
+) -> aiohttp.ClientResponse:
     """
     Makes a request to the HuggingFace inference API.
 
@@ -49,7 +49,7 @@ async def _text_to_text_inference_hugging_face_http(
     text: str,
     model_config: ModelConfig,
     keys: KeysModel,
-) -> Optional[str]:
+) -> str:
     """
     Does a text->text inference on HuggingFace Hub via a simple HTTP POST.
 
@@ -70,7 +70,7 @@ async def _text_to_text_inference_hugging_face_http(
         aiohttp_session, data, model.provider_model_name, keys, "application/json"
     )
     predictions = await response.json()
-    return predictions[0]["generated_text"]
+    return predictions[0]["generated_text"] or ""
 
 
 async def _text_to_text_inference_hugging_face_langchain(
@@ -78,7 +78,7 @@ async def _text_to_text_inference_hugging_face_langchain(
     text: str,
     model_config: ModelConfig,
     keys: KeysModel,
-) -> Optional[str]:
+) -> str:
     """
     Does a text->text inference on HuggingFace Hub via LangChain.
 
@@ -93,17 +93,24 @@ async def _text_to_text_inference_hugging_face_langchain(
     """
     model = model_config.model
 
-    os.environ["HUGGINGFACEHUB_API_TOKEN"] = keys.huggingface_api_key
+    if keys.huggingface_api_key:
+        os.environ["HUGGINGFACEHUB_API_TOKEN"] = keys.huggingface_api_key
 
     parameters = {
-        **(model.model_parameters if model.model_parameters else {}),
-        **(model_config.model_parameters if model_config.model_parameters else {}),
+        **(
+            cast(Dict[str, Any], model.model_parameters)
+            if model.model_parameters else {}
+        ),
+        **(
+            cast(Dict[str, Any], model_config.model_parameters)
+            if model_config.model_parameters else {}
+        ),
     }
 
     text = text.replace(":", "")
 
-    extended_text = None
-    chat = HuggingFaceHub(
+    extended_text = ""
+    chat = HuggingFaceHub(  # type: ignore[call-arg]
         repo_id=model.provider_model_name,
         model_kwargs=parameters,
     )
@@ -115,7 +122,7 @@ async def _text_to_text_inference_hugging_face_langchain(
         and llm_result.generations[0][0]
     ):
         # generations=[[Generation(text="\nA portrait of a moment in time
-        extended_text = llm_result.generations[0][0].text
+        extended_text = llm_result.generations[0][0].text or ""
 
     return extended_text
 
@@ -125,7 +132,7 @@ async def text_to_text_inference_hugging_face(
     text: str,
     model_config: ModelConfig,
     keys: KeysModel,
-) -> Optional[str]:
+) -> str:
     """
     Performs a text->text inference using a HuggingFace-hosted language
     model.
@@ -213,6 +220,6 @@ async def image_to_text_inference_hugging_face(
         aiohttp_session, image_data, model.provider_model_name, keys
     )
     predictions = await response.json()
-    caption = predictions[0]["generated_text"]
+    caption = cast(str, predictions[0]["generated_text"])
 
     return caption

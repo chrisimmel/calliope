@@ -26,7 +26,7 @@ class InferenceModelConfigModel(BaseModel):
     provider: InferenceModelProvider
 
     # The provider's API variant, if pertinent.
-    provider_variant: Optional[InferenceModelProviderVariant]
+    provider_variant: Optional[InferenceModelProviderVariant] = None
 
     # The model's name. There may be multiple configurations per model.
     model_name: StrictStr

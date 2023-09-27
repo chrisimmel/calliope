@@ -1,5 +1,5 @@
 import os
-from typing import Sequence
+from typing import Optional, Sequence
 
 from google.cloud import storage
 
@@ -64,7 +64,7 @@ def get_google_file_metadata(filename: str) -> FileMetadata:
     return FileMetadata(filename, blob.time_created, blob.updated)
 
 
-def delete_google_file(google_folder: str, base_filename: str) -> str:
+def delete_google_file(google_folder: str, base_filename: str) -> None:
     storage_client = storage.Client()
 
     bucket = storage_client.bucket(settings.CALLIOPE_BUCKET_NAME)
@@ -73,7 +73,7 @@ def delete_google_file(google_folder: str, base_filename: str) -> str:
     blob.delete()
 
 
-def list_google_files_with_prefix(prefix: str, delimiter: str = None) -> Sequence[str]:
+def list_google_files_with_prefix(prefix: str, delimiter: Optional[str] = None) -> Sequence[str]:
     """
     Lists the filenames (the names of the blobs) in the bucket that begin
     with the prefix.

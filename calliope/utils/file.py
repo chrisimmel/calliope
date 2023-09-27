@@ -3,7 +3,8 @@ from dataclasses import dataclass
 from datetime import datetime
 import os
 import json
-from calliope.models.story import StoryModel
+from typing import cast
+
 
 import cuid
 from pydantic import BaseModel
@@ -108,7 +109,9 @@ def create_sequential_filename(
     )
 
 
-def load_json_into_pydantic_model(json_filename: str, model: BaseModel) -> BaseModel:
+def load_json_into_pydantic_model(
+    json_filename: str, model: type[BaseModel]
+) -> BaseModel:
     """
     Takes a JSON file path as a string and a Pydantic model class as arguments, reads
     the JSON file, and loads the data into the model.
@@ -120,7 +123,7 @@ def load_json_into_pydantic_model(json_filename: str, model: BaseModel) -> BaseM
     return model(**data)
 
 
-def write_pydantic_model_to_json(model: BaseModel, json_filename: str):
+def write_pydantic_model_to_json(model: BaseModel, json_filename: str) -> None:
     """
     Takes a Pydantic model instance and a filename as arguments, converts the model
     to JSON, and writes it to the given filename.

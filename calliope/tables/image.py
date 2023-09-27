@@ -34,7 +34,11 @@ class Image(Table):
         return f"<Image {self.width}x{self.height}, {self.format}, {self.url}>"
 
     def __repr__(self) -> str:
-        return f"<Image {self.id}: {self.width}x{self.height}, {self.format}, {self.url}"
+        return (
+            f"<Image {self.id}: "  # type: ignore[attr-defined
+            f"{self.width}x{self.height}, "
+            f"{self.format}, {self.url}"
+        )
 
     def to_pydantic(self) -> ImageModel:
         return ImageModel(

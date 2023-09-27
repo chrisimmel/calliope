@@ -199,8 +199,8 @@ def convert_pil_image_to_png(image_filename: str) -> str:
 
 def resize_image_if_needed(
     input_image: Image,
-    output_image_width: int,
-    output_image_height: int,
+    output_image_width: Optional[int],
+    output_image_height: Optional[int],
     output_filename: str,
 ) -> Optional[Image]:
     """

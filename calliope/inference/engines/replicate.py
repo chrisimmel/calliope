@@ -1,6 +1,5 @@
 import asyncio
 import os
-from typing import Any, Dict
 
 import aiohttp
 import concurrent.futures
@@ -17,7 +16,7 @@ async def replicate_vision_inference(
     image_file: str,
     model_config: ModelConfig,
     keys: KeysModel,
-) -> Dict[str, Any]:
+) -> str:
     """
     Takes a stream of bytes representing an image. Returns text about the image.
     Currently hardcoded to use the MiniGPT-4 model.

@@ -2,20 +2,20 @@ from datetime import datetime, timezone
 from enum import Enum
 import json
 import os
-from typing import Any, Dict, Optional, Sequence, Tuple, Union
+from typing import Any, cast, Dict, Optional, Sequence, Tuple, Union
 
 
 from calliope.models import (
     FramesRequestParamsModel,
     KeysModel,
     SparrowConfigModel,
-    SparrowStateModel,
     StrategyConfigDescriptortModel,
 )
 from calliope.storage.state_manager import get_sparrow_state
 from calliope.tables import (
     ClientTypeConfig,
     SparrowConfig,
+    SparrowState,
 )
 from calliope.tables.model_config import StrategyConfig
 from calliope.utils.google import (
@@ -59,7 +59,8 @@ async def get_sparrow_config(sparrow_or_flock_id: str) -> Optional[SparrowConfig
     """
     Retrieves the config for the given sparrow or flock.
     """
-    return (
+    return cast(
+        Optional[SparrowConfig],
         await SparrowConfig.objects()
         .where(SparrowConfig.client_id == sparrow_or_flock_id)
         .first()
@@ -87,7 +88,8 @@ async def get_client_type_config(client_type_id: str) -> Optional[ClientTypeConf
     """
     Retrieves the given client type config.
     """
-    return (
+    return cast(
+        Optional[ClientTypeConfig],
         await ClientTypeConfig.objects()
         .where(ClientTypeConfig.client_id == client_type_id)
         .first()
@@ -113,7 +115,7 @@ def delete_client_type_config(client_type_id: str) -> None:
 
 
 async def get_sparrow_story_parameters_and_keys(
-    request_params: FramesRequestParamsModel, sparrow_state: SparrowStateModel
+    request_params: FramesRequestParamsModel, sparrow_state: SparrowState
 ) -> Tuple[FramesRequestParamsModel, KeysModel, StrategyConfig]:
     """
     Gets the story parameters and keys given a set of request

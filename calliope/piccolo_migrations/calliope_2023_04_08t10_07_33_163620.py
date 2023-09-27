@@ -1,3 +1,4 @@
+# type: ignore
 from piccolo.apps.migrations.auto.migration_manager import MigrationManager
 from enum import Enum
 from piccolo.columns.base import OnDelete

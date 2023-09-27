@@ -1,5 +1,5 @@
 import os
-from typing import cast, List, Optional, Sequence
+from typing import cast, List, Optional, Sequence, Tuple
 
 from langchain.docstore.document import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -70,7 +70,7 @@ async def _get_frame_documents(
         {
             "story_cuid": story_cuid if story_cuid else frame.story.cuid,
             "frame_number": frame.number,
-            "frame_id": str(frame.id),
+            "frame_id": str(frame.id),  # type: ignore[attr-defined]
             "env": env,
         }
         for frame in frames
@@ -97,7 +97,9 @@ async def _send_story_to_pinecone(
     documents = await _get_frame_documents(frames, story_cuid)
     # model_name = "all-MiniLM-L6-v2"
     # embeddings = SentenceTransformerEmbeddings(model_name=model_name)
-    embeddings = OpenAIEmbeddings(openai_api_key=keys.openai_api_key)
+    embeddings = OpenAIEmbeddings(  # type: ignore[call-arg]
+        openai_api_key=keys.openai_api_key
+    )
     ids = [document.metadata["frame_id"] for document in documents]
 
     pinecone.init(
@@ -192,7 +194,9 @@ async def index_frames(
     # modelPath = f"./{model_name}"
 
     # embeddings = SentenceTransformerEmbeddings(model_name=modelPath)
-    embeddings = OpenAIEmbeddings(openai_api_key=keys.openai_api_key)
+    embeddings = OpenAIEmbeddings(  # type: ignore[call-arg]
+        openai_api_key=keys.openai_api_key
+    )
     ids = [document.metadata["frame_id"] for document in documents]
 
     pinecone.init(
@@ -244,7 +248,7 @@ def semantic_search(
     pinecone_api_key: Optional[str] = None,
     openai_api_key: Optional[str] = None,
     max_results: int = 20,
-) -> Sequence[Document]:
+) -> Sequence[Tuple[Document, float]]:
     print(f"Semantic search for '{query}'...")
     if not pinecone_api_key:
         pinecone_api_key = os.environ.get("PINECONE_API_KEY")
@@ -257,11 +261,15 @@ def semantic_search(
     )
     print("Initialized Pinecone.")
     index_name = os.environ.get("SEMANTIC_SEARCH_INDEX")
+    if not index_name:
+        raise ValueError("SEMANTIC_SEARCH_INDEX environment variable must be set.")
 
     # model_name = "all-MiniLM-L6-v2"
     # embeddings = SentenceTransformerEmbeddings(model_name=model_name)
     # print(f"Initialized SentenceTransformerEmbeddings, {model_name=}.")
-    embeddings = OpenAIEmbeddings(openai_api_key=openai_api_key)
+    embeddings = OpenAIEmbeddings(  # type: ignore[call-arg]
+        openai_api_key=openai_api_key
+    )
 
     docsearch = Pinecone.from_existing_index(index_name, embeddings)
     print(f"Initialized Pinecone index {index_name}.")

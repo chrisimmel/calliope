@@ -37,7 +37,7 @@ class StoryStrategy(object, metaclass=ABCMeta):
         self,
         parameters: FramesRequestParamsModel,
         image_analysis: Optional[Dict[str, Any]],
-        strategy_config: Optional[StrategyConfig],
+        strategy_config: StrategyConfig,
         keys: KeysModel,
         sparrow_state: SparrowState,
         story: Story,
