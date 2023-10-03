@@ -78,16 +78,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
         # Get some recent text.
         last_text = await story.get_text(-3)
         if not last_text or last_text.isspace():
-            if strategy_config.seed_prompt_template:
-                if isinstance(strategy_config.seed_prompt_template, int):
-                    strategy_config.seed_prompt_template = (
-                        await strategy_config.get_related(
-                            StrategyConfig.seed_prompt_template
-                        )
-                    )
-                last_text = strategy_config.seed_prompt_template.text
-            else:
-                last_text = ""
+            last_text = await _get_seed_prompt(strategy_config)
 
         last_text = (last_text.strip() + " ") if last_text else ""
         print(f"{last_text=}")
@@ -116,14 +107,8 @@ class ContinuousStoryV1Strategy(StoryStrategy):
 
         if not story_continuation or story_continuation.isspace():
             # Allow one retry.
-            prompt += (
-                " "
-                + (
-                    strategy_config.seed_prompt_template
-                    and strategy_config.seed_prompt_template.text
-                )
-                or ""
-            )
+            prompt += " " + await _get_seed_prompt(strategy_config)
+
             story_continuation = await self._get_new_story_fragment(
                 prompt,
                 parameters,
@@ -378,3 +363,16 @@ def translate_text(target: str, text: str) -> str:
     print("Detected source language: {}".format(result["detectedSourceLanguage"]))
 
     return translation
+
+
+async def _get_seed_prompt(strategy_config) -> str:
+    if strategy_config.seed_prompt_template:
+        if isinstance(strategy_config.seed_prompt_template, int):
+            strategy_config.seed_prompt_template = (
+                await strategy_config.get_related(
+                    StrategyConfig.seed_prompt_template
+                )
+            )
+        return strategy_config.seed_prompt_template.text
+
+    return ""

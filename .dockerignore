@@ -28,3 +28,8 @@ config/
 input/
 media/
 state/
+
+# Source dirs not used at runtime
+clio/
+clio-elm/
+client/
