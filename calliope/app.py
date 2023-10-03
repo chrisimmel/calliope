@@ -20,6 +20,7 @@ from calliope.routes import media as media_routes
 from calliope.routes import meta as meta_routes
 from calliope.routes import thoth as thoth_routes
 from calliope.routes.v1 import story as story_routes
+from calliope.routes.v1 import config as config_routes
 from calliope.utils.authentication import get_api_key
 from calliope.utils.google import is_google_cloud_run_environment
 from calliope.settings import settings
@@ -42,6 +43,7 @@ def register_views(app: FastAPI) -> None:
     print(f"Registering views for port {settings.PORT}")
     app.include_router(meta_routes.router)
     app.include_router(story_routes.router)
+    app.include_router(config_routes.router)
     app.include_router(media_routes.router)
     app.include_router(thoth_routes.router)
 
