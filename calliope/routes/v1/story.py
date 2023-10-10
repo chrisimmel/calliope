@@ -249,7 +249,6 @@ async def handle_frames_request(
         if parameters.input_image_filename:
             print(f"{parameters.input_image_filename=}")
             vision_model_slug = "azure-vision-analysis"
-            # vision_model_slug = "mini-gpt-4"
             model_config = (
                 await ModelConfig.objects(ModelConfig.model)
                 .where(ModelConfig.slug == vision_model_slug)
@@ -281,6 +280,7 @@ async def handle_frames_request(
         story_frames_response = await strategy_class().get_frame_sequence(
             parameters,
             image_analysis,
+            location_metadata,
             strategy_config,
             keys,
             sparrow_state,

@@ -9,6 +9,7 @@ from calliope.inference import (
 )
 from calliope.models import (
     FramesRequestParamsModel,
+    FullLocationMetadata,
     KeysModel,
 )
 from calliope.models.frame_sequence_response import StoryFrameSequenceResponseModel
@@ -17,6 +18,7 @@ from calliope.strategies.registry import StoryStrategyRegistry
 from calliope.tables import SparrowState, Story, StrategyConfig
 from calliope.utils.file import create_sequential_filename
 from calliope.utils.image import get_image_attributes
+from calliope.utils.location import get_local_situation_text
 
 
 @StoryStrategyRegistry.register()
@@ -35,6 +37,7 @@ class LiteralStrategy(StoryStrategy):
         self,
         parameters: FramesRequestParamsModel,
         image_analysis: Optional[Dict[str, Any]],
+        location_metadata: FullLocationMetadata,
         strategy_config: Optional[StrategyConfig],
         keys: KeysModel,
         sparrow_state: SparrowState,
@@ -45,7 +48,12 @@ class LiteralStrategy(StoryStrategy):
         output_image_style = (
             parameters.output_image_style or "A watercolor, paper texture."
         )
-        debug_data = self._get_default_debug_data(parameters)
+        situation = get_local_situation_text(
+            image_analysis, location_metadata
+        )
+        debug_data = self._get_default_debug_data(
+            parameters, strategy_config, situation
+        )
         errors = []
         frames = []
 

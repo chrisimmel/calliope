@@ -27,20 +27,20 @@ from calliope.tables import (
 from calliope.utils.file import create_sequential_filename
 from calliope.utils.image import get_image_attributes
 from calliope.utils.location import get_local_situation_text
-from calliope.utils.text import translate_text
+from calliope.utils.text import load_as_json, translate_text
 
 
 @StoryStrategyRegistry.register()
-class ContinuousStoryV1Strategy(StoryStrategy):
+class LavenderStrategy(StoryStrategy):
     """
-    Tries to keep a story going, carrying context from a previous frame, if any,
-    to a new frame. This extends the ideas from continuous-v0 to work with larger
-    prompts and stronger models like GPT-3 and GPT-4.
+    Similar to the "continuous" strategy series, but takes into account
+    situational context from where the client is running: location
+    time, season, weather, etc.
 
     Returns a single frame.
     """
 
-    strategy_name = "continuous-v1"
+    strategy_name = "lavender"
 
     async def get_frame_sequence(
         self,
@@ -62,6 +62,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
             "Prefer abstraction and softer colors or grayscale. Avoid photorealism. "
             "No signature. Don't sign the painting."
         )
+
         situation = get_local_situation_text(
             image_analysis, location_metadata
         )
@@ -74,20 +75,10 @@ class ContinuousStoryV1Strategy(StoryStrategy):
 
         frame_number = await story.get_num_frames()
 
-        if image_analysis:
-            image_scene = image_analysis.get("all_captions")
-            image_objects = image_analysis.get("all_tags_and_objects")
-            image_text = image_analysis.get("text")
-        else:
-            image_scene = ""
-            image_objects = ""
-            image_text = ""
-
         # Get some recent text.
         last_text = await story.get_text(-3)
         if not last_text or last_text.isspace():
             last_text = await self.get_seed_prompt(strategy_config)
-            debug_data["applied_seed_prompt"] = last_text
 
         last_text = (last_text.strip() + " ") if last_text else ""
         print(f"{last_text=}")
@@ -96,9 +87,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
             parameters,
             story,
             last_text,
-            image_scene,
-            image_text,
-            image_objects,
+            situation,
             strategy_config,
             debug_data,
         )
@@ -116,7 +105,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
         )
 
         if not story_continuation or story_continuation.isspace():
-            # Allow one retry.
+            # Allow one retry, augmenting the prompt with the seed prompt.
             prompt += " " + await self.get_seed_prompt(strategy_config)
 
             story_continuation = await self._get_new_story_fragment(
@@ -130,12 +119,20 @@ class ContinuousStoryV1Strategy(StoryStrategy):
                 aiohttp_session,
             )
 
-        if not story_continuation or story_continuation.isspace():
-            story_continuation = image_scene + "\n"
+        image_description = None
+        if story_continuation and not story_continuation.isspace():
+            print(f"{story_continuation=}")
+            continuation_json = load_as_json(story_continuation)
+            print(f"{continuation_json=}")
+            if continuation_json:
+                story_continuation = continuation_json.get("continuation")
+                image_description = continuation_json.get("illustration")
 
-        if story_continuation:
-            # Generate an image for the frame, composing a prompt from
-            # the frame's text...
+        if not story_continuation or story_continuation.isspace():
+            story_continuation = situation + "\n"
+
+        if not image_description:
+            image_description = story_continuation
             if (
                 strategy_config.text_to_text_model_config
                 and strategy_config.text_to_text_model_config
@@ -145,11 +142,13 @@ class ContinuousStoryV1Strategy(StoryStrategy):
             ):
                 # Translate the story to English before
                 # sending as an image prompt.
-                en_story = translate_text("en", story_continuation)
-            else:
-                en_story = story_continuation
+                image_description = translate_text("en", image_description)
 
-            image_prompt = output_image_style + " " + en_story
+        if image_description:
+            # Generate an image for the frame, composing a prompt from
+            # the frame's text...
+
+            image_prompt = output_image_style + " " + image_description
             print(f'Image prompt: "{image_prompt}"')
 
             for _ in range(2):
@@ -199,9 +198,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
         parameters: FramesRequestParamsModel,
         story: Story,
         last_text: Optional[str],
-        scene: str,
-        text: str,
-        objects: str,
+        situation: str,
         strategy_config: Optional[StrategyConfig],
         debug_data: Dict[str, Any],
     ) -> str:
@@ -229,17 +226,16 @@ class ContinuousStoryV1Strategy(StoryStrategy):
         )
 
         if prompt_template:
+            debug_data["prompt_template"] = prompt_template.slug
             prompt = prompt_template.render(
                 {
                     "poem": last_text,
-                    "scene": scene,
-                    "text": text,
-                    "objects": objects,
+                    "situation": situation,
                 }
             )
         else:
             debug_data["prompt_template"] = None
-            prompt = last_text + "\n" + scene + "\n" + text + "\n" + objects
+            prompt = last_text + "\n" + situation
 
         return prompt
 
@@ -323,6 +319,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
             print(msg)
             errors.append(msg)
             text = ""
+        """
         elif re.search(r"[<>#^#\\{}]|0x|://", text):
             msg = (
                 "Rejecting story continuation because it smells like code: "
@@ -339,6 +336,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
             print(msg)
             errors.append(msg)
             text = ""
+        """
 
         # Don't want to see fragments of the prompt in the story.
         prompt_words = ("Scene:", "Text:", "Objects:", "Continuation:")
