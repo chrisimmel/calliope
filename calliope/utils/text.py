@@ -1,5 +1,10 @@
-import unicodedata
+import json
 import re
+from typing import Any, Dict, Optional
+import unicodedata
+
+
+from google.cloud import translate_v2 as translate
 
 
 def slugify(value, allow_unicode=False):
@@ -73,3 +78,57 @@ def split_into_sentences(text):
     sentences = sentences[:-1]
     sentences = [s.strip() for s in sentences]
     return sentences
+
+
+def translate_text(target: str, text: str) -> str:
+    """Translates text into the target language.
+
+    Target must be an ISO 639-1 language code.
+    See https://g.co/cloud/translate/v2/translate-reference#supported_languages
+    """
+    translate_client = translate.Client()
+
+    if isinstance(text, bytes):
+        text = text.decode("utf-8")
+
+    # Text can also be a sequence of strings, in which case this method
+    # will return a sequence of results for each text.
+    result = translate_client.translate(text, target_language=target)
+
+    translation = result.get("translatedText", text) if result else text
+
+    print("Translation: {}".format(translation))
+    print("Detected source language: {}".format(result["detectedSourceLanguage"]))
+
+    return translation
+
+
+def load_llm_output_as_json(text: str) -> Optional[Dict[str, Any]]:
+    """
+    Attempts to interpret a piece of text presumably coming from an LLM as JSON,
+    with tolerance for some of the oddities we sometimes see in LLM-generated
+    JSON.
+    """
+    # TODO: Look at using a LangChain PydanticOutputParser instead.
+    if not text:
+        return None
+
+    text = text.replace("\n", " ")
+
+    lbrace_index = text.find("{")
+    rbrace_index = text.rfind("}")
+    if lbrace_index < 0 or rbrace_index < lbrace_index:
+        return None
+
+    text = text[lbrace_index:rbrace_index + 1]
+    try:
+        # Use json.loads() to parse the text as JSON.
+        data = json.loads(text)
+        
+        # If the result is a dictionary, return it.
+        if isinstance(data, dict):
+            return data
+    except json.JSONDecodeError:
+        pass
+
+    return None

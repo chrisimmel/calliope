@@ -1,22 +1,26 @@
 from abc import ABCMeta, abstractmethod
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional, Sequence
+from statistics import mode
+from typing import Any, cast, Dict, Optional, Sequence
 
 import aiohttp
 
 from calliope.models import (
     FramesRequestParamsModel,
+    FullLocationMetadata,
     KeysModel,
 )
 from calliope.models.frame_sequence_response import StoryFrameSequenceResponseModel
 from calliope.storage.state_manager import put_story
 from calliope.tables import (
     Image,
+    ModelConfig,
+    PromptTemplate,
     SparrowState,
     Story,
     StoryFrame,
+    StrategyConfig,
 )
-from calliope.tables.model_config import StrategyConfig
 
 
 # By default, we ask each frame to be displayed for at
@@ -37,6 +41,7 @@ class StoryStrategy(object, metaclass=ABCMeta):
         self,
         parameters: FramesRequestParamsModel,
         image_analysis: Optional[Dict[str, Any]],
+        location_metadata: FullLocationMetadata,
         strategy_config: Optional[StrategyConfig],
         keys: KeysModel,
         sparrow_state: SparrowState,
@@ -126,7 +131,10 @@ class StoryStrategy(object, metaclass=ABCMeta):
         return frame
 
     def _get_default_debug_data(
-        self, parameters: FramesRequestParamsModel
+        self,
+        parameters: FramesRequestParamsModel,
+        strategy_config: Optional[StrategyConfig],
+        situation: str,
     ) -> Dict[str, Any]:
         """
         Composes the default dictionary of debug data for a frame request.
@@ -139,6 +147,21 @@ class StoryStrategy(object, metaclass=ABCMeta):
         Returns:
             a dictionary with the default debug data.
         """
+        text_to_text_model_config = (
+            cast(ModelConfig, strategy_config.text_to_text_model_config)
+            if strategy_config
+            else None
+        )
+        text_to_image_model_config = (
+            cast(ModelConfig, strategy_config.text_to_image_model_config)
+            if strategy_config
+            else None
+        )        
+        prompt_template = (
+            cast(PromptTemplate, text_to_text_model_config.prompt_template)
+            if text_to_text_model_config else None
+        )
+
         return {
             "parameters": {
                 key: value
@@ -155,4 +178,25 @@ class StoryStrategy(object, metaclass=ABCMeta):
                 and value
             },
             "generated_at": str(datetime.utcnow()),
+            "situation": situation,
+            "strategy_config": strategy_config.slug if strategy_config else None,
+            "text_to_text_model_config": (
+                text_to_text_model_config.slug if text_to_text_model_config else None
+            ),
+            "text_to_image_model_config": (
+                text_to_image_model_config.slug if text_to_image_model_config else None
+            ),
+            "prompt_template": prompt_template.slug if prompt_template else None,
         }
+
+    async def get_seed_prompt(self, strategy_config) -> str:
+        if strategy_config.seed_prompt_template:
+            if isinstance(strategy_config.seed_prompt_template, int):
+                strategy_config.seed_prompt_template = (
+                    await strategy_config.get_related(
+                        StrategyConfig.seed_prompt_template
+                    )
+                )
+            return strategy_config.seed_prompt_template.text
+
+        return ""

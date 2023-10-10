@@ -7,6 +7,7 @@ from fastapi import HTTPException
 
 from calliope.models import (
     FramesRequestParamsModel,
+    FullLocationMetadata,
     KeysModel,
 )
 from calliope.models.frame_sequence_response import StoryFrameSequenceResponseModel
@@ -18,6 +19,7 @@ from calliope.tables import (
 )
 from calliope.utils.google import get_media_file, is_google_cloud_run_environment
 from calliope.utils.image import get_image_attributes
+from calliope.utils.location import get_local_situation_text
 
 
 @StoryStrategyRegistry.register()
@@ -32,13 +34,19 @@ class ShowThisFrameStrategy(StoryStrategy):
         self,
         parameters: FramesRequestParamsModel,
         image_analysis: Optional[Dict[str, Any]],
+        location_metadata: FullLocationMetadata,
         strategy_config: Optional[StrategyConfig],
         keys: KeysModel,
         sparrow_state: SparrowState,
         story: Story,
         aiohttp_session: aiohttp.ClientSession,
     ) -> StoryFrameSequenceResponseModel:
-        debug_data = self._get_default_debug_data(parameters)
+        situation = get_local_situation_text(
+            image_analysis, location_metadata
+        )
+        debug_data = self._get_default_debug_data(
+            parameters, strategy_config, situation
+        )
         errors = []
 
         if parameters.input_image_filename:

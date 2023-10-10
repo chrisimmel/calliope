@@ -31,14 +31,23 @@ from .trigger_condition import (
     OnMotionTriggerConditionModel,
     OnSoundTriggerConditionModel,
 )
+from .location_metadata import (
+    BasicLocationMetadataModel,
+    CurrentWeatherModel,
+    FullLocationMetadata,
+    WMO_WEATHER_DESCRIPTIONS_BY_CODE,
+)
 
 
 __all__ = [
     "AfterWaitTriggerConditionModel",
     "AtTimeTriggerConditionModel",
+    "BasicLocationMetadataModel",
     "ClientTypeConfigModel",
     "ConfigModel",
+    "CurrentWeatherModel",
     "FramesRequestParamsModel",
+    "FullLocationMetadata",
     "ImageFormat",
     "ImageModel",
     "KeysModel",
@@ -63,4 +72,5 @@ __all__ = [
     "StrategyConfigDescriptortModel",
     "TriggerConditionModel",
     "TriggerType",
+    "WMO_WEATHER_DESCRIPTIONS_BY_CODE",
 ]

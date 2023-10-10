@@ -29,3 +29,9 @@ input/
 media/
 state/
 data/
+keepers/
+
+# Source dirs not used at runtime
+# clio/
+clio-elm/
+client/
