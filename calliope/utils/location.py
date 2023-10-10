@@ -14,18 +14,27 @@ from calliope.models import (
 
 
 def get_local_datetime(tz: str) -> datetime:
+    """
+    Gets the current local datetime in the given timezone.
+    """
     if not tz:
         tz = tzlocal.get_localzone_name()
     return datetime.now(tz=ZoneInfo(tz))
 
 
 def is_ip_private(ip: str) -> bool:
+    """
+    Determines whether the given IP address is private.
+    """
     return ip_address(ip).is_private
 
 
 async def get_public_ip_address(
         aiohttp_session: aiohttp.ClientSession
 ) -> Optional[str]:
+    """
+    Gets the public IP address of the current runtime environment.
+    """
     api_url = "https://api.ipify.org?format=json"
 
     try:
@@ -41,6 +50,9 @@ async def get_location_from_ip(
         aiohttp_session: aiohttp.ClientSession,
         ip: str
 ) -> BasicLocationMetadataModel:
+    """
+    Gets the estimated location of a given IP address.
+    """
     if is_ip_private(ip):
         ip = await get_public_ip_address(aiohttp_session)
 
@@ -75,6 +87,9 @@ async def get_weather_at_location(
         lattitude: str,
         longitude: str
 ) -> CurrentWeatherModel:
+    """
+    Gets the weather at a given location.
+    """
     api_url = (
         f"https://api.open-meteo.com/v1/forecast?latitude={lattitude}&longitude={longitude}"
         "&current_weather=true&"
@@ -104,6 +119,11 @@ async def get_location_metadata_for_ip(
     aiohttp_session: aiohttp.ClientSession,
     ip: str
 ) -> FullLocationMetadata:
+    """
+    Gets the full location metadata for a given IP address. This includes
+    not only static information about the location (city, region, country name),
+    but also transient things like weather, time of day, date, and season.
+    """
     basic_metadata = await get_location_from_ip(aiohttp_session, ip)
 
     local_datetime = get_local_datetime(basic_metadata.timezone)
