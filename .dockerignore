@@ -30,6 +30,6 @@ media/
 state/
 
 # Source dirs not used at runtime
-clio/
+# clio/
 clio-elm/
 client/

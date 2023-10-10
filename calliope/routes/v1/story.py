@@ -240,9 +240,16 @@ async def handle_frames_request(
     image_analysis = None
 
     async with aiohttp.ClientSession(raise_for_status=True) as aiohttp_session:
-        ip_address = request.client.host
+        forwarded_header = request.headers.get("X-Forwarded-For")
+        if forwarded_header:
+            # Handle case where request comes through a load balancer, altering
+            # request.client.host.
+            source_ip_address = request.headers.getlist("X-Forwarded-For")[0]
+        else:
+            # Handle the normal case of a direct request.
+            source_ip_address = request.client.host
         location_metadata = await get_location_metadata_for_ip(
-            aiohttp_session, ip_address,
+            aiohttp_session, source_ip_address,
         )
         print(f"{location_metadata=}")
 
