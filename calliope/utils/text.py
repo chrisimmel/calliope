@@ -103,7 +103,13 @@ def translate_text(target: str, text: str) -> str:
     return translation
 
 
-def load_as_json(text: str) -> Optional[Dict[str, Any]]:
+def load_llm_output_as_json(text: str) -> Optional[Dict[str, Any]]:
+    """
+    Attempts to interpret a piece of text presumably coming from an LLM as JSON,
+    with tolerance for some of the oddities we sometimes see in LLM-generated
+    JSON.
+    """
+    # TODO: Look at using a LangChain PydanticOutputParser instead.
     if not text:
         return None
 

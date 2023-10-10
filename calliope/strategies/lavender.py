@@ -27,7 +27,7 @@ from calliope.tables import (
 from calliope.utils.file import create_sequential_filename
 from calliope.utils.image import get_image_attributes
 from calliope.utils.location import get_local_situation_text
-from calliope.utils.text import load_as_json, translate_text
+from calliope.utils.text import load_llm_output_as_json, translate_text
 
 
 @StoryStrategyRegistry.register()
@@ -122,7 +122,7 @@ class LavenderStrategy(StoryStrategy):
         image_description = None
         if story_continuation and not story_continuation.isspace():
             print(f"{story_continuation=}")
-            continuation_json = load_as_json(story_continuation)
+            continuation_json = load_llm_output_as_json(story_continuation)
             print(f"{continuation_json=}")
             if continuation_json:
                 story_continuation = continuation_json.get("continuation")
