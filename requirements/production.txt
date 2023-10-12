@@ -137,8 +137,6 @@ threadpoolctl==3.2.0
 tiktoken==0.4.0
 tokenizers==0.13.3
 toml==0.10.2
-torch==2.0.1
-torchvision==0.15.2
 tqdm==4.65.0
 traitlets==5.9.0
 typer==0.9.0
@@ -149,7 +147,7 @@ types-toml==0.10.8.7
 types-urllib3==1.26.25.14
 typing-inspect==0.9.0
 typing_extensions==4.7.1
-uncompyle6==3.7.4
+tzlocal==5.0.1
 urllib3==1.26.16
 uvicorn==0.22.0
 uvloop==0.17.0

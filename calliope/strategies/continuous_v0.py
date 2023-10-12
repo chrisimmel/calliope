@@ -11,6 +11,7 @@ from calliope.inference import (
 )
 from calliope.models import (
     FramesRequestParamsModel,
+    FullLocationMetadata,
     KeysModel,
 )
 from calliope.models.frame_sequence_response import StoryFrameSequenceResponseModel
@@ -23,6 +24,7 @@ from calliope.tables import (
 )
 from calliope.utils.file import create_sequential_filename
 from calliope.utils.image import get_image_attributes
+from calliope.utils.location import get_local_situation_text
 
 
 @StoryStrategyRegistry.register()
@@ -45,6 +47,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         self,
         parameters: FramesRequestParamsModel,
         image_analysis: Optional[Dict[str, Any]],
+        location_metadata: FullLocationMetadata,
         strategy_config: StrategyConfig,
         keys: KeysModel,
         sparrow_state: SparrowState,
@@ -56,15 +59,18 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         output_image_style = (
             parameters.output_image_style or "A watercolor, paper texture."
         )
-        debug_data = self._get_default_debug_data(parameters)
+        situation = get_local_situation_text(
+            image_analysis, location_metadata
+        )
+        debug_data = self._get_default_debug_data(
+            parameters, strategy_config, situation
+        )
         errors: List[str] = []
         caption = image_analysis.get("description") if image_analysis else None
         text: Optional[str] = None
         image = None
         input_text = ""
         frame_number = await story.get_num_frames()
-
-        debug_data["i_see"] = caption
 
         if parameters.input_text:
             if caption:
@@ -76,13 +82,8 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         last_text: Optional[str] = await story.get_text(-4)
         if not last_text or last_text.isspace():
             if strategy_config.seed_prompt_template:
-                if isinstance(strategy_config.seed_prompt_template, int):
-                    strategy_config.seed_prompt_template = (
-                        await strategy_config.get_related(
-                            StrategyConfig.seed_prompt_template
-                        )
-                    )
-                last_text = strategy_config.seed_prompt_template.text
+                last_text = await self.get_seed_prompt(strategy_config)
+                debug_data["applied_seed_prompt"] = last_text
             else:
                 last_text = ""
 

@@ -46,6 +46,7 @@ from calliope.utils.image import (
     ImageFormat,
     resize_image_if_needed,
 )
+from calliope.utils.location import get_location_metadata_for_ip
 
 
 router = APIRouter(prefix="/v1", tags=["story"])
@@ -112,7 +113,7 @@ async def post_frames(
     """
     base_url = get_base_url(request)
 
-    return await handle_frames_request(request_params, base_url)
+    return await handle_frames_request(request, request_params, base_url)
     # return await handle_frames_request_sleep(request_params, base_url)
 
 
@@ -130,7 +131,7 @@ async def get_frames(
     """
     base_url = get_base_url(request)
 
-    return await handle_frames_request(request_params, base_url)
+    return await handle_frames_request(request, request_params, base_url)
     # return await handle_frames_request_sleep(request_params, base_url)
 
 
@@ -195,6 +196,7 @@ Calliope sleeps. She will awake shortly, improved.
 
 
 async def handle_frames_request(
+    request: Request,
     request_params: FramesRequestParamsModel,
     base_url: str,
 ) -> StoryResponseV1:
@@ -240,10 +242,22 @@ async def handle_frames_request(
     image_analysis = None
 
     async with aiohttp.ClientSession(raise_for_status=True) as aiohttp_session:
+        forwarded_header = request.headers.get("X-Forwarded-For")
+        if forwarded_header:
+            # Handle case where request comes through a load balancer, altering
+            # request.client.host.
+            source_ip_address = request.headers.getlist("X-Forwarded-For")[0]
+        else:
+            # Handle the normal case of a direct request.
+            source_ip_address = request.client.host
+        location_metadata = await get_location_metadata_for_ip(
+            aiohttp_session, source_ip_address,
+        )
+        print(f"{location_metadata=}")
+
         if parameters.input_image_filename:
             print(f"{parameters.input_image_filename=}")
             vision_model_slug = "azure-vision-analysis"
-            # vision_model_slug = "mini-gpt-4"
             model_config = (
                 await ModelConfig.objects(ModelConfig.model)
                 .where(ModelConfig.slug == vision_model_slug)
@@ -275,6 +289,7 @@ async def handle_frames_request(
         story_frames_response = await strategy_class().get_frame_sequence(
             parameters,
             image_analysis,
+            location_metadata,
             strategy_config,
             keys,
             sparrow_state,

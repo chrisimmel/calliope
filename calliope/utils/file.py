@@ -3,13 +3,12 @@ from dataclasses import dataclass
 from datetime import datetime
 import os
 import json
-from typing import cast
 
 
 import cuid
 from pydantic import BaseModel
 
-from calliope.utils.string import slugify
+from calliope.utils.text import slugify
 
 
 filename_counter = 0
