@@ -1,8 +1,6 @@
-from datetime import datetime, timezone
 from enum import Enum
 import json
-import os
-from typing import Any, cast, Dict, Optional, Sequence, Tuple, Union
+from typing import Any, cast, Dict, List, Optional, Sequence, Tuple, Union
 
 
 from calliope.models import (
@@ -18,41 +16,11 @@ from calliope.tables import (
     SparrowState,
 )
 from calliope.tables.model_config import StrategyConfig
-from calliope.utils.google import (
-    delete_google_file,
-    is_google_cloud_run_environment,
-)
 
 
 class ConfigType(Enum):
     SPARROW = "sparrow"
     CLIENT_TYPE = "client-type"
-
-
-def _compose_config_filename(config_type: ConfigType, config_id: str) -> str:
-    """
-    Composes the filename of a config file for a sparrow, flock, or client type.
-
-    Args:
-        config_type - The kind of configuration.
-        config_id - The ID of the sparrow, flock, or client type.
-    """
-    return f"{config_type.value}-{config_id}.cfg.json"
-
-
-def _delete_config(config_type: ConfigType, config_id: str) -> None:
-    filename = _compose_config_filename(config_type, config_id)
-
-    folder = "config"
-    local_filename = f"{folder}/{filename}"
-    if is_google_cloud_run_environment():
-        try:
-            delete_google_file(folder, filename)
-        except Exception:
-            return None
-
-    if not os.path.isfile(local_filename):
-        os.remove(local_filename)
 
 
 async def get_sparrow_config(sparrow_or_flock_id: str) -> Optional[SparrowConfig]:
@@ -69,21 +37,6 @@ async def get_sparrow_config(sparrow_or_flock_id: str) -> Optional[SparrowConfig
     )
 
 
-async def put_sparrow_config(sparrow_config_model: SparrowConfigModel) -> None:
-    """
-    Stores the given sparrow or flock config.
-    """
-    config = SparrowConfig.from_pydantic(sparrow_config_model)
-    await config.save().run()
-
-
-async def delete_sparrow_config(sparrow_or_flock_id: str) -> None:
-    """
-    Deletes the given sparrow or flock config.
-    """
-    await SparrowConfig.filter(client_id=sparrow_or_flock_id).delete()
-
-
 async def get_client_type_config(client_type_id: str) -> Optional[ClientTypeConfig]:
     """
     Retrieves the given client type config.
@@ -98,22 +51,6 @@ async def get_client_type_config(client_type_id: str) -> Optional[ClientTypeConf
     )
 
 
-async def put_client_type_config(client_type_config: ClientTypeConfig) -> None:
-    """
-    Stores the given client type config.
-    """
-    config = ClientTypeConfig.from_pydantic(client_type_config)
-    config.date_updated = datetime.now(timezone.utc)
-    await config.save().run()
-
-
-def delete_client_type_config(client_type_id: str) -> None:
-    """
-    Deletes the given client type config.
-    """
-    _delete_config(ConfigType.CLIENT_TYPE, client_type_id)
-
-
 async def get_sparrow_story_parameters_and_keys(
     request_params: FramesRequestParamsModel, sparrow_state: SparrowState
 ) -> Tuple[FramesRequestParamsModel, KeysModel, StrategyConfig]:
@@ -122,14 +59,14 @@ async def get_sparrow_story_parameters_and_keys(
     parameters, taking into account the sparrow and flock
     configurations and schedules.
     """
-    sparrow_or_flock_id = request_params.client_id
+    sparrow_or_flock_id: Optional[str] = request_params.client_id
 
-    sparrows_and_flocks_visited = []
+    sparrows_and_flocks_visited: List[str] = []
 
     # Assemble the story parameters...
     # 1. Take as the story params the request_params furnished with the API request.
     params_dict = _get_non_default_parameters(request_params.dict())
-    keys_dict = {}
+    keys_dict: Dict[str, Any] = {}
 
     while sparrow_or_flock_id:
         # 2. Check to see whether there is a config for the given sparrow or flock ID.
@@ -147,7 +84,9 @@ async def get_sparrow_story_parameters_and_keys(
             if sparrow_or_flock_config.parameters:
                 # Does the sparrow or flock have parameters?
                 sparrow_or_flock_params_dict = _get_non_default_parameters(
-                    sparrow_or_flock_config.parameters
+                    load_json_if_necessary(
+                        sparrow_or_flock_config.parameters
+                    )
                 )
 
             """
@@ -167,11 +106,15 @@ async def get_sparrow_story_parameters_and_keys(
 
             if sparrow_or_flock_config.keys:
                 # 3.5 Merge keys similarly.
-                sparrow_or_flock_keys_dict = sparrow_or_flock_config.keys
+                sparrow_or_flock_keys_dict = load_json_if_necessary(
+                    sparrow_or_flock_config.keys
+                )
                 keys_dict = {**sparrow_or_flock_keys_dict, **keys_dict}
 
             # 4. Take the flock ID from the parent flock.
-            sparrow_or_flock_id = sparrow_or_flock_config.parent_flock_client_id
+            sparrow_or_flock_id = (
+                sparrow_or_flock_config.parent_flock_client_id
+            )
             if (
                 not sparrow_or_flock_id
                 and sparrow_or_flock_config.client_id != "default"
@@ -203,7 +146,7 @@ async def get_sparrow_story_parameters_and_keys(
         if client_type_config:
             # 5.1. If there is one, merge it with the request parameters.
             client_type_config_dict = _get_non_default_parameters(
-                client_type_config.parameters  # .dict()
+                load_json_if_necessary(client_type_config.parameters)
             )
             # As with other parameter merging, parameters passed with
             # the request take precedence.
@@ -236,18 +179,19 @@ def _get_non_default_parameters(params_dict: Dict[str, Any]) -> Dict[str, Any]:
 
 def load_json_if_necessary(json_field: Union[str, Dict[str, Any]]) -> Dict[str, Any]:
     if isinstance(json_field, str):
-        return json.loads(json_field)
+        return cast(Dict[str, Any], json.loads(json_field))
     else:
         return json_field
 
 
-async def get_strategy_config(strategy_config_slug: str) -> Optional[StrategyConfig]:
+async def get_strategy_config(strategy_config_slug: str) -> StrategyConfig:
     """
     Retrieves the given StrategyConfig, if any.
     Also loads referenced model configs, models, and prompt templates.
     """
     print(f"get_strategy_config({strategy_config_slug})")
-    strategy_config = (
+    strategy_config: Optional[StrategyConfig] = cast(
+        Optional[StrategyConfig],
         await StrategyConfig.objects(
             StrategyConfig.text_to_image_model_config.all_related(),
             StrategyConfig.text_to_text_model_config.all_related(),
@@ -265,14 +209,15 @@ async def get_strategy_config(strategy_config_slug: str) -> Optional[StrategyCon
         )
         # If StrategyConfig of the given slug is not found, then look for one that
         # references a strategy of that name and for which is_default is True.
-        strategy_config = (
+        strategy_config = cast(
+            StrategyConfig,
             await StrategyConfig.objects(
                 StrategyConfig.text_to_image_model_config.all_related(),
                 StrategyConfig.text_to_text_model_config.all_related(),
             )
             .where(
                 (StrategyConfig.strategy_name == strategy_config_slug)
-                & (StrategyConfig.is_default == True)
+                & (StrategyConfig.is_default == True)  # noqa: E712
             )
             .first()
             .output(load_json=True)
@@ -280,32 +225,34 @@ async def get_strategy_config(strategy_config_slug: str) -> Optional[StrategyCon
         )
         print(f"Found {strategy_config.slug if strategy_config else None}.")
 
-    if strategy_config:
-        if strategy_config.text_to_text_model_config:
-            strategy_config.text_to_text_model_config.model_parameters = (
-                load_json_if_necessary(
-                    strategy_config.text_to_text_model_config.model_parameters
-                )
-            )
-            if strategy_config.text_to_text_model_config.model:
-                strategy_config.text_to_text_model_config.model.model_parameters = (
-                    load_json_if_necessary(
-                        strategy_config.text_to_text_model_config.model.model_parameters
-                    )
-                )
+    if not strategy_config:
+        raise ValueError(f"No strategy config found for {strategy_config_slug}.")
 
-        if strategy_config.text_to_image_model_config:
-            strategy_config.text_to_image_model_config.model_parameters = (
+    if strategy_config.text_to_text_model_config:
+        strategy_config.text_to_text_model_config.model_parameters = (
+            load_json_if_necessary(
+                strategy_config.text_to_text_model_config.model_parameters
+            )
+        )
+        if strategy_config.text_to_text_model_config.model:
+            strategy_config.text_to_text_model_config.model.model_parameters = (
                 load_json_if_necessary(
-                    strategy_config.text_to_image_model_config.model_parameters
+                    strategy_config.text_to_text_model_config.model.model_parameters
                 )
             )
-            if strategy_config.text_to_image_model_config.model:
-                strategy_config.text_to_image_model_config.model.model_parameters = (
-                    load_json_if_necessary(
-                        strategy_config.text_to_image_model_config.model.model_parameters
-                    )
+
+    if strategy_config.text_to_image_model_config:
+        strategy_config.text_to_image_model_config.model_parameters = (
+            load_json_if_necessary(
+                strategy_config.text_to_image_model_config.model_parameters
+            )
+        )
+        if strategy_config.text_to_image_model_config.model:
+            strategy_config.text_to_image_model_config.model.model_parameters = (
+                load_json_if_necessary(
+                    strategy_config.text_to_image_model_config.model.model_parameters
                 )
+            )
 
     return strategy_config
 
@@ -333,7 +280,7 @@ async def get_strategy_config_descriptors(
             slug=strategy_config.slug,
             strategy_name=strategy_config.strategy_name,
             description=strategy_config.description,
-            is_default_for_client=default_strategy_config
+            is_default_for_client=default_strategy_config is not None
             and strategy_config.slug == default_strategy_config.slug,
         )
         for strategy_config in strategy_configs

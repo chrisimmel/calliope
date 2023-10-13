@@ -93,7 +93,7 @@ class StoryStrategy(object, metaclass=ABCMeta):
             image.date_updated = datetime.now(timezone.utc)
             await image.save().run()
         frame = StoryFrame(
-            story=story.id,
+            story=story.id,  # type: ignore[attr-defined]
             number=frame_number,
             image=image,
             source_image=image,
@@ -193,6 +193,6 @@ class StoryStrategy(object, metaclass=ABCMeta):
                         StrategyConfig.seed_prompt_template
                     )
                 )
-            return strategy_config.seed_prompt_template.text
+            return cast(str, strategy_config.seed_prompt_template.text or "")
 
         return ""

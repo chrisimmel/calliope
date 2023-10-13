@@ -69,7 +69,7 @@ class LavenderStrategy(StoryStrategy):
         debug_data = self._get_default_debug_data(
             parameters, strategy_config, situation
         )
-        errors = []
+        errors: List[str] = []
         prompt = None
         image = None
 
@@ -93,7 +93,7 @@ class LavenderStrategy(StoryStrategy):
         )
 
         print(f'Text prompt: "{prompt}"')
-        story_continuation = await self._get_new_story_fragment(
+        story_continuation: Optional[str] = await self._get_new_story_fragment(
             prompt,
             parameters,
             strategy_config,
@@ -125,8 +125,12 @@ class LavenderStrategy(StoryStrategy):
             continuation_json = load_llm_output_as_json(story_continuation)
             print(f"{continuation_json=}")
             if continuation_json:
-                story_continuation = continuation_json.get("continuation")
-                image_description = continuation_json.get("illustration")
+                story_continuation = cast(
+                    Optional[str], continuation_json.get("continuation")
+                )
+                image_description = cast(
+                    Optional[str], continuation_json.get("illustration")
+                )
 
         if not story_continuation or story_continuation.isspace():
             story_continuation = situation + "\n"
@@ -199,7 +203,7 @@ class LavenderStrategy(StoryStrategy):
         story: Story,
         last_text: Optional[str],
         situation: str,
-        strategy_config: Optional[StrategyConfig],
+        strategy_config: StrategyConfig,
         debug_data: Dict[str, Any],
     ) -> str:
         if last_text:
@@ -215,6 +219,9 @@ class LavenderStrategy(StoryStrategy):
                 and strategy_config.seed_prompt_template.text
             )
             debug_data["applied_seed_prompt"] = last_text
+
+        if not last_text:
+            last_text = ""
 
         model_config = (
             cast(ModelConfig, strategy_config.text_to_text_model_config)
@@ -259,8 +266,8 @@ class LavenderStrategy(StoryStrategy):
             )
             print(f"Raw output: '{text}'")
 
-            def ends_with_punctuation(str):
-                return len(str) and str[-1] in (
+            def ends_with_punctuation(string: str) -> bool:
+                return len(string) > 0 and string[-1] in (
                     ".",
                     "!",
                     "?",

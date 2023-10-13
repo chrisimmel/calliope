@@ -1,8 +1,9 @@
-from typing import Any, Dict
+from typing import Any, cast, Dict
 from urllib.parse import urlencode
 
 import aiohttp
 
+from calliope.storage.config_manager import load_json_if_necessary
 from calliope.models import KeysModel
 from calliope.tables import ModelConfig
 
@@ -26,12 +27,16 @@ async def azure_vision_inference(
 
     parameters = {
         **(model.model_parameters if model.model_parameters else {}),
-        **(model_config.model_parameters if model_config.model_parameters else {}),
+        **(
+            load_json_if_necessary(model_config.model_parameters)
+            if model_config.model_parameters
+            else {}
+        ),
     }
 
-    api_host = keys.azure_api_host
+    api_host = cast(str, keys.azure_api_host)
     api_key = keys.azure_api_key
-    endpoint_name = model.provider_model_name
+    endpoint_name = cast(str, model.provider_model_name)
     api_url = _azure_endpoint_to_api_url(api_host, endpoint_name)
 
     if parameters:
@@ -45,7 +50,7 @@ async def azure_vision_inference(
         # "Accept-Encoding": "gzip, deflate, br",
     }
     response = await aiohttp_session.post(api_url, headers=headers, data=image_data)
-    return await response.json()
+    return cast(Dict[str, Any], await response.json())
 
 
 def interpret_azure_v3_metadata(raw_metadata: Dict[str, Any]) -> Dict[str, Any]:

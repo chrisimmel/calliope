@@ -48,12 +48,12 @@ async def get_public_ip_address(
 
 async def get_location_from_ip(
         aiohttp_session: aiohttp.ClientSession,
-        ip: str
+        ip: Optional[str]
 ) -> BasicLocationMetadataModel:
     """
     Gets the estimated location of a given IP address.
     """
-    if is_ip_private(ip):
+    if not ip or is_ip_private(ip):
         ip = await get_public_ip_address(aiohttp_session)
 
     if not ip:
@@ -117,7 +117,7 @@ async def get_weather_at_location(
 
 async def get_location_metadata_for_ip(
     aiohttp_session: aiohttp.ClientSession,
-    ip: str
+    ip: Optional[str]
 ) -> FullLocationMetadata:
     """
     Gets the full location metadata for a given IP address. This includes

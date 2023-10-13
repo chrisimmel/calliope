@@ -6,7 +6,7 @@ import json
 
 
 import cuid
-from pydantic import BaseModel
+from pydantic import BaseModel, ModelMetaclass
 
 from calliope.utils.text import slugify
 
@@ -109,7 +109,7 @@ def create_sequential_filename(
 
 
 def load_json_into_pydantic_model(
-    json_filename: str, model: type[BaseModel]
+    json_filename: str, model: ModelMetaclass
 ) -> BaseModel:
     """
     Takes a JSON file path as a string and a Pydantic model class as arguments, reads
