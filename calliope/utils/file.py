@@ -3,10 +3,12 @@ from dataclasses import dataclass
 from datetime import datetime
 import os
 import json
+from typing import cast
 
 
 import cuid
-from pydantic import BaseModel, ModelMetaclass
+from pydantic import BaseModel
+from pydantic.main import ModelMetaclass
 
 from calliope.utils.text import slugify
 
@@ -119,7 +121,7 @@ def load_json_into_pydantic_model(
     """
     with open(json_filename, "r") as f:
         data = json.load(f)
-    return model(**data)
+    return cast(BaseModel, model(**data))
 
 
 def write_pydantic_model_to_json(model: BaseModel, json_filename: str) -> None:

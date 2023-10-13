@@ -2,7 +2,8 @@ import argparse
 from collections import defaultdict
 from enum import Enum
 import os
-from typing import Optional, Sequence, Tuple
+from typing import cast, Dict, Optional, Sequence, Tuple
+from typing_extensions import Buffer
 
 import numpy as np
 import PIL
@@ -52,7 +53,7 @@ def convert_png_to_rgb565(input_filename: str, output_filename: str) -> Image:
         output_image_content[i] = rgb
 
     with open(output_filename, "wb") as output_file:
-        output_file.write(output_image_content)
+        output_file.write(cast(Buffer, output_image_content))
 
     return Image(
         width=png.width,
@@ -74,9 +75,9 @@ def convert_rgb565_to_png(
         png = PIL.Image.new("RGB", (width, height))
 
         for i, word in enumerate(np.nditer(dataArray)):
-            r = (word >> 11) & 0x1F
-            g = (word >> 5) & 0x3F
-            b = word & 0x1F
+            r = (word >> 11) & 0x1F  # type: ignore[operator]
+            g = (word >> 5) & 0x3F  # type: ignore[operator]
+            b = word & 0x1F  # type: ignore[operator]
             png.putpixel((i % width, i // width), (r << 3, g << 2, b << 3))
 
         png.save(output_filename)
@@ -119,7 +120,7 @@ def convert_png_to_grayscale16(input_filename: str, output_filename: str) -> Ima
             output_image_content[i] = byte
 
     with open(output_filename, "wb") as output_file:
-        output_file.write(output_image_content)
+        output_file.write(cast(Buffer, output_image_content))
 
     return Image(
         width=png.width,
@@ -143,7 +144,7 @@ def convert_grayscale16_to_png(
         png = PIL.Image.new("L", (width, height))
 
         for i, pixel_pair in enumerate(np.nditer(dataArray)):
-            p0 = int(pixel_pair & 0xF) << 4
+            p0 = int(pixel_pair & 0xF) << 4  # type: ignore[operator]
             i *= 2
             x = i % width
             y = i // width
@@ -152,7 +153,7 @@ def convert_grayscale16_to_png(
                 break
             png.putpixel((x, y), p0)
 
-            p1 = int(pixel_pair)
+            p1 = int(pixel_pair)  # type: ignore[call-overload]
             i += 1
             x = i % width
             y = i // width
@@ -273,11 +274,10 @@ def get_image_colors(image_filename: str) -> Sequence[Tuple[int, int]]:
     Returns a sequence of (count, color) tuples with colors given in the mode of the image (e.g. RGB).
     """
     image = PIL.Image.open(image_filename)
-    by_color = defaultdict(int)
+    by_color: Dict[int, int] = defaultdict(int)
     for pixel in image.getdata():
         by_color[pixel] += 1
-    # return Image.open(image_filename).getcolors()
-    return by_color.items()
+    return cast(Sequence[Tuple[int, int]], list(by_color.items()))
 
 
 def image_is_monochrome(image_filename: str) -> bool:
@@ -285,7 +285,7 @@ def image_is_monochrome(image_filename: str) -> bool:
     Returns True iff the given image is of a single solid d
     """
     colors = get_image_colors(image_filename)
-    return colors and len(colors) == 0
+    return colors is not None and len(colors) == 0
 
 
 class Mode(Enum):
@@ -293,7 +293,7 @@ class Mode(Enum):
     PNG = ".png"
 
 
-def main():
+def main() -> None:
     """
     A little utility test harness for conversion to/from the rgb565 format.
     """

@@ -6,7 +6,6 @@ from fastapi import (
 )
 
 from fastapi.openapi.docs import get_swagger_ui_html
-from fastapi.security.api_key import APIKey
 from starlette.responses import FileResponse, RedirectResponse
 
 from calliope.utils.authentication import get_api_key
@@ -31,14 +30,14 @@ async def get_favicon() -> FileResponse:
 @router.get("/docs", tags=["documentation"])
 async def get_documentation(
     request: Request,
-    api_key: APIKey = Depends(get_api_key),
+    api_key: str = Depends(get_api_key),
 ) -> Response:
     domain = get_base_url(request)
 
     response = get_swagger_ui_html(openapi_url="/openapi.json", title="docs")
     response.set_cookie(
         "api_key",
-        value=api_key,
+        value=str(api_key),
         domain=domain,
         httponly=True,
         max_age=1800,

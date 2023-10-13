@@ -1,9 +1,8 @@
 import asyncio
 import glob
-import sys
 from typing import cast, List, Sequence
-from fastapi import Request
 
+from fastapi import Request
 from piccolo.engine import engine_finder
 from piccolo.table import Table
 from pydantic import BaseModel

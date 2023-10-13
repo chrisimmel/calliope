@@ -43,11 +43,11 @@ def check_schedule(
         # There is no schedule in effect.
         return None
 
-    if sparrow_state.schedule_state.schedule_ended_at:
+    if sparrow_state.schedule_state and sparrow_state.schedule_state.schedule_ended_at:
         # The schedule was already completed.
         return None
 
-    now = datetime.datetime.utcnow()
+    now = datetime.utcnow()
     if not sparrow_state.schedule_state:
         sparrow_state.schedule_state = ScheduleStateModel(
             schedule_started_at=format_time(now)
@@ -56,9 +56,13 @@ def check_schedule(
 
     current_step_index = schedule_state.current_step_index
     current_step = (
-        schedule.steps[schedule_state.current_step_index] if current_step_index else None
+        schedule.steps[current_step_index] if current_step_index else None
     )
     if current_step and current_step.min_duration_seconds:
+        if not schedule_state.step_started_at:
+            raise ValueError(
+                f"Schedule state must have valid step_started_at: {schedule_state}"
+            )
         step_started_at = parse_time(schedule_state.step_started_at)
         retain_step_until = step_started_at + timedelta(
             seconds=current_step.min_duration_seconds
@@ -71,7 +75,7 @@ def check_schedule(
     # Check to see whether we can start the next step...
     if not current_step_index and len(schedule.steps):
         next_step_index = 0
-    elif current_step_index < len(schedule.steps) - 1:
+    elif current_step_index is not None and current_step_index < len(schedule.steps) - 1:
         next_step_index = current_step_index + 1
     else:
         next_step_index = None
@@ -109,7 +113,7 @@ def trigger_condition_is_met(
         # A null trigger condition is always met.
         return True
 
-    now = datetime.datetime.utcnow()
+    now = datetime.utcnow()
     if trigger_condition.trigger_type == TriggerType.AT_TIME:
         at_time = parse_time(
             cast(AtTimeTriggerConditionModel, trigger_condition).at_time
@@ -120,7 +124,9 @@ def trigger_condition_is_met(
             AfterWaitTriggerConditionModel, trigger_condition
         ).wait_seconds
         if not schedule_state.wait_until:
-            schedule_state.wait_until = now.isoformat() + timedelta(seconds=wait_seconds)
+            schedule_state.wait_until = (
+                now + timedelta(seconds=wait_seconds)
+            ).isoformat()
         wait_until = parse_time(schedule_state.wait_until)
         if wait_until < now:
             # We've waited enough.
@@ -132,6 +138,7 @@ def trigger_condition_is_met(
         return False
 
     print(
-        f"Don't yet know how to evaluate trigger condition: {trigger_condition.trigger_type}"
+        "Don't yet know how to evaluate trigger condition: "
+        f"{trigger_condition.trigger_type}"
     )
     return False

@@ -1,5 +1,6 @@
 import asyncio
 import os
+from typing import Any, cast
 
 import aiohttp
 import concurrent.futures
@@ -9,6 +10,7 @@ from calliope.models import (
     KeysModel,
 )
 from calliope.tables import ModelConfig
+from calliope.utils.piccolo import load_json_if_necessary
 
 
 async def replicate_vision_inference(
@@ -32,13 +34,21 @@ async def replicate_vision_inference(
 
     prompt = "Tell me everything about this scene."
     parameters = {
-        **(model.model_parameters if model.model_parameters else {}),
-        **(model_config.model_parameters if model_config.model_parameters else {}),
+        **(
+            load_json_if_necessary(model.model_parameters)
+            if model.model_parameters
+            else {}
+        ),
+        **(
+            load_json_if_necessary(model_config.model_parameters)
+            if model_config.model_parameters
+            else {}
+        ),
     }
 
     loop = asyncio.get_event_loop()
 
-    def make_replicate_request():
+    def make_replicate_request() -> Any:
         model_name = (
             "daanelson/minigpt-4:"
             "b96a2f33cc8e4b0aa23eacfce731b9c41a7d9466d9ed4e167375587b54db9423"
@@ -52,4 +62,4 @@ async def replicate_vision_inference(
         future = executor.submit(make_replicate_request)
         output = await loop.run_in_executor(None, future.result)
 
-    return output
+    return cast(str, output)

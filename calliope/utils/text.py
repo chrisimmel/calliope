@@ -1,6 +1,6 @@
 import json
 import re
-from typing import Any, Dict, Optional
+from typing import Any, cast, Dict, List, Optional, Union
 import unicodedata
 
 
@@ -80,7 +80,7 @@ def split_into_sentences(text: str) -> List[str]:
     return sentences
 
 
-def translate_text(target: str, text: str) -> str:
+def translate_text(target: str, text: Union[str, bytes]) -> str:
     """Translates text into the target language.
 
     Target must be an ISO 639-1 language code.
@@ -95,10 +95,10 @@ def translate_text(target: str, text: str) -> str:
     # will return a sequence of results for each text.
     result = translate_client.translate(text, target_language=target)
 
-    translation = result.get("translatedText", text) if result else text
+    translation = cast(str, result.get("translatedText", text)) if result else text
 
-    print("Translation: {}".format(translation))
-    print("Detected source language: {}".format(result["detectedSourceLanguage"]))
+    print(f"Translation: {translation}")
+    print(f"Detected source language: {result['detectedSourceLanguage']}")
 
     return translation
 

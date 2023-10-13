@@ -62,14 +62,20 @@ class SparrowState(Table):
         if instance:
             instance.date_created = date_created
             instance.date_updated = date_updated
-            instance.current_story = current_story.id if current_story else None
+            instance.current_story = (
+                current_story.id if current_story else None  # type: ignore[attr-defined]
+            )
         else:
             instance = SparrowState(
                 # id=cuid.cuid(),
                 sparrow_id=sparrow_id,
                 date_created=date_created,
                 date_updated=date_updated,
-                current_story=current_story.id if current_story else None,
+                current_story=(
+                    current_story.id  # type: ignore[attr-defined]
+                    if current_story
+                    else None
+                ),
             )
 
         return instance

@@ -3,9 +3,9 @@ from urllib.parse import urlencode
 
 import aiohttp
 
-from calliope.storage.config_manager import load_json_if_necessary
 from calliope.models import KeysModel
 from calliope.tables import ModelConfig
+from calliope.utils.piccolo import load_json_if_necessary
 
 
 def _azure_endpoint_to_api_url(azure_api_host: str, endpoint_name: str) -> str:

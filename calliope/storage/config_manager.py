@@ -1,12 +1,9 @@
 from enum import Enum
-import json
-from typing import Any, cast, Dict, List, Optional, Sequence, Tuple, Union
-
+from typing import Any, cast, Dict, List, Optional, Sequence, Tuple
 
 from calliope.models import (
     FramesRequestParamsModel,
     KeysModel,
-    SparrowConfigModel,
     StrategyConfigDescriptortModel,
 )
 from calliope.storage.state_manager import get_sparrow_state
@@ -16,6 +13,7 @@ from calliope.tables import (
     SparrowState,
 )
 from calliope.tables.model_config import StrategyConfig
+from calliope.utils.piccolo import load_json_if_necessary
 
 
 class ConfigType(Enum):
@@ -175,13 +173,6 @@ def _get_non_default_parameters(params_dict: Dict[str, Any]) -> Dict[str, Any]:
             non_default_request_params[field.alias] = value
 
     return non_default_request_params
-
-
-def load_json_if_necessary(json_field: Union[str, Dict[str, Any]]) -> Dict[str, Any]:
-    if isinstance(json_field, str):
-        return cast(Dict[str, Any], json.loads(json_field))
-    else:
-        return json_field
 
 
 async def get_strategy_config(strategy_config_slug: str) -> StrategyConfig:

@@ -24,7 +24,7 @@ async def text_to_image_file_inference(
     keys: KeysModel,
     width: Optional[int] = None,
     height: Optional[int] = None,
-) -> str:
+) -> Optional[str]:
     """
     Interprets a piece of text as an image. The supported providers are at this
     point Stability (Stable Diffusion), OpenAI (DALL-E), and HuggingFace (Stable
