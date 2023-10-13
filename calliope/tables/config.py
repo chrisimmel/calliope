@@ -78,8 +78,8 @@ class SparrowConfig(Table):
             instance.description = description
             instance.parent_flock_client_id = parent_flock_id
             instance.follow_parent_story = follow_parent_story
-            instance.parameters = parameters
-            instance.keys = keys
+            instance.parameters = parameters or ""
+            instance.keys = keys or ""
         else:
             instance = SparrowConfig(
                 date_created=date_created,
@@ -88,8 +88,8 @@ class SparrowConfig(Table):
                 description=description,
                 parent_flock_client_id=parent_flock_id,
                 follow_parent_story=follow_parent_story,
-                parameters=parameters,
-                keys=keys,
+                parameters=parameters or "",
+                keys=keys or "",
             )
 
         return instance
@@ -135,14 +135,14 @@ class ClientTypeConfig(Table):
             instance.date_created = date_created
             instance.date_updated = date_updated
             instance.description = description
-            instance.parameters = parameters
+            instance.parameters = parameters or ""
         else:
             instance = ClientTypeConfig(
                 date_created=date_created,
                 date_updated=date_updated,
                 client_id=client_id,
                 description=description,
-                parameters=parameters,
+                parameters=parameters or "",
             )
 
         return instance

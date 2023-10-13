@@ -1,7 +1,6 @@
 from datetime import datetime, timezone
 import json
-from typing import Optional, Sequence
-from calliope.utils.file import FileMetadata
+from typing import cast, Optional, Sequence
 
 import cuid
 from piccolo.table import Table
@@ -18,6 +17,8 @@ from piccolo.columns import (
 from calliope.models import StoryModel
 from calliope.models import StoryFrameModel
 from calliope.tables.image import Image
+from calliope.utils.file import FileMetadata
+from calliope.utils.piccolo import load_json_if_necessary
 
 
 class StoryFrame(Table):
@@ -71,7 +72,7 @@ class StoryFrame(Table):
             trigger_condition=None,  # TODO: Fix! self.trigger_condition,
             image=self.image.to_pydantic() if self.image else None,
             source_image=self.source_image.to_pydantic() if self.source_image else None,
-            metadata=self.metadata,
+            metadata=load_json_if_necessary(self.metadata),
         )
 
     @classmethod
@@ -110,11 +111,10 @@ class StoryFrame(Table):
             instance.date_updated = date_updated
             instance.text = text
             instance.min_duration_seconds = min_duration_seconds
-            instance.trigger_condition = trigger_condition
-            instance.metadata = metadata
+            instance.trigger_condition = trigger_condition or ""
+            instance.metadata = metadata or ""
         else:
             instance = StoryFrame(
-                # id=cuid.cuid(),
                 date_created=date_created,
                 date_updated=date_updated,
                 number=number,
@@ -169,7 +169,7 @@ class Story(Table):
             StoryFrame.objects(StoryFrame.image, StoryFrame.source_image)
             if include_images
             else StoryFrame.objects()
-        ).where(StoryFrame.story.id == self.id)
+        ).where(StoryFrame.story.id == self.id)  # type: ignore[attr-defined]
 
         if not include_indexed_for_search:
             qs = qs.where(StoryFrame.indexed_for_search.eq(True))
@@ -210,7 +210,7 @@ class Story(Table):
             takes all.
         """
         qs = StoryFrame.select(StoryFrame.text).where(
-            StoryFrame.story.id == self.id,
+            StoryFrame.story.id == self.id,  # type: ignore[attr-defined]
             StoryFrame.text.is_not_null(),
             StoryFrame.text != "",
         )
@@ -234,7 +234,9 @@ class Story(Table):
         return "".join(fragments) if fragments else ""
 
     async def get_num_frames(self) -> int:
-        return await StoryFrame.count().where(StoryFrame.story.id == self.id)
+        return int(await StoryFrame.count().where(
+            StoryFrame.story.id == self.id  # type: ignore[attr-defined]
+        ))
 
     async def compute_title(self) -> str:
         return await self.get_text(max_frames=1)
@@ -243,7 +245,7 @@ class Story(Table):
         frame_with_source_image = (
             await StoryFrame.objects(StoryFrame.source_image)
             .where(
-                StoryFrame.story.id == self.id,
+                StoryFrame.story.id == self.id,  # type: ignore[attr-defined]
                 StoryFrame.source_image.is_not_null(),
             )
             .order_by(StoryFrame.number)
@@ -274,8 +276,8 @@ class Story(Table):
         strategy_name = model.strategy_name
         created_for_sparrow_id = model.created_for_id
 
-        date_created = datetime.fromisoformat(model.date_created)
-        date_updated = datetime.fromisoformat(model.date_updated)
+        date_created = datetime.fromisoformat(cast(str, model.date_created))
+        date_updated = datetime.fromisoformat(cast(str, model.date_updated))
 
         instance: Optional[Story] = (
             await Story.objects().where(Story.cuid == story_cuid).first().run()

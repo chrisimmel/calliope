@@ -1,13 +1,13 @@
 import json
 import re
-from typing import Any, Dict, Optional
+from typing import Any, cast, Dict, List, Optional, Union
 import unicodedata
 
 
 from google.cloud import translate_v2 as translate
 
 
-def slugify(value, allow_unicode=False):
+def slugify(value: Any, allow_unicode: bool = False) -> str:
     """
     Taken from https://github.com/django/django/blob/master/django/utils/text.py
     Convert to ASCII if 'allow_unicode' is False. Convert spaces or repeated
@@ -37,7 +37,7 @@ websites = "[.](com|net|org|io|gov|edu|me)"
 digits = "([0-9])"
 
 
-def split_into_sentences(text):
+def split_into_sentences(text: str) -> List[str]:
     """
     Splits text into a list of sentences.
     Courtesy: https://stackoverflow.com/questions/4576077/how-can-i-split-a-text-into-sentences
@@ -80,7 +80,7 @@ def split_into_sentences(text):
     return sentences
 
 
-def translate_text(target: str, text: str) -> str:
+def translate_text(target: str, text: Union[str, bytes]) -> str:
     """Translates text into the target language.
 
     Target must be an ISO 639-1 language code.
@@ -95,10 +95,10 @@ def translate_text(target: str, text: str) -> str:
     # will return a sequence of results for each text.
     result = translate_client.translate(text, target_language=target)
 
-    translation = result.get("translatedText", text) if result else text
+    translation = cast(str, result.get("translatedText", text)) if result else text
 
-    print("Translation: {}".format(translation))
-    print("Detected source language: {}".format(result["detectedSourceLanguage"]))
+    print(f"Translation: {translation}")
+    print(f"Detected source language: {result['detectedSourceLanguage']}")
 
     return translation
 

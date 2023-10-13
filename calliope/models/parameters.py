@@ -99,9 +99,9 @@ class StoryParamsModel(ClientTypeParamsModel):
 
     client_type: Optional[str] = None
     input_image: Optional[str] = None
-    input_image_filename: Optional[str]
+    input_image_filename: Optional[str] = None
     input_audio: Optional[str] = None
-    input_audio_filename: Optional[str]
+    input_audio_filename: Optional[str] = None
     location: Optional[str] = None
     input_text: Optional[str] = None
     output_image_style: Optional[str] = None

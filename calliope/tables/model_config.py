@@ -52,7 +52,7 @@ class PromptTemplate(Table, tablename="prompt_template"):
         return template.render(context)
 
     @classmethod
-    def get_readable(cls):
+    def get_readable(cls) -> Readable:
         return Readable(template="%s", columns=[cls.slug])
 
 
@@ -102,7 +102,7 @@ class InferenceModel(Table, tablename="inference_model"):
     date_updated = Timestamptz(auto_update=datetime.now)
 
     @classmethod
-    def get_readable(cls):
+    def get_readable(cls) -> Readable:
         return Readable(template="%s", columns=[cls.slug])
 
 
@@ -130,7 +130,7 @@ class ModelConfig(Table, tablename="model_config"):
     date_updated = Timestamptz(auto_update=datetime.now)
 
     @classmethod
-    def get_readable(cls):
+    def get_readable(cls) -> Readable:
         return Readable(template="%s", columns=[cls.slug])
 
 
@@ -177,7 +177,7 @@ class StrategyConfig(Table, tablename="strategy_config"):
     date_updated = Timestamptz(auto_update=datetime.now)
 
     @classmethod
-    def get_readable(cls):
+    def get_readable(cls) -> Readable:
         return Readable(template="%s", columns=[cls.slug])
 
 

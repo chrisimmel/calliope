@@ -1,5 +1,5 @@
 import os
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import aiohttp
 from calliope.tables.model_config import StrategyConfig
@@ -35,7 +35,7 @@ class ShowThisFrameStrategy(StoryStrategy):
         parameters: FramesRequestParamsModel,
         image_analysis: Optional[Dict[str, Any]],
         location_metadata: FullLocationMetadata,
-        strategy_config: Optional[StrategyConfig],
+        strategy_config: StrategyConfig,
         keys: KeysModel,
         sparrow_state: SparrowState,
         story: Story,
@@ -47,7 +47,7 @@ class ShowThisFrameStrategy(StoryStrategy):
         debug_data = self._get_default_debug_data(
             parameters, strategy_config, situation
         )
-        errors = []
+        errors: List[str] = []
 
         if parameters.input_image_filename:
             self._get_file(parameters.input_image_filename)
@@ -55,9 +55,10 @@ class ShowThisFrameStrategy(StoryStrategy):
         else:
             image = None
 
-        text = parameters.input_text
+        text = parameters.input_text or ""
 
-        last_frame = await story.get_frames(max_frames=-1, include_images=True)
+        frames = await story.get_frames(max_frames=-1, include_images=True)
+        last_frame = frames[0] if frames and len(frames) else None
         if not last_frame or last_frame.image != image or last_frame.text != text:
             # Create a new frame only if it differs from the story's last frame.
             frame_number = await story.get_num_frames()

@@ -3,12 +3,14 @@ from dataclasses import dataclass
 from datetime import datetime
 import os
 import json
-from calliope.models.story import StoryModel
+from typing import cast
+
 
 import cuid
 from pydantic import BaseModel
+from pydantic.main import ModelMetaclass
 
-from calliope.utils.string import slugify
+from calliope.utils.text import slugify
 
 
 filename_counter = 0
@@ -27,7 +29,7 @@ class ModelAndMetadata:
     metadata: FileMetadata
 
 
-def get_file_metadata(filename) -> FileMetadata:
+def get_file_metadata(filename: str) -> FileMetadata:
     # Get the file creation timestamp as a float, seconds since epoch.
     creation_time = os.path.getctime(filename)
     # Convert to a datetime.
@@ -40,7 +42,7 @@ def get_file_metadata(filename) -> FileMetadata:
     return FileMetadata(filename, creation_datetime, updated_datetime)
 
 
-def get_base_filename(filename) -> str:
+def get_base_filename(filename: str) -> str:
     """
     Gets the lowercase "base name" of a full filename, that is, the part of the filename
     after the path and just before the extension. Raises a ValueError if there is no
@@ -52,7 +54,7 @@ def get_base_filename(filename) -> str:
     return basename[0]
 
 
-def get_file_extension(filename) -> str:
+def get_file_extension(filename: str) -> str:
     """
     Gets the lowercase extension of a filename, or raises a ValueError if there
     is no extension.
@@ -63,7 +65,7 @@ def get_file_extension(filename) -> str:
     return basename[1].lower()
 
 
-def get_base_filename_and_extension(filename) -> str:
+def get_base_filename_and_extension(filename: str) -> str:
     """
     Gets the base name and extension together.
     """
@@ -108,7 +110,9 @@ def create_sequential_filename(
     )
 
 
-def load_json_into_pydantic_model(json_filename: str, model: BaseModel) -> BaseModel:
+def load_json_into_pydantic_model(
+    json_filename: str, model: ModelMetaclass
+) -> BaseModel:
     """
     Takes a JSON file path as a string and a Pydantic model class as arguments, reads
     the JSON file, and loads the data into the model.
@@ -117,10 +121,10 @@ def load_json_into_pydantic_model(json_filename: str, model: BaseModel) -> BaseM
     """
     with open(json_filename, "r") as f:
         data = json.load(f)
-    return model(**data)
+    return cast(BaseModel, model(**data))
 
 
-def write_pydantic_model_to_json(model: BaseModel, json_filename: str):
+def write_pydantic_model_to_json(model: BaseModel, json_filename: str) -> None:
     """
     Takes a Pydantic model instance and a filename as arguments, converts the model
     to JSON, and writes it to the given filename.

@@ -42,7 +42,7 @@ class StoryStrategy(object, metaclass=ABCMeta):
         parameters: FramesRequestParamsModel,
         image_analysis: Optional[Dict[str, Any]],
         location_metadata: FullLocationMetadata,
-        strategy_config: Optional[StrategyConfig],
+        strategy_config: StrategyConfig,
         keys: KeysModel,
         sparrow_state: SparrowState,
         story: Story,
@@ -93,7 +93,7 @@ class StoryStrategy(object, metaclass=ABCMeta):
             image.date_updated = datetime.now(timezone.utc)
             await image.save().run()
         frame = StoryFrame(
-            story=story.id,
+            story=story.id,  # type: ignore[attr-defined]
             number=frame_number,
             image=image,
             source_image=image,
@@ -133,7 +133,7 @@ class StoryStrategy(object, metaclass=ABCMeta):
     def _get_default_debug_data(
         self,
         parameters: FramesRequestParamsModel,
-        strategy_config: Optional[StrategyConfig],
+        strategy_config: StrategyConfig,
         situation: str,
     ) -> Dict[str, Any]:
         """
@@ -147,16 +147,12 @@ class StoryStrategy(object, metaclass=ABCMeta):
         Returns:
             a dictionary with the default debug data.
         """
-        text_to_text_model_config = (
-            cast(ModelConfig, strategy_config.text_to_text_model_config)
-            if strategy_config
-            else None
+        text_to_text_model_config = cast(
+            ModelConfig, strategy_config.text_to_text_model_config
         )
-        text_to_image_model_config = (
-            cast(ModelConfig, strategy_config.text_to_image_model_config)
-            if strategy_config
-            else None
-        )        
+        text_to_image_model_config = cast(
+            ModelConfig, strategy_config.text_to_image_model_config
+        )
         prompt_template = (
             cast(PromptTemplate, text_to_text_model_config.prompt_template)
             if text_to_text_model_config else None
@@ -179,7 +175,7 @@ class StoryStrategy(object, metaclass=ABCMeta):
             },
             "generated_at": str(datetime.utcnow()),
             "situation": situation,
-            "strategy_config": strategy_config.slug if strategy_config else None,
+            "strategy_config": strategy_config.slug,
             "text_to_text_model_config": (
                 text_to_text_model_config.slug if text_to_text_model_config else None
             ),
@@ -189,7 +185,7 @@ class StoryStrategy(object, metaclass=ABCMeta):
             "prompt_template": prompt_template.slug if prompt_template else None,
         }
 
-    async def get_seed_prompt(self, strategy_config) -> str:
+    async def get_seed_prompt(self, strategy_config: StrategyConfig) -> str:
         if strategy_config.seed_prompt_template:
             if isinstance(strategy_config.seed_prompt_template, int):
                 strategy_config.seed_prompt_template = (
@@ -197,6 +193,6 @@ class StoryStrategy(object, metaclass=ABCMeta):
                         StrategyConfig.seed_prompt_template
                     )
                 )
-            return strategy_config.seed_prompt_template.text
+            return cast(str, strategy_config.seed_prompt_template.text or "")
 
         return ""

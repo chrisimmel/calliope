@@ -1,5 +1,5 @@
 import aiohttp
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, cast, Dict, Tuple
 
 from langchain.chat_models import ChatOpenAI
 from langchain.llms import OpenAI
@@ -40,7 +40,7 @@ async def openai_text_to_text_inference(
     text: str,
     model_config: ModelConfig,
     keys: KeysModel,
-) -> Optional[str]:
+) -> str:
     """
     Performs a text->text inference using an OpenAI-provided LLM.
 
@@ -59,8 +59,14 @@ async def openai_text_to_text_inference(
     model = model_config.model
 
     parameters = {
-        **(model.model_parameters if model.model_parameters else {}),
-        **(model_config.model_parameters if model_config.model_parameters else {}),
+        **(
+            cast(Dict[str, Any], model.model_parameters)
+            if model.model_parameters else {}
+        ),
+        **(
+            cast(Dict[str, Any], model_config.model_parameters)
+            if model_config.model_parameters else {}
+        ),
     }
 
     openai.api_key = keys.openai_api_key
@@ -70,12 +76,12 @@ async def openai_text_to_text_inference(
         model.provider_api_variant
         == InferenceModelProviderVariant.OPENAI_CHAT_COMPLETION
     ):
-        extended_text = None
+        extended_text = ""
         parameters, model_kwargs = _filter_langchain_chat_parameters(parameters)
 
         chat = ChatOpenAI(
             openai_api_key=keys.openai_api_key,
-            model_name=model.provider_model_name,
+            model_name=model.provider_model_name,  # type: ignore[call-arg]
             **parameters,
             model_kwargs=model_kwargs,
         )
@@ -88,15 +94,15 @@ async def openai_text_to_text_inference(
         ):
             # llm_result.generations looks like:
             # [[ChatGeneration(text='The room was bathed in soft, muted...
-            extended_text = llm_result.generations[0][0].text
+            extended_text = llm_result.generations[0][0].text or ""
     else:
-        extended_text = None
-        chat = OpenAI(
+        extended_text = ""
+        llm = OpenAI(
             openai_api_key=keys.openai_api_key,
-            model_name=model.provider_model_name,
+            model_name=model.provider_model_name,  # type: ignore[call-arg]
             **parameters,
         )
-        llm_result = await chat.agenerate([text])
+        llm_result = await llm.agenerate([text])
         print(f"Completion response is: '{llm_result}'")
         if (
             llm_result.generations
@@ -105,6 +111,6 @@ async def openai_text_to_text_inference(
         ):
             # llm_result.generations looks like:
             # [[Generation(text="\nA portrait of a moment in time...
-            extended_text = llm_result.generations[0][0].text
+            extended_text = llm_result.generations[0][0].text or ""
 
     return extended_text

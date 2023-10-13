@@ -9,6 +9,7 @@ import stability_sdk.interfaces.gooseai.generation.generation_pb2 as generation
 
 from calliope.models import KeysModel
 from calliope.tables import ModelConfig
+from calliope.utils.piccolo import load_json_if_necessary
 
 
 async def text_to_image_file_inference_stability(
@@ -19,7 +20,7 @@ async def text_to_image_file_inference_stability(
     keys: KeysModel,
     width: Optional[int] = None,
     height: Optional[int] = None,
-) -> str:
+) -> Optional[str]:
     """
     Uses Stable Diffusion via the Stability API to interpret a piece of text as
     an image.
@@ -40,8 +41,16 @@ async def text_to_image_file_inference_stability(
     model = model_config.model
 
     parameters = {
-        **(model.model_parameters if model.model_parameters else {}),
-        **(model_config.model_parameters if model_config.model_parameters else {}),
+        **(
+            load_json_if_necessary(model.model_parameters)
+            if model.model_parameters
+            else {}
+        ),
+        **(
+            load_json_if_necessary(model_config.model_parameters)
+            if model_config.model_parameters
+            else {}
+        ),
     }
 
     # I see no way to use aiohttp with the Stability Inference API. :-(

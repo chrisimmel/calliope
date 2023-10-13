@@ -1,7 +1,6 @@
 from datetime import datetime, timezone
 from typing import Optional
 
-import cuid
 from piccolo.table import Table
 from piccolo.columns import (
     Integer,
@@ -9,8 +8,7 @@ from piccolo.columns import (
     Varchar,
 )
 
-
-from calliope.models import ImageModel
+from calliope.models import ImageFormat, ImageModel
 from calliope.utils.file import FileMetadata
 
 
@@ -34,13 +32,17 @@ class Image(Table):
         return f"<Image {self.width}x{self.height}, {self.format}, {self.url}>"
 
     def __repr__(self) -> str:
-        return f"<Image {self.id}: {self.width}x{self.height}, {self.format}, {self.url}"
+        return (
+            f"<Image {self.id}: "  # type: ignore[attr-defined]
+            f"{self.width}x{self.height}, "
+            f"{self.format}, {self.url}"
+        )
 
     def to_pydantic(self) -> ImageModel:
         return ImageModel(
             width=self.width,
             height=self.height,
-            format=self.format,
+            format=ImageFormat.fromMediaFormat(self.format),
             url=self.url,
         )
 

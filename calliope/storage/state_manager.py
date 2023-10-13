@@ -117,8 +117,10 @@ def list_legacy_stories() -> Sequence[ModelAndMetadata]:
             for file_metadata in filenames_and_dates
         ],
         key=lambda model_and_metadata: cast(
-            StoryModel, model_and_metadata.model
-        ).date_updated,
+            str, cast(
+                StoryModel, model_and_metadata.model
+            ).date_updated
+        ),
         reverse=True,
     )
 

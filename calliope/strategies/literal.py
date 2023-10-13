@@ -38,7 +38,7 @@ class LiteralStrategy(StoryStrategy):
         parameters: FramesRequestParamsModel,
         image_analysis: Optional[Dict[str, Any]],
         location_metadata: FullLocationMetadata,
-        strategy_config: Optional[StrategyConfig],
+        strategy_config: StrategyConfig,
         keys: KeysModel,
         sparrow_state: SparrowState,
         story: Story,

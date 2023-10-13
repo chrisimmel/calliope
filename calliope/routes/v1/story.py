@@ -57,7 +57,7 @@ class StoryResponseV1(BaseModel):
     frames: List[StoryFrameModel]
 
     # The story ID.
-    story_id: str
+    story_id: Optional[str]
 
     # The number of frames so far in the entire story.
     story_frame_count: int
@@ -91,7 +91,7 @@ async def put_story_reset(
 async def get_story(
     request: Request,
     api_key: APIKey = Depends(get_api_key),
-    request_params=Depends(StoryRequestParamsModel),
+    request_params: StoryRequestParamsModel = Depends(StoryRequestParamsModel),
 ) -> StoryResponseV1:
     """
     Get some frames from the current story.
@@ -121,7 +121,9 @@ async def post_frames(
 async def get_frames(
     request: Request,
     api_key: APIKey = Depends(get_api_key),
-    request_params=Depends(FramesRequestParamsModel),
+    request_params: FramesRequestParamsModel = Depends(
+        FramesRequestParamsModel
+    ),
 ) -> StoryResponseV1:
     """
     Provide some harvested data (image, sound, text). Get a new episode of an
@@ -209,7 +211,7 @@ async def handle_frames_request(
     ) = await get_sparrow_story_parameters_and_keys(request_params, sparrow_state)
     parameters.strategy = parameters.strategy or "continuous-v1"
     parameters.debug = parameters.debug or False
-    errors = []
+    errors: List[str] = []
 
     strategy_name = (
         strategy_config.strategy_name if strategy_config else parameters.strategy
@@ -244,10 +246,10 @@ async def handle_frames_request(
         if forwarded_header:
             # Handle case where request comes through a load balancer, altering
             # request.client.host.
-            source_ip_address = request.headers.getlist("X-Forwarded-For")[0]
+            source_ip_address: Optional[str] = request.headers.getlist("X-Forwarded-For")[0]
         else:
             # Handle the normal case of a direct request.
-            source_ip_address = request.client.host
+            source_ip_address = request.client.host if request.client else None
         location_metadata = await get_location_metadata_for_ip(
             aiohttp_session, source_ip_address,
         )
@@ -296,7 +298,7 @@ async def handle_frames_request(
         )
 
     story_frames_response.debug_data = {
-        **story_frames_response.debug_data,
+        **(story_frames_response.debug_data or {}),
         "story_id": story.cuid,
         "story_title": story.title,
         "thoth_link": f"{base_url}thoth/story/{story.cuid}",
@@ -333,7 +335,7 @@ async def handle_existing_frames_request(
     client_id = request_params.client_id
     sparrow_state = await get_sparrow_state(client_id)
 
-    errors = []
+    errors: List[str] = []
     story = sparrow_state.current_story
 
     frame_parameters = FramesRequestParamsModel(**request_params.dict())

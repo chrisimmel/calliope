@@ -16,7 +16,7 @@ services:
     build:
       context: .
     # command: bash
-    command: uvicorn app:app --reload --host 0.0.0.0 --port 8008
+    command: uvicorn calliope.app:app --reload --host 0.0.0.0 --port 8008
     container_name: calliope
     depends_on:
       - postgres

@@ -1,9 +1,10 @@
 import asyncio
 import glob
-import sys
 from typing import cast, List, Sequence
 
+from fastapi import Request
 from piccolo.engine import engine_finder
+from piccolo.table import Table
 from pydantic import BaseModel
 
 from calliope.models import (
@@ -44,7 +45,9 @@ class MigrateFromPydanticFormModel(BaseModel):
 
 
 # Migrate action handler
-async def migrate_from_pydantic_endpoint(request, data: MigrateFromPydanticFormModel):
+async def migrate_from_pydantic_endpoint(
+    request: Request, data: MigrateFromPydanticFormModel
+) -> str:
     await main()
     return "Data migrated"
 
@@ -86,20 +89,28 @@ async def copy_configs_to_piccolo() -> None:
     legacy_configs = list_legacy_configs()
 
     for model_and_metadata in legacy_configs:
-        print(f"Copying model {model_and_metadata.model.id}")
+        print(
+            f"Copying model {model_and_metadata.model.id}"  # type: ignore[attr-defined]
+        )
         if isinstance(model_and_metadata.model, SparrowConfigModel):
-            config = await SparrowConfig.from_pydantic(
+            config: Table = await SparrowConfig.from_pydantic(
                 model_and_metadata.model, model_and_metadata.metadata
             )
-        else:
+        elif isinstance(model_and_metadata.model, ClientTypeConfigModel):
             config = await ClientTypeConfig.from_pydantic(
                 model_and_metadata.model, model_and_metadata.metadata
             )
+        else:
+            raise ValueError(f"Invalid model type for: {model_and_metadata.model}")
+
         await config.save().run()
 
     for model_and_metadata in legacy_configs:
         if isinstance(model_and_metadata.model, SparrowConfigModel):
-            print(f"Connecting flocks for {model_and_metadata.model.id}")
+            print(
+                "Connecting flocks for "
+                f"{model_and_metadata.model.id}"  # type: ignore[attr-defined]
+            )
             config = await SparrowConfig.from_pydantic(
                 model_and_metadata.model, model_and_metadata.metadata
             )
@@ -133,7 +144,7 @@ async def copy_stories_to_piccolo() -> None:
             date_created = None
             date_updated = None
 
-            if frame_model.image:
+            if frame_model.image and frame_model.image.url:
                 try:
                     image_file_metadata = get_local_or_cloud_file_metadata(
                         frame_model.image.url
@@ -151,7 +162,7 @@ async def copy_stories_to_piccolo() -> None:
             else:
                 image = None
 
-            if frame_model.source_image:
+            if frame_model.source_image and frame_model.source_image.url:
                 try:
                     source_image_file_metadata = get_local_or_cloud_file_metadata(
                         frame_model.source_image.url
@@ -179,7 +190,7 @@ async def copy_stories_to_piccolo() -> None:
                 date_updated = file_metadata.date_updated
 
             frame_file_metadata = FileMetadata(
-                None,
+                "",  # This doesn't represent a real file.
                 date_created,
                 date_updated,
             )
@@ -187,9 +198,11 @@ async def copy_stories_to_piccolo() -> None:
             frame = await StoryFrame.from_pydantic(
                 frame_model, frame_file_metadata, story.cuid, frame_number
             )
-            frame.image = image.id if image else None
-            frame.source_image = source_image.id if source_image else None
-            frame.story = story.id
+            frame.image = image.id if image else None  # type: ignore[attr-defined]
+            frame.source_image = (
+                source_image.id if source_image else None  # type: ignore[attr-defined]
+            )
+            frame.story = story.id  # type: ignore[attr-defined]
             await frame.save().run()
 
 
@@ -207,8 +220,11 @@ async def copy_sparrow_states_to_piccolo() -> None:
         await sparrow_state.save()
 
 
-async def main():
+async def main() -> None:
     engine = engine_finder()
+    if not engine:
+        raise ValueError("No Piccolo engine found. Check the Piccolo configuration.")
+
     print("Starting connection pool.")
     await engine.start_connection_pool()
 

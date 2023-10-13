@@ -48,7 +48,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         parameters: FramesRequestParamsModel,
         image_analysis: Optional[Dict[str, Any]],
         location_metadata: FullLocationMetadata,
-        strategy_config: Optional[StrategyConfig],
+        strategy_config: StrategyConfig,
         keys: KeysModel,
         sparrow_state: SparrowState,
         story: Story,
@@ -65,9 +65,9 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         debug_data = self._get_default_debug_data(
             parameters, strategy_config, situation
         )
-        errors = []
+        errors: List[str] = []
         caption = image_analysis.get("description") if image_analysis else None
-        text = None
+        text: Optional[str] = None
         image = None
         input_text = ""
         frame_number = await story.get_num_frames()
@@ -79,7 +79,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
                 input_text = parameters.input_text
 
         # Get last four frames of text.
-        last_text = await story.get_text(-4)
+        last_text: Optional[str] = await story.get_text(-4)
         if not last_text or last_text.isspace():
             if strategy_config.seed_prompt_template:
                 last_text = await self.get_seed_prompt(strategy_config)
@@ -230,7 +230,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
             print(msg)
             errors.append(msg)
             text = ""
-        elif stripped_text and stripped_text in last_text:
+        elif stripped_text and last_text and stripped_text in last_text:
             # Don't want to literally repeat ourselves.
             msg = (
                 "Rejecting story continuation because it's already appeared in the "

@@ -5,16 +5,16 @@ from pydantic import BaseModel
 
 
 class BasicLocationMetadataModel(BaseModel):
-    country: Optional[str]
-    country_code: Optional[str]
-    region_name: Optional[str]
-    city: Optional[str]
-    zip: Optional[str]
-    lattitude: Optional[float]
-    longitude: Optional[float]
-    timezone: Optional[str]
-    isp: Optional[str]
-    ip_address: Optional[str]
+    country: Optional[str] = None
+    country_code: Optional[str] = None
+    region_name: Optional[str] = None
+    city: Optional[str] = None
+    zip: Optional[str] = None
+    lattitude: Optional[float] = None
+    longitude: Optional[float] = None
+    timezone: Optional[str] = None
+    isp: Optional[str] = None
+    ip_address: Optional[str] = None
 
 
 class CurrentWeatherModel(BaseModel):
@@ -30,8 +30,8 @@ class CurrentWeatherModel(BaseModel):
 
 class FullLocationMetadata(BaseModel):
     location: BasicLocationMetadataModel
-    weather: CurrentWeatherModel
-    local_datetime: datetime
+    weather: Optional[CurrentWeatherModel] = None
+    local_datetime: Optional[datetime] = None
 
 
 # A table of weather descriptions by WMO code, taken from

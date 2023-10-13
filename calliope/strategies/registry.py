@@ -43,4 +43,4 @@ class StoryStrategyRegistry:
 
     @classmethod
     def get_all_strategy_names(cls) -> Sequence[str]:
-        return cls._story_strategies_by_name.keys()
+        return cast(Sequence[str], cls._story_strategies_by_name.keys())

@@ -47,7 +47,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
         parameters: FramesRequestParamsModel,
         image_analysis: Optional[Dict[str, Any]],
         location_metadata: FullLocationMetadata,
-        strategy_config: Optional[StrategyConfig],
+        strategy_config: StrategyConfig,
         keys: KeysModel,
         sparrow_state: SparrowState,
         story: Story,
@@ -68,23 +68,23 @@ class ContinuousStoryV1Strategy(StoryStrategy):
         debug_data = self._get_default_debug_data(
             parameters, strategy_config, situation
         )
-        errors = []
+        errors: List[str] = []
         prompt = None
         image = None
 
         frame_number = await story.get_num_frames()
 
         if image_analysis:
-            image_scene = image_analysis.get("all_captions")
-            image_objects = image_analysis.get("all_tags_and_objects")
-            image_text = image_analysis.get("text")
+            image_scene = image_analysis.get("all_captions") or ""
+            image_objects = image_analysis.get("all_tags_and_objects") or ""
+            image_text = image_analysis.get("text") or ""
         else:
             image_scene = ""
             image_objects = ""
             image_text = ""
 
         # Get some recent text.
-        last_text = await story.get_text(-3)
+        last_text: Optional[str] = await story.get_text(-3)
         if not last_text or last_text.isspace():
             last_text = await self.get_seed_prompt(strategy_config)
             debug_data["applied_seed_prompt"] = last_text
@@ -202,7 +202,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
         scene: str,
         text: str,
         objects: str,
-        strategy_config: Optional[StrategyConfig],
+        strategy_config: StrategyConfig,
         debug_data: Dict[str, Any],
     ) -> str:
         if last_text:
@@ -215,8 +215,11 @@ class ContinuousStoryV1Strategy(StoryStrategy):
             # or the seed prompt, in that order of preference.
             last_text = parameters.input_text or (
                 strategy_config.seed_prompt_template
-                and strategy_config.seed_prompt_template.text
-            )
+                and cast(
+                    Optional[str],
+                    strategy_config.seed_prompt_template.text
+                )
+            ) or ""
             debug_data["applied_seed_prompt"] = last_text
 
         model_config = (
@@ -263,8 +266,8 @@ class ContinuousStoryV1Strategy(StoryStrategy):
             )
             print(f"Raw output: '{text}'")
 
-            def ends_with_punctuation(str):
-                return len(str) and str[-1] in (
+            def ends_with_punctuation(string: str) -> bool:
+                return len(string) > 0 and string[-1] in (
                     ".",
                     "!",
                     "?",
@@ -331,7 +334,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
             print(msg)
             errors.append(msg)
             text = ""
-        elif stripped_text and stripped_text in last_text:
+        elif stripped_text and last_text and stripped_text in last_text:
             msg = (
                 "Rejecting story continuation because it's already appeared in the "
                 f"story: {stripped_text[:100]}[...]"

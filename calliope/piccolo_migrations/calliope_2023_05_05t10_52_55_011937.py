@@ -1,5 +1,4 @@
-from datetime import datetime
-
+# type: ignore
 from piccolo.apps.migrations.auto.migration_manager import MigrationManager
 from piccolo.columns.base import OnDelete
 from piccolo.columns.base import OnUpdate

@@ -48,14 +48,8 @@ Hint: Some image generation models (notably Stable Diffusion) constrain output i
 When asked for an image size that doesn't fit this constraint, Calliope will use the nearest greater multiple of 64
 in both width and height, then scale, pad, or crop as needed to fit the resulting image to the requested size.
 
-## The Configuration API
-The configuration API allows a caller to PUT, GET, or DELETE a configuration for a sparrow or flock at
-`/v1/config/sparrow/{sparrow-or-flock_ID}`.
-
-The configuration API also lets a caller to PUT, GET, or DELETE a configuration for a `client_type` at
-`/v1/config/client_type/{client_type}`.
-
-For more information on configuration options, see [Configuration](https://github.com/chrisimmel/calliope/tree/main/docs/config.md).
-
 ## The Media API
 The media API allows a caller to either PUT or GET a media file for use in story frames at `/media/{filename}`.
+
+## The Configuration API
+(The former configuration API has been replaced by the [Calliope Admin](https://github.com/chrisimmel/calliope/tree/main/docs/Admin.md) application.)

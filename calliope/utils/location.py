@@ -1,7 +1,7 @@
 import aiohttp
 from datetime import date, datetime
 from ipaddress import ip_address
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union
 import tzlocal
 from zoneinfo import ZoneInfo
 
@@ -48,12 +48,12 @@ async def get_public_ip_address(
 
 async def get_location_from_ip(
         aiohttp_session: aiohttp.ClientSession,
-        ip: str
+        ip: Optional[str]
 ) -> BasicLocationMetadataModel:
     """
     Gets the estimated location of a given IP address.
     """
-    if is_ip_private(ip):
+    if not ip or is_ip_private(ip):
         ip = await get_public_ip_address(aiohttp_session)
 
     if not ip:
@@ -84,8 +84,8 @@ async def get_location_from_ip(
 
 async def get_weather_at_location(
         aiohttp_session: aiohttp.ClientSession,
-        lattitude: str,
-        longitude: str
+        lattitude: float,
+        longitude: float
 ) -> CurrentWeatherModel:
     """
     Gets the weather at a given location.
@@ -109,7 +109,9 @@ async def get_weather_at_location(
             wind_direction=current_weather.get("winddirection"),
             is_day=current_weather.get("is_day"),
             weather_code=weather_code,
-            weather_description=WMO_WEATHER_DESCRIPTIONS_BY_CODE.get(weather_code),
+            weather_description=(
+                WMO_WEATHER_DESCRIPTIONS_BY_CODE.get(weather_code) or "(unknown)"
+            ),
         )
     else:
         raise ValueError(f"Invalid weather result: {json_response}")
@@ -117,7 +119,7 @@ async def get_weather_at_location(
 
 async def get_location_metadata_for_ip(
     aiohttp_session: aiohttp.ClientSession,
-    ip: str
+    ip: Optional[str]
 ) -> FullLocationMetadata:
     """
     Gets the full location metadata for a given IP address. This includes
@@ -126,7 +128,9 @@ async def get_location_metadata_for_ip(
     """
     basic_metadata = await get_location_from_ip(aiohttp_session, ip)
 
-    local_datetime = get_local_datetime(basic_metadata.timezone)
+    local_datetime = (
+        get_local_datetime(basic_metadata.timezone) if basic_metadata.timezone else None
+    )
 
     if basic_metadata.lattitude and basic_metadata.longitude:
         weather_metadata = await get_weather_at_location(
@@ -156,7 +160,7 @@ seasons = [
 ]
 
 
-def get_season(now):
+def get_season(now: Union[datetime, date]) -> str:
     if isinstance(now, datetime):
         now = now.date()
     now = now.replace(year=Y)
@@ -224,22 +228,25 @@ def get_local_situation_text(
             situation_text += f"Text:\n{text}\n\n"
 
     situation_text += "Situation:\n"
-    situation_text += (
-        "\nThe date is "
-        f"{location_metadata.local_datetime.strftime('%M %d, %Y')}.\n"
-    )
-    situation_text += (
-        "The time is "
-        f"{location_metadata.local_datetime.strftime('%H:%M')}.\n"
-    )
-    situation_text += (
-        "It is currently "
-        f"{'daytime' if location_metadata.weather.is_day else 'nighttime'}.\n"
-    )
-    situation_text += (
-        "The season is "
-        f"{get_season(location_metadata.local_datetime)}.\n"
-    )
+    if location_metadata.local_datetime:
+        situation_text += (
+            "\nThe date is "
+            f"{location_metadata.local_datetime.strftime('%M %d, %Y')}.\n"
+        )
+        situation_text += (
+            "The time is "
+            f"{location_metadata.local_datetime.strftime('%H:%M')}.\n"
+        )
+    if location_metadata.weather:
+        is_day = location_metadata.weather.is_day
+        situation_text += (
+            f"It is currently {'daytime' if is_day else 'nighttime'}.\n"
+        )
+    if location_metadata.local_datetime:
+        situation_text += (
+            "The season is "
+            f"{get_season(location_metadata.local_datetime)}.\n"
+        )
 
     if location_metadata.weather:
         # It would also be nice to know if there were big weather changes

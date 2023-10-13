@@ -14,7 +14,7 @@ RUN apt-get install 'ffmpeg'\
     'tzdata'  -y
 COPY requirements requirements
 RUN pip install -r requirements/development.txt
-COPY . /app
+COPY . $APP_HOME
 ENV CLOUD_ENV $CLOUD_ENV
 ENV OPENAI_API_KEY $OPENAI_API_KEY
 ENV PINECONE_API_KEY $PINECONE_API_KEY
@@ -25,4 +25,4 @@ ENV POSTGRESQL_DATABASE $POSTGRESQL_DATABASE
 ENV POSTGRESQL_USERNAME $POSTGRESQL_USERNAME
 ENV POSTGRESQL_PASSWORD $POSTGRESQL_PASSWORD
 ENV PYTHONPATH "$APP_HOME:${PYTHONPATH}"
-CMD exec uvicorn app:app --reload --host 0.0.0.0 --proxy-headers --port $PORT
+CMD exec uvicorn calliope.app:app --reload --host 0.0.0.0 --proxy-headers --port $PORT
