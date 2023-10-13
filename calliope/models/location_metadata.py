@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel
 
@@ -26,12 +26,6 @@ class CurrentWeatherModel(BaseModel):
     is_day: bool
     weather_code: int
     weather_description: str
-
-
-class FullLocationMetadata(BaseModel):
-    location: BasicLocationMetadataModel
-    weather: Optional[CurrentWeatherModel] = None
-    local_datetime: Optional[datetime] = None
 
 
 # A table of weather descriptions by WMO code, taken from
@@ -122,3 +116,65 @@ WMO_WEATHER_DESCRIPTIONS_BY_CODE = {
     96: "Thunderstorm, heavy, with hail",
     99: "Tornado",
 }
+
+
+class NightSkyObjectModel(BaseModel):
+    # The object's name (Sun, Moon, Venus, etc.)
+    name: str
+
+    # In what constellation the object currently appears.
+    constellation: str
+
+    # Whether the object is presently above the horizon.
+    above_horizon: bool
+
+    # The brightness of an object as it appears to an observer
+    # at the given location. Smaller is brighter.
+    # For reference:
+    # THe Sun:  −26.7
+    # The full Moon: −11
+    # Sirius: −1.5
+    #
+    # Britannica: https://www.britannica.com/science/magnitude-astronomy
+    magnitude: float
+
+    # Whether we can expect to see this with the naked eye. 
+    naked_eye_object: bool
+
+    # Phase is full at 100, then immediately drops to zero
+    # and climbs back to a hundred. So it is waning from 0
+    # to 50, then is waxing from 50 up to 100.
+    # Only present in the case of the moon.
+    phase: Optional[float] = None
+
+    """
+    Unused:
+    rightAscension: {
+        "negative": false,
+        "hours": 13,
+        "minutes": 17,
+        "seconds": 19.3,
+        "raw": 13.288689508824122
+    },
+    "declination": {
+        "negative": true,
+        "degrees": 8,
+        "arcminutes": 9,
+        "arcseconds": 21,
+        "raw": -8.155822096208393
+    },
+    "altitude": 17.71533237752294,
+    "azimuth": 110.12246355292802,
+    """
+
+
+class NightSkyModel(BaseModel):
+    time: str
+    objects: List[NightSkyObjectModel]
+
+
+class FullLocationMetadata(BaseModel):
+    location: BasicLocationMetadataModel
+    weather: Optional[CurrentWeatherModel] = None
+    local_datetime: Optional[datetime] = None
+    night_sky_data: Optional[NightSkyModel] = None

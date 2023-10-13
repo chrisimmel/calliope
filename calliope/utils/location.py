@@ -1,7 +1,7 @@
 import aiohttp
-from datetime import date, datetime
+from datetime import datetime, date
 from ipaddress import ip_address
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 import tzlocal
 from zoneinfo import ZoneInfo
 
@@ -9,6 +9,8 @@ from calliope.models import (
     BasicLocationMetadataModel,
     CurrentWeatherModel,
     FullLocationMetadata,
+    NightSkyModel,
+    NightSkyObjectModel,
     WMO_WEATHER_DESCRIPTIONS_BY_CODE,
 )
 
@@ -117,6 +119,43 @@ async def get_weather_at_location(
         raise ValueError(f"Invalid weather result: {json_response}")
 
 
+async def get_local_night_sky(
+        aiohttp_session: aiohttp.ClientSession,
+        lattitude: float,
+        longitude: float
+) -> NightSkyModel:
+    """
+    Gets information about what astronomical bodies are in the key at a given location
+    and the present time.
+    """
+    api_url = (
+        f"https://api.visibleplanets.dev/v3/?latitude={lattitude}&longitude={longitude}"
+        # &time=2023-10-13T15:57:44Z
+    )
+
+    response = await aiohttp_session.get(api_url)
+    json_response = await response.json()
+    if not json_response:
+        raise ValueError(f"No data returned from {api_url}.")
+
+    data: List[Dict[str, Any]] = json_response.get("data", [])
+    objects: List[NightSkyObjectModel] = [
+        NightSkyObjectModel(
+            name=object_data.get("name"),
+            constellation=object_data.get("constellation"),
+            above_horizon=object_data.get("aboveHorizon", False),
+            magnitude=object_data.get("magnitude", 0.0),
+            naked_eye_object=object_data.get("nakedEyeObject", False),
+            phase=object_data.get("phase", None),
+        )
+        for object_data in data
+    ]
+    return NightSkyModel(
+        time=json_response.get("time"),
+        objects=objects
+    )
+
+
 async def get_location_metadata_for_ip(
     aiohttp_session: aiohttp.ClientSession,
     ip: Optional[str]
@@ -138,13 +177,20 @@ async def get_location_metadata_for_ip(
             basic_metadata.lattitude,
             basic_metadata.longitude,
         )
+        night_sky_data = await get_local_night_sky(
+            aiohttp_session,
+            basic_metadata.lattitude,
+            basic_metadata.longitude,
+        )
     else:
         weather_metadata = None
+        night_sky_data = None
 
     return FullLocationMetadata(
         location=basic_metadata,
         weather=weather_metadata,
         local_datetime=local_datetime,
+        night_sky_data=night_sky_data,
     )
 
 
@@ -262,4 +308,6 @@ def get_local_situation_text(
             f"{location_metadata.weather.temperature} degrees Celsius.\n"
         )
 
+    # TODO: Add night sky data.
+    
     return situation_text

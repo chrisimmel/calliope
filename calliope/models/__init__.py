@@ -35,6 +35,8 @@ from .location_metadata import (
     BasicLocationMetadataModel,
     CurrentWeatherModel,
     FullLocationMetadata,
+    NightSkyModel,
+    NightSkyObjectModel,
     WMO_WEATHER_DESCRIPTIONS_BY_CODE,
 )
 
@@ -56,6 +58,8 @@ __all__ = [
     "InferenceModelProvider",
     "InferenceModelProviderVariant",
     "load_model_configs",
+    "NightSkyModel",
+    "NightSkyObjectModel",
     "OnLightTriggerConditionModel",
     "OnMotionTriggerConditionModel",
     "OnSoundTriggerConditionModel",
