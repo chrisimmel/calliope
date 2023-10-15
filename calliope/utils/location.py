@@ -73,7 +73,7 @@ async def get_location_from_ip(
             region_name=json_response.get("regionName"),
             city=json_response.get("city"),
             zip=json_response.get("zip"),
-            lattitude=json_response.get("lat"),
+            latitude=json_response.get("lat"),
             longitude=json_response.get("lon"),
             timezone=json_response.get("timezone"),
             isp=json_response.get("isp"),
@@ -86,14 +86,14 @@ async def get_location_from_ip(
 
 async def get_weather_at_location(
         aiohttp_session: aiohttp.ClientSession,
-        lattitude: float,
+        latitude: float,
         longitude: float
 ) -> CurrentWeatherModel:
     """
     Gets the weather at a given location.
     """
     api_url = (
-        f"https://api.open-meteo.com/v1/forecast?latitude={lattitude}&longitude={longitude}"
+        f"https://api.open-meteo.com/v1/forecast?latitude={latitude}&longitude={longitude}"
         "&current_weather=true&"
         # "hourly=temperature_2m,relativehumidity_2m,windspeed_10m"
     )
@@ -121,7 +121,7 @@ async def get_weather_at_location(
 
 async def get_local_night_sky(
         aiohttp_session: aiohttp.ClientSession,
-        lattitude: float,
+        latitude: float,
         longitude: float
 ) -> NightSkyModel:
     """
@@ -129,7 +129,7 @@ async def get_local_night_sky(
     and the present time.
     """
     api_url = (
-        f"https://api.visibleplanets.dev/v3/?latitude={lattitude}&longitude={longitude}"
+        f"https://api.visibleplanets.dev/v3/?latitude={latitude}&longitude={longitude}"
         # &time=2023-10-13T15:57:44Z
     )
 
@@ -171,15 +171,15 @@ async def get_location_metadata_for_ip(
         get_local_datetime(basic_metadata.timezone) if basic_metadata.timezone else None
     )
 
-    if basic_metadata.lattitude and basic_metadata.longitude:
+    if basic_metadata.latitude and basic_metadata.longitude:
         weather_metadata = await get_weather_at_location(
             aiohttp_session,
-            basic_metadata.lattitude,
+            basic_metadata.latitude,
             basic_metadata.longitude,
         )
         night_sky_data = await get_local_night_sky(
             aiohttp_session,
-            basic_metadata.lattitude,
+            basic_metadata.latitude,
             basic_metadata.longitude,
         )
     else:
@@ -309,5 +309,5 @@ def get_local_situation_text(
         )
 
     # TODO: Add night sky data.
-    
+
     return situation_text

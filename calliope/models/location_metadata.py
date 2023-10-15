@@ -10,7 +10,7 @@ class BasicLocationMetadataModel(BaseModel):
     region_name: Optional[str] = None
     city: Optional[str] = None
     zip: Optional[str] = None
-    lattitude: Optional[float] = None
+    latitude: Optional[float] = None
     longitude: Optional[float] = None
     timezone: Optional[str] = None
     isp: Optional[str] = None
