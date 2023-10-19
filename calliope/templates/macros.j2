@@ -16,8 +16,8 @@
             <a href="?page={{pagination.num_pages}}{{link_params}}">&gt;&gt;</a>
         {% endif %}
         {% if not pagination.next_page %}
-            <span>&gt;&gt;</span>
             <span>&gt;</span>
+            <span>&gt;&gt;</span>
         {% endif %}
     </div>
 {%- endmacro -%}
