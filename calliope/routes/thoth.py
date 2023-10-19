@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Iterator, cast, Optional, Sequence
+from typing import cast, Optional, Sequence
 
 from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import HTMLResponse
@@ -8,6 +8,7 @@ from markupsafe import Markup
 
 from calliope.tables import Story, StoryFrame
 from calliope.storage.vector_manager import semantic_search
+from calliope.utils.pagination import Pagination
 
 
 router = APIRouter()
@@ -16,45 +17,6 @@ templates = Jinja2Templates(directory="calliope/templates")
 PAGE_SIZE = 10
 
 
-class Pagination:
-    total_rows: int
-    page_size: int
-    page: int
-    row_offset: int
-    num_pages: int
-    max_shown_pages: int
-
-    def __init__(
-        self,
-        total_rows: int,
-        page: int,
-        page_size: int = 10,
-        max_shown_pages: int = 5
-    ) -> None:
-        self.total_rows = total_rows
-        self.page = page
-        self.page_size = page_size
-        self.num_pages = (total_rows // page_size) + 1
-        self.max_shown_pages = max_shown_pages
-
-    @property
-    def offset(self) -> int:
-        return (self.page - 1) * self.page_size
-
-    @property
-    def prev_page(self) -> int:
-        return self.page - 1
-
-    @property
-    def next_page(self) -> int:
-        return self.page + 1 if self.page < self.num_pages else 0
-
-    @property
-    def pages_in_range(self) -> int:
-        range_start_page = max(1, self.page - self.max_shown_pages // 2)
-        range_end_page = min(self.num_pages + 1, range_start_page + self.max_shown_pages)
-        for show_page in range(range_start_page, range_end_page):
-            yield show_page
 
 
 @router.get("/thoth/", response_class=HTMLResponse)
