@@ -151,8 +151,14 @@ class Story(Table):
     date_created = Timestamptz()
     date_updated = Timestamptz(auto_update=datetime.now)
 
+    async def get_frame_count(self) -> int:
+        return await StoryFrame.count().where(
+            StoryFrame.story.id == self.id
+        )
+
     async def get_frames(
         self,
+        offset: int = 0,
         max_frames: int = 0,
         include_images: bool = False,
         include_indexed_for_search: bool = True,
@@ -185,7 +191,7 @@ class Story(Table):
             # All frames.
             qs = qs.order_by(StoryFrame.number)
 
-        frames = await qs.output(load_json=True).run()
+        frames = await qs.output(load_json=True).offset(offset).run()
         if include_images:
             for frame in frames:
                 # This seems like a hack necessitated by a Piccolo quirk.
