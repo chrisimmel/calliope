@@ -17,8 +17,6 @@ templates = Jinja2Templates(directory="calliope/templates")
 PAGE_SIZE = 10
 
 
-
-
 @router.get("/thoth/", response_class=HTMLResponse)
 async def thoth_root(
     request: Request, meta: Optional[bool] = False, page: int = 1
@@ -140,8 +138,8 @@ async def thoth_search(
         "query": query,
         "results": result_frames,
         "show_metadata": meta,
+        "story_page_size": PAGE_SIZE,
     }
     return cast(
         HTMLResponse, templates.TemplateResponse("thoth_search.html", context)
     )
-

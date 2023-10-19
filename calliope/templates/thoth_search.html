@@ -15,7 +15,7 @@
     {% for frame in results %}
     <div class="story-summary">
         <div class="summary-line">
-            Frame {{frame.number}} of story <a href="/thoth/story/{{frame.story.cuid}}{{'?meta=true' if show_metadata else ''}}#f{{frame.number}}">"{{frame.story.title}}"</a>
+            Frame {{frame.number}} of story <a href="/thoth/story/{{frame.story.cuid}}{{'?meta=true' if show_metadata else ''}}&page={{1 + frame.number // story_page_size}}#f{{frame.number}}">"{{frame.story.title}}"</a>
         </div>
         <div class="summary-line">
             Made by strategy {{frame.story.strategy_name}} on {{frame.date_created}}.
