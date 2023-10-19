@@ -101,3 +101,28 @@ form#search {
     font-size: 8px;
     white-space: pre-wrap;
 }
+
+.paginator {
+    display: inline-block;
+    margin-bottom: 30px;
+}
+
+.paginator a, .paginator span {
+    color: black;
+    float: left;
+    padding: 8px 16px;
+    text-decoration: none;
+}
+.paginator span {
+    color: gray;
+    cursor: default;
+}
+
+.paginator a.active {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.paginator a:hover:not(.active) {
+    background-color: #ddd;
+}

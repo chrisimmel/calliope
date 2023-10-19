@@ -1,5 +1,4 @@
 from datetime import datetime
-import os
 from typing import cast, Optional, Sequence
 
 from fastapi import APIRouter, Request, HTTPException
@@ -7,39 +6,35 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from markupsafe import Markup
 
-from calliope.models import ImageFormat, StoryModel, StoryFrameModel
 from calliope.tables import Story, StoryFrame
-from calliope.utils.file import (
-    get_base_filename,
-    get_base_filename_and_extension,
-)
-from calliope.utils.google import (
-    get_media_file,
-    is_google_cloud_run_environment,
-    put_media_file,
-)
-from calliope.utils.image import (
-    convert_grayscale16_to_png,
-    convert_rgb565_to_png,
-    get_image_attributes,
-)
 from calliope.storage.vector_manager import semantic_search
+from calliope.utils.pagination import Pagination
 
 
 router = APIRouter()
 templates = Jinja2Templates(directory="calliope/templates")
 
+PAGE_SIZE = 10
+
 
 @router.get("/thoth/", response_class=HTMLResponse)
 async def thoth_root(
-    request: Request, meta: Optional[bool] = False
+    request: Request, meta: Optional[bool] = False, page: int = 1
 ) -> HTMLResponse:
-    stories = cast(
-        Sequence[Story],
-        await Story.objects(Story.thumbnail_image).order_by(
-            Story.date_updated, ascending=False
-        ),
-    )
+    num_stories = await Story.count()
+
+    # Note: page is 1-based because it's user-visible.
+    pagination = Pagination(total_rows=num_stories, page=page, page_size=PAGE_SIZE)
+
+    if pagination.offset < num_stories:
+        stories = cast(
+            Sequence[Story],
+            await Story.objects(Story.thumbnail_image).order_by(
+                Story.date_updated, ascending=False
+            ).offset(pagination.offset).limit(pagination.page_size),
+        )
+    else:
+        stories = []
 
     story_thumbs_by_story_id = {}
 
@@ -53,6 +48,7 @@ async def thoth_root(
         "stories": stories,
         "story_thumbs_by_story_id": story_thumbs_by_story_id,
         "show_metadata": meta,
+        "pagination": pagination,
     }
     return cast(
         HTMLResponse, templates.TemplateResponse("thoth.html", context)
@@ -61,7 +57,7 @@ async def thoth_root(
 
 @router.get("/thoth/story/{story_cuid}", response_class=HTMLResponse)
 async def thoth_story(
-    request: Request, story_cuid: str, meta: Optional[bool] = False
+    request: Request, story_cuid: str, meta: Optional[bool] = False, page: int = 1
 ) -> HTMLResponse:
     story: Optional[Story] = (
         await Story.objects().where(Story.cuid == story_cuid).first().run()
@@ -72,7 +68,19 @@ async def thoth_story(
             detail=f"Unknown story: {story_cuid}",
         )
 
-    frames = await story.get_frames(include_images=True)
+    num_frames = await story.get_frame_count()
+
+    # Note: page is 1-based because it's user-visible.
+    pagination = Pagination(total_rows=num_frames, page=page, page_size=PAGE_SIZE)
+
+    if pagination.offset < num_frames:
+        frames = await story.get_frames(
+            offset=pagination.offset,
+            include_images=True,
+            max_frames=pagination.page_size
+        )
+    else:
+        frames = []
 
     # Truncate datetimes to dates to clean up display.
     story.date_created = cast(datetime, story.date_created.date())
@@ -83,6 +91,7 @@ async def thoth_story(
         "story": story,
         "frames": frames,
         "show_metadata": meta,
+        "pagination": pagination,
     }
     return cast(
         HTMLResponse, templates.TemplateResponse("thoth_story.html", context)
@@ -129,8 +138,8 @@ async def thoth_search(
         "query": query,
         "results": result_frames,
         "show_metadata": meta,
+        "story_page_size": PAGE_SIZE,
     }
     return cast(
         HTMLResponse, templates.TemplateResponse("thoth_search.html", context)
     )
-

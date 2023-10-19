@@ -1,3 +1,5 @@
+{% from 'macros.j2' import paginator %}
+
 <html>
 
 <head>
@@ -15,6 +17,8 @@
             Last updated on {{story.date_updated}}.
         </div>
     </div>
+
+    {{paginator(pagination, '&meta=true' if show_metadata else '')}}
 
     {% for frame in frames %}
     <div class="story-frame" id="f{{frame.number}}">

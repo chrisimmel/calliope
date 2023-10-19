@@ -15,8 +15,14 @@ Storage if on Azure.
 
 ## Building and Deploying to Google Cloud
 
+Do this once:
 ```
 gcloud auth application-default login
+gcloud config set project ardent-course-370411
+```
+
+Then do this for each build/deploy:
+```
 gcloud builds submit --tag <your project tag>
 gcloud run deploy --image <your project tag> --platform managed
 ```
