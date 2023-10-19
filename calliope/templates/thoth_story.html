@@ -1,3 +1,5 @@
+{% from 'macros.j2' import paginator %}
+
 <html>
 
 <head>
@@ -16,6 +18,8 @@
         </div>
     </div>
 
+    {{paginator(pagination, '&meta=true' if show_metadata else '')}}
+
     {% for frame in frames %}
     <div class="story-frame" id="f{{frame.number}}">
         <div class="frame-image">
@@ -33,20 +37,6 @@
         {% endif %}
     </div>
     {% endfor %}
-
-    <div class="paginator">
-        {% if prev_page %}
-            <span class="prev_page">
-                <a href="?page={{prev_page}}{{'&meta=true' if show_metadata else ''}}">Previous</a>
-            </span>
-        {% endif %}
-        <span class="page_num">Page {{page}} of {{num_pages}}</span>
-        {% if next_page %}
-            <span class="next_page">
-                <a href="?page={{next_page}}{{'&meta=true' if show_metadata else ''}}">Next</a>
-            </span>
-        {% endif %}
-    </div>
 </body>
 
 </html>

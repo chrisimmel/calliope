@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import cast, Optional, Sequence
+from typing import Iterator, cast, Optional, Sequence
 
 from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import HTMLResponse
@@ -16,23 +16,62 @@ templates = Jinja2Templates(directory="calliope/templates")
 PAGE_SIZE = 10
 
 
+class Pagination:
+    total_rows: int
+    page_size: int
+    page: int
+    row_offset: int
+    num_pages: int
+    max_shown_pages: int
+
+    def __init__(
+        self,
+        total_rows: int,
+        page: int,
+        page_size: int = 10,
+        max_shown_pages: int = 5
+    ) -> None:
+        self.total_rows = total_rows
+        self.page = page
+        self.page_size = page_size
+        self.num_pages = (total_rows // page_size) + 1
+        self.max_shown_pages = max_shown_pages
+
+    @property
+    def offset(self) -> int:
+        return (self.page - 1) * self.page_size
+
+    @property
+    def prev_page(self) -> int:
+        return self.page - 1
+
+    @property
+    def next_page(self) -> int:
+        return self.page + 1 if self.page < self.num_pages else 0
+
+    @property
+    def pages_in_range(self) -> int:
+        range_start_page = max(1, self.page - self.max_shown_pages // 2)
+        range_end_page = min(self.num_pages + 1, range_start_page + self.max_shown_pages)
+        for show_page in range(range_start_page, range_end_page):
+            yield show_page
+
+
 @router.get("/thoth/", response_class=HTMLResponse)
 async def thoth_root(
     request: Request, meta: Optional[bool] = False, page: int = 1
 ) -> HTMLResponse:
-    # Note: page is 1-based because it's user-visible.
     num_stories = await Story.count()
-    offset = (page - 1) * PAGE_SIZE
-    num_pages = (num_stories // PAGE_SIZE) + 1
-    prev_page = page - 1
-    next_page = page + 1 if page < num_pages else 0
 
-    if offset < num_stories:
+    # Note: page is 1-based because it's user-visible.
+    pagination = Pagination(total_rows=num_stories, page=page, page_size=PAGE_SIZE)
+
+    if pagination.offset < num_stories:
         stories = cast(
             Sequence[Story],
             await Story.objects(Story.thumbnail_image).order_by(
                 Story.date_updated, ascending=False
-            ).offset(offset).limit(PAGE_SIZE),
+            ).offset(pagination.offset).limit(pagination.page_size),
         )
     else:
         stories = []
@@ -49,10 +88,7 @@ async def thoth_root(
         "stories": stories,
         "story_thumbs_by_story_id": story_thumbs_by_story_id,
         "show_metadata": meta,
-        "page": page,
-        "num_pages": num_pages,
-        "prev_page": prev_page,
-        "next_page": next_page
+        "pagination": pagination,
     }
     return cast(
         HTMLResponse, templates.TemplateResponse("thoth.html", context)
@@ -72,16 +108,16 @@ async def thoth_story(
             detail=f"Unknown story: {story_cuid}",
         )
 
-    # Note: page is 1-based because it's user-visible.
     num_frames = await story.get_frame_count()
-    offset = (page - 1) * PAGE_SIZE
-    num_pages = (num_frames // PAGE_SIZE) + 1
-    prev_page = page - 1
-    next_page = page + 1 if page < num_pages else 0
 
-    if offset < num_frames:
+    # Note: page is 1-based because it's user-visible.
+    pagination = Pagination(total_rows=num_frames, page=page, page_size=PAGE_SIZE)
+
+    if pagination.offset < num_frames:
         frames = await story.get_frames(
-            offset=offset, include_images=True, max_frames=PAGE_SIZE
+            offset=pagination.offset,
+            include_images=True,
+            max_frames=pagination.page_size
         )
     else:
         frames = []
@@ -95,10 +131,7 @@ async def thoth_story(
         "story": story,
         "frames": frames,
         "show_metadata": meta,
-        "page": page,
-        "num_pages": num_pages,
-        "prev_page": prev_page,
-        "next_page": next_page
+        "pagination": pagination,
     }
     return cast(
         HTMLResponse, templates.TemplateResponse("thoth_story.html", context)

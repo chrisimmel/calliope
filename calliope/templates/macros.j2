@@ -1,0 +1,23 @@
+{% macro paginator(pagination, link_params) -%}
+    <div class="paginator">
+        {% if pagination.prev_page %}
+            <a href="?page=1{{link_params}}">&lt;&lt;</a>
+            <a href="?page={{pagination.prev_page}}{{link_params}}">&lt;</a>
+        {% endif %}
+        {% if not pagination.prev_page %}
+            <span>&lt;&lt;</span>
+            <span>&lt;</span>
+        {% endif %}
+        {% for page_num in pagination.pages_in_range %}
+            <a class="{{'active' if pagination.page == page_num else ''}}" href="?page={{page_num}}{{link_params}}">{{page_num}}</a>
+        {% endfor %}
+        {% if pagination.next_page %}
+            <a href="?page={{pagination.next_page}}{{link_params}}">&gt;</a>
+            <a href="?page={{pagination.num_pages}}{{link_params}}">&gt;&gt;</a>
+        {% endif %}
+        {% if not pagination.next_page %}
+            <span>&gt;&gt;</span>
+            <span>&gt;</span>
+        {% endif %}
+    </div>
+{%- endmacro -%}
