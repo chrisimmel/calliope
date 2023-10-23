@@ -44,6 +44,13 @@ def get_active_meteor_showers(
     return active_meteor_showers, peaking_meteor_showers
 
 
+def _get_printable_object_name(object_name: str) -> str:
+    if object_name in ("Moon", "Sun"):
+        object_name = "The " + object_name
+
+    return object_name
+
+
 async def get_night_sky_objects(
     aiohttp_session: aiohttp.ClientSession,
     latitude: float,
@@ -74,7 +81,7 @@ async def get_night_sky_objects(
     data: List[Dict[str, Any]] = json_response.get("data", [])
     objects: List[NightSkyObjectModel] = [
         NightSkyObjectModel(
-            name=object_data.get("name"),
+            name=_get_printable_object_name(object_data.get("name")),
             constellation=object_data.get("constellation"),
             above_horizon=object_data.get("aboveHorizon", False),
             magnitude=object_data.get("magnitude", 0.0),
