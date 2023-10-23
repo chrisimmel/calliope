@@ -1,7 +1,13 @@
-from datetime import datetime
+from datetime import date, datetime
+from enum import Enum
 from typing import List, Optional
 
 from pydantic import BaseModel
+
+
+class Hemisphere(Enum):
+    NORTHERN = "northern"
+    SOUTHERN = "southern"
 
 
 class BasicLocationMetadataModel(BaseModel):
@@ -15,6 +21,7 @@ class BasicLocationMetadataModel(BaseModel):
     timezone: Optional[str] = None
     isp: Optional[str] = None
     ip_address: Optional[str] = None
+    hemisphere: Optional[Hemisphere] = None
 
 
 class CurrentWeatherModel(BaseModel):
@@ -35,7 +42,10 @@ WMO_WEATHER_DESCRIPTIONS_BY_CODE = {
     1: "Clouds generally dissolving or becoming less developed during the past hour",
     2: "State of sky on the whole unchanged during the past hour",
     3: "Clouds generally forming or developing during the past hour",
-    4: "Haze or smoke, or dust in suspension in the air, visibility equal to, or greater than, 1 km",
+    4: (
+        "Haze or smoke, or dust in suspension in the air, visibility equal to, or "
+        "greater than, 1 km"
+    ),
     5: "Haze or smoke, or dust in suspension in the air, visibility less than 1 km",
     10: "Mist",
     11: "Diamond dust",
@@ -131,7 +141,7 @@ class NightSkyObjectModel(BaseModel):
     # The brightness of an object as it appears to an observer
     # at the given location. Smaller is brighter.
     # For reference:
-    # THe Sun:  −26.7
+    # The Sun:  −26.7
     # The full Moon: −11
     # Sirius: −1.5
     #
@@ -168,13 +178,117 @@ class NightSkyObjectModel(BaseModel):
     """
 
 
-class NightSkyModel(BaseModel):
-    time: str
-    objects: List[NightSkyObjectModel]
+class SolarEclipseModel(BaseModel):
+    description: str
+    start_time: datetime
+    end_time: datetime
+
+
+class MeteorShowerModel(BaseModel):
+    # The name of the shower.
+    name: str
+
+    # The hemispheres in which the shower is normally visible.
+    hemispheres: List[Hemisphere]
+
+    # The expected peak zenith hourly rate.
+    zenith_hourly_rate: int
+
+    # The start date (ignore the year).
+    start_date: date
+
+    # The date of the peak (ignore the year).
+    peak_morning: date
+
+    # The end date (ignore the year).
+    end_date: date
+
+    # Whether to look before midnight.
+    before_midnight: bool = False
+
+
+"""
+From: https://www.amsmeteors.org/meteor-showers/2020-meteor-shower-list/
+
+Quadrantids (QUA)	Dec 26-Jan 16	Jan 04	283.3°	15:20	+49.7°	40.2	2.1	120	0500	13
+Lyrids (LYR)	Apr 15-Apr 29	Apr 23	032.4°	18:10	+33.3°	46.8	2.1	18	0400	02
+eta Aquarids (ETA)	Apr 15-May 27	May 06	046.2°	22:30	-01.1°	65.5	2.4	60	0400	15
+Perseids (PER)	Jul 14-Sep 01	Aug 13	140.0°	03:13	+58.0°	58.8	2.6	100	0400	27
+Orionids (ORI)	Sep 26-Nov 22	Oct 22	207.5°	06:21	+15.6°	66.1	2.5	23	0500	07
+Leonids (LEO)	Nov 03-Dec 02	Nov 18	236.0°	10:17	+21.6°	70.0	2.5	15	0500	05
+Geminids (GEM)	Nov 19-Dec 24	Dec 14	262°0	07:34	+32.3°	33.8	2.6	120	0100	02
+Ursids (URS)	Dec 13-Dec 24	Dec 22	270°5	14:36	+75.3°	33.0	3.0	10	0500	10
+"""
+
+MAJOR_METEOR_SHOWERS = [
+    MeteorShowerModel(
+        name="Quadrantids",
+        hemispheres=[Hemisphere.NORTHERN],
+        zenith_hourly_rate=120,
+        start_date=date(2000, 12, 26),
+        peak_morning=date(2000, 1, 4),
+        end_date=date(2000, 1, 16),
+    ),
+    MeteorShowerModel(
+        name="Lyrids",
+        hemispheres=[Hemisphere.NORTHERN],
+        zenith_hourly_rate=18,
+        start_date=date(2000, 4, 15),
+        peak_morning=date(2000, 4, 23),
+        end_date=date(2000, 4, 29),
+    ),
+    MeteorShowerModel(
+        name="eta Aquarids",
+        hemispheres=[Hemisphere.NORTHERN],
+        zenith_hourly_rate=60,
+        start_date=date(2000, 4, 15),
+        peak_morning=date(2000, 5, 6),
+        end_date=date(2000, 5, 26),
+    ),
+    # Omitting the Southern delta Aquarids because they overlap
+    # with the Perseids and are less intense and lesser known.
+    MeteorShowerModel(
+        name="Perseids",
+        hemispheres=[Hemisphere.NORTHERN],
+        zenith_hourly_rate=100,
+        start_date=date(2000, 7, 14),
+        peak_morning=date(2000, 8, 13),
+        end_date=date(2000, 9, 1),
+    ),
+    MeteorShowerModel(
+        name="Orionids",
+        hemispheres=[Hemisphere.NORTHERN],
+        zenith_hourly_rate=23,
+        start_date=date(2000, 9, 26),
+        peak_morning=date(2000, 10, 22),
+        end_date=date(2000, 11, 22),
+    ),
+    MeteorShowerModel(
+        name="Leonids",
+        hemispheres=[Hemisphere.NORTHERN],
+        zenith_hourly_rate=15,
+        start_date=date(2000, 11, 3),
+        peak_morning=date(2000, 11, 18),
+        end_date=date(2000, 12, 2),
+    ),
+    MeteorShowerModel(
+        name="Geminids",
+        hemispheres=[Hemisphere.NORTHERN, Hemisphere.SOUTHERN],
+        zenith_hourly_rate=120,
+        start_date=date(2000, 11, 19),
+        peak_morning=date(2000, 12, 14),
+        end_date=date(2000, 12, 24),
+        before_midnight=True,
+    ),
+    # Omitting the Ursids because of low zhr.
+]
 
 
 class FullLocationMetadata(BaseModel):
     location: BasicLocationMetadataModel
     weather: Optional[CurrentWeatherModel] = None
     local_datetime: Optional[datetime] = None
-    night_sky_data: Optional[NightSkyModel] = None
+    night_sky_objects: List[NightSkyObjectModel] = []
+    active_meteor_showers: List[MeteorShowerModel] = []
+    peaking_meteor_showers: List[MeteorShowerModel] = []
+    solar_eclipse: Optional[SolarEclipseModel] = None

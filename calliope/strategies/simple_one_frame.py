@@ -1,4 +1,5 @@
-import sys, traceback
+import sys
+import traceback
 from typing import Any, Dict, List, Optional
 
 import aiohttp
@@ -7,13 +8,14 @@ from calliope.inference import (
     text_to_text_inference,
     text_to_image_file_inference,
 )
+from calliope.intel.location import get_local_situation_text
 from calliope.models import (
     FramesRequestParamsModel,
     FullLocationMetadata,
     KeysModel,
 )
 from calliope.models.frame_sequence_response import StoryFrameSequenceResponseModel
-from calliope.strategies.base import DEFAULT_MIN_DURATION_SECONDS, StoryStrategy
+from calliope.strategies.base import StoryStrategy
 from calliope.strategies.registry import StoryStrategyRegistry
 from calliope.tables import (
     SparrowState,
@@ -22,7 +24,6 @@ from calliope.tables import (
 from calliope.tables.model_config import StrategyConfig
 from calliope.utils.file import create_sequential_filename
 from calliope.utils.image import get_image_attributes
-from calliope.utils.location import get_local_situation_text
 
 
 @StoryStrategyRegistry.register()

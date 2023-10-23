@@ -2,24 +2,24 @@ import os
 from typing import Any, Dict, List, Optional
 
 import aiohttp
-from calliope.tables.model_config import StrategyConfig
 from fastapi import HTTPException
 
+from calliope.intel.location import get_local_situation_text
 from calliope.models import (
     FramesRequestParamsModel,
     FullLocationMetadata,
     KeysModel,
 )
 from calliope.models.frame_sequence_response import StoryFrameSequenceResponseModel
-from calliope.strategies.base import DEFAULT_MIN_DURATION_SECONDS, StoryStrategy
+from calliope.strategies.base import StoryStrategy
 from calliope.strategies.registry import StoryStrategyRegistry
 from calliope.tables import (
     SparrowState,
     Story,
+    StrategyConfig,
 )
 from calliope.utils.google import get_media_file, is_google_cloud_run_environment
 from calliope.utils.image import get_image_attributes
-from calliope.utils.location import get_local_situation_text
 
 
 @StoryStrategyRegistry.register()

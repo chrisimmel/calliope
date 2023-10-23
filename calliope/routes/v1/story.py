@@ -4,13 +4,13 @@ import traceback
 from typing import Any, Dict, List, Optional
 
 import aiohttp
-from calliope.inference import image_analysis_inference
-from calliope.tables.model_config import ModelConfig
 import cuid
 from fastapi import APIRouter, Depends, Request
 from fastapi.security.api_key import APIKey
 from pydantic import BaseModel
 
+from calliope.inference import image_analysis_inference
+from calliope.intel.location import get_location_metadata_for_ip
 from calliope.models import (
     FramesRequestParamsModel,
     StoryFrameModel,
@@ -26,7 +26,7 @@ from calliope.storage.state_manager import (
     put_story,
 )
 from calliope.strategies import StoryStrategyRegistry
-from calliope.tables import Image, Story, StoryFrame
+from calliope.tables import Image, ModelConfig, Story, StoryFrame
 from calliope.utils.fastapi import get_base_url
 from calliope.utils.file import (
     create_sequential_filename,
@@ -46,7 +46,6 @@ from calliope.utils.image import (
     ImageFormat,
     resize_image_if_needed,
 )
-from calliope.utils.location import get_location_metadata_for_ip
 
 
 router = APIRouter(prefix="/v1", tags=["story"])
