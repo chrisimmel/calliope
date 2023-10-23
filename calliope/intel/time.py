@@ -28,7 +28,7 @@ seasons = [
 
 def get_season(now: Union[datetime, date]) -> str:
     """
-    Gets the season in effect for at a given datetime or date.
+    Gets the season in effect at a given datetime or date.
     """
     if isinstance(now, datetime):
         now = now.date()
