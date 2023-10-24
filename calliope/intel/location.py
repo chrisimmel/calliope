@@ -200,7 +200,7 @@ def get_local_situation_text(
     if location_metadata.local_datetime:
         situation_text += (
             "\nThe date is "
-            f"{location_metadata.local_datetime.strftime('%M %d, %Y')}.\n"
+            f"{location_metadata.local_datetime.strftime('%A, %B %d, %Y')}.\n"
         )
         situation_text += (
             "The time is "
