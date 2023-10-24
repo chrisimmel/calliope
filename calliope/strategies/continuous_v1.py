@@ -74,15 +74,6 @@ class ContinuousStoryV1Strategy(StoryStrategy):
 
         frame_number = await story.get_num_frames()
 
-        if image_analysis:
-            image_scene = image_analysis.get("all_captions") or ""
-            image_objects = image_analysis.get("all_tags_and_objects") or ""
-            image_text = image_analysis.get("text") or ""
-        else:
-            image_scene = ""
-            image_objects = ""
-            image_text = ""
-
         # Get some recent text.
         last_text: Optional[str] = await story.get_text(-3)
         if not last_text or last_text.isspace():
@@ -96,9 +87,8 @@ class ContinuousStoryV1Strategy(StoryStrategy):
             parameters,
             story,
             last_text,
-            image_scene,
-            image_text,
-            image_objects,
+            situation,
+            image_analysis,
             strategy_config,
             debug_data,
         )
@@ -199,9 +189,8 @@ class ContinuousStoryV1Strategy(StoryStrategy):
         parameters: FramesRequestParamsModel,
         story: Story,
         last_text: Optional[str],
-        scene: str,
-        text: str,
-        objects: str,
+        situation: str,
+        image_analysis: Optional[Dict[str, Any]],
         strategy_config: StrategyConfig,
         debug_data: Dict[str, Any],
     ) -> str:
@@ -222,6 +211,15 @@ class ContinuousStoryV1Strategy(StoryStrategy):
             ) or ""
             debug_data["applied_seed_prompt"] = last_text
 
+        if image_analysis:
+            image_scene = image_analysis.get("all_captions") or ""
+            image_objects = image_analysis.get("all_tags_and_objects") or ""
+            image_text = image_analysis.get("text") or ""
+        else:
+            image_scene = ""
+            image_objects = ""
+            image_text = ""
+
         model_config = (
             cast(ModelConfig, strategy_config.text_to_text_model_config)
             if strategy_config
@@ -235,9 +233,10 @@ class ContinuousStoryV1Strategy(StoryStrategy):
             prompt = prompt_template.render(
                 {
                     "poem": last_text,
-                    "scene": scene,
-                    "text": text,
-                    "objects": objects,
+                    "scene": image_scene,
+                    "text": image_text,
+                    "objects": image_objects,
+                    "situation": situation,
                 }
             )
         else:

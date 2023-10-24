@@ -108,6 +108,8 @@ def load_llm_output_as_json(text: str) -> Optional[Dict[str, Any]]:
     Attempts to interpret a piece of text presumably coming from an LLM as JSON,
     with tolerance for some of the oddities we sometimes see in LLM-generated
     JSON.
+
+    Returns None if the input text doesn't contain valid JSON.
     """
     # TODO: Look at using a LangChain PydanticOutputParser instead.
     if not text:
@@ -124,7 +126,7 @@ def load_llm_output_as_json(text: str) -> Optional[Dict[str, Any]]:
     try:
         # Use json.loads() to parse the text as JSON.
         data = json.loads(text)
-        
+
         # If the result is a dictionary, return it.
         if isinstance(data, dict):
             return data
