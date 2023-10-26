@@ -152,9 +152,9 @@ class Story(Table):
     date_updated = Timestamptz(auto_update=datetime.now)
 
     async def get_frame_count(self) -> int:
-        return await StoryFrame.count().where(
-            StoryFrame.story.id == self.id
-        )
+        return cast(int, await StoryFrame.count().where(
+            StoryFrame.story.id == self.id  # type: ignore[attr-defined]
+        ))
 
     async def get_frames(
         self,

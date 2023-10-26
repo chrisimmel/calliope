@@ -121,7 +121,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
             )
 
         if not story_continuation or story_continuation.isspace():
-            story_continuation = image_scene + "\n"
+            story_continuation = situation + "\n"
 
         if story_continuation:
             # Generate an image for the frame, composing a prompt from
@@ -241,7 +241,12 @@ class ContinuousStoryV1Strategy(StoryStrategy):
             )
         else:
             debug_data["prompt_template"] = None
-            prompt = last_text + "\n" + scene + "\n" + text + "\n" + objects
+            prompt = (
+                last_text + "\n" + 
+                image_scene + "\n" +
+                image_text + "\n" +
+                image_objects
+            )
 
         return prompt
 

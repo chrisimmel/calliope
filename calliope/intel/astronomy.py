@@ -1,6 +1,6 @@
 import aiohttp
 from datetime import date, datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, cast, Dict, List, Optional, Tuple
 
 from calliope.models import (
     Hemisphere,
@@ -81,12 +81,12 @@ async def get_night_sky_objects(
     data: List[Dict[str, Any]] = json_response.get("data", [])
     objects: List[NightSkyObjectModel] = [
         NightSkyObjectModel(
-            name=_get_printable_object_name(object_data.get("name")),
-            constellation=object_data.get("constellation"),
+            name=_get_printable_object_name(cast(str, object_data.get("name", ""))),
+            constellation=cast(str, object_data.get("constellation", "")),
             above_horizon=object_data.get("aboveHorizon", False),
             magnitude=object_data.get("magnitude", 0.0),
-            naked_eye_object=object_data.get("nakedEyeObject", False),
-            phase=object_data.get("phase", None),
+            naked_eye_object=cast(bool, object_data.get("nakedEyeObject", False)),
+            phase=cast(int, object_data.get("phase", None)),
         )
         for object_data in data
     ]
@@ -108,19 +108,21 @@ def _parse_eclipse_response(
             end_time = None
             for entry in local_data:
                 phenomenon = entry.get("phenomenon")
-                time = entry.get("time")
-                if phenomenon == "Eclipse Begins":
-                    start_time = datetime.combine(
-                        when.date(),
-                        datetime.strptime(time, "%H:%M:%S.%f").time(),
-                        when.tzinfo
-                    )
-                elif phenomenon == "Eclipse Ends":
-                    end_time = datetime.combine(
-                        when.date(),
-                        datetime.strptime(time, "%H:%M:%S.%f").time(),
-                        when.tzinfo
-                    )
+                time = cast(Optional[str], entry.get("time"))
+                start_time = end_time = None
+                if time:
+                    if phenomenon == "Eclipse Begins":
+                        start_time = datetime.combine(
+                            when.date(),
+                            datetime.strptime(time, "%H:%M:%S.%f").time(),
+                            when.tzinfo
+                        )
+                    elif phenomenon == "Eclipse Ends":
+                        end_time = datetime.combine(
+                            when.date(),
+                            datetime.strptime(time, "%H:%M:%S.%f").time(),
+                            when.tzinfo
+                        )
             if start_time and end_time:
                 return SolarEclipseModel(
                     description=description,

@@ -110,16 +110,20 @@ async def get_location_metadata_for_ip(
             basic_metadata.longitude,
         ) if weather_metadata and not weather_metadata.is_day else []
 
-        active_meteor_showers, peaking_meteor_showers = get_active_meteor_showers(
-            basic_metadata.hemisphere, local_datetime
-        )
+        if basic_metadata.hemisphere and local_datetime:
+            active_meteor_showers, peaking_meteor_showers = get_active_meteor_showers(
+                basic_metadata.hemisphere, local_datetime
+            )
+        else:
+            active_meteor_showers = peaking_meteor_showers = []
+
         solar_eclipse = await get_solar_eclipse_of_the_day(
             aiohttp_session,
             local_datetime,
             basic_metadata.latitude,
             basic_metadata.longitude,
             weather_metadata.elevation if weather_metadata else 0,
-        )
+        ) if local_datetime else None
     else:
         weather_metadata = None
         night_sky_objects = []
@@ -248,6 +252,7 @@ def get_local_situation_text(
             )
     elif (
         len(location_metadata.active_meteor_showers)
+        and location_metadata.weather
         and not location_metadata.weather.is_day
     ):
         for shower in location_metadata.active_meteor_showers:
@@ -260,7 +265,7 @@ def get_local_situation_text(
         full_moon = False
 
         for sky_object in location_metadata.night_sky_objects:
-            if sky_object.name == "The Moon":
+            if sky_object.name == "The Moon" and sky_object.phase is not None:
                 if sky_object.phase > 99 or sky_object.phase < 1:
                     full_moon = True
 
