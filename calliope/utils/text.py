@@ -1,6 +1,6 @@
 import json
 import re
-from typing import Any, cast, Dict, List, Optional, Union
+from typing import Any, cast, Dict, List, Optional, Sequence, Union
 import unicodedata
 
 
@@ -108,6 +108,8 @@ def load_llm_output_as_json(text: str) -> Optional[Dict[str, Any]]:
     Attempts to interpret a piece of text presumably coming from an LLM as JSON,
     with tolerance for some of the oddities we sometimes see in LLM-generated
     JSON.
+
+    Returns None if the input text doesn't contain valid JSON.
     """
     # TODO: Look at using a LangChain PydanticOutputParser instead.
     if not text:
@@ -124,7 +126,7 @@ def load_llm_output_as_json(text: str) -> Optional[Dict[str, Any]]:
     try:
         # Use json.loads() to parse the text as JSON.
         data = json.loads(text)
-        
+
         # If the result is a dictionary, return it.
         if isinstance(data, dict):
             return data
@@ -132,3 +134,19 @@ def load_llm_output_as_json(text: str) -> Optional[Dict[str, Any]]:
         pass
 
     return None
+
+
+def format_sequence(items: Sequence[Any]) -> str:
+    """
+    Formats a sequence of zero or more values, using normal English punctuation
+    and an Oxford comma when appropriate.
+    """
+    count = len(items)
+    if count == 0:
+        return ""
+    elif count == 1:
+        return f"{items[0]}"
+    elif count == 2:
+        return f"{items[0]} and {items[1]}"
+    else:
+        return f"{', '.join(items[:-1])}, and {items[-1]}"

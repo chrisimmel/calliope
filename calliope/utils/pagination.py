@@ -1,3 +1,6 @@
+from typing import Generator
+
+
 class Pagination:
     """
     A helper class to manage pagination on a page showing potentially many rows.
@@ -56,7 +59,7 @@ class Pagination:
         return self.page + 1 if self.page < self.num_pages else 0
 
     @property
-    def pages_in_range(self) -> int:
+    def pages_in_range(self) -> Generator[int, None, None]:
         """
         A generator of pages in the displayable range for use in a pagination control.
         """

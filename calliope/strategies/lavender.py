@@ -1,4 +1,3 @@
-import re
 import sys
 import traceback
 from typing import Any, cast, Dict, List, Optional
@@ -9,6 +8,7 @@ from calliope.inference import (
     text_to_text_inference,
     text_to_image_file_inference,
 )
+from calliope.intel.location import get_local_situation_text
 from calliope.models import (
     FramesRequestParamsModel,
     FullLocationMetadata,
@@ -26,7 +26,6 @@ from calliope.tables import (
 )
 from calliope.utils.file import create_sequential_filename
 from calliope.utils.image import get_image_attributes
-from calliope.utils.location import get_local_situation_text
 from calliope.utils.text import load_llm_output_as_json, translate_text
 
 
@@ -88,6 +87,7 @@ class LavenderStrategy(StoryStrategy):
             story,
             last_text,
             situation,
+            image_analysis,
             strategy_config,
             debug_data,
         )
@@ -203,6 +203,7 @@ class LavenderStrategy(StoryStrategy):
         story: Story,
         last_text: Optional[str],
         situation: str,
+        image_analysis: Optional[Dict[str, Any]],
         strategy_config: StrategyConfig,
         debug_data: Dict[str, Any],
     ) -> str:
@@ -223,6 +224,15 @@ class LavenderStrategy(StoryStrategy):
         if not last_text:
             last_text = ""
 
+        if image_analysis:
+            image_scene = image_analysis.get("all_captions") or ""
+            image_objects = image_analysis.get("all_tags_and_objects") or ""
+            image_text = image_analysis.get("text") or ""
+        else:
+            image_scene = ""
+            image_objects = ""
+            image_text = ""
+
         model_config = (
             cast(ModelConfig, strategy_config.text_to_text_model_config)
             if strategy_config
@@ -237,6 +247,9 @@ class LavenderStrategy(StoryStrategy):
             prompt = prompt_template.render(
                 {
                     "poem": last_text,
+                    "scene": image_scene,
+                    "text": image_text,
+                    "objects": image_objects,
                     "situation": situation,
                 }
             )

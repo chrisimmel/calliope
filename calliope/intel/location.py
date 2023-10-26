@@ -1,25 +1,18 @@
 import aiohttp
-from datetime import date, datetime
 from ipaddress import ip_address
-from typing import Any, Dict, Optional, Union
-import tzlocal
-from zoneinfo import ZoneInfo
+from typing import Any, Dict, Optional
 
+from calliope.intel.time import get_local_datetime, get_season
+from calliope.intel.astronomy import (
+    get_active_meteor_showers, get_night_sky_objects, get_solar_eclipse_of_the_day
+)
+from calliope.intel.weather import get_weather_at_location
 from calliope.models import (
     BasicLocationMetadataModel,
-    CurrentWeatherModel,
     FullLocationMetadata,
-    WMO_WEATHER_DESCRIPTIONS_BY_CODE,
+    Hemisphere
 )
-
-
-def get_local_datetime(tz: str) -> datetime:
-    """
-    Gets the current local datetime in the given timezone.
-    """
-    if not tz:
-        tz = tzlocal.get_localzone_name()
-    return datetime.now(tz=ZoneInfo(tz))
+from calliope.utils.text import format_sequence
 
 
 def is_ip_private(ip: str) -> bool:
@@ -46,9 +39,13 @@ async def get_public_ip_address(
         return None
 
 
+def hemisphere_at_latitude(latitude: float) -> Hemisphere:
+    return Hemisphere.SOUTHERN if latitude < 0 else Hemisphere.NORTHERN
+
+
 async def get_location_from_ip(
-        aiohttp_session: aiohttp.ClientSession,
-        ip: Optional[str]
+    aiohttp_session: aiohttp.ClientSession,
+    ip: Optional[str]
 ) -> BasicLocationMetadataModel:
     """
     Gets the estimated location of a given IP address.
@@ -65,14 +62,18 @@ async def get_location_from_ip(
     json_response = await response.json()
 
     if json_response and json_response.get("status") == "success":
+        latitude = json_response.get("lat")
+        longitude = json_response.get("lon")
+
         return BasicLocationMetadataModel(
             country=json_response.get("country"),
             country_code=json_response.get("countryCode"),
             region_name=json_response.get("regionName"),
             city=json_response.get("city"),
             zip=json_response.get("zip"),
-            lattitude=json_response.get("lat"),
-            longitude=json_response.get("lon"),
+            latitude=latitude,
+            longitude=longitude,
+            hemisphere=hemisphere_at_latitude(latitude),
             timezone=json_response.get("timezone"),
             isp=json_response.get("isp"),
             ip_address=ip,
@@ -80,41 +81,6 @@ async def get_location_from_ip(
     else:
         # raise ValueError(f"Invalid location response: {json_response}")
         return BasicLocationMetadataModel(ip_address=None)
-
-
-async def get_weather_at_location(
-        aiohttp_session: aiohttp.ClientSession,
-        lattitude: float,
-        longitude: float
-) -> CurrentWeatherModel:
-    """
-    Gets the weather at a given location.
-    """
-    api_url = (
-        f"https://api.open-meteo.com/v1/forecast?latitude={lattitude}&longitude={longitude}"
-        "&current_weather=true&"
-        # "hourly=temperature_2m,relativehumidity_2m,windspeed_10m"
-    )
-
-    response = await aiohttp_session.get(api_url)
-    json_response = await response.json()
-    if json_response and not json_response.get("error", False):
-        current_weather = json_response.get("current_weather")
-        weather_code = current_weather.get("weathercode", 0)
-        return CurrentWeatherModel(
-            time=current_weather.get("time"),
-            temperature=current_weather.get("temperature"),
-            elevation=json_response.get("elevation"),
-            wind_speed=current_weather.get("windspeed"),
-            wind_direction=current_weather.get("winddirection"),
-            is_day=current_weather.get("is_day"),
-            weather_code=weather_code,
-            weather_description=(
-                WMO_WEATHER_DESCRIPTIONS_BY_CODE.get(weather_code) or "(unknown)"
-            ),
-        )
-    else:
-        raise ValueError(f"Invalid weather result: {json_response}")
 
 
 async def get_location_metadata_for_ip(
@@ -132,41 +98,49 @@ async def get_location_metadata_for_ip(
         get_local_datetime(basic_metadata.timezone) if basic_metadata.timezone else None
     )
 
-    if basic_metadata.lattitude and basic_metadata.longitude:
+    if basic_metadata.latitude and basic_metadata.longitude:
         weather_metadata = await get_weather_at_location(
             aiohttp_session,
-            basic_metadata.lattitude,
+            basic_metadata.latitude,
             basic_metadata.longitude,
         )
+        night_sky_objects = await get_night_sky_objects(
+            aiohttp_session,
+            basic_metadata.latitude,
+            basic_metadata.longitude,
+        ) if weather_metadata and not weather_metadata.is_day else []
+
+        if basic_metadata.hemisphere and local_datetime:
+            active_meteor_showers, peaking_meteor_showers = get_active_meteor_showers(
+                basic_metadata.hemisphere, local_datetime
+            )
+        else:
+            active_meteor_showers = peaking_meteor_showers = []
+
+        solar_eclipse = await get_solar_eclipse_of_the_day(
+            aiohttp_session,
+            local_datetime,
+            basic_metadata.latitude,
+            basic_metadata.longitude,
+            weather_metadata.elevation if weather_metadata else 0,
+        ) if local_datetime else None
     else:
         weather_metadata = None
+        night_sky_objects = []
+        active_meteor_showers = []
+        peaking_meteor_showers = []
+        solar_eclipse = None
+
+    print(f"{basic_metadata=}, {solar_eclipse=}, {weather_metadata=}")
 
     return FullLocationMetadata(
         location=basic_metadata,
         weather=weather_metadata,
         local_datetime=local_datetime,
-    )
-
-
-Y = 2000  # dummy leap year to allow input X-02-29 (leap day)
-
-
-seasons = [
-    ('winter', (date(Y, 1, 1), date(Y, 3, 20))),
-    ('spring', (date(Y, 3, 21), date(Y, 6, 20))),
-    ('summer', (date(Y, 6, 21), date(Y, 9, 22))),
-    ('autumn', (date(Y, 9, 23), date(Y, 12, 20))),
-    ('winter', (date(Y, 12, 21), date(Y, 12, 31)))
-]
-
-
-def get_season(now: Union[datetime, date]) -> str:
-    if isinstance(now, datetime):
-        now = now.date()
-    now = now.replace(year=Y)
-    return next(
-        season for season, (start, end) in seasons
-        if start <= now <= end
+        night_sky_objects=night_sky_objects,
+        active_meteor_showers=active_meteor_showers,
+        peaking_meteor_showers=peaking_meteor_showers,
+        solar_eclipse=solar_eclipse,
     )
 
 
@@ -231,7 +205,7 @@ def get_local_situation_text(
     if location_metadata.local_datetime:
         situation_text += (
             "\nThe date is "
-            f"{location_metadata.local_datetime.strftime('%M %d, %Y')}.\n"
+            f"{location_metadata.local_datetime.strftime('%A, %B %d, %Y')}.\n"
         )
         situation_text += (
             "The time is "
@@ -248,6 +222,15 @@ def get_local_situation_text(
             f"{get_season(location_metadata.local_datetime)}.\n"
         )
 
+    if location_metadata.solar_eclipse:
+        situation_text += (
+            "Step outside today to see a solar eclipse!\n"
+            f"{location_metadata.solar_eclipse.description} "
+            f"Starting {location_metadata.solar_eclipse.start_time.strftime('%H:%M')}, "
+            f"Ending {location_metadata.solar_eclipse.end_time.strftime('%H:%M')}, "
+            "\n"
+        )
+
     if location_metadata.weather:
         # It would also be nice to know if there were big weather changes
         # expected in the next few hours, because that could be great to
@@ -261,5 +244,42 @@ def get_local_situation_text(
             "The temperature is "
             f"{location_metadata.weather.temperature} degrees Celsius.\n"
         )
+
+    if len(location_metadata.peaking_meteor_showers):
+        for shower in location_metadata.peaking_meteor_showers:
+            situation_text += (
+                f"The {shower.name} meteor shower will peak tonight!\n"
+            )
+    elif (
+        len(location_metadata.active_meteor_showers)
+        and location_metadata.weather
+        and not location_metadata.weather.is_day
+    ):
+        for shower in location_metadata.active_meteor_showers:
+            situation_text += (
+                f"The {shower.name} meteor shower is active tonight.\n"
+            )
+
+    if len(location_metadata.night_sky_objects):
+        object_names = []
+        full_moon = False
+
+        for sky_object in location_metadata.night_sky_objects:
+            if sky_object.name == "The Moon" and sky_object.phase is not None:
+                if sky_object.phase > 99 or sky_object.phase < 1:
+                    full_moon = True
+
+            if sky_object.naked_eye_object:
+                object_names.append(sky_object.name)
+
+        if len(object_names) > 1:
+            situation_text += (
+                f"{format_sequence(object_names)} are in the sky tonight.\n"
+            )
+        elif len(object_names) == 1:
+            situation_text += f"{object_names[0]} is in the sky tonight.\n"
+
+        if full_moon:
+            situation_text += "The moon is full.\n"
 
     return situation_text

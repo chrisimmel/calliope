@@ -9,6 +9,7 @@ from calliope.inference import (
     text_to_text_inference,
     text_to_image_file_inference,
 )
+from calliope.intel.location import get_local_situation_text
 from calliope.models import (
     FramesRequestParamsModel,
     FullLocationMetadata,
@@ -24,7 +25,6 @@ from calliope.tables import (
 )
 from calliope.utils.file import create_sequential_filename
 from calliope.utils.image import get_image_attributes
-from calliope.utils.location import get_local_situation_text
 
 
 @StoryStrategyRegistry.register()
