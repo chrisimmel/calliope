@@ -12,6 +12,7 @@ from calliope.models import (
     FullLocationMetadata,
     Hemisphere
 )
+from calliope.utils.text import format_sequence
 
 
 def is_ip_private(ip: str) -> bool:
@@ -255,11 +256,25 @@ def get_local_situation_text(
             )
 
     if len(location_metadata.night_sky_objects):
+        object_names = []
+        full_moon = False
+
         for sky_object in location_metadata.night_sky_objects:
+            if sky_object.name == "The Moon":
+                if sky_object.phase > 99 or sky_object.phase < 1:
+                    full_moon = True
+
             if sky_object.naked_eye_object:
-                situation_text += (
-                    f"{sky_object.name} is watching over you "
-                    f"from the constellation of {sky_object.constellation}.\n"
-                )
+                object_names.append(sky_object.name)
+
+        if len(object_names) > 1:
+            situation_text += (
+                f"{format_sequence(object_names)} are in the sky tonight.\n"
+            )
+        elif len(object_names) == 1:
+            situation_text += f"{object_names[0]} is in the sky tonight.\n"
+
+        if full_moon:
+            situation_text += "The moon is full.\n"
 
     return situation_text

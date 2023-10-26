@@ -1,6 +1,6 @@
 import json
 import re
-from typing import Any, cast, Dict, List, Optional, Union
+from typing import Any, cast, Dict, List, Optional, Sequence, Union
 import unicodedata
 
 
@@ -134,3 +134,15 @@ def load_llm_output_as_json(text: str) -> Optional[Dict[str, Any]]:
         pass
 
     return None
+
+
+def format_sequence(items: Sequence[Any]) -> str:
+    count = len(items)
+    if count == 0:
+        return ""
+    elif count == 1:
+        return f"{items[0]}"
+    elif count == 2:
+        return f"{items[0]} and {items[1]}"
+    else:
+        return f"{', '.join(items[:-1])}, and {items[-1]}"
