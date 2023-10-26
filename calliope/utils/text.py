@@ -137,6 +137,10 @@ def load_llm_output_as_json(text: str) -> Optional[Dict[str, Any]]:
 
 
 def format_sequence(items: Sequence[Any]) -> str:
+    """
+    Formats a sequence of zero or more values, using normal English punctuation
+    and an Oxford comma when appropriate.
+    """
     count = len(items)
     if count == 0:
         return ""
