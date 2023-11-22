@@ -151,9 +151,8 @@ class NightSkyObjectModel(BaseModel):
     # Whether we can expect to see this with the naked eye. 
     naked_eye_object: bool
 
-    # Phase is full at 100, then immediately drops to zero
-    # and climbs back to a hundred. So it is waning from 0
-    # to 50, then is waxing from 50 up to 100.
+    # Phase is new at 0, full at 50, and continues to climb to 100.
+    # So it is waxing from 0 to 50, then waning from 50 up to 100.
     # Only present in the case of the moon.
     phase: Optional[float] = None
 

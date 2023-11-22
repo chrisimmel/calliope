@@ -130,7 +130,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
                 strategy_config.text_to_text_model_config
                 and strategy_config.text_to_text_model_config
                 and strategy_config.text_to_text_model_config.prompt_template
-                and strategy_config.text_to_text_model_config.prompt_template.target_language
+                and strategy_config.text_to_text_model_config.prompt_template.target_language  # noqa: E501
                 != "en"
             ):
                 # Translate the story to English before

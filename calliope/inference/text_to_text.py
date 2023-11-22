@@ -2,6 +2,7 @@ import aiohttp
 
 from calliope.inference.engines.hugging_face import text_to_text_inference_hugging_face
 from calliope.inference.engines.openai_text import openai_text_to_text_inference
+from calliope.inference.engines.replicate import replicate_text_to_text_inference
 from calliope.models import (
     InferenceModelProvider,
     KeysModel,
@@ -16,9 +17,7 @@ async def text_to_text_inference(
     keys: KeysModel,
 ) -> str:
     """
-    Performs a text->text inference using an LLM. Only OpenAI and HuggingFace-hosted
-    models are currently supported, but it would be trivial to add support for other
-    LLMs here.
+    Performs a text->text inference using an LLM.
 
     Args:
         aiohttp_session: the async HTTP session.
@@ -41,6 +40,12 @@ async def text_to_text_inference(
     elif model.provider == InferenceModelProvider.OPENAI:
         print(f"text_to_text_inference.openai {model.provider_model_name}")
         extended_text = await openai_text_to_text_inference(
+            aiohttp_session, text, model_config, keys
+        )
+        print(f'extended_text="{extended_text}"')
+    elif model.provider == InferenceModelProvider.REPLICATE:
+        print(f"text_to_text_inference.replicate {model.provider_model_name}")
+        extended_text = await replicate_text_to_text_inference(
             aiohttp_session, text, model_config, keys
         )
         print(f'extended_text="{extended_text}"')

@@ -266,7 +266,7 @@ def get_local_situation_text(
 
         for sky_object in location_metadata.night_sky_objects:
             if sky_object.name == "The Moon" and sky_object.phase is not None:
-                if sky_object.phase > 99 or sky_object.phase < 1:
+                if sky_object.phase > 49 and sky_object.phase < 51:
                     full_moon = True
 
             if sky_object.naked_eye_object:

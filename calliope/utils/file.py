@@ -8,7 +8,6 @@ from typing import cast
 
 import cuid
 from pydantic import BaseModel
-from pydantic.main import ModelMetaclass
 
 from calliope.utils.text import slugify
 
@@ -111,7 +110,7 @@ def create_sequential_filename(
 
 
 def load_json_into_pydantic_model(
-    json_filename: str, model: ModelMetaclass
+    json_filename: str, model: type[BaseModel]
 ) -> BaseModel:
     """
     Takes a JSON file path as a string and a Pydantic model class as arguments, reads

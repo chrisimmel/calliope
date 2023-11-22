@@ -63,3 +63,59 @@ async def replicate_vision_inference(
         output = await loop.run_in_executor(None, future.result)
 
     return cast(str, output)
+
+
+async def replicate_text_to_text_inference(
+    aiohttp_session: aiohttp.ClientSession,
+    text: str,
+    model_config: ModelConfig,
+    keys: KeysModel,
+) -> str:
+    model = model_config.model
+
+    if not keys.replicate_api_key:
+        raise ValueError(
+            "Warning: Missing Replicate authentication key. Aborting request."
+        )
+
+    os.environ["REPLICATE_API_TOKEN"] = keys.replicate_api_key
+
+    parameters = {
+        **(
+            load_json_if_necessary(model.model_parameters)
+            if model.model_parameters
+            else {}
+        ),
+        **(
+            load_json_if_necessary(model_config.model_parameters)
+            if model_config.model_parameters
+            else {}
+        ),
+    }
+
+    parameters = {
+        "debug": False,
+        "top_k": 50,
+        "top_p": 0.9,
+        "temperature": 0.7,
+        "max_new_tokens": 400,
+        "min_new_tokens": -1,
+        # **parameters
+    }
+
+    loop = asyncio.get_event_loop()
+
+    def make_replicate_request() -> Any:
+        return replicate.run(
+            "mistralai/mistral-7b-v0.1:3e8a0fb6d7812ce30701ba597e5080689bef8a013e5c6a724fafb108cc2426a0",
+            input={
+                "prompt": text,
+                **parameters
+            }
+        )
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        future = executor.submit(make_replicate_request)
+        output = await loop.run_in_executor(None, future.result)
+
+    return "".join(list(output))

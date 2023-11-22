@@ -31,7 +31,7 @@ def slugify(value: Any, allow_unicode: bool = False) -> str:
 alphabets = "([A-Za-z])"
 prefixes = "(Mr|St|Mrs|Ms|Dr)[.]"
 suffixes = "(Inc|Ltd|Jr|Sr|Co)"
-starters = "(Mr|Mrs|Ms|Dr|Prof|Capt|Cpt|Lt|He\s|She\s|It\s|They\s|Their\s|Our\s|We\s|But\s|However\s|That\s|This\s|Wherever)"
+starters = "(Mr|Mrs|Ms|Dr|Prof|Capt|Cpt|Lt|He\s|She\s|It\s|They\s|Their\s|Our\s|We\s|But\s|However\s|That\s|This\s|Wherever)"  # noqa: E501
 acronyms = "([A-Z][.][A-Z][.](?:[A-Z][.])?)"
 websites = "[.](com|net|org|io|gov|edu|me)"
 digits = "([0-9])"
@@ -41,7 +41,7 @@ def split_into_sentences(text: str) -> List[str]:
     """
     Splits text into a list of sentences.
     Courtesy: https://stackoverflow.com/questions/4576077/how-can-i-split-a-text-into-sentences
-    """
+    """  # noqa: E501
     text = " " + text + "  "
     text = text.replace("\n", " ")
     text = re.sub(prefixes, "\\1<prd>", text)
