@@ -1,6 +1,6 @@
 import asyncio
 import glob
-from typing import cast, List, Sequence
+from typing import cast, List, Sequence, Type
 
 from fastapi import Request
 from piccolo.engine import engine_finder
@@ -75,9 +75,15 @@ def list_legacy_configs() -> Sequence[ModelAndMetadata]:
         ModelAndMetadata(
             load_json_into_pydantic_model(
                 filename_and_dates.filename,
-                SparrowConfigModel
-                if filename_and_dates.filename.startswith("config/sparrow")
-                else ClientTypeConfigModel,
+                cast(
+                    # This cast is needed to make the type inference system
+                    # properly recognize that both SparrowConfigModel and
+                    # ClientTypeConfigModel are subclasses of BaseModel.
+                    Type[BaseModel],
+                    SparrowConfigModel
+                    if filename_and_dates.filename.startswith("config/sparrow")
+                    else ClientTypeConfigModel
+                ),
             ),
             filename_and_dates,
         )

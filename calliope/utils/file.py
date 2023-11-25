@@ -3,8 +3,7 @@ from dataclasses import dataclass
 from datetime import datetime
 import os
 import json
-from typing import cast
-
+from typing import Type, TypeVar
 
 import cuid
 from pydantic import BaseModel
@@ -109,18 +108,19 @@ def create_sequential_filename(
     )
 
 
+T = TypeVar("T")
+
+
 def load_json_into_pydantic_model(
-    json_filename: str, model: type[BaseModel]
+    json_filename: str, model: Type[BaseModel]
 ) -> BaseModel:
     """
     Takes a JSON file path as a string and a Pydantic model class as arguments, reads
     the JSON file, and loads the data into the model.
-
-    (Written by ChatGPT.)
     """
     with open(json_filename, "r") as f:
         data = json.load(f)
-    return cast(BaseModel, model(**data))
+    return model(**data)
 
 
 def write_pydantic_model_to_json(model: BaseModel, json_filename: str) -> None:
@@ -130,7 +130,7 @@ def write_pydantic_model_to_json(model: BaseModel, json_filename: str) -> None:
 
     (Written by ChatGPT.)
     """
-    data = model.dict(exclude_none=True)
+    data = model.model_dump(exclude_none=True)
     with open(json_filename, "w") as f:
         json.dump(data, f, indent=4, sort_keys=True)
 

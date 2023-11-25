@@ -33,7 +33,11 @@ async def replicate_vision_inference(
     os.environ["REPLICATE_API_TOKEN"] = keys.replicate_api_key
 
     prompt = "Tell me everything about this scene."
+
     parameters = {
+        "top_p": 1,
+        "max_tokens": 1024,
+        "temperature": 0.2,
         **(
             load_json_if_necessary(model.model_parameters)
             if model.model_parameters
@@ -49,9 +53,18 @@ async def replicate_vision_inference(
     loop = asyncio.get_event_loop()
 
     def make_replicate_request() -> Any:
+        """
+        MiniGPT-4 is another multimodal model that is powerful for image analysis.
         model_name = (
             "daanelson/minigpt-4:"
             "b96a2f33cc8e4b0aa23eacfce731b9c41a7d9466d9ed4e167375587b54db9423"
+        )
+
+        ... But LLaVa is the new kid on the block.
+        """
+        model_name = (
+            "yorickvp/llava-13b:"
+            "e272157381e2a3bf12df3a8edd1f38d1dbd736bbb7437277c8b34175f8fce358"
         )
         return replicate.run(
             model_name,
@@ -62,7 +75,7 @@ async def replicate_vision_inference(
         future = executor.submit(make_replicate_request)
         output = await loop.run_in_executor(None, future.result)
 
-    return cast(str, output)
+    return "".join(list(output))
 
 
 async def replicate_text_to_text_inference(
@@ -98,7 +111,7 @@ async def replicate_text_to_text_inference(
         "top_k": 50,
         "top_p": 0.9,
         "temperature": 0.7,
-        "max_new_tokens": 400,
+        "max_new_tokens": 600,
         "min_new_tokens": -1,
         # **parameters
     }

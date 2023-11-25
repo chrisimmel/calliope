@@ -77,6 +77,7 @@ async def _image_analysis_inference(
         description = await replicate_vision_inference(
             aiohttp_session, image_filename, model_config, keys
         )
+        print(f"Replicate vision response: {description}")
         return {
             "all_captions": description,
             "description": description,
