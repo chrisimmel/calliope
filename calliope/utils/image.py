@@ -6,7 +6,7 @@ from typing import cast, Dict, Optional, Sequence, Tuple
 from typing_extensions import Buffer
 
 import numpy as np
-import PIL
+from PIL import Image as PIL_Image
 
 from calliope.models import ImageFormat
 from calliope.tables import Image
@@ -41,7 +41,7 @@ def convert_png_to_rgb565(input_filename: str, output_filename: str) -> Image:
     """
     Converts the given PNG file to RGB565/raw format.
     """
-    png = PIL.Image.open(input_filename)
+    png = PIL_Image.open(input_filename)
 
     input_image_content = png.getdata()
     output_image_content = np.empty(len(input_image_content), np.uint16)
@@ -72,7 +72,7 @@ def convert_rgb565_to_png(
     with open(input_filename, "r") as input_file:
         dataArray = np.fromfile(input_file, np.uint16)
 
-        png = PIL.Image.new("RGB", (width, height))
+        png = PIL_Image.new("RGB", (width, height))
 
         for i, word in enumerate(np.nditer(dataArray)):
             r = (word >> 11) & 0x1F  # type: ignore[operator]
@@ -96,7 +96,7 @@ def convert_png_to_grayscale16(input_filename: str, output_filename: str) -> Ima
     There are 2 pixels per byte, 4 bits (black, white, 14 shades of gray) each.
     """
 
-    png = PIL.Image.open(input_filename)
+    png = PIL_Image.open(input_filename)
     # Convert to grayscale.
     png = png.convert(mode="L")
 
@@ -141,7 +141,7 @@ def convert_grayscale16_to_png(
     with open(input_filename, "r") as input_file:
         dataArray = np.fromfile(input_file, np.uint8)
 
-        png = PIL.Image.new("L", (width, height))
+        png = PIL_Image.new("L", (width, height))
 
         for i, pixel_pair in enumerate(np.nditer(dataArray)):
             p0 = int(pixel_pair & 0xF) << 4  # type: ignore[operator]
@@ -191,7 +191,7 @@ def convert_pil_image_to_png(image_filename: str) -> str:
     extension = get_file_extension(image_filename)
     if extension != "png":
         image_filename_png = image_filename + ".png"
-        img = PIL.Image.open(image_filename)
+        img = PIL_Image.open(image_filename)
         img.save(image_filename_png)
         image_filename = image_filename_png
 
@@ -211,7 +211,7 @@ def resize_image_if_needed(
     resized_image = None
 
     if output_image_width and output_image_height:
-        img = PIL.Image.open(input_image.url)
+        img = PIL_Image.open(input_image.url)
         if img.width != output_image_width or img.height != output_image_height:
             # Fit the image into the bounding box given by (output_image_width,
             # output_image_height)...
@@ -227,7 +227,7 @@ def resize_image_if_needed(
             if output_image_size != scaled_image_size:
                 # If the scaled image doesn't match the requested image size,
                 # add black bars to either side of it...
-                new_image = PIL.Image.new(
+                new_image = PIL_Image.new(
                     "RGB", output_image_size
                 )  # A blank image, all black.
                 box = (
@@ -258,7 +258,7 @@ def get_image_attributes(image_filename: str) -> Image:
     """
     Gets an Image from an image filename.
     """
-    image = PIL.Image.open(image_filename)
+    image = PIL_Image.open(image_filename)
     format = guess_image_format_from_filename(image_filename)
 
     return Image(
@@ -273,7 +273,7 @@ def get_image_colors(image_filename: str) -> Sequence[Tuple[int, int]]:
     """
     Returns a sequence of (count, color) tuples with colors given in the mode of the image (e.g. RGB).
     """
-    image = PIL.Image.open(image_filename)
+    image = PIL_Image.open(image_filename)
     by_color: Dict[int, int] = defaultdict(int)
     for pixel in image.getdata():
         by_color[pixel] += 1
