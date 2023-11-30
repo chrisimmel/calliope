@@ -1,4 +1,3 @@
-import base64
 from typing import Optional
 
 import httpx
@@ -7,6 +6,7 @@ import openai
 
 from calliope.models import KeysModel
 from calliope.tables import ModelConfig
+from calliope.utils.file import encode_image_file_to_b64
 
 
 async def text_to_image_file_inference_openai(
@@ -67,11 +67,6 @@ async def text_to_image_file_inference_openai(
     return output_image_filename
 
 
-def encode_image(image_path):
-    with open(image_path, "rb") as image_file:
-        return base64.b64encode(image_file.read()).decode('utf-8')
-
-
 async def openai_vision_inference(
     httpx_client: httpx.AsyncClient,
     image_file: str,
@@ -91,8 +86,8 @@ async def openai_vision_inference(
             "Warning: Missing OpenAI authentication key. Aborting request."
         )
 
-    prompt = "Please tell me everything you see."
-    base64_image = b64_encoded_image or encode_image(image_file)
+    prompt = "Tell me everything you see."
+    base64_image = b64_encoded_image or encode_image_file_to_b64(image_file)
 
     headers = {
         "Content-Type": "application/json",
@@ -126,6 +121,7 @@ async def openai_vision_inference(
         headers=headers,
         json=payload
     )
+    response.raise_for_status()
 
     json_response = response.json()
     print(json_response)

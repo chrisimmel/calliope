@@ -41,7 +41,10 @@ async def _hugging_face_request(
     if content_type:
         headers["Content-Type"] = content_type
 
-    return await httpx_client.post(api_url, headers=headers, data=data)
+    response = await httpx_client.post(api_url, headers=headers, data=data)
+    response.raise_for_status()
+    return response
+
 
 
 async def _text_to_text_inference_hugging_face_http(

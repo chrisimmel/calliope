@@ -339,24 +339,6 @@ class LavenderStrategy(StoryStrategy):
             print(msg)
             errors.append(msg)
             text = ""
-        """
-        elif re.search(r"[<>#^#\\{}]|0x|://", text):
-            msg = (
-                "Rejecting story continuation because it smells like code: "
-                f"{stripped_text[:100]}[...]"
-            )
-            print(msg)
-            errors.append(msg)
-            text = ""
-        elif stripped_text and stripped_text in last_text:
-            msg = (
-                "Rejecting story continuation because it's already appeared in the "
-                f"story: {stripped_text[:100]}[...]"
-            )
-            print(msg)
-            errors.append(msg)
-            text = ""
-        """
 
         # Don't want to see fragments of the prompt in the story.
         prompt_words = ("Scene:", "Text:", "Objects:", "Continuation:")

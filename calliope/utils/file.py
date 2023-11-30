@@ -135,6 +135,14 @@ def write_pydantic_model_to_json(model: BaseModel, json_filename: str) -> None:
         json.dump(data, f, indent=4, sort_keys=True)
 
 
+def encode_image_file_to_b64(image_path):
+    """
+    Encodes the image in the given file to a b64-encoded string.
+    """
+    with open(image_path, "rb") as image_file:
+        return base64.b64encode(image_file.read()).decode('utf-8')
+
+
 def decode_b64_to_file(data: str, filename: str) -> None:
     """
     Decodes a b64-encoded string and stores to a given file.

@@ -19,6 +19,7 @@ async def get_weather_at_location(
     )
 
     response = await httpx_client.get(api_url)
+    response.raise_for_status()
     json_response = response.json()
     if json_response and not json_response.get("error", False):
         current_weather = json_response.get("current_weather")

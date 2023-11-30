@@ -74,6 +74,7 @@ async def get_night_sky_objects(
     )
 
     response = await httpx_client.get(api_url)
+    response.raise_for_status()
     json_response = response.json()
     if not json_response:
         raise ValueError(f"No data returned from {api_url}.")

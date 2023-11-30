@@ -330,14 +330,6 @@ class ContinuousStoryV1Strategy(StoryStrategy):
             print(msg)
             errors.append(msg)
             text = ""
-        elif re.search(r"[<>#^#\\{}]|0x|://", text):
-            msg = (
-                "Rejecting story continuation because it smells like code: "
-                f"{stripped_text[:100]}[...]"
-            )
-            print(msg)
-            errors.append(msg)
-            text = ""
         elif stripped_text and last_text and stripped_text in last_text:
             msg = (
                 "Rejecting story continuation because it's already appeared in the "

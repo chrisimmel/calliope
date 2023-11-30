@@ -133,7 +133,6 @@ six==1.16.0
 sniffio==1.3.0
 spark-parser==1.8.9
 SQLAlchemy==2.0.18
-stability-sdk==0.8.5
 stack-data==0.6.2
 starlette==0.27.0
 stevedore==5.1.0

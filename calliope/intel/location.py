@@ -32,6 +32,7 @@ async def get_public_ip_address(
 
     try:
         response = await httpx_client.get(api_url)
+        response.raise_for_status()
         json_response = response.json()
 
         return json_response.get("ip") if json_response else None
