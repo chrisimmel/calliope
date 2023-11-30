@@ -167,11 +167,10 @@ async def get_sparrow_story_parameters_and_keys(
 def _get_non_default_parameters(params_dict: Dict[str, Any]) -> Dict[str, Any]:
     non_default_request_params = {}
     # Get the request parameters with non-default values.
-    for field in FramesRequestParamsModel.model_fields.values():
-        if field.alias:
-            value = params_dict.get(field.alias)
-            if value != field.default:
-                non_default_request_params[field.alias] = value
+    for field_name, field in FramesRequestParamsModel.model_fields.items():
+        value = params_dict.get(field_name)
+        if value != field.default:
+            non_default_request_params[field_name] = value
 
     return non_default_request_params
 

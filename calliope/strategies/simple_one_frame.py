@@ -2,7 +2,7 @@ import sys
 import traceback
 from typing import Any, Dict, List, Optional
 
-import aiohttp
+import httpx
 
 from calliope.inference import (
     text_to_text_inference,
@@ -44,7 +44,7 @@ class SimpleOneFrameStoryStrategy(StoryStrategy):
         keys: KeysModel,
         sparrow_state: SparrowState,
         story: Story,
-        aiohttp_session: aiohttp.ClientSession,
+        httpx_client: httpx.AsyncClient,
     ) -> StoryFrameSequenceResponseModel:
         client_id = parameters.client_id
 
@@ -75,7 +75,7 @@ class SimpleOneFrameStoryStrategy(StoryStrategy):
         print(f"{description=} {strategy_config.text_to_text_model_config=}")
 
         text = await text_to_text_inference(
-            aiohttp_session, description, strategy_config.text_to_text_model_config, keys
+            httpx_client, description, strategy_config.text_to_text_model_config, keys
         )
         if not text or text.isspace():
             text = description
@@ -90,7 +90,7 @@ class SimpleOneFrameStoryStrategy(StoryStrategy):
                 )
 
                 await text_to_image_file_inference(
-                    aiohttp_session,
+                    httpx_client,
                     image_prompt,
                     output_image_filename_png,
                     strategy_config.text_to_image_model_config,

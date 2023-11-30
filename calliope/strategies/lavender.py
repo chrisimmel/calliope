@@ -2,7 +2,7 @@ import sys
 import traceback
 from typing import Any, cast, Dict, List, Optional
 
-import aiohttp
+import httpx
 
 from calliope.inference import (
     text_to_text_inference,
@@ -50,7 +50,7 @@ class LavenderStrategy(StoryStrategy):
         keys: KeysModel,
         sparrow_state: SparrowState,
         story: Story,
-        aiohttp_session: aiohttp.ClientSession,
+        httpx_client: httpx.AsyncClient,
     ) -> StoryFrameSequenceResponseModel:
         print(f"Begin processing strategy {self.strategy_name}...")
         client_id = parameters.client_id
@@ -92,7 +92,7 @@ class LavenderStrategy(StoryStrategy):
             debug_data,
         )
 
-        print(f'Text prompt: "{prompt}"')
+        # print(f'Text prompt: "{prompt}"')
         story_continuation: Optional[str] = await self._get_new_story_fragment(
             prompt,
             parameters,
@@ -101,7 +101,7 @@ class LavenderStrategy(StoryStrategy):
             errors,
             story,
             last_text,
-            aiohttp_session,
+            httpx_client,
         )
 
         if not story_continuation or story_continuation.isspace():
@@ -116,7 +116,7 @@ class LavenderStrategy(StoryStrategy):
                 errors,
                 story,
                 last_text,
-                aiohttp_session,
+                httpx_client,
             )
 
         image_description = None
@@ -162,7 +162,7 @@ class LavenderStrategy(StoryStrategy):
                         "media", client_id, "out", "png", story.cuid, frame_number
                     )
                     await text_to_image_file_inference(
-                        aiohttp_session,
+                        httpx_client,
                         image_prompt,
                         output_image_filename_png,
                         strategy_config.text_to_image_model_config,
@@ -268,14 +268,14 @@ class LavenderStrategy(StoryStrategy):
         errors: List[str],
         story: Story,
         last_text: Optional[str],
-        aiohttp_session: aiohttp.ClientSession,
+        httpx_client: httpx.AsyncClient,
     ) -> str:
         """
         Gets a new story fragment to be used in building the frame's text.
         """
         try:
             text = await text_to_text_inference(
-                aiohttp_session, text, strategy_config.text_to_text_model_config, keys
+                httpx_client, text, strategy_config.text_to_text_model_config, keys
             )
             print(f"Raw output: '{text}'")
 

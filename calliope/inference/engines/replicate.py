@@ -2,7 +2,7 @@ import asyncio
 import os
 from typing import Any, cast
 
-import aiohttp
+import httpx
 import concurrent.futures
 import replicate
 
@@ -14,7 +14,7 @@ from calliope.utils.piccolo import load_json_if_necessary
 
 
 async def replicate_vision_inference(
-    aiohttp_session: aiohttp.ClientSession,
+    httpx_client: httpx.AsyncClient,
     image_file: str,
     model_config: ModelConfig,
     keys: KeysModel,
@@ -59,8 +59,7 @@ async def replicate_vision_inference(
             "daanelson/minigpt-4:"
             "b96a2f33cc8e4b0aa23eacfce731b9c41a7d9466d9ed4e167375587b54db9423"
         )
-
-        ... But LLaVa is the new kid on the block.
+        ... But LLaVa 13B is the new kid on the block.
         """
         model_name = (
             "yorickvp/llava-13b:"
@@ -79,7 +78,7 @@ async def replicate_vision_inference(
 
 
 async def replicate_text_to_text_inference(
-    aiohttp_session: aiohttp.ClientSession,
+    httpx_client: httpx.AsyncClient,
     text: str,
     model_config: ModelConfig,
     keys: KeysModel,

@@ -1,4 +1,4 @@
-import aiohttp
+import httpx
 
 from calliope.inference.engines.hugging_face import text_to_text_inference_hugging_face
 from calliope.inference.engines.openai_text import openai_text_to_text_inference
@@ -11,7 +11,7 @@ from calliope.tables import ModelConfig
 
 
 async def text_to_text_inference(
-    aiohttp_session: aiohttp.ClientSession,
+    httpx_client: httpx.AsyncClient,
     text: str,
     model_config: ModelConfig,
     keys: KeysModel,
@@ -20,7 +20,7 @@ async def text_to_text_inference(
     Performs a text->text inference using an LLM.
 
     Args:
-        aiohttp_session: the async HTTP session.
+        httpx_client: the async HTTP session.
         text: the input text, to be sent as a prompt.
         model_config: the ModelConfig with model and parameters.
         keys: API keys, etc.
@@ -34,19 +34,19 @@ async def text_to_text_inference(
     if model.provider == InferenceModelProvider.HUGGINGFACE:
         print(f"text_to_text_inference.huggingface {model.provider_model_name}")
         extended_text = await text_to_text_inference_hugging_face(
-            aiohttp_session, text, model_config, keys
+            httpx_client, text, model_config, keys
         )
         print(f'extended_text="{extended_text}"')
     elif model.provider == InferenceModelProvider.OPENAI:
         print(f"text_to_text_inference.openai {model.provider_model_name}")
         extended_text = await openai_text_to_text_inference(
-            aiohttp_session, text, model_config, keys
+            httpx_client, text, model_config, keys
         )
         print(f'extended_text="{extended_text}"')
     elif model.provider == InferenceModelProvider.REPLICATE:
         print(f"text_to_text_inference.replicate {model.provider_model_name}")
         extended_text = await replicate_text_to_text_inference(
-            aiohttp_session, text, model_config, keys
+            httpx_client, text, model_config, keys
         )
         print(f'extended_text="{extended_text}"')
     else:

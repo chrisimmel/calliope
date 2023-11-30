@@ -10,7 +10,8 @@ RUN apt-get update -y
 RUN apt install libgl1-mesa-glx -y
 RUN apt-get install 'ffmpeg'\
     'libsm6'\
-    'libxext6'
+    'libxext6'\
+    'tzdata'  -y
 COPY requirements requirements
 RUN pip install -r requirements/development.txt
 COPY . $APP_HOME

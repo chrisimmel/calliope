@@ -2,7 +2,7 @@ import io
 import math
 from typing import Optional
 
-import aiohttp
+import httpx
 from PIL import Image
 from stability_sdk import client as stability_client
 import stability_sdk.interfaces.gooseai.generation.generation_pb2 as generation
@@ -13,7 +13,7 @@ from calliope.utils.piccolo import load_json_if_necessary
 
 
 async def text_to_image_file_inference_stability(
-    aiohttp_session: aiohttp.ClientSession,
+    httpx_client: httpx.AsyncClient,
     text: str,
     output_image_filename: str,
     model_config: ModelConfig,
@@ -26,7 +26,7 @@ async def text_to_image_file_inference_stability(
     an image.
 
     Args:
-        aiohttp_session: the async HTTP session.
+        httpx_client: the async HTTP session.
         text: the input text, to be sent as a prompt.
         output_image_filename: the filename indicating where to write the
             generated image.
@@ -54,6 +54,10 @@ async def text_to_image_file_inference_stability(
     }
 
     # I see no way to use aiohttp with the Stability Inference API. :-(
+    # Per Stability staff, this is due to a fundamental limitation of their
+    # gRPC-based implementation, ad the only way to get async support is
+    # through use of their REST API.
+    # https://github.com/Stability-AI/stability-sdk/issues/197#issuecomment-1496027391
     stability_api = stability_client.StabilityInference(
         key=keys.stability_api_key,
         host=keys.stability_api_host,

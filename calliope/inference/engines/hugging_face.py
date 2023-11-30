@@ -1,10 +1,10 @@
 import aiofiles
-import aiohttp
+import httpx
 import json
 import os
 from typing import Any, cast, Dict, Optional
 
-from langchain import HuggingFaceHub
+from langchain.llms import HuggingFaceHub
 # from requests.models import Response
 
 from calliope.models import KeysModel
@@ -16,17 +16,17 @@ def _hugging_face_model_to_api_url(model_name: str) -> str:
 
 
 async def _hugging_face_request(
-    aiohttp_session: aiohttp.ClientSession,
+    httpx_client: httpx.AsyncClient,
     data: Any,
     model_name: str,
     keys: KeysModel,
     content_type: Optional[str] = None,
-) -> aiohttp.ClientResponse:
+) -> httpx.Response:
     """
     Makes a request to the HuggingFace inference API.
 
     Args:
-        aiohttp_session: the async HTTP session.
+        httpx_client: the async HTTP session.
         data: input data to pass with the request.
         model_name: the name of the model to invoke.
         keys: API keys, etc.
@@ -41,11 +41,11 @@ async def _hugging_face_request(
     if content_type:
         headers["Content-Type"] = content_type
 
-    return await aiohttp_session.post(api_url, headers=headers, data=data)
+    return await httpx_client.post(api_url, headers=headers, data=data)
 
 
 async def _text_to_text_inference_hugging_face_http(
-    aiohttp_session: aiohttp.ClientSession,
+    httpx_client: httpx.AsyncClient,
     text: str,
     model_config: ModelConfig,
     keys: KeysModel,
@@ -54,7 +54,7 @@ async def _text_to_text_inference_hugging_face_http(
     Does a text->text inference on HuggingFace Hub via a simple HTTP POST.
 
     Args:
-        aiohttp_session: the async HTTP session.
+        httpx_client: the async HTTP session.
         text: the input text, to be sent as a prompt.
         model_config: the ModelConfig with model and parameters.
         keys: API keys, etc.
@@ -67,14 +67,14 @@ async def _text_to_text_inference_hugging_face_http(
     payload = {"inputs": text, "return_full_text": False, "max_new_tokens": 250}
     data = json.dumps(payload)
     response = await _hugging_face_request(
-        aiohttp_session, data, model.provider_model_name, keys, "application/json"
+        httpx_client, data, model.provider_model_name, keys, "application/json"
     )
-    predictions = await response.json()
+    predictions = response.json()
     return predictions[0]["generated_text"] or ""
 
 
 async def _text_to_text_inference_hugging_face_langchain(
-    aiohttp_session: aiohttp.ClientSession,
+    httpx_client: httpx.AsyncClient,
     text: str,
     model_config: ModelConfig,
     keys: KeysModel,
@@ -83,7 +83,7 @@ async def _text_to_text_inference_hugging_face_langchain(
     Does a text->text inference on HuggingFace Hub via LangChain.
 
     Args:
-        aiohttp_session: the async HTTP session.
+        httpx_client: the async HTTP session.
         text: the input text, to be sent as a prompt.
         model_config: the ModelConfig with model and parameters.
         keys: API keys, etc.
@@ -128,7 +128,7 @@ async def _text_to_text_inference_hugging_face_langchain(
 
 
 async def text_to_text_inference_hugging_face(
-    aiohttp_session: aiohttp.ClientSession,
+    httpx_client: httpx.AsyncClient,
     text: str,
     model_config: ModelConfig,
     keys: KeysModel,
@@ -138,7 +138,7 @@ async def text_to_text_inference_hugging_face(
     model.
 
     Args:
-        aiohttp_session: the async HTTP session.
+        httpx_client: the async HTTP session.
         text: the input text, to be sent as a prompt.
         model_config: the ModelConfig with model and parameters.
         keys: API keys, etc.
@@ -147,12 +147,12 @@ async def text_to_text_inference_hugging_face(
         the generated text.
     """
     return await _text_to_text_inference_hugging_face_http(
-        aiohttp_session, text, model_config, keys
+        httpx_client, text, model_config, keys
     )
 
 
 async def text_to_image_file_inference_hugging_face(
-    aiohttp_session: aiohttp.ClientSession,
+    httpx_client: httpx.AsyncClient,
     text: str,
     output_image_filename: str,
     model_config: ModelConfig,
@@ -165,7 +165,7 @@ async def text_to_image_file_inference_hugging_face(
     such as Stable Diffusion.
 
     Args:
-        aiohttp_session: the async HTTP session.
+        httpx_client: the async HTTP session.
         text: the input text, to be sent as a prompt.
         output_image_filename: the filename indicating where to write the
             generated image.
@@ -183,7 +183,7 @@ async def text_to_image_file_inference_hugging_face(
     payload = {"inputs": text}
     data = json.dumps(payload)
     response = await _hugging_face_request(
-        aiohttp_session, data, model.provider_model_name, keys
+        httpx_client, data, model.provider_model_name, keys
     )
 
     if response.status == 200:
@@ -195,7 +195,7 @@ async def text_to_image_file_inference_hugging_face(
 
 
 async def image_to_text_inference_hugging_face(
-    aiohttp_session: aiohttp.ClientSession,
+    httpx_client: httpx.AsyncClient,
     image_data: bytes,
     model_config: ModelConfig,
     keys: KeysModel,
@@ -206,7 +206,7 @@ async def image_to_text_inference_hugging_face(
     such as an image captioning model.
 
     Args:
-        aiohttp_session: the async HTTP session.
+        httpx_client: the async HTTP session.
         image_data: the bytes of the input image.
         model_config: the model configuration.
         keys: API keys, etc.
@@ -217,9 +217,9 @@ async def image_to_text_inference_hugging_face(
     model = model_config.model
 
     response = await _hugging_face_request(
-        aiohttp_session, image_data, model.provider_model_name, keys
+        httpx_client, image_data, model.provider_model_name, keys
     )
-    predictions = await response.json()
+    predictions = response.json()
     caption = cast(str, predictions[0]["generated_text"])
 
     return caption

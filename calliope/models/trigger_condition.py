@@ -24,7 +24,7 @@ class AtTimeTriggerConditionModel(TriggerConditionModel):
     Trigger an event at a given time.
     """
 
-    trigger_type = TriggerType.AT_TIME
+    trigger_type: TriggerType = TriggerType.AT_TIME
 
     # Trigger the event at or after the given Zulu time (ISO format).
     at_time: StrictStr
@@ -35,7 +35,7 @@ class AfterWaitTriggerConditionModel(BaseModel):
     Trigger an event after waiting a given number of seconds.
     """
 
-    trigger_type = TriggerType.AFTER_WAIT
+    trigger_type: TriggerType = TriggerType.AFTER_WAIT
 
     # Trigger the event after waiting the given number of seconds.
     wait_seconds: StrictInt
@@ -46,7 +46,7 @@ class OnMotionTriggerConditionModel(BaseModel):
     Trigger an event when something moves.
     """
 
-    trigger_type = TriggerType.ON_MOTION
+    trigger_type: TriggerType = TriggerType.ON_MOTION
 
 
 class OnSoundTriggerConditionModel(BaseModel):
@@ -54,7 +54,7 @@ class OnSoundTriggerConditionModel(BaseModel):
     Trigger an event when you hear something.
     """
 
-    trigger_type = TriggerType.ON_SOUND
+    trigger_type: TriggerType = TriggerType.ON_SOUND
 
 
 class OnLightTriggerConditionModel(BaseModel):
@@ -62,4 +62,4 @@ class OnLightTriggerConditionModel(BaseModel):
     Trigger an event when you see light.
     """
 
-    trigger_type = TriggerType.ON_LIGHT
+    trigger_type: TriggerType = TriggerType.ON_LIGHT

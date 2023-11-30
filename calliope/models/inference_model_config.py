@@ -29,7 +29,7 @@ class InferenceModelConfigModel(BaseModel):
     provider_variant: Optional[InferenceModelProviderVariant] = None
 
     # The model's name. There may be multiple configurations per model.
-    model_name: StrictStr
+    provider_model_name: StrictStr
 
     # Any parameters the model takes (provider- and model-specific).
     parameters: Dict[str, Any] = {}
@@ -42,7 +42,7 @@ _model_configs_by_name = {
     "azure_vision_analysis": InferenceModelConfigModel(
         provider=InferenceModelProvider.AZURE,
         # model_name="/vision/v3.2/analyze",
-        model_name="/computervision/imageanalysis:analyze",
+        provider_model_name="/computervision/imageanalysis:analyze",
         # parameters={"visualFeatures": "Categories,Description,Faces,Objects,Tags"},
         parameters={
             "features": "tags,objects,description,read,people",
@@ -53,20 +53,20 @@ _model_configs_by_name = {
     ),
     "azure_vision_ocr": InferenceModelConfigModel(
         provider=InferenceModelProvider.AZURE,
-        model_name="/vision/v3.2/ocr",
+        provider_model_name="/vision/v3.2/ocr",
     ),
     # HuggingFace models...
     "huggingface_image_captioning": InferenceModelConfigModel(
         provider=InferenceModelProvider.HUGGINGFACE,
-        model_name="nlpconnect/vit-gpt2-image-captioning",
+        provider_model_name="nlpconnect/vit-gpt2-image-captioning",
     ),
     "huggingface_stable_diffusion_1.5": InferenceModelConfigModel(
         provider=InferenceModelProvider.HUGGINGFACE,
-        model_name="runwayml/stable-diffusion-v1-5",
+        provider_model_name="runwayml/stable-diffusion-v1-5",
     ),
     "huggingface_gpt_neo_2.7B": InferenceModelConfigModel(
         provider=InferenceModelProvider.HUGGINGFACE,
-        model_name="EleutherAI/gpt-neo-2.7B",
+        provider_model_name="EleutherAI/gpt-neo-2.7B",
         parameters={
             "temperature": 1,
             "max_new_tokens": 250,
@@ -76,12 +76,12 @@ _model_configs_by_name = {
     ),
     "huggingface_wav2vec2": InferenceModelConfigModel(
         provider=InferenceModelProvider.HUGGINGFACE,
-        model_name="facebook/wav2vec2-large-960h-lv60-self",
+        provider_model_name="facebook/wav2vec2-large-960h-lv60-self",
     ),
     # Stability.ai models...
     "stability_stable_diffusion_1.5": InferenceModelConfigModel(
         provider=InferenceModelProvider.STABILITY,
-        model_name="stable-diffusion-v1-5",  # engine
+        provider_model_name="stable-diffusion-v1-5",  # engine
         # Available engines:
         # stable-diffusion-v1
         # stable-diffusion-v1-5
@@ -103,7 +103,7 @@ _model_configs_by_name = {
     "openai_gpt_4": InferenceModelConfigModel(
         provider=InferenceModelProvider.OPENAI,
         provider_variant=InferenceModelProviderVariant.OPENAI_CHAT_COMPLETION,
-        model_name="gpt-4",
+        provider_model_name="gpt-4",
         parameters={
             "max_tokens": 512,
             "temperature": 1,
@@ -114,7 +114,7 @@ _model_configs_by_name = {
     "openai_chat_gpt": InferenceModelConfigModel(
         provider=InferenceModelProvider.OPENAI,
         provider_variant=InferenceModelProviderVariant.OPENAI_CHAT_COMPLETION,
-        model_name="curie",
+        provider_model_name="curie",
         parameters={
             "max_tokens": 256,
             "temperature": 0.85,
@@ -125,7 +125,7 @@ _model_configs_by_name = {
     "openai_curie": InferenceModelConfigModel(
         provider=InferenceModelProvider.OPENAI,
         provider_variant=InferenceModelProviderVariant.OPENAI_COMPLETION,
-        model_name="curie",
+        provider_model_name="curie",
         parameters={
             "max_tokens": 256,
             "temperature": 0.85,
@@ -136,7 +136,7 @@ _model_configs_by_name = {
     "openai_davinci_03": InferenceModelConfigModel(
         provider=InferenceModelProvider.OPENAI,
         provider_variant=InferenceModelProviderVariant.OPENAI_COMPLETION,
-        model_name="text-davinci-003",
+        provider_model_name="text-davinci-003",
         parameters={
             "max_tokens": 1024,
             "temperature": 0.85,
@@ -147,13 +147,13 @@ _model_configs_by_name = {
     # Text->Image...
     "openai_dall_e_2": InferenceModelConfigModel(
         provider=InferenceModelProvider.OPENAI,
-        model_name="DALL-E-2",
+        provider_model_name="DALL-E-2",
         parameters={},
     ),
     # Audio->Text...
     "openai_whisper": InferenceModelConfigModel(
         provider=InferenceModelProvider.OPENAI,
-        model_name="whisper",
+        provider_model_name="whisper",
         parameters={},
     ),
 }

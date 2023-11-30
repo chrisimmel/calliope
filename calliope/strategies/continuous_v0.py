@@ -3,7 +3,7 @@ import sys
 import traceback
 from typing import Any, Dict, List, Optional
 
-import aiohttp
+import httpx
 
 from calliope.inference import (
     text_to_text_inference,
@@ -52,7 +52,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         keys: KeysModel,
         sparrow_state: SparrowState,
         story: Story,
-        aiohttp_session: aiohttp.ClientSession,
+        httpx_client: httpx.AsyncClient,
     ) -> StoryFrameSequenceResponseModel:
         client_id = parameters.client_id
 
@@ -94,7 +94,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
 
         text = f"{input_text} {last_text}"
 
-        print(f'Text prompt: "{text}"')
+        # print(f'Text prompt: "{text}"')
         if text and not text.isspace():
             # gpt-neo-2.7B produces very short text, so collect 3 of its
             # responses as the frame text.
@@ -106,7 +106,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
                 errors,
                 story,
                 last_text,
-                aiohttp_session,
+                httpx_client,
             )
             print(f"{text_1=}")
             text_2 = await self._get_new_story_fragment(
@@ -117,7 +117,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
                 errors,
                 story,
                 last_text,
-                aiohttp_session,
+                httpx_client,
             )
             print(f"{text_2=}")
             text_3 = await self._get_new_story_fragment(
@@ -128,7 +128,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
                 errors,
                 story,
                 last_text,
-                aiohttp_session,
+                httpx_client,
             )
             print(f"{text_3=}")
             text = text_1 + " " + text_2 + " " + text_3 + " "
@@ -149,7 +149,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
                     "media", client_id, "out", "png", story.cuid, frame_number
                 )
                 await text_to_image_file_inference(
-                    aiohttp_session,
+                    httpx_client,
                     image_prompt,
                     output_image_filename_png,
                     strategy_config.text_to_image_model_config,
@@ -190,7 +190,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         errors: List[str],
         story: Story,
         last_text: Optional[str],
-        aiohttp_session: aiohttp.ClientSession,
+        httpx_client: httpx.AsyncClient,
     ) -> str:
         """
         Gets a new story fragment to be used in building the frame's text.
@@ -200,7 +200,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
 
         try:
             text = await text_to_text_inference(
-                aiohttp_session, text, strategy_config.text_to_text_model_config, keys
+                httpx_client, text, strategy_config.text_to_text_model_config, keys
             )
         except Exception as e:
             traceback.print_exc(file=sys.stderr)

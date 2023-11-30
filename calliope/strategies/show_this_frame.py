@@ -1,7 +1,7 @@
 import os
 from typing import Any, Dict, List, Optional
 
-import aiohttp
+import httpx
 from fastapi import HTTPException
 
 from calliope.intel.location import get_local_situation_text
@@ -39,7 +39,7 @@ class ShowThisFrameStrategy(StoryStrategy):
         keys: KeysModel,
         sparrow_state: SparrowState,
         story: Story,
-        aiohttp_session: aiohttp.ClientSession,
+        httpx_client: httpx.AsyncClient,
     ) -> StoryFrameSequenceResponseModel:
         situation = get_local_situation_text(
             image_analysis, location_metadata

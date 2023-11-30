@@ -1,10 +1,10 @@
-import aiohttp
+import httpx
 
 from calliope.models import CurrentWeatherModel, WMO_WEATHER_DESCRIPTIONS_BY_CODE
 
 
 async def get_weather_at_location(
-    aiohttp_session: aiohttp.ClientSession,
+    httpx_client: httpx.AsyncClient,
     latitude: float,
     longitude: float
 ) -> CurrentWeatherModel:
@@ -18,8 +18,8 @@ async def get_weather_at_location(
         # "hourly=temperature_2m,relativehumidity_2m,windspeed_10m"
     )
 
-    response = await aiohttp_session.get(api_url)
-    json_response = await response.json()
+    response = await httpx_client.get(api_url)
+    json_response = response.json()
     if json_response and not json_response.get("error", False):
         current_weather = json_response.get("current_weather")
         weather_code = current_weather.get("weathercode", 0)

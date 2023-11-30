@@ -46,7 +46,7 @@ class InferenceModelConfigModel(BaseModel):
     provider_variant: Optional[InferenceModelProviderVariant]
 
     # The model's name. There may be multiple configurations per model.
-    model_name: StrictStr
+    provider_model_name: StrictStr
 
     # Any parameters the model takes (provider- and model-specific).
     parameters: Dict[str, Any] = {}
@@ -59,8 +59,8 @@ _model_configs_by_name = {
     "azure-vision-analysis": InferenceModelConfigModel(
         description="Analyze images via the Azure Computer Vision API.",
         provider=InferenceModelProvider.AZURE,
-        # model_name="/vision/v3.2/analyze",
-        model_name="/computervision/imageanalysis:analyze",
+        # provider_model_name="/vision/v3.2/analyze",
+        provider_model_name="/computervision/imageanalysis:analyze",
         # parameters={"visualFeatures": "Categories,Description,Faces,Objects,Tags"},
         parameters={
             "features": "tags,objects,description,read,people",
@@ -72,23 +72,23 @@ _model_configs_by_name = {
     "azure-vision-ocr": InferenceModelConfigModel(
         description="Perform OCR via the Azure Computer Vision API (now included in computervision/imageanalysis).",
         provider=InferenceModelProvider.AZURE,
-        model_name="/vision/v3.2/ocr",
+        provider_model_name="/vision/v3.2/ocr",
     ),
     # HuggingFace models...
     "huggingface-image-captioning": InferenceModelConfigModel(
         description="Simple image captioning using Hugging Face",
         provider=InferenceModelProvider.HUGGINGFACE,
-        model_name="nlpconnect/vit-gpt2-image-captioning",
+        provider_model_name="nlpconnect/vit-gpt2-image-captioning",
     ),
     "huggingface-stable-diffusion-1.5": InferenceModelConfigModel(
         description="Stable Diffusion, hosted by Hugging Face",
         provider=InferenceModelProvider.HUGGINGFACE,
-        model_name="runwayml/stable-diffusion-v1-5",
+        provider_model_name="runwayml/stable-diffusion-v1-5",
     ),
     "huggingface-gpt-neo-2.7B": InferenceModelConfigModel(
         description="GPT-NEO 2.7B, hosted by Hugging Face",
         provider=InferenceModelProvider.HUGGINGFACE,
-        model_name="EleutherAI/gpt-neo-2.7B",
+        provider_model_name="EleutherAI/gpt-neo-2.7B",
         parameters={
             "temperature": 1,
             "max_new_tokens": 250,
@@ -99,13 +99,13 @@ _model_configs_by_name = {
     "huggingface-wav2vec2": InferenceModelConfigModel(
         description="The Facebook wav2vec2 speech recognition model, hosted by Hugging Face",
         provider=InferenceModelProvider.HUGGINGFACE,
-        model_name="facebook/wav2vec2-large-960h-lv60-self",
+        provider_model_name="facebook/wav2vec2-large-960h-lv60-self",
     ),
     # Stability.ai models...
     "stability-stable-diffusion-1.5": InferenceModelConfigModel(
         description="The full Stable Diffusion, on Stability",
         provider=InferenceModelProvider.STABILITY,
-        model_name="stable-diffusion-v1-5",  # engine
+        provider_model_name="stable-diffusion-v1-5",  # engine
         # Available engines:
         # stable-diffusion-v1
         # stable-diffusion-v1-5
@@ -128,7 +128,7 @@ _model_configs_by_name = {
         description="OpenAI GPT-4",
         provider=InferenceModelProvider.OPENAI,
         provider_variant=InferenceModelProviderVariant.OPENAI_CHAT_COMPLETION,
-        model_name="gpt-4",
+        provider_model_name="gpt-4",
         parameters={
             "max_tokens": 512,
             "temperature": 1,
@@ -140,7 +140,7 @@ _model_configs_by_name = {
         description="OpenAI ChatGPT Curie",
         provider=InferenceModelProvider.OPENAI,
         provider_variant=InferenceModelProviderVariant.OPENAI_CHAT_COMPLETION,
-        model_name="curie",
+        provider_model_name="curie",
         parameters={
             "max_tokens": 256,
             "temperature": 0.85,
@@ -152,7 +152,7 @@ _model_configs_by_name = {
         description="OpenAI GPT-3 Curie",
         provider=InferenceModelProvider.OPENAI,
         provider_variant=InferenceModelProviderVariant.OPENAI_COMPLETION,
-        model_name="curie",
+        provider_model_name="curie",
         parameters={
             "max_tokens": 256,
             "temperature": 0.85,
@@ -164,7 +164,7 @@ _model_configs_by_name = {
         description="OpenAI GPT-3 Davinci",
         provider=InferenceModelProvider.OPENAI,
         provider_variant=InferenceModelProviderVariant.OPENAI_COMPLETION,
-        model_name="text-davinci-003",
+        provider_model_name="text-davinci-003",
         parameters={
             "max_tokens": 1024,
             "temperature": 0.85,
@@ -176,14 +176,14 @@ _model_configs_by_name = {
     "openai-dall-e-2": InferenceModelConfigModel(
         description="OpenAI DALL-E 2",
         provider=InferenceModelProvider.OPENAI,
-        model_name="DALL-E-2",
+        provider_model_name="DALL-E-2",
         parameters={},
     ),
     # Audio->Text...
     "openai-whisper": InferenceModelConfigModel(
         description="OpenAI Whisper speech recognition",
         provider=InferenceModelProvider.OPENAI,
-        model_name="whisper",
+        provider_model_name="whisper",
         parameters={},
     ),
 }
@@ -248,7 +248,7 @@ async def forwards():
                 description=model_config.description,
                 provider=model_config.provider,
                 provider_api_variant=model_config.provider_variant,
-                provider_model_name=model_config.model_name,
+                provider_model_name=model_config.provider_model_name,
                 model_parameters=model_config.parameters,
                 date_created=now,
                 date_updated=now,

@@ -1,4 +1,4 @@
-import aiohttp
+import httpx
 from ipaddress import ip_address
 from typing import Any, Dict, Optional
 
@@ -23,7 +23,7 @@ def is_ip_private(ip: str) -> bool:
 
 
 async def get_public_ip_address(
-        aiohttp_session: aiohttp.ClientSession
+    httpx_client: httpx.AsyncClient
 ) -> Optional[str]:
     """
     Gets the public IP address of the current runtime environment.
@@ -31,8 +31,8 @@ async def get_public_ip_address(
     api_url = "https://api.ipify.org?format=json"
 
     try:
-        response = await aiohttp_session.get(api_url)
-        json_response = await response.json()
+        response = await httpx_client.get(api_url)
+        json_response = response.json()
 
         return json_response.get("ip") if json_response else None
     except Exception:
@@ -44,22 +44,22 @@ def hemisphere_at_latitude(latitude: float) -> Hemisphere:
 
 
 async def get_location_from_ip(
-    aiohttp_session: aiohttp.ClientSession,
+    httpx_client: httpx.AsyncClient,
     ip: Optional[str]
 ) -> BasicLocationMetadataModel:
     """
     Gets the estimated location of a given IP address.
     """
     if not ip or is_ip_private(ip):
-        ip = await get_public_ip_address(aiohttp_session)
+        ip = await get_public_ip_address(httpx_client)
 
     if not ip:
         return BasicLocationMetadataModel(ip_address=None)
 
     api_url = f"http://ip-api.com/json/{ip}"
 
-    response = await aiohttp_session.get(api_url)
-    json_response = await response.json()
+    response = await httpx_client.get(api_url)
+    json_response = response.json()
 
     if json_response and json_response.get("status") == "success":
         latitude = json_response.get("lat")
@@ -84,7 +84,7 @@ async def get_location_from_ip(
 
 
 async def get_location_metadata_for_ip(
-    aiohttp_session: aiohttp.ClientSession,
+    httpx_client: httpx.AsyncClient,
     ip: Optional[str]
 ) -> FullLocationMetadata:
     """
@@ -92,7 +92,7 @@ async def get_location_metadata_for_ip(
     not only static information about the location (city, region, country name),
     but also transient things like weather, time of day, date, and season.
     """
-    basic_metadata = await get_location_from_ip(aiohttp_session, ip)
+    basic_metadata = await get_location_from_ip(httpx_client, ip)
 
     local_datetime = (
         get_local_datetime(basic_metadata.timezone) if basic_metadata.timezone else None
@@ -100,12 +100,12 @@ async def get_location_metadata_for_ip(
 
     if basic_metadata.latitude and basic_metadata.longitude:
         weather_metadata = await get_weather_at_location(
-            aiohttp_session,
+            httpx_client,
             basic_metadata.latitude,
             basic_metadata.longitude,
         )
         night_sky_objects = await get_night_sky_objects(
-            aiohttp_session,
+            httpx_client,
             basic_metadata.latitude,
             basic_metadata.longitude,
         ) if weather_metadata and not weather_metadata.is_day else []
@@ -118,7 +118,7 @@ async def get_location_metadata_for_ip(
             active_meteor_showers = peaking_meteor_showers = []
 
         solar_eclipse = await get_solar_eclipse_of_the_day(
-            aiohttp_session,
+            httpx_client,
             local_datetime,
             basic_metadata.latitude,
             basic_metadata.longitude,

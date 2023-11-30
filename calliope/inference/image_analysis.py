@@ -1,7 +1,7 @@
 import asyncio
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
-import aiohttp
+import httpx
 
 from calliope.inference.engines.azure_vision import (
     azure_vision_inference,
@@ -9,6 +9,7 @@ from calliope.inference.engines.azure_vision import (
     interpret_azure_v4_metadata,
 )
 from calliope.inference.engines.hugging_face import image_to_text_inference_hugging_face
+from calliope.inference.engines.openai_image import openai_vision_inference
 from calliope.inference.engines.replicate import replicate_vision_inference
 from calliope.models import (
     InferenceModelProvider,
@@ -20,7 +21,7 @@ from calliope.utils.image import convert_pil_image_to_png
 
 # The number of seconds to wait for a Replicate request to complete.
 # This is to prevent long waits for model cold starts.
-REPLICATE_REQUEST_TIMEOUT_SECONDS = 10
+REPLICATE_REQUEST_TIMEOUT_SECONDS = 100
 
 
 # Some interesting models not currently in use...
@@ -34,8 +35,9 @@ REPLICATE_REQUEST_TIMEOUT_SECONDS = 10
 
 
 async def _image_analysis_inference(
-    aiohttp_session: aiohttp.ClientSession,
+    httpx_client: httpx.AsyncClient,
     image_filename: str,
+    b64_encoded_image: Optional[str],
     provider: InferenceModelProvider,
     model_config: ModelConfig,
     keys: KeysModel,
@@ -45,8 +47,9 @@ async def _image_analysis_inference(
     the contents of the image.
 
     Args:
-        aiohttp_session: the async HTTP session.
+        httpx_client: the async HTTP session.
         image_filename: the filename of the input image.
+        b64_encoded_image: the b64-encoded image, if any.
         provider: the InferenceModelProvider.
         model_config: the model configuration.
         keys: API keys, etc.
@@ -73,9 +76,18 @@ async def _image_analysis_inference(
     model = model_config.model
     print(f"_image_analysis_inference: {provider=}")
 
-    if provider == InferenceModelProvider.REPLICATE:
+    if provider == InferenceModelProvider.OPENAI:
+        description = await openai_vision_inference(
+            httpx_client, image_filename, b64_encoded_image, model_config, keys
+        )
+        print(f"GPT4 vision response: {description}")
+        return {
+            "all_captions": description,
+            "description": description,
+        }
+    elif provider == InferenceModelProvider.REPLICATE:
         description = await replicate_vision_inference(
-            aiohttp_session, image_filename, model_config, keys
+            httpx_client, image_filename, model_config, keys
         )
         print(f"Replicate vision response: {description}")
         return {
@@ -93,7 +105,7 @@ async def _image_analysis_inference(
                 raise ValueError("No input image data to image_analysis_inference.")
 
             raw_metadata = await azure_vision_inference(
-                aiohttp_session, image_data, model_config, keys
+                httpx_client, image_data, model_config, keys
             )
 
             if not raw_metadata:
@@ -111,7 +123,7 @@ async def _image_analysis_inference(
                 raise ValueError("No input image data to image_analysis_inference.")
 
             description = await image_to_text_inference_hugging_face(
-                aiohttp_session, image_data, model_config, keys
+                httpx_client, image_data, model_config, keys
             )
 
             return {
@@ -126,8 +138,9 @@ async def _image_analysis_inference(
 
 
 async def image_analysis_inference(
-    aiohttp_session: aiohttp.ClientSession,
+    httpx_client: httpx.AsyncClient,
     image_filename: str,
+    b64_encoded_image: Optional[str],
     model_config: ModelConfig,
     keys: KeysModel,
 ) -> Dict[str, Any]:
@@ -139,20 +152,20 @@ async def image_analysis_inference(
            generate a high-level image description, lists of recognized
            objects and tags, and any text detected in the image.
 
-        Mini-GPT-4: The multi-modal Mini-GPT-4 model is used to generate
-           a very rich image description with much more detail than Azure
-           produces. This includes text seen in the image, but also a
-           much more human-like summary of the scene.
+        A multi=modal LLM: A multi-modal LLM (Mini-GPT-4, LLaVa, GPT4 V...)
+           is used to generate a very rich image description with much more
+           detail than Azure produces. This includes text seen in the image
+           but also a much more human-like summary of the scene.
 
-    API calls are made to both Azure and Mini-GPT-4 simultaneously, and
+    API calls are made to both Azure and the LLM simultaneously, and
     the results are combined in the returned analysis. Because cold start
-    on the Replicate service that hosts Mini-GPT-4 can be lengthy (up to
-    a minute or so to load the model it hasn't been used recently), we set
-    a 10-second timeout on the Mini-GPT-4 call, and just return the Azure
+    on the LLMs (especially when hosted, e.g., by Replicate) can be lengthy
+    (up to a minute or so to load the model it hasn't been used recently),
+    we set a 10-second timeout on the LLM call, and just return the Azure
     analysis if there is a problem.
 
     Args:
-        aiohttp_session: the async HTTP session.
+        httpx_client: the async HTTP session.
         image_filename: the filename of the input image.
         provider: the InferenceModelProvider.
         model_config: the model configuration.
@@ -181,11 +194,13 @@ async def image_analysis_inference(
     # Note that we ignore model_config.model.provider. For now this
     # is hardcoded to always use InferenceModelProvider.REPLICATE
     # and InferenceModelProvider.AZURE.
-    mini_gpt_4_task = asyncio.create_task(
+    llm_analysis_task = asyncio.create_task(
         _image_analysis_inference(
-            aiohttp_session,
+            httpx_client,
             image_filename,
-            InferenceModelProvider.REPLICATE,
+            b64_encoded_image,
+            # InferenceModelProvider.REPLICATE,
+            InferenceModelProvider.OPENAI,
             model_config,
             keys,
         )
@@ -193,30 +208,31 @@ async def image_analysis_inference(
 
     azure_cv_task = asyncio.create_task(
         _image_analysis_inference(
-            aiohttp_session,
+            httpx_client,
             image_filename,
+            b64_encoded_image,
             InferenceModelProvider.AZURE,
             model_config,
             keys,
         )
     )
 
-    # Execute Azure CV and MiniGPT-4 analysis in parallel so we can use both
+    # Execute Azure CV and the multimodal LLM analysis in parallel so we can use both
     # without suffering a time penalty.
-    # Even though MiniGPT-4 gives a richer description of the scene. Azure is useful
+    # Even though an LLM gives a richer description of the scene. Azure is useful
     # because it lists objects and reads text. The combination gives the LLM much
     # more context.
     #
     # On cold starts, a Replicate request can take a very long time while the model
     # loads. Wait only 10s, falling back to just Azure in this case.
     try:
-        mini_gpt_4_analysis = await asyncio.wait_for(
-            mini_gpt_4_task, REPLICATE_REQUEST_TIMEOUT_SECONDS
+        llm_analysis = await asyncio.wait_for(
+            llm_analysis_task, REPLICATE_REQUEST_TIMEOUT_SECONDS
         )
-        print(f"{mini_gpt_4_analysis=}")
+        print(f"{llm_analysis=}")
     except Exception as e:
-        mini_gpt_4_analysis = {}
-        print(f"Error running MiniGPT-4: {e}")
+        llm_analysis = {}
+        print(f"Error getting LLM image analysis: {e}")
 
     try:
         azure_analysis = await azure_cv_task
@@ -225,15 +241,15 @@ async def image_analysis_inference(
         azure_analysis = {}
         print(f"Error running Azure Computer Vision: {e}")
 
-    # Merge the Azure and Mini-GPT-4 analyses.
+    # Merge the Azure and LLM analyses.
     analysis = {
         **azure_analysis,
         "description": (
-            f"{mini_gpt_4_analysis.get('description', '')} "
+            f"{llm_analysis.get('description', '')} "
             f"{azure_analysis.get('description', '')}"
         ),
         "all_captions": (
-            f"{mini_gpt_4_analysis.get('all_captions', '')} "
+            f"{llm_analysis.get('all_captions', '')} "
             f"{azure_analysis.get('all_captions', '')}"
         ),
     }
@@ -243,7 +259,7 @@ async def image_analysis_inference(
 
 
 async def image_ocr_inference(
-    aiohttp_session: aiohttp.ClientSession,
+    httpx_client: httpx.AsyncClient,
     image_filename: str,
     model_config: ModelConfig,
     keys: KeysModel,
@@ -266,7 +282,7 @@ async def image_ocr_inference(
 
     if image_data:
         return await azure_vision_inference(
-            aiohttp_session, image_data, model_config, keys
+            httpx_client, image_data, model_config, keys
         )
 
     raise ValueError("No input image data to image_analysis_inference.")
