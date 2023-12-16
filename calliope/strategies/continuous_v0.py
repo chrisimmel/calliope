@@ -71,6 +71,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         image = None
         input_text = ""
         frame_number = await story.get_num_frames()
+        seed_prompt = await self.get_seed_prompt(strategy_config)
 
         if parameters.input_text:
             if caption:
@@ -82,7 +83,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         last_text: Optional[str] = await story.get_text(-4)
         if not last_text or last_text.isspace():
             if strategy_config.seed_prompt_template:
-                last_text = await self.get_seed_prompt(strategy_config)
+                last_text = seed_prompt
                 debug_data["applied_seed_prompt"] = last_text
             else:
                 last_text = ""
@@ -92,47 +93,40 @@ class ContinuousStoryV0Strategy(StoryStrategy):
             last_text_tokens = last_text_tokens[-20:]
             last_text = " ".join(last_text_tokens)
 
-        text = f"{input_text} {last_text}"
+        in_text = f"{input_text} {last_text}"
+        out_text = ""
 
         # print(f'Text prompt: "{text}"')
-        if text and not text.isspace():
+        if in_text and not in_text.isspace():
             # gpt-neo-2.7B produces very short text, so collect 3 of its
             # responses as the frame text.
-            text_1 = await self._get_new_story_fragment(
-                text,
-                parameters,
-                strategy_config,
-                keys,
-                errors,
-                story,
-                last_text,
-                httpx_client,
-            )
-            print(f"{text_1=}")
-            text_2 = await self._get_new_story_fragment(
-                text_1,
-                parameters,
-                strategy_config,
-                keys,
-                errors,
-                story,
-                last_text,
-                httpx_client,
-            )
-            print(f"{text_2=}")
-            text_3 = await self._get_new_story_fragment(
-                text_2,
-                parameters,
-                strategy_config,
-                keys,
-                errors,
-                story,
-                last_text,
-                httpx_client,
-            )
-            print(f"{text_3=}")
-            text = text_1 + " " + text_2 + " " + text_3 + " "
+            for i in range(3):
+                try:
+                    text_n = await self._get_new_story_fragment(
+                        in_text + out_text,
+                        parameters,
+                        strategy_config,
+                        keys,
+                        errors,
+                        story,
+                        last_text,
+                        httpx_client,
+                    )
+                    print(f"{text_n=}")
+                    if text_n:
+                        if len(out_text):
+                            out_text += " "
+                        out_text += text_n
+                    else:
+                        # Things seem to be broken.
+                        # Reset to to the seed prompt.
+                        in_text = caption
+                except Exception as e:
+                    traceback.print_exc(file=sys.stderr)
+                    errors.append(str(e))
 
+        print(f"{out_text=}")
+        text = out_text
         if not text or text.isspace():
             text = caption
 

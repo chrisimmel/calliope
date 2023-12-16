@@ -127,7 +127,8 @@ async def text_to_image_file_inference_stability(
                         "cell phones",
                         "weird faces or hands",
                         "artist name",
-                        "artist logo.",
+                        "artist logo",
+                        "Eiffel tower."
                     ]),
                 "weight": -1
             }
