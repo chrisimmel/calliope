@@ -11,6 +11,7 @@ class KeysModel(BaseModel):
     azure_api_key: Optional[str] = None
     azure_api_host: Optional[str] = None
     huggingface_api_key: Optional[str] = None
+    mistral_api_key: Optional[str] = None
     openai_api_key: Optional[str] = None
     pinecone_api_key: Optional[str] = None
     replicate_api_key: Optional[str] = None

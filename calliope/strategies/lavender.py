@@ -226,7 +226,7 @@ class LavenderStrategy(StoryStrategy):
 
         if image_analysis:
             image_scene = image_analysis.get("all_captions") or ""
-            image_objects = image_analysis.get("all_tags_and_objects") or ""
+            image_objects = ""  # image_analysis.get("all_tags_and_objects") or ""
             image_text = image_analysis.get("text") or ""
         else:
             image_scene = ""
@@ -274,6 +274,7 @@ class LavenderStrategy(StoryStrategy):
         Gets a new story fragment to be used in building the frame's text.
         """
         try:
+            print(f"Model input: '{text}'")
             text = await text_to_text_inference(
                 httpx_client, text, strategy_config.text_to_text_model_config, keys
             )
