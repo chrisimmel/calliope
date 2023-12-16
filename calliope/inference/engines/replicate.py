@@ -1,6 +1,7 @@
 import asyncio
 import os
-from typing import Any, cast
+from typing import Any, cast, Optional
+import aiofiles
 
 import httpx
 import concurrent.futures
@@ -131,3 +132,84 @@ async def replicate_text_to_text_inference(
         output = await loop.run_in_executor(None, future.result)
 
     return "".join(list(output))
+
+
+async def text_to_image_file_inference_replicate(
+    httpx_client: httpx.AsyncClient,
+    text: str,
+    output_image_filename: str,
+    model_config: ModelConfig,
+    keys: KeysModel,
+    width: Optional[int] = None,
+    height: Optional[int] = None,
+) -> Optional[str]:
+    model = model_config.model
+    model_name = model.provider_model_name
+
+    if not keys.replicate_api_key:
+        raise ValueError(
+            "Warning: Missing Replicate authentication key. Aborting request."
+        )
+
+    parameters = {
+        # "width": 1024,
+        # "height": 1024,
+        "prompt": text,
+        # "refine": "expert_ensemble_refiner",
+        # "scheduler": "KarrasDPM",
+        "num_outputs": 1,
+        "guidance_scale": 8,
+        # "high_noise_frac": 0.8,
+        # "prompt_strength": 0.9,
+        "num_inference_steps": 100,
+        "negative_prompt": ",".join(
+            [
+                "Signature",
+                "people",
+                "photorealism",
+                "cell phones",
+                "weird faces or hands",
+                "artist name",
+                "artist logo.",
+            ]
+        ),
+        **(
+            load_json_if_necessary(model.model_parameters)
+            if model.model_parameters
+            else {}
+        ),
+        **(
+            load_json_if_necessary(model_config.model_parameters)
+            if model_config.model_parameters
+            else {}
+        ),
+    }
+
+    os.environ["REPLICATE_API_TOKEN"] = keys.replicate_api_key
+
+    loop = asyncio.get_event_loop()
+
+    def make_replicate_request() -> Any:
+        return replicate.run(
+            # "stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
+            model_name,
+            input={
+                **parameters
+            }
+        )
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        future = executor.submit(make_replicate_request)
+        image_urls = await loop.run_in_executor(None, future.result)
+
+    print(f"{image_urls=}")
+    if image_urls:
+        response = await httpx_client.get(image_urls[0])
+        response.raise_for_status()
+        f = await aiofiles.open(output_image_filename, mode="wb")
+        await f.write(response.read())
+        await f.close()
+
+        return output_image_filename
+
+    return None

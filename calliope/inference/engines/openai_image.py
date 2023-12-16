@@ -58,11 +58,11 @@ async def text_to_image_file_inference_openai(
     openai_response = await openai.Image.acreate(**params)
 
     image_url = openai_response["data"][0]["url"]
-    async with httpx_client.get(image_url) as resp:
-        if resp.status == 200:
-            f = await aiofiles.open(output_image_filename, mode="wb")
-            await f.write(await resp.read())
-            await f.close()
+    response = await httpx_client.get(image_url)
+    response.raise_for_status()
+    f = await aiofiles.open(output_image_filename, mode="wb")
+    await f.write(response.read())
+    await f.close()
 
     return output_image_filename
 

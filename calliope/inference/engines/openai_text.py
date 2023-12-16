@@ -63,7 +63,12 @@ async def openai_text_to_text_inference(
             model=model.provider_model_name,
         )
 
-        extended_text = chat_completion.choices[0].text
+        # extended_text = chat_completion.choices[0].text
+        extended_text = (
+            chat_completion.choices[0].message.content
+            if (chat_completion.choices and chat_completion.choices[0].message)
+            else None
+        )
     else:
         extended_text = ""
         completion = await client.completions.create(
@@ -72,7 +77,12 @@ async def openai_text_to_text_inference(
             **parameters,
         )
 
-        extended_text = completion.choices[0].text
+        # extended_text = completion.choices[0].text
+        extended_text = (
+            completion.choices[0].message.content
+            if (completion.choices and completion.choices[0].message)
+            else None
+        )
         print(f"Completion response is: '{extended_text}'")
 
     return extended_text

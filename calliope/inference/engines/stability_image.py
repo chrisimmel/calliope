@@ -50,9 +50,17 @@ async def text_to_image_file_inference_stability(
             else {}
         ),
     }
+    engine_id = model.provider_model_name
+    url = f"{api_host}/v1/generation/{engine_id}/text-to-image"
+    headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "Authorization": f"Bearer {keys.stability_api_key}"
+    }
 
     """
-    The current engines as of 30.11.2023:
+    The current engines as of 16.12.2023:
+
     'esrgan-v1-x2plus', # Gives status 500
     'stable-diffusion-xl-1024-v0-9',
     'stable-diffusion-xl-1024-v1-0',
@@ -60,12 +68,13 @@ async def text_to_image_file_inference_stability(
     'stable-diffusion-512-v2-1',  # Older version, more basic output.
     'stable-diffusion-xl-beta-v2-2-2'
 
-    To print a fresh list:
-    url = f"{api_host}/v1/engines/list"
-    response = await httpx_client.get(url, headers=headers)
-    print(f"Engines: {url=}, {response.text}")
+    To print a fresh list, uncomment the following:
+    response = await httpx_client.get(
+        "https://api.stability.ai/v1/engines/list",
+        headers=headers
+    )
+    print(f"Stable Diffusion engines: {[e['id'] for e in response.json()]}")
     """
-    engine_id = model.provider_model_name
 
     width = width or 512
     height = height or 512
@@ -94,12 +103,6 @@ async def text_to_image_file_inference_stability(
     width = math.ceil(width / 64) * 64
     height = math.ceil(height / 64) * 64
 
-    url = f"{api_host}/v1/generation/{engine_id}/text-to-image"
-    headers = {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-        "Authorization": f"Bearer {keys.stability_api_key}"
-    }
     payload = {
         # "cfg_scale": 7,
         # "clip_guidance_preset": "FAST_BLUE",
