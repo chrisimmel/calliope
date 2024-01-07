@@ -97,7 +97,11 @@ async def text_to_image_file_inference_stability(
         # Force a 1024x1024 image size.
         width = 1024
         height = 1024
-        
+
+    if engine_id == 'stable-diffusion-v1-6':
+        # Stable Diffusion 1.6 is limited to 2K input characters.
+        text = text[:2000]
+
     # Stable Diffusion accepts only multiples of 64 for image dimensions. Can scale or
     # crop afterward to match requested size.
     width = math.ceil(width / 64) * 64

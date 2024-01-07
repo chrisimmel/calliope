@@ -26,8 +26,9 @@ from calliope.tables import (
 )
 from calliope.utils.file import create_sequential_filename
 from calliope.utils.image import get_image_attributes
-from calliope.utils.text import load_llm_output_as_json, translate_text
-
+from calliope.utils.text import (
+    load_llm_output_as_json, split_into_sentences, translate_text
+)
 
 @StoryStrategyRegistry.register()
 class LavenderStrategy(StoryStrategy):
@@ -308,15 +309,16 @@ class LavenderStrategy(StoryStrategy):
                         if len(text) > LIMIT:
                             break
 
-                """
                 lines = split_into_sentences(text)
                 if len(lines) > 3:
                     # Discard the last line in order to subvert GPT-3's desire
-                    # to put an ending on every episode.
+                    # to put an ending on every episode. Also avoids final
+                    # sentence fragments caused by token limit cutoff.
                     print(f"Discarding last sentence: '{lines[-1]}'")
                     lines = lines[0:-1]
-                    text = "\n".join(lines)
-                """
+                    # Adding blank lines between sentences helps break up
+                    # dense text from especially GPT-4.
+                    text = "\n\n".join(lines)
                 text = text.strip()
                 if not ends_with_punctuation(text):
                     text += "."

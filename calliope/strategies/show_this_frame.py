@@ -22,7 +22,10 @@ from calliope.utils.google import get_media_file, is_google_cloud_run_environmen
 from calliope.utils.image import get_image_attributes
 
 
-@StoryStrategyRegistry.register()
+# This strategy is meant to force a specified frame to be shown. It isn't
+# intended for dynamic, interactive use. As such, I decomissioning it for
+# the time being, pending a reason to reactivate it.
+# @StoryStrategyRegistry.register()
 class ShowThisFrameStrategy(StoryStrategy):
     """
     A strategy that simply shows a single frame with given image and text.

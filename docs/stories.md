@@ -28,8 +28,8 @@ attempt story continuation.
 
 ### show-this-frame
 A strategy that simply shows a single frame with the given image and text. The
-image must be uploaded and available at `<calliope-host>/media`. (Endpoint support
-to enable this is forthcoming.)
+image must be uploaded and available at `<calliope-host>/media`. (Endpoint support to
+enable this is forthcoming.)
 
 ### continuous-v0
 Tries to keep a story going, carrying context from a previous frame, if any,

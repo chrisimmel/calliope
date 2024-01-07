@@ -98,9 +98,9 @@ class ContinuousStoryV0Strategy(StoryStrategy):
 
         # print(f'Text prompt: "{text}"')
         if in_text and not in_text.isspace():
-            # gpt-neo-2.7B produces very short text, so collect 3 of its
-            # responses as the frame text.
-            for i in range(3):
+            # gpt-neo-2.7B produces very short text, so collect a handful
+            # of its responses as the frame text.
+            for i in range(5):
                 try:
                     text_n = await self._get_new_story_fragment(
                         in_text + out_text,
@@ -120,7 +120,8 @@ class ContinuousStoryV0Strategy(StoryStrategy):
                     else:
                         # Things seem to be broken.
                         # Reset to to the seed prompt.
-                        in_text = caption
+                        if caption or seed_prompt:
+                            in_text = caption or seed_prompt
                 except Exception as e:
                     traceback.print_exc(file=sys.stderr)
                     errors.append(str(e))
