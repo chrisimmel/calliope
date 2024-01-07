@@ -1,4 +1,4 @@
-import aiohttp
+import httpx
 from datetime import date, datetime, timedelta
 from typing import Any, cast, Dict, List, Optional, Tuple
 
@@ -52,7 +52,7 @@ def _get_printable_object_name(object_name: str) -> str:
 
 
 async def get_night_sky_objects(
-    aiohttp_session: aiohttp.ClientSession,
+    httpx_client: httpx.AsyncClient,
     latitude: float,
     longitude: float
 ) -> List[NightSkyObjectModel]:
@@ -61,7 +61,7 @@ async def get_night_sky_objects(
     and the present time.
 
     Args:
-        aiohttp_session: the session to manage async IO requests.
+        httpx_client: the session to manage async IO requests.
         latitude: the latitude of the point of interest.
         longitude: the longitude of the point of interest.
 
@@ -73,8 +73,9 @@ async def get_night_sky_objects(
         # &time=2023-10-13T15:57:44Z
     )
 
-    response = await aiohttp_session.get(api_url)
-    json_response = await response.json()
+    response = await httpx_client.get(api_url)
+    response.raise_for_status()
+    json_response = response.json()
     if not json_response:
         raise ValueError(f"No data returned from {api_url}.")
 
@@ -133,7 +134,7 @@ def _parse_eclipse_response(
 
 
 async def get_solar_eclipse_of_the_day(
-    aiohttp_session: aiohttp.ClientSession,
+    httpx_client: httpx.AsyncClient,
     when: datetime,
     latitude: float,
     longitude: float,
@@ -144,7 +145,7 @@ async def get_solar_eclipse_of_the_day(
     describes the eclipse and gives its local start and end times.
 
     Args:
-        aiohttp_session: the session to manage async IO requests.
+        httpx_client: the session to manage async IO requests.
         when: the datetime we're asking about.
         latitude: the latitude of the point of interest.
         longitude: the longitude of the point of interest.
@@ -163,8 +164,8 @@ async def get_solar_eclipse_of_the_day(
     eclipse: Optional[SolarEclipseModel] = None
 
     try:
-        response = await aiohttp_session.get(api_url)
-        json_response = await response.json()
+        response = await httpx_client.get(api_url)
+        json_response = response.json()
         if json_response:
             eclipse = _parse_eclipse_response(when, json_response)
     except Exception as e:

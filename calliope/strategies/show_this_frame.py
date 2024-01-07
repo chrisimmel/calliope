@@ -1,7 +1,7 @@
 import os
 from typing import Any, Dict, List, Optional
 
-import aiohttp
+import httpx
 from fastapi import HTTPException
 
 from calliope.intel.location import get_local_situation_text
@@ -22,7 +22,10 @@ from calliope.utils.google import get_media_file, is_google_cloud_run_environmen
 from calliope.utils.image import get_image_attributes
 
 
-@StoryStrategyRegistry.register()
+# This strategy is meant to force a specified frame to be shown. It isn't
+# intended for dynamic, interactive use. As such, I decomissioning it for
+# the time being, pending a reason to reactivate it.
+# @StoryStrategyRegistry.register()
 class ShowThisFrameStrategy(StoryStrategy):
     """
     A strategy that simply shows a single frame with given image and text.
@@ -39,7 +42,7 @@ class ShowThisFrameStrategy(StoryStrategy):
         keys: KeysModel,
         sparrow_state: SparrowState,
         story: Story,
-        aiohttp_session: aiohttp.ClientSession,
+        httpx_client: httpx.AsyncClient,
     ) -> StoryFrameSequenceResponseModel:
         situation = get_local_situation_text(
             image_analysis, location_metadata

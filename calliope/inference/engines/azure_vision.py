@@ -1,7 +1,7 @@
 from typing import Any, cast, Dict
 from urllib.parse import urlencode
 
-import aiohttp
+import httpx
 
 from calliope.models import KeysModel
 from calliope.tables import ModelConfig
@@ -18,7 +18,7 @@ def _azure_endpoint_to_api_url(azure_api_host: str, endpoint_name: str) -> str:
 
 
 async def azure_vision_inference(
-    aiohttp_session: aiohttp.ClientSession,
+    httpx_client: httpx.AsyncClient,
     image_data: bytes,
     model_config: ModelConfig,
     keys: KeysModel,
@@ -49,8 +49,8 @@ async def azure_vision_inference(
         "Accept": "application/json",
         # "Accept-Encoding": "gzip, deflate, br",
     }
-    response = await aiohttp_session.post(api_url, headers=headers, data=image_data)
-    return cast(Dict[str, Any], await response.json())
+    response = await httpx_client.post(api_url, headers=headers, content=image_data)
+    return cast(Dict[str, Any], response.json())
 
 
 def interpret_azure_v3_metadata(raw_metadata: Dict[str, Any]) -> Dict[str, Any]:

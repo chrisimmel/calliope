@@ -3,7 +3,7 @@ import sys
 import traceback
 from typing import Any, Dict, List, Optional
 
-import aiohttp
+import httpx
 
 from calliope.inference import (
     text_to_text_inference,
@@ -52,7 +52,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         keys: KeysModel,
         sparrow_state: SparrowState,
         story: Story,
-        aiohttp_session: aiohttp.ClientSession,
+        httpx_client: httpx.AsyncClient,
     ) -> StoryFrameSequenceResponseModel:
         client_id = parameters.client_id
 
@@ -71,6 +71,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         image = None
         input_text = ""
         frame_number = await story.get_num_frames()
+        seed_prompt = await self.get_seed_prompt(strategy_config)
 
         if parameters.input_text:
             if caption:
@@ -82,7 +83,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         last_text: Optional[str] = await story.get_text(-4)
         if not last_text or last_text.isspace():
             if strategy_config.seed_prompt_template:
-                last_text = await self.get_seed_prompt(strategy_config)
+                last_text = seed_prompt
                 debug_data["applied_seed_prompt"] = last_text
             else:
                 last_text = ""
@@ -92,47 +93,41 @@ class ContinuousStoryV0Strategy(StoryStrategy):
             last_text_tokens = last_text_tokens[-20:]
             last_text = " ".join(last_text_tokens)
 
-        text = f"{input_text} {last_text}"
+        in_text = f"{input_text} {last_text}"
+        out_text = ""
 
-        print(f'Text prompt: "{text}"')
-        if text and not text.isspace():
-            # gpt-neo-2.7B produces very short text, so collect 3 of its
-            # responses as the frame text.
-            text_1 = await self._get_new_story_fragment(
-                text,
-                parameters,
-                strategy_config,
-                keys,
-                errors,
-                story,
-                last_text,
-                aiohttp_session,
-            )
-            print(f"{text_1=}")
-            text_2 = await self._get_new_story_fragment(
-                text_1,
-                parameters,
-                strategy_config,
-                keys,
-                errors,
-                story,
-                last_text,
-                aiohttp_session,
-            )
-            print(f"{text_2=}")
-            text_3 = await self._get_new_story_fragment(
-                text_2,
-                parameters,
-                strategy_config,
-                keys,
-                errors,
-                story,
-                last_text,
-                aiohttp_session,
-            )
-            print(f"{text_3=}")
-            text = text_1 + " " + text_2 + " " + text_3 + " "
+        # print(f'Text prompt: "{text}"')
+        if in_text and not in_text.isspace():
+            # gpt-neo-2.7B produces very short text, so collect a handful
+            # of its responses as the frame text.
+            for i in range(5):
+                try:
+                    text_n = await self._get_new_story_fragment(
+                        in_text + out_text,
+                        parameters,
+                        strategy_config,
+                        keys,
+                        errors,
+                        story,
+                        last_text,
+                        httpx_client,
+                    )
+                    print(f"{text_n=}")
+                    if text_n:
+                        if len(out_text):
+                            out_text += " "
+                        out_text += text_n
+                    else:
+                        # Things seem to be broken.
+                        # Reset to to the seed prompt.
+                        if caption or seed_prompt:
+                            in_text = caption or seed_prompt
+                except Exception as e:
+                    traceback.print_exc(file=sys.stderr)
+                    errors.append(str(e))
 
+        print(f"{out_text=}")
+        text = out_text
         if not text or text.isspace():
             text = caption
 
@@ -149,7 +144,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
                     "media", client_id, "out", "png", story.cuid, frame_number
                 )
                 await text_to_image_file_inference(
-                    aiohttp_session,
+                    httpx_client,
                     image_prompt,
                     output_image_filename_png,
                     strategy_config.text_to_image_model_config,
@@ -190,7 +185,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         errors: List[str],
         story: Story,
         last_text: Optional[str],
-        aiohttp_session: aiohttp.ClientSession,
+        httpx_client: httpx.AsyncClient,
     ) -> str:
         """
         Gets a new story fragment to be used in building the frame's text.
@@ -200,7 +195,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
 
         try:
             text = await text_to_text_inference(
-                aiohttp_session, text, strategy_config.text_to_text_model_config, keys
+                httpx_client, text, strategy_config.text_to_text_model_config, keys
             )
         except Exception as e:
             traceback.print_exc(file=sys.stderr)

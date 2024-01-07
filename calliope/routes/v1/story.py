@@ -3,7 +3,7 @@ import sys
 import traceback
 from typing import Any, Dict, List, Optional
 
-import aiohttp
+import httpx
 import cuid
 from fastapi import APIRouter, Depends, Request
 from fastapi.security.api_key import APIKey
@@ -240,7 +240,8 @@ async def handle_frames_request(
     parameters = await prepare_input_files(parameters, story)
     image_analysis = None
 
-    async with aiohttp.ClientSession(raise_for_status=True) as aiohttp_session:
+    timeout = httpx.Timeout(60.0)
+    async with httpx.AsyncClient(timeout=timeout) as httpx_client:
         forwarded_header = request.headers.get("X-Forwarded-For")
         if forwarded_header:
             # Handle case where request comes through a load balancer, altering
@@ -250,7 +251,7 @@ async def handle_frames_request(
             # Handle the normal case of a direct request.
             source_ip_address = request.client.host if request.client else None
         location_metadata = await get_location_metadata_for_ip(
-            aiohttp_session, source_ip_address,
+            httpx_client, source_ip_address,
         )
         print(f"{location_metadata=}")
 
@@ -274,8 +275,9 @@ async def handle_frames_request(
                 )
             try:
                 image_analysis = await image_analysis_inference(
-                    aiohttp_session,
+                    httpx_client,
                     parameters.input_image_filename,
+                    parameters.input_image,  # original b64-encoded image.
                     model_config,
                     keys,
                 )
@@ -293,7 +295,7 @@ async def handle_frames_request(
             keys,
             sparrow_state,
             story,
-            aiohttp_session,
+            httpx_client,
         )
 
     story_frames_response.debug_data = {

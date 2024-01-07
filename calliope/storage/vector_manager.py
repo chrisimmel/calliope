@@ -279,7 +279,7 @@ def semantic_search(
     cloud_env = get_cloud_environment()
     filter = {"env": {"$eq": cloud_env}}
     print(f"Searching in env {cloud_env}...")
-    documents_and_scores = docsearch.similarity_search_with_score(
+    documents_and_scores: Sequence[Tuple[Document, float]] = docsearch.similarity_search_with_score(
         query, k=max_results, filter=filter
     )
     print(f"Found {len(documents_and_scores)} documents:\n{documents_and_scores}")

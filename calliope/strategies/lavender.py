@@ -2,7 +2,7 @@ import sys
 import traceback
 from typing import Any, cast, Dict, List, Optional
 
-import aiohttp
+import httpx
 
 from calliope.inference import (
     text_to_text_inference,
@@ -26,8 +26,9 @@ from calliope.tables import (
 )
 from calliope.utils.file import create_sequential_filename
 from calliope.utils.image import get_image_attributes
-from calliope.utils.text import load_llm_output_as_json, translate_text
-
+from calliope.utils.text import (
+    load_llm_output_as_json, split_into_sentences, translate_text
+)
 
 @StoryStrategyRegistry.register()
 class LavenderStrategy(StoryStrategy):
@@ -50,7 +51,7 @@ class LavenderStrategy(StoryStrategy):
         keys: KeysModel,
         sparrow_state: SparrowState,
         story: Story,
-        aiohttp_session: aiohttp.ClientSession,
+        httpx_client: httpx.AsyncClient,
     ) -> StoryFrameSequenceResponseModel:
         print(f"Begin processing strategy {self.strategy_name}...")
         client_id = parameters.client_id
@@ -92,7 +93,7 @@ class LavenderStrategy(StoryStrategy):
             debug_data,
         )
 
-        print(f'Text prompt: "{prompt}"')
+        # print(f'Text prompt: "{prompt}"')
         story_continuation: Optional[str] = await self._get_new_story_fragment(
             prompt,
             parameters,
@@ -101,7 +102,7 @@ class LavenderStrategy(StoryStrategy):
             errors,
             story,
             last_text,
-            aiohttp_session,
+            httpx_client,
         )
 
         if not story_continuation or story_continuation.isspace():
@@ -116,7 +117,7 @@ class LavenderStrategy(StoryStrategy):
                 errors,
                 story,
                 last_text,
-                aiohttp_session,
+                httpx_client,
             )
 
         image_description = None
@@ -141,7 +142,7 @@ class LavenderStrategy(StoryStrategy):
                 strategy_config.text_to_text_model_config
                 and strategy_config.text_to_text_model_config
                 and strategy_config.text_to_text_model_config.prompt_template
-                and strategy_config.text_to_text_model_config.prompt_template.target_language
+                and strategy_config.text_to_text_model_config.prompt_template.target_language  # noqa: E501
                 != "en"
             ):
                 # Translate the story to English before
@@ -162,7 +163,7 @@ class LavenderStrategy(StoryStrategy):
                         "media", client_id, "out", "png", story.cuid, frame_number
                     )
                     await text_to_image_file_inference(
-                        aiohttp_session,
+                        httpx_client,
                         image_prompt,
                         output_image_filename_png,
                         strategy_config.text_to_image_model_config,
@@ -226,7 +227,7 @@ class LavenderStrategy(StoryStrategy):
 
         if image_analysis:
             image_scene = image_analysis.get("all_captions") or ""
-            image_objects = image_analysis.get("all_tags_and_objects") or ""
+            image_objects = ""  # image_analysis.get("all_tags_and_objects") or ""
             image_text = image_analysis.get("text") or ""
         else:
             image_scene = ""
@@ -268,14 +269,15 @@ class LavenderStrategy(StoryStrategy):
         errors: List[str],
         story: Story,
         last_text: Optional[str],
-        aiohttp_session: aiohttp.ClientSession,
+        httpx_client: httpx.AsyncClient,
     ) -> str:
         """
         Gets a new story fragment to be used in building the frame's text.
         """
         try:
+            print(f"Model input: '{text}'")
             text = await text_to_text_inference(
-                aiohttp_session, text, strategy_config.text_to_text_model_config, keys
+                httpx_client, text, strategy_config.text_to_text_model_config, keys
             )
             print(f"Raw output: '{text}'")
 
@@ -307,15 +309,16 @@ class LavenderStrategy(StoryStrategy):
                         if len(text) > LIMIT:
                             break
 
-                """
                 lines = split_into_sentences(text)
                 if len(lines) > 3:
                     # Discard the last line in order to subvert GPT-3's desire
-                    # to put an ending on every episode.
+                    # to put an ending on every episode. Also avoids final
+                    # sentence fragments caused by token limit cutoff.
                     print(f"Discarding last sentence: '{lines[-1]}'")
                     lines = lines[0:-1]
-                    text = "\n".join(lines)
-                """
+                    # Adding blank lines between sentences helps break up
+                    # dense text from especially GPT-4.
+                    text = "\n\n".join(lines)
                 text = text.strip()
                 if not ends_with_punctuation(text):
                     text += "."
@@ -339,24 +342,6 @@ class LavenderStrategy(StoryStrategy):
             print(msg)
             errors.append(msg)
             text = ""
-        """
-        elif re.search(r"[<>#^#\\{}]|0x|://", text):
-            msg = (
-                "Rejecting story continuation because it smells like code: "
-                f"{stripped_text[:100]}[...]"
-            )
-            print(msg)
-            errors.append(msg)
-            text = ""
-        elif stripped_text and stripped_text in last_text:
-            msg = (
-                "Rejecting story continuation because it's already appeared in the "
-                f"story: {stripped_text[:100]}[...]"
-            )
-            print(msg)
-            errors.append(msg)
-            text = ""
-        """
 
         # Don't want to see fragments of the prompt in the story.
         prompt_words = ("Scene:", "Text:", "Objects:", "Continuation:")

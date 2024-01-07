@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from statistics import mode
 from typing import Any, cast, Dict, Optional, Sequence
 
-import aiohttp
+import httpx
 
 from calliope.models import (
     FramesRequestParamsModel,
@@ -46,7 +46,7 @@ class StoryStrategy(object, metaclass=ABCMeta):
         keys: KeysModel,
         sparrow_state: SparrowState,
         story: Story,
-        aiohttp_session: aiohttp.ClientSession,
+        httpx_client: httpx.AsyncClient,
     ) -> StoryFrameSequenceResponseModel:
         """
         Generates, stores, and returns a new sequence of story frames based on API
@@ -60,7 +60,7 @@ class StoryStrategy(object, metaclass=ABCMeta):
             keys: API keys and secrets.
             sparrow_state: the persisted Sparrow (client) state.
             story: the story up to now.
-            aiohttp_session: the async HTTP session.
+            httpx_client: the async HTTP session.
 
         Returns:
             A sequence of new frames that have been added to the story.

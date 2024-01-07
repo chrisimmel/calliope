@@ -1,11 +1,12 @@
 from typing import Optional
 
-import aiohttp
+import httpx
 
 from calliope.inference.engines.hugging_face import (
     text_to_image_file_inference_hugging_face,
 )
 from calliope.inference.engines.openai_image import text_to_image_file_inference_openai
+from calliope.inference.engines.replicate import text_to_image_file_inference_replicate
 from calliope.inference.engines.stability_image import (
     text_to_image_file_inference_stability,
 )
@@ -17,7 +18,7 @@ from calliope.tables import ModelConfig
 
 
 async def text_to_image_file_inference(
-    aiohttp_session: aiohttp.ClientSession,
+    httpx_client: httpx.AsyncClient,
     text: str,
     output_image_filename: str,
     model_config: ModelConfig,
@@ -31,7 +32,7 @@ async def text_to_image_file_inference(
     Diffusion and others).
 
     Args:
-        aiohttp_session: the async HTTP session.
+        httpx_client: the async HTTP session.
         text: the input text, to be sent as a prompt.
         output_image_filename: the filename indicating where to write the
             generated image.
@@ -45,10 +46,13 @@ async def text_to_image_file_inference(
     """
     model = model_config.model
 
-    if model.provider == InferenceModelProvider.HUGGINGFACE:
-        print(f"text_to_image_file_inference.huggingface {model.provider_model_name}")
-        return await text_to_image_file_inference_hugging_face(
-            aiohttp_session,
+    if model.provider == InferenceModelProvider.REPLICATE:
+        print(
+            f"text_to_image_file_inference.replicate {model.provider_model_name} "
+            f"({width}x{height})"
+        )
+        return await text_to_image_file_inference_replicate(
+            httpx_client,
             text,
             output_image_filename,
             model_config,
@@ -62,7 +66,7 @@ async def text_to_image_file_inference(
             f"({width}x{height})"
         )
         return await text_to_image_file_inference_stability(
-            aiohttp_session,
+            httpx_client,
             text,
             output_image_filename,
             model_config,
@@ -76,7 +80,18 @@ async def text_to_image_file_inference(
             f"({width}x{height})"
         )
         return await text_to_image_file_inference_openai(
-            aiohttp_session,
+            httpx_client,
+            text,
+            output_image_filename,
+            model_config,
+            keys,
+            width,
+            height,
+        )
+    if model.provider == InferenceModelProvider.HUGGINGFACE:
+        print(f"text_to_image_file_inference.huggingface {model.provider_model_name}")
+        return await text_to_image_file_inference_hugging_face(
+            httpx_client,
             text,
             output_image_filename,
             model_config,

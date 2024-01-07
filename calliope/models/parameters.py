@@ -115,7 +115,7 @@ class StoryParamsModel(ClientTypeParamsModel):
         """
         Collects any fields that aren't explicitly modeled into extra_fields.
         """
-        modeled_field_names = {field.alias for field in cls.__fields__.values()}
+        modeled_field_names = set(cls.model_fields.keys())
 
         extra_fields: Dict[str, Any] = {}
         for field_name in list(values):

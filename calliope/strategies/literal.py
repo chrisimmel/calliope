@@ -2,7 +2,7 @@ import sys
 import traceback
 from typing import Any, Dict, Optional
 
-import aiohttp
+import httpx
 
 from calliope.inference import (
     text_to_image_file_inference,
@@ -42,7 +42,7 @@ class LiteralStrategy(StoryStrategy):
         keys: KeysModel,
         sparrow_state: SparrowState,
         story: Story,
-        aiohttp_session: aiohttp.ClientSession,
+        httpx_client: httpx.AsyncClient,
     ) -> StoryFrameSequenceResponseModel:
         client_id = parameters.client_id
         output_image_style = (
@@ -78,7 +78,7 @@ class LiteralStrategy(StoryStrategy):
                     "media", client_id, "out", "png", story.cuid, frame_number
                 )
                 await text_to_image_file_inference(
-                    aiohttp_session,
+                    httpx_client,
                     image_prompt,
                     output_image_filename_png,
                     strategy_config.text_to_image_model_config,
