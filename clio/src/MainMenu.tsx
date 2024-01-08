@@ -43,6 +43,7 @@ export default function MainMenu({strategies, strategy, setStrategy, cameras, ca
                 }
             </MenuRadioGroup>
         </SubMenu>
+        {/*
         <SubMenu label="Camera">
             <MenuRadioGroup
                 value={camera}
@@ -62,6 +63,7 @@ export default function MainMenu({strategies, strategy, setStrategy, cameras, ca
                 }
             </MenuRadioGroup>
         </SubMenu>
+        */}
         </Menu>
     );
 }

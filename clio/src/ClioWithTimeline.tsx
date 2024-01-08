@@ -598,7 +598,6 @@ export default function ClioApp() {
                 />}
             />
         }
-        {/*
         {
             loading &&
             <div className="spinnerFrame">
@@ -609,6 +608,5 @@ export default function ClioApp() {
                 }}/>
             </div>
         }
-        */}
     </>;
 }

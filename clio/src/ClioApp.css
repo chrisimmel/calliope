@@ -175,7 +175,6 @@ img {
     max-width: 100vw;
 
     display: flex;
-    align-items: center;
     justify-content: center;
     background: transparent;
     /* height: 100vh; Full viewport height */
@@ -184,10 +183,24 @@ img {
     max-width: 100%; /* div B can't be wider than div A */
     max-height: 100%; /* div B can't be taller than div A */
     width: 100vmin; /* 100vmin ensures that div B is the largest square that will fit in div A */
-    height: 100vmin;
+    /*height: 100vmin;*/
+    height: calc(50vw - var(--toolbar-height));
     background: transparent;
     position: relative;
 }
+@media (orientation: landscape) {
+    .photoCapture {
+        align-items: center;
+    }
+}
+@media (orientation: portrait) {
+    .photoCaptureInner {
+        min-width: 100vw;
+        height: 100vw;
+        width: 100vw;
+    }    
+}
+
 .photoCaptureInner > div {
     max-width: 100%;
     max-height: 100%;
@@ -272,14 +285,21 @@ svg {
 
 .spinnerFrame {
     position: absolute;
+    /*
     top: 0;
     left: 0;
     width: 100vw;
-    height: var(--vp-height);
+    */
+    bottom: 0;
+    right: 0;
+    /*height: var(--vp-height);*/
     background: transparent;
     display:inline-flex;
+    padding: 10px;
+    width: 26px;
+    /*
     vertical-align:top;
     justify-content:center;
     align-items:center;
-    opacity: 0.2;
+    */
 }
