@@ -1,7 +1,7 @@
 // icon:bx-fast-forward | Boxicons https://boxicons.com/ | Atisa
 import * as React from "react";
 
-function IconFastForward(props: any) {
+export default function IconFastForward(props: any) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -14,5 +14,3 @@ function IconFastForward(props: any) {
     </svg>
   );
 }
-
-export default IconFastForward;

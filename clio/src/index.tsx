@@ -1,6 +1,6 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
-import ClioApp from "./ClioSwipeable";
+import ClioApp from "./ClioWithTimeline";
 
 const container = document.getElementById("root");
 if (container) {

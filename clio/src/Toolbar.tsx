@@ -5,6 +5,7 @@ import IconPause from "./icons/IconPause";
 import IconPlay from "./icons/IconPlay";
 import IconRewind from "./icons/IconRewind";
 import IconFullscreen from './icons/IconFullscreen';
+import IconCamera from './icons/IconCamera';
 
 type ToolbarProps = {
     toStart: () => void,
@@ -12,6 +13,7 @@ type ToolbarProps = {
     toggleIsPlaying: () => void,
     isPlaying: boolean,
     toggleFullscreen: () => void,
+    startCameraCapture: () => void,
     menu: any,
 }
 
@@ -21,6 +23,7 @@ export default function Toolbar({
     toggleIsPlaying,
     isPlaying,
     toggleFullscreen,
+    startCameraCapture,
     menu,
 }: ToolbarProps) {
     return <>
@@ -63,6 +66,14 @@ export default function Toolbar({
                 }}
             >
                 <IconFullscreen/>
+            </button>
+            <button
+                className="navButton"
+                onClick={() => {
+                    startCameraCapture();
+                }}
+            >
+                <IconCamera/>
             </button>
             {menu}
         </div>

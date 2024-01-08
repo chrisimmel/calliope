@@ -1,7 +1,7 @@
 // icon:refresh | System UIcons https://systemuicons.com/ | Corey Ginnivan
 import * as React from "react";
 
-function IconRefresh(props: any) {
+export default function IconRefresh(props: any) {
   return (
     <svg
       viewBox="0 0 21 21"
@@ -23,5 +23,3 @@ function IconRefresh(props: any) {
     </svg>
   );
 }
-
-export default IconRefresh;
