@@ -57,11 +57,11 @@ const renderFrame = (frame: Frame, index: number) => {
 
 export default function ClioApp() {
     type ClioState = {
-        handleFullscreen: () => void,
+        handleFullScreen: () => void,
         getFrames: (image: string | null) => void,
     }
 
-    const stateRef = useRef<ClioState>({handleFullscreen: () => null, getFrames: () => null});
+    const stateRef = useRef<ClioState>({handleFullScreen: () => null, getFrames: () => null});
     const [capturedImage, setCapturedImage] = useState<string | null>(null);
     const [frames, setFrames] = useState<Frame[]>([]);
     const [selectedFrameNumber, setSelectedFrameNumber] = useState<number>(-1);
@@ -198,12 +198,12 @@ export default function ClioApp() {
 
     }, []);
 
-    const toggleFullscreen = useCallback(
+    const toggleFullScreen = useCallback(
         () => {
-            const newIsFullscreen = !isFullScreen;
-            console.log(`Setting isFullScreen to ${newIsFullscreen}.`);
-            setIsFullScreen(newIsFullscreen);
-            if (newIsFullscreen) {
+            const newIsFullScreen = !isFullScreen;
+            console.log(`Setting isFullScreen to ${newIsFullScreen}.`);
+            setIsFullScreen(newIsFullScreen);
+            if (newIsFullScreen) {
                 document.documentElement.requestFullscreen();
             }
             else {
@@ -220,14 +220,14 @@ export default function ClioApp() {
         []
     );
 
-    const handleFullscreen = useCallback(
+    const handleFullScreen = useCallback(
         () => {
-            const isCurrentlyFullscreen = !!document.fullscreenElement;
-            console.log(`handleFullscreen, isCurrentlyFullscreen=${isCurrentlyFullscreen}`);
+            const isCurrentlyFullScreen = !!document.fullscreenElement;
+            console.log(`handleFullScreen, isCurrentlyFullScreen=${isCurrentlyFullScreen}`);
             handleResize();
 
             const rootElement = document.getElementById("root");
-            if (isCurrentlyFullscreen) {
+            if (isCurrentlyFullScreen) {
                 //rootElement.classList.add("fullscreen");
                 setIsFullScreen(true);
             }
@@ -239,13 +239,13 @@ export default function ClioApp() {
         [isFullScreen]
     );
 
-    stateRef.current.handleFullscreen = handleFullscreen;
+    stateRef.current.handleFullScreen = handleFullScreen;
     useEffect(() => {
-        const dynHandleFullscreen = () => stateRef.current.handleFullscreen();
+        const dynHandleFullScreen = () => stateRef.current.handleFullScreen();
 
-        document.addEventListener('fullscreenchange', dynHandleFullscreen);
+        document.addEventListener('fullscreenchange', dynHandleFullScreen);
         return () => {
-            document.removeEventListener('fullscreenchange', dynHandleFullscreen);
+            document.removeEventListener('fullscreenchange', dynHandleFullScreen);
         }
     }, []);
 
@@ -586,7 +586,8 @@ export default function ClioApp() {
                 toEnd={toEnd}
                 toggleIsPlaying={toggleIsPlaying}
                 isPlaying={isPlaying}
-                toggleFullscreen={toggleFullscreen}
+                isFullScreen={isFullScreen}
+                toggleFullScreen={toggleFullScreen}
                 startCameraCapture={startCameraCapture}
                 menu={<MainMenu
                     strategies={strategies}
@@ -595,6 +596,9 @@ export default function ClioApp() {
                     cameras={cameras}
                     camera={cameraDeviceId}
                     setCamera={setCameraDeviceId}
+                    toggleIsPlaying={toggleIsPlaying}
+                    isPlaying={isPlaying}
+                    toggleFullScreen={toggleFullScreen}
                 />}
             />
         }

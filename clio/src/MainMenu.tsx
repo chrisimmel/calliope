@@ -14,9 +14,24 @@ type MainMenuProps = {
     cameras: MediaDevice[],
     camera: string | null,
     setCamera: (camera: string) => void,
+
+    toggleIsPlaying: () => void,
+    isPlaying: boolean,
+    toggleFullScreen: () => void,
 }
 
-export default function MainMenu({strategies, strategy, setStrategy, cameras, camera, setCamera}: MainMenuProps) {
+export default function MainMenu(
+{
+    strategies,
+    strategy,
+    setStrategy,
+    cameras,
+    camera,
+    setCamera,
+    isPlaying,
+    toggleIsPlaying,
+    toggleFullScreen
+}: MainMenuProps) {
     strategies ||= [];
     strategy ||= (strategies.find(strategy => strategy.is_default_for_client) || {slug: null}).slug;
     cameras ||= [];
@@ -43,6 +58,16 @@ export default function MainMenu({strategies, strategy, setStrategy, cameras, ca
                 }
             </MenuRadioGroup>
         </SubMenu>
+        <MenuItem
+            onClick={(e) => toggleIsPlaying()}
+        >
+            {isPlaying ? "Pause" : "Play Automatically"}
+        </MenuItem>
+        <MenuItem
+            onClick={(e) => toggleFullScreen()}
+        >
+            Full Screen
+        </MenuItem>
         {/*
         <SubMenu label="Camera">
             <MenuRadioGroup

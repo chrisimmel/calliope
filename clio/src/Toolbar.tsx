@@ -12,7 +12,8 @@ type ToolbarProps = {
     toEnd: () => void,
     toggleIsPlaying: () => void,
     isPlaying: boolean,
-    toggleFullscreen: () => void,
+    toggleFullScreen: () => void,
+    isFullScreen: boolean,
     startCameraCapture: () => void,
     menu: any,
 }
@@ -22,7 +23,8 @@ export default function Toolbar({
     toEnd,
     toggleIsPlaying,
     isPlaying,
-    toggleFullscreen,
+    toggleFullScreen,
+    isFullScreen,
     startCameraCapture,
     menu,
 }: ToolbarProps) {
@@ -36,21 +38,17 @@ export default function Toolbar({
             >
                 <IconRewind/>
             </button>
-            <button
-                className="navButton"
-                onClick={() => {
-                    toggleIsPlaying();
-                }}
-            >
-                {
-                    isPlaying &&
+            {
+                isPlaying &&
+                <button
+                    className="navButton"
+                    onClick={() => {
+                        toggleIsPlaying();
+                    }}
+                >
                     <IconPause/>
-                }
-                {
-                    !isPlaying &&
-                    <IconPlay/>
-                }
-            </button>
+                </button>
+            }
             <button
                 className="navButton"
                 onClick={() => {
@@ -59,22 +57,32 @@ export default function Toolbar({
             >
                 <IconFastForward/>
             </button>
-            <button
-                className="navButton"
-                onClick={() => {
-                    toggleFullscreen();
-                }}
-            >
-                <IconFullscreen/>
-            </button>
-            <button
-                className="navButton"
-                onClick={() => {
-                    startCameraCapture();
-                }}
-            >
-                <IconCamera/>
-            </button>
+            {
+                isFullScreen &&
+                <button
+                    className="navButton"
+                    onClick={() => {
+                        toggleFullScreen();
+                    }}
+                >
+                    <IconFullscreen/>
+                </button>
+            }
+            {
+                !isPlaying &&
+                /*
+                Enable camera capture for now only if not playing.
+                This avoids a concurrency bug.
+                 */
+                <button
+                    className="navButton"
+                    onClick={() => {
+                        startCameraCapture();
+                    }}
+                >
+                    <IconCamera/>
+                </button>
+            }
             {menu}
         </div>
     </>;
