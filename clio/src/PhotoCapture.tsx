@@ -4,6 +4,7 @@ import {Camera, CameraType} from "react-camera-pro";
 import IconCameraReverse from './icons/IconCameraReverse';
 import IconClose from './icons/IconClose';
 import IconSend from './icons/IconSend';
+import Loader from "./Loader";
 
 
 type PhotoCaptureProps = {
@@ -37,6 +38,10 @@ export default function PhotoCapture({videoConstraints, sendPhoto, closePhotoCap
     return (
         <div className="photoCapture">
             <div className="photoCaptureInner">
+                {
+                    !camera.current &&
+                    <Loader/>
+                }
                 <Camera
                     ref={camera} errorMessages={errorMessages}
                     numberOfCamerasCallback={(i) => setNumberOfCameras(i)}

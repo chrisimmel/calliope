@@ -13,6 +13,7 @@ import IconChevronRight from "./icons/IconChevronRight";
 import Toolbar from "./Toolbar";
 import MainMenu from "./MainMenu";
 import PhotoCapture from "./PhotoCapture";
+import Loader from "./Loader";
 
 
 const audioConstraints = {
@@ -601,11 +602,14 @@ export default function ClioApp() {
         {
             loading &&
             <div className="spinnerFrame">
+                {/*
                 <IconRefresh style={{
                     animation: 'rotate 2s linear infinite',
                     display: "block",
                     margin: "auto"
                 }}/>
+                */}
+                <Loader/>
             </div>
         }
     </>;
