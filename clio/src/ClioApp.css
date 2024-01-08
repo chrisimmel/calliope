@@ -320,6 +320,7 @@ html {
     height: 64px;
     border-radius: 50%;
     perspective: 800px;
+    background: transparent;
 }
 .spinnerFrame .loader {
     width: 32px;
@@ -333,6 +334,7 @@ html {
     width: 100%;
     height: 100%;
     border-radius: 50%;
+    background: transparent;
 
     width: 64px !important;
     height: 64px !important;

@@ -551,9 +551,8 @@ export default function ClioApp() {
             </div>
         }
         <div className="clio_app">
-            { captureActive && cameraDeviceId && cameraDeviceId != DEVICE_ID_NONE &&
+            { captureActive &&
                 <PhotoCapture
-                    videoConstraints={videoConstraints}
                     sendPhoto={sendPhoto}
                     closePhotoCapture={closePhotoCapture}
                 />

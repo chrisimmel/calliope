@@ -8,7 +8,6 @@ import Loader from "./Loader";
 
 
 type PhotoCaptureProps = {
-    videoConstraints: object,
     sendPhoto: (photo: string | null) => void,
     closePhotoCapture: () => void,
 }
@@ -22,9 +21,10 @@ const errorMessages = {
 };
 
 
-export default function PhotoCapture({videoConstraints, sendPhoto, closePhotoCapture}: PhotoCaptureProps) {
+export default function PhotoCapture({sendPhoto, closePhotoCapture}: PhotoCaptureProps) {
     const camera = useRef<CameraType>(null);
-    const [numberOfCameras, setNumberOfCameras] = useState(0);
+    const [facingMode, setFacingMode] = useState<string>(localStorage.getItem('facingMode') || "environment");
+    const [numberOfCameras, setNumberOfCameras] = useState<number>(0);
     const captureImage = useCallback(
        (): string | null => {
             if (camera.current) {
@@ -43,6 +43,7 @@ export default function PhotoCapture({videoConstraints, sendPhoto, closePhotoCap
                     <Loader/>
                 }
                 <Camera
+                    facingMode={facingMode == "user" ? "user" : "environment"}
                     ref={camera} errorMessages={errorMessages}
                     numberOfCamerasCallback={(i) => setNumberOfCameras(i)}
                 />
@@ -69,8 +70,10 @@ export default function PhotoCapture({videoConstraints, sendPhoto, closePhotoCap
                         className="captureButton reverseCamera"
                         onClick={() => {
                             if (camera.current) {
-                                const result = camera.current.switchCamera();
-                                console.log(result);
+                                const facingMode = camera.current.switchCamera();
+                                console.log(`Facing mode: ${facingMode}`);
+                                setFacingMode(facingMode);
+                                localStorage.setItem('facingMode', facingMode);
                             }
                         }}
                         >
