@@ -24,7 +24,10 @@ const thisBrowserID = browserID();
 
 const getDefaultStrategy: () => string | null = () => {
     const queryParameters = new URLSearchParams(window.location.search);
-    return queryParameters.get('strategy');
+    const urlStrategy = queryParameters.get('strategy');
+    const savedStrategy = localStorage.getItem('strategy');
+
+    return urlStrategy || (savedStrategy != "" ? savedStrategy : null);
 };
 
 let getFramesInterval: ReturnType<typeof setTimeout> | null = null;
@@ -62,7 +65,6 @@ export default function ClioApp() {
     }
 
     const stateRef = useRef<ClioState>({handleFullScreen: () => null, getFrames: () => null});
-    const [capturedImage, setCapturedImage] = useState<string | null>(null);
     const [frames, setFrames] = useState<Frame[]>([]);
     const [selectedFrameNumber, setSelectedFrameNumber] = useState<number>(-1);
     const [loading, setLoading] = useState<boolean>(true);
@@ -291,8 +293,6 @@ export default function ClioApp() {
                 }
                 //console.log(`captureImage().`)
                 //const uploadImage = captureImage();
-                console.log(`capturedImage: ${capturedImage}`);
-                console.log(`image: ${image}`);
     
                 let params: {client_id: string, client_type: string, input_image: string | null, debug: boolean, strategy?: string} = {
                     client_id: thisBrowserID,
@@ -493,7 +493,6 @@ export default function ClioApp() {
     const sendPhoto = useCallback(
         (image: string | null) => {
             setCaptureActive(false);
-            setCapturedImage(image);
             const parts = image ? image.split(",") : null;
             image = (parts && parts.length > 1) ? parts[1] : null;
 
@@ -505,6 +504,14 @@ export default function ClioApp() {
     const closePhotoCapture = useCallback(
         () => {
             setCaptureActive(false);
+        },
+        []
+    );
+    const updateStrategy = useCallback(
+        (strategy: string | null) => {
+            console.log(`Setting strategy to ${strategy}.`);
+            localStorage.setItem('strategy', strategy || "");
+            setStrategy(strategy);
         },
         []
     );
@@ -592,7 +599,7 @@ export default function ClioApp() {
                 menu={<MainMenu
                     strategies={strategies}
                     strategy={strategy}
-                    setStrategy={setStrategy}
+                    setStrategy={updateStrategy}
                     cameras={cameras}
                     camera={cameraDeviceId}
                     setCamera={setCameraDeviceId}

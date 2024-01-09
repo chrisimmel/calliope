@@ -27,7 +27,12 @@ from calliope.tables import (
 )
 from calliope.utils.file import create_sequential_filename
 from calliope.utils.image import get_image_attributes
-from calliope.utils.text import split_into_sentences, translate_text
+from calliope.utils.text import (
+    balance_quotes,
+    ends_with_punctuation,
+    split_into_sentences,
+    translate_text,
+)
 
 
 @StoryStrategyRegistry.register()
@@ -270,19 +275,6 @@ class ContinuousStoryV1Strategy(StoryStrategy):
             )
             print(f"Raw output: '{text}'")
 
-            def ends_with_punctuation(string: str) -> bool:
-                return len(string) > 0 and string[-1] in (
-                    ".",
-                    "!",
-                    "?",
-                    ":",
-                    ",",
-                    ";",
-                    "-",
-                    '"',
-                    "'",
-                )
-
             if text:
                 LIMIT = 1024
 
@@ -308,6 +300,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
                     # Adding blank lines between sentences helps break up
                     # dense text from especially GPT-4.
                     text = "\n\n".join(lines)
+                    text = balance_quotes(text)
                 text = text.strip()
                 if not ends_with_punctuation(text):
                     text += "."
