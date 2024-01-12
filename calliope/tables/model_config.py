@@ -86,7 +86,10 @@ class InferenceModel(Table, tablename="inference_model"):
 
     # The provider's API variant, if pertinent.
     provider_api_variant = Varchar(
-        length=80, null=True, choices=InferenceModelProviderVariant
+        length=80,
+        null=True,
+        choices=InferenceModelProviderVariant,
+        default=InferenceModelProviderVariant.DEFAULT,
     )
 
     # The provider's name for this model. There may be multiple configurations per

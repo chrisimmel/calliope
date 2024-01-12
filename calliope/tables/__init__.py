@@ -1,3 +1,8 @@
+from .bookmark import (
+    BookmarkList,
+    StoryBookmark,
+    StoryFrameBookmark,
+)
 from .config import (
     ClientTypeConfig,
     SparrowConfig,
@@ -14,6 +19,7 @@ from .story import Story, StoryFrame
 
 
 __all__ = [
+    "BookmarkList",
     "ClientTypeConfig",
     "Image",
     "InferenceModel",
@@ -22,6 +28,8 @@ __all__ = [
     "SparrowConfig",
     "SparrowState",
     "Story",
+    "StoryBookmark",
     "StoryFrame",
+    "StoryFrameBookmark",
     "StrategyConfig",
 ]
