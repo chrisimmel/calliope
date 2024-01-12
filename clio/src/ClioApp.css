@@ -223,7 +223,7 @@ img {
 }
 .photoCapture .captureButton.reverseCamera {
     right: 0;
-    bottom: 64px;
+    bottom: calc(50% - 32px);
 }
 
 .navLeft {
