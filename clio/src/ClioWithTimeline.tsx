@@ -2,12 +2,11 @@ import { useCallback, useRef, useState, useEffect } from "react";
 import axios from "axios"
 import browserID from "browser-id";
 import Carousel, { CarouselItem } from "./Carousel";
-import IconRefresh from "./icons/IconRefresh";
 
 import './Clio.css';
 import './ClioApp.css';
 
-import { DEVICE_ID_DEFAULT, DEVICE_ID_NONE, Frame, MediaDevice, Story, Strategy } from './Types'; 
+import { DEVICE_ID_DEFAULT, DEVICE_ID_NONE, Frame, Story, Strategy } from './Types'; 
 import IconChevronLeft from "./icons/IconChevronLeft";
 import IconChevronRight from "./icons/IconChevronRight";
 import Toolbar from "./Toolbar";
@@ -31,7 +30,6 @@ const getDefaultStrategy: () => string | null = () => {
 };
 
 let getFramesInterval: ReturnType<typeof setTimeout> | null = null;
-let checkMediaDevicesInterval: ReturnType<typeof setTimeout> | null = null;
 let hideOverlaysInterval: ReturnType<typeof setTimeout> | null = null;
 
 
@@ -71,7 +69,6 @@ export default function ClioApp() {
     const [error, setError] = useState<string | null>(null);
     const [captureActive, setCaptureActive] = useState<boolean>(false);
     const [isPlaying, setIsPlaying] = useState<boolean>(false);
-    const [cameras, setCameras] = useState<MediaDevice[]>([]);
     const [strategies, setStrategies] = useState<Strategy[]>([]);
     const [defaultStrategy, setDefaultStrategy] = useState<string | null>(getDefaultStrategy());
     const [strategy, setStrategy] = useState<string | null>(defaultStrategy);
@@ -116,68 +113,6 @@ export default function ClioApp() {
             };
         },
         [isFullScreen, hideOverlaysInterval]
-    );
-
-    const handleMediaDevices = useCallback(
-        (mediaDevices: MediaDevice[]) => {
-            const cameras = mediaDevices.filter((device: MediaDevice) => device.kind === "videoinput");
-            cameras.push({
-                kind: "videoinput",
-                label: "Camera Off",
-                deviceId: DEVICE_ID_NONE,
-            });
-            setCameras(cameras);
-            console.log(`Found ${cameras.length} cameras: ${cameras}`);
-            if (cameras) {
-                cameras.map((camera) => {
-                    console.log(`Camera ${camera.deviceId}, '${camera.label || camera.deviceId}'`)
-                });
-                if (cameraDeviceId == DEVICE_ID_DEFAULT && cameras.length > 0) {
-                    let selectedDeviceId = null;
-                    let selectedDeviceLabel = null;
-                    for (let i = 0; i < cameras.length && !selectedDeviceId; i++) {
-                        const label = cameras[i].label;
-                        if (label == "Back Camera") {
-                            selectedDeviceId = cameras[i].deviceId;
-                            selectedDeviceLabel = label;
-                        }
-                    }
-                    if (!selectedDeviceId) {
-                        selectedDeviceId = cameras[0].deviceId;
-                        selectedDeviceLabel = cameras[0].label;
-                    }
-                    console.log(`Initializing camera to ${selectedDeviceLabel}.`);
-                    setCameraDeviceId(selectedDeviceId);
-                }
-            }
-        },
-        [setCameras, cameraDeviceId, cameras]
-    );
-
-    const checkMediaDevices = useCallback(
-        () => {
-            console.log(`checkMediaDevices()...`);
-            navigator.mediaDevices.enumerateDevices().then(handleMediaDevices);
-        },
-        [handleMediaDevices]
-    );
-
-    useEffect(
-        () => {
-            // Check the media devices once immediately. This seems to be enough
-            // in a browser running on a desktop.
-            checkMediaDevices();
-
-            // But on an iPhone, we need to wait a few seconds and try again.
-            checkMediaDevicesInterval = setInterval(() => {
-                if (checkMediaDevicesInterval) {
-                    clearInterval(checkMediaDevicesInterval);
-                    checkMediaDevicesInterval = null;
-                }
-                checkMediaDevices();
-            }, 3000);
-        },
-        []
     );
 
     useEffect(() => {
@@ -718,9 +653,6 @@ export default function ClioApp() {
                     strategies={strategies}
                     strategy={strategy}
                     setStrategy={updateStrategy}
-                    cameras={cameras}
-                    camera={cameraDeviceId}
-                    setCamera={setCameraDeviceId}
                     toggleIsPlaying={toggleIsPlaying}
                     isPlaying={isPlaying}
                     toggleFullScreen={toggleFullScreen}

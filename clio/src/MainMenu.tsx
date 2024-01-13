@@ -11,9 +11,6 @@ type MainMenuProps = {
     strategies: Strategy[],
     strategy: string | null,
     setStrategy: (strategy: string | null) => void,
-    cameras: MediaDevice[],
-    camera: string | null,
-    setCamera: (camera: string) => void,
 
     toggleIsPlaying: () => void,
     isPlaying: boolean,
@@ -28,9 +25,6 @@ export default function MainMenu(
     strategies,
     strategy,
     setStrategy,
-    cameras,
-    camera,
-    setCamera,
     isPlaying,
     toggleIsPlaying,
     toggleFullScreen,
@@ -40,7 +34,6 @@ export default function MainMenu(
 }: MainMenuProps) {
     strategies ||= [];
     strategy ||= (strategies.find(strategy => strategy.is_default_for_client) || {slug: null}).slug;
-    cameras ||= [];
     strategy ||= null;
 
     return (
@@ -99,27 +92,6 @@ export default function MainMenu(
         >
             Full Screen
         </MenuItem>
-        {/*
-        <SubMenu label="Camera">
-            <MenuRadioGroup
-                value={camera}
-                onRadioChange={(e) => setCamera(e.value)}
-            >
-                {
-                    cameras.map(
-                        (cam, index) => {
-                            return <MenuItem
-                                type="radio"
-                                value={cam.deviceId}
-                                key={index}>
-                                {cam.label}
-                            </MenuItem>
-                        }
-                    )
-                }
-            </MenuRadioGroup>
-        </SubMenu>
-        */}
         </Menu>
     );
 }
