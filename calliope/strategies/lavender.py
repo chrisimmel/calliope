@@ -125,6 +125,7 @@ class LavenderStrategy(StoryStrategy):
             )
 
         image_description = None
+        state_props = {}
         if story_continuation and not story_continuation.isspace():
             print(f"{story_continuation=}")
             continuation_json = load_llm_output_as_json(story_continuation)
@@ -136,6 +137,7 @@ class LavenderStrategy(StoryStrategy):
                 image_description = cast(
                     Optional[str], continuation_json.get("illustration")
                 )
+                state_props = {key: val for key, val in continuation_json if key not in ("continuation", "illustration")}
 
         if not story_continuation or story_continuation.isspace():
             story_continuation = situation + "\n"

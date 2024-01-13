@@ -38,10 +38,12 @@ class Image(Table):
             f"{self.format}, {self.url}"
         )
 
-    def to_pydantic(self) -> ImageModel:
+    def to_pydantic(self) -> Optional[ImageModel]:
         format = ImageFormat.fromMediaFormat(self.format)
         if not format:
-            raise ValueError(f"Invalid image format: {self.format}")
+            return None
+            # print(f"Image: {self.width=}, {self.height=}, {self.format=}, {self.url=}")
+            # raise ValueError(f"Invalid image format: {self.format}")
 
         return ImageModel(
             width=self.width,

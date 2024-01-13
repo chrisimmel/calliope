@@ -127,10 +127,17 @@ class StoryParamsModel(ClientTypeParamsModel):
 
 class FramesRequestParamsModel(StoryParamsModel):
     client_id: str
+    story_id: Optional[str] = None
 
 
 class StoryRequestParamsModel(BaseModel):
     client_id: str
+    story_id: Optional[str] = None
     start_frame: Optional[int] = None
     num_frames: Optional[int] = None
+    debug: Optional[bool] = False
+
+
+class StoriesRequestParamsModel(BaseModel):
+    client_id: str
     debug: Optional[bool] = False

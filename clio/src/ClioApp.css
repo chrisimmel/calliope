@@ -38,7 +38,7 @@ div#root {
     display: grid;
 }
 
-img {
+.image img {
     align-self: center;
     justify-self: center;
     object-fit: contain;
@@ -54,11 +54,11 @@ img {
         max-height: calc(var(--vp-height) - var(--toolbar-height));
         min-width: calc(50vw - var(--toolbar-height));
     }
-    img {
+    .image img {
         height: calc(var(--vp-height) - var(--toolbar-height));
         width: calc(50vw - var(--toolbar-height));
     }
-    .fullscreen img {
+    .fullscreen .image img {
         height: var(--vp-height);
     }
 }
@@ -73,7 +73,7 @@ img {
         height: 100vw;
         width: 100vw;
     }
-    img {
+    .image img {
         height: 100vw;
         width: 100vw;
     }

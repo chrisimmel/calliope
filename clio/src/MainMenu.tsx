@@ -5,7 +5,7 @@ import '@szhsin/react-menu/dist/theme-dark.css';
 import './Toolbar.css';
 
 import IconMenu from "./icons/IconMenu";
-import { MediaDevice, Strategy } from './Types'; 
+import { MediaDevice, Story, Strategy } from './Types'; 
 
 type MainMenuProps = {
     strategies: Strategy[],
@@ -18,6 +18,9 @@ type MainMenuProps = {
     toggleIsPlaying: () => void,
     isPlaying: boolean,
     toggleFullScreen: () => void,
+    stories: Story[],
+    story_id: string | null,
+    setStory: (story_id: string | null) => void,
 }
 
 export default function MainMenu(
@@ -30,7 +33,10 @@ export default function MainMenu(
     setCamera,
     isPlaying,
     toggleIsPlaying,
-    toggleFullScreen
+    toggleFullScreen,
+    stories,
+    story_id,
+    setStory,
 }: MainMenuProps) {
     strategies ||= [];
     strategy ||= (strategies.find(strategy => strategy.is_default_for_client) || {slug: null}).slug;
@@ -52,6 +58,31 @@ export default function MainMenu(
                                 value={strat.slug}
                                 key={index}>
                                 {strat.slug}
+                            </MenuItem>
+                        }
+                    )
+                }
+            </MenuRadioGroup>
+        </SubMenu>
+        <SubMenu label="Story">
+            <MenuRadioGroup
+                value={story_id}
+                onRadioChange={(e) => setStory(e.value)}
+            >
+                {
+                    stories.map(
+                        (story, index) => {
+                            const image_url = (story.thumbnail_image && story.thumbnail_image.url) ? `/${story.thumbnail_image.url}` : '';
+
+                            return <MenuItem
+                                type="radio"
+                                value={story.story_id}
+                                key={story.story_id}>
+                                {
+                                    image_url &&
+                                    <img src={image_url} width={48} height={48}/>
+                                }
+                                {story.title}
                             </MenuItem>
                         }
                     )

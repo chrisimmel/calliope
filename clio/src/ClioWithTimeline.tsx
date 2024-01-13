@@ -7,7 +7,7 @@ import IconRefresh from "./icons/IconRefresh";
 import './Clio.css';
 import './ClioApp.css';
 
-import { DEVICE_ID_DEFAULT, DEVICE_ID_NONE, Frame, MediaDevice } from './Types'; 
+import { DEVICE_ID_DEFAULT, DEVICE_ID_NONE, Frame, MediaDevice, Story, Strategy } from './Types'; 
 import IconChevronLeft from "./icons/IconChevronLeft";
 import IconChevronRight from "./icons/IconChevronRight";
 import Toolbar from "./Toolbar";
@@ -72,10 +72,13 @@ export default function ClioApp() {
     const [captureActive, setCaptureActive] = useState<boolean>(false);
     const [isPlaying, setIsPlaying] = useState<boolean>(false);
     const [cameras, setCameras] = useState<MediaDevice[]>([]);
-    const [strategies, setStrategies] = useState([]);
-    const [strategy, setStrategy] = useState<string | null>(getDefaultStrategy());
+    const [strategies, setStrategies] = useState<Strategy[]>([]);
+    const [defaultStrategy, setDefaultStrategy] = useState<string | null>(getDefaultStrategy());
+    const [strategy, setStrategy] = useState<string | null>(defaultStrategy);
     const [cameraDeviceId, setCameraDeviceId] = useState<string>(DEVICE_ID_DEFAULT);
     const [isFullScreen, setIsFullScreen] = useState<boolean>(false);
+    const [stories, setStories] = useState<Story[]>([]);
+    const [storyId, setStoryId] = useState<string | null>(null);
 
     function handleResize() {
         const root: HTMLElement | null = document.querySelector(':root');
@@ -346,18 +349,78 @@ export default function ClioApp() {
     );
     stateRef.current.getFrames = getFrames;
 
+    const getStory = useCallback(
+        async (story_id: string | null, frame_num: number | null) => {
+            setLoading(true)
+            if (!story_id) {
+                story_id = storyId;
+            }
+
+            try {
+                let params = {
+                    client_id: thisBrowserID,
+                    debug: true,
+                    story_id: story_id,
+                };
+                console.log("Getting story...");
+                const response = await axios.get(
+                    "/v1/story/",
+                    {
+                        headers: {
+                            "X-Api-Key": "xyzzy",
+                        },
+                        params: params,
+                    },
+                );
+                console.log(`Got ${response.data?.frames?.length} frames.`);
+                const newFrames = response.data?.frames || [];
+                setFrames(newFrames);
+                const maxFrameNum = newFrames ? newFrames.length - 1 : 0;
+                if (frame_num != null) {
+                    frame_num = Math.min(frame_num, maxFrameNum);
+                } else {
+                    frame_num = maxFrameNum;
+                }
+                setSelectedFrameNumber(frame_num);
+
+                if (!newFrames.length && !getFramesInterval) {
+                    // If the story is empty, get a new frame.
+                    setCaptureActive(true);
+                    // Wait a moment before capturing an image, giving the
+                    // Webcam a beat to initialize.
+
+                    console.log("Scheduling a request for an initial frame.");
+                    getFramesInterval = setInterval(() => stateRef.current.getFrames(null), 500);
+                }
+            } catch (err: any) {
+                setError(err.message);
+            } finally {
+                setLoading(false);
+            }
+        },
+        []
+    );
+
     useEffect(
         () => {
-            const getStory = async () => {
+            // Get the default story and jump to its last frame.
+            getStory(null, null);
+        },
+        []
+    );
+
+    useEffect(
+        () => {
+            const getStories = async () => {
                 setLoading(true)
                 try {
                     let params = {
                         client_id: thisBrowserID,
                         debug: true,
                     };
-                    console.log("Getting story...");
+                    console.log("Getting stories...");
                     const response = await axios.get(
-                        "/v1/story/",
+                        "/v1/stories/",
                         {
                             headers: {
                                 "X-Api-Key": "xyzzy",
@@ -365,20 +428,9 @@ export default function ClioApp() {
                             params: params,
                         },
                     );
-                    console.log(`Got ${response.data?.frames?.length} frames.`);
-                    const newFrames = response.data?.frames || [];
-                    setFrames(newFrames);
-                    setSelectedFrameNumber(newFrames ? newFrames.length - 1 : 0);
-
-                    if (!newFrames.length && !getFramesInterval) {
-                        // If the story is empty, get a new frame.
-                        setCaptureActive(true);
-                        // Wait a moment before capturing an image, giving the
-                        // Webcam a beat to initialize.
-
-                        console.log("Scheduling a request for an initial frame.");
-                        getFramesInterval = setInterval(() => stateRef.current.getFrames(null), 500);
-                    }
+                    console.log(`Got ${response.data?.stories?.length} frames.`);
+                    const newStories = response.data?.stories || [];
+                    setStories(newStories);
                 } catch (err: any) {
                     setError(err.message);
                 } finally {
@@ -386,11 +438,11 @@ export default function ClioApp() {
                 }
             };
 
-            getStory();
+            getStories();
         },
         []
     );
-
+ 
     const selectFrameNumber = useCallback(
         async (newSelectedFrameNumber: number) => {
             const frameCount = frames.length;
@@ -515,6 +567,72 @@ export default function ClioApp() {
         },
         []
     );
+    const findNearestStrategy = useCallback(
+        (strategy_name: string | null) => {
+            const matchingPrefixLength = (str1: string, str2: string) => {
+                let j = 0;
+                for (; j < str1.length && j < str2.length && str1[j] == str2[j]; j++) {
+                }
+                return j;
+            };
+
+            if (strategies && strategy_name) {
+                let closestStrategyName: string | null = null;
+                let longestPrefixLength = 0;
+                if (strategy_name.startsWith("continuous-v0")) {
+                    console.log(`Story created by deprecated ${strategy_name}. Resetting to lichen.`);
+                    closestStrategyName = "lichen";
+                    longestPrefixLength = 5;
+                }
+                else {
+                    for (let k = 0; k < strategies.length; k++) {
+                        const candidateStrategy = strategies[k].slug;
+                        const prefixLength = matchingPrefixLength(strategy_name, candidateStrategy);
+                        if (prefixLength > longestPrefixLength) {
+                            closestStrategyName = candidateStrategy;
+                            longestPrefixLength = prefixLength;
+                        }
+                    }
+                }
+                if (closestStrategyName && longestPrefixLength > 5) {
+                    console.log(`Story created by ${strategy_name}. Nearest current strategy is ${closestStrategyName}.`);
+                    strategy_name = closestStrategyName;
+                }
+                else {
+                    console.log(`No match found for strategy ${strategy_name}. Using default strategy: ${defaultStrategy}`);
+                    strategy_name = defaultStrategy || "lichen";
+                }
+            }
+            if (!strategy_name) {
+                strategy_name = defaultStrategy || "lichen";
+            }
+
+            return strategy_name;
+        },
+        [strategies, defaultStrategy]
+    );
+
+    const updateStory = useCallback(
+        (story_id: string | null) => {
+            console.log(`Setting story to ${story_id}.`);
+            setStoryId(story_id);
+
+            // Set the strategy to match the selected story.
+            for (let i = 0; i < stories.length; i++) {
+                const story = stories[i];
+                if (story.story_id == story_id) {
+                    const strategy_name = findNearestStrategy(story.strategy_name);
+                    console.log(`Setting strategy to ${strategy_name}.`);
+                    setStrategy(strategy_name);
+                    break;
+                }
+            }
+
+            // Get the selected story and jump to its first frame.
+            getStory(story_id, 0);
+        },
+        [stories, strategies]
+    );
 
     type VideoConstraints = {
         width?: number,
@@ -606,6 +724,9 @@ export default function ClioApp() {
                     toggleIsPlaying={toggleIsPlaying}
                     isPlaying={isPlaying}
                     toggleFullScreen={toggleFullScreen}
+                    stories={stories}
+                    story_id={storyId}
+                    setStory={updateStory}
                 />}
             />
         }

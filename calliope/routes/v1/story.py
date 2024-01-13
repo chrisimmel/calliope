@@ -13,6 +13,8 @@ from calliope.inference import image_analysis_inference
 from calliope.intel.location import get_location_metadata_for_ip
 from calliope.models import (
     FramesRequestParamsModel,
+    ImageModel,
+    StoriesRequestParamsModel,
     StoryFrameModel,
     StoryRequestParamsModel,
 )
@@ -22,6 +24,8 @@ from calliope.storage.config_manager import (
 )
 from calliope.storage.state_manager import (
     get_sparrow_state,
+    get_stories_by_client,
+    get_story,
     put_sparrow_state,
     put_story,
 )
@@ -71,6 +75,29 @@ class StoryResponseV1(BaseModel):
     errors: List[str]
 
 
+class StoryInfo(BaseModel):
+    story_id: str
+    title: str
+    story_frame_count: int
+    is_bookmarked: bool
+    is_current: bool
+    is_read_only: bool
+
+    strategy_name: str
+    created_for_sparrow_id: str
+    thumbnail_image: Optional[ImageModel] = None
+
+    # The dates the story was created and updated.
+    date_created: str
+    date_updated: str
+
+
+class StoriesResponseV1(BaseModel):
+    stories: List[StoryInfo]
+    request_id: str
+    generation_date: str
+
+
 @router.put("/story/reset")
 async def put_story_reset(
     request: Request,
@@ -87,7 +114,7 @@ async def put_story_reset(
 
 
 @router.get("/story/", response_model=StoryResponseV1)
-async def get_story(
+async def get_story_request(
     request: Request,
     api_key: APIKey = Depends(get_api_key),
     request_params: StoryRequestParamsModel = Depends(StoryRequestParamsModel),
@@ -202,6 +229,7 @@ async def handle_frames_request(
     print("handle_frames_request")
     client_id = request_params.client_id
     sparrow_state = await get_sparrow_state(client_id)
+    story_id = request_params.story_id
 
     (
         parameters,
@@ -217,10 +245,13 @@ async def handle_frames_request(
     )
     strategy_class = StoryStrategyRegistry.get_strategy_class(strategy_name)
 
-    story = sparrow_state.current_story
-    if story and story.strategy_name != parameters.strategy:
-        # The story in progress was created by a different strategy. Start a new one.
-        story = None
+    if story_id:
+        story = await get_story(story_id)
+    else:
+        story = sparrow_state.current_story
+        if story and story.strategy_name != parameters.strategy:
+            # The story in progress was created by a different strategy. Start a new one.
+            story = None
 
     if not story:
         story = Story.create_new(
@@ -337,7 +368,13 @@ async def handle_existing_frames_request(
     sparrow_state = await get_sparrow_state(client_id)
 
     errors: List[str] = []
-    story = sparrow_state.current_story
+    story_id = request_params.story_id
+    if story_id:
+        # Get the specified story.
+        story = await get_story(story_id)
+    else:
+        # Use Sparrow's current story.
+        story = sparrow_state.current_story
 
     frame_parameters = FramesRequestParamsModel(**request_params.dict())
 
@@ -472,3 +509,66 @@ async def prepare_frame_images(
                     await frame.save().run()
                 if is_google_cloud:
                     put_media_file(image.url)
+
+
+def shorten_title(title: Optional[str], max_length: int = 64) -> str:
+    if not title:
+        return ""
+
+    lines: List[str] = title.split("\n")
+    title = ""
+    for line in lines:
+        if len(title):
+            title += " "
+        title += line
+        if len(title) > max_length:
+            break
+
+    if len(title) > max_length:
+        return title[:max_length] + "..."
+
+    return title
+
+
+@router.get("/stories/", response_model=StoriesResponseV1)
+async def get_stories(
+    request: Request,
+    api_key: APIKey = Depends(get_api_key),
+    request_params: StoriesRequestParamsModel = Depends(
+        StoriesRequestParamsModel
+    ),
+) -> StoriesResponseV1:
+    """
+    Gets all stories attributed to this client_id.
+    """
+    client_id = request_params.client_id
+    sparrow_state = await get_sparrow_state(client_id)
+
+    current_story = sparrow_state.current_story
+
+    all_stories = await get_stories_by_client(client_id)
+
+    story_infos = [
+        StoryInfo(
+            story_id=story.cuid,
+            title=shorten_title(story.title),
+            story_frame_count=1,  # await story.get_num_frames(),
+            is_bookmarked=False,
+            is_current=story.cuid == current_story.cuid,
+            is_read_only=False,
+            strategy_name=story.strategy_name,
+            created_for_sparrow_id=story.created_for_sparrow_id,
+            thumbnail_image=story.thumbnail_image.to_pydantic() if story.thumbnail_image else None,
+            date_created=str(story.date_created.date()),
+            date_updated=str(story.date_updated.date()),
+        )
+        for story in all_stories
+    ]
+
+    response = StoriesResponseV1(
+        stories=story_infos,
+        request_id=cuid.cuid(),
+        generation_date=str(datetime.utcnow()),
+    )
+
+    return response
