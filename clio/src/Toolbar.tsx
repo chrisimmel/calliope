@@ -2,19 +2,21 @@ import './ClioApp.css';
 import './Toolbar.css';
 import IconFastForward from "./icons/IconFastForward";
 import IconPause from "./icons/IconPause";
-import IconPlay from "./icons/IconPlay";
 import IconRewind from "./icons/IconRewind";
 import IconFullscreen from './icons/IconFullscreen';
 import IconCamera from './icons/IconCamera';
+import IconPlus from "./icons/IconPlus";
 
 type ToolbarProps = {
     toStart: () => void,
     toEnd: () => void,
     toggleIsPlaying: () => void,
     isPlaying: boolean,
+    isLoading: boolean,
     toggleFullScreen: () => void,
     isFullScreen: boolean,
     startCameraCapture: () => void,
+    addNewFrame: () => void,
     menu: any,
 }
 
@@ -23,9 +25,11 @@ export default function Toolbar({
     toEnd,
     toggleIsPlaying,
     isPlaying,
+    isLoading,
     toggleFullScreen,
     isFullScreen,
     startCameraCapture,
+    addNewFrame,
     menu,
 }: ToolbarProps) {
     return <>
@@ -69,7 +73,7 @@ export default function Toolbar({
                 </button>
             }
             {
-                !isPlaying &&
+                !isPlaying && !isLoading &&
                 /*
                 Enable camera capture for now only if not playing.
                 This avoids a concurrency bug.
@@ -81,6 +85,21 @@ export default function Toolbar({
                     }}
                 >
                     <IconCamera/>
+                </button>
+            }
+            {
+                !isPlaying && !isLoading &&
+                /*
+                Enable add new frame for now only if not playing.
+                This avoids a concurrency bug.
+                 */
+                <button
+                    className="navButton"
+                    onClick={() => {
+                        addNewFrame();
+                    }}
+                >
+                    <IconPlus/>
                 </button>
             }
             {menu}

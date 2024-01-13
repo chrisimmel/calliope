@@ -229,8 +229,6 @@ export default function ClioApp() {
                     clearInterval(getFramesInterval);
                     getFramesInterval = null;
                 }
-                //console.log(`captureImage().`)
-                //const uploadImage = captureImage();
     
                 let params: {client_id: string, client_type: string, input_image: string | null, debug: boolean, strategy?: string} = {
                     client_id: thisBrowserID,
@@ -383,22 +381,21 @@ export default function ClioApp() {
             const frameCount = frames.length;
             if (newSelectedFrameNumber < 0) {
                 newSelectedFrameNumber = 0;
-            } else if (newSelectedFrameNumber > frameCount) {
-                newSelectedFrameNumber = frameCount;
+            } else if (newSelectedFrameNumber >= frameCount) {
+                newSelectedFrameNumber = frameCount - 1;
             }
-    
+
             if (newSelectedFrameNumber != selectedFrameNumber) {
                 setSelectedFrameNumber(newSelectedFrameNumber);
 
                 console.log(`New index is ${newSelectedFrameNumber}, total frames: ${frameCount}.`);
+                /*
+                No more getFrames on navigation!
                 if (newSelectedFrameNumber >= frames.length && !getFramesInterval) {
-                    //setCaptureActive(true);
-                    // Wait a moment before capturing an image, giving the
-                    // Webcam a beat to initialize.
-    
                     console.log(`newSelectedFrameNumber=${newSelectedFrameNumber}, frames.length=${frames.length}. Scheduling frames request.`);
                     getFramesInterval = setInterval(() => stateRef.current.getFrames(null), 500);
                 }
+                */
             }
         },
         [frames, getFrames, selectedFrameNumber, setCaptureActive, setSelectedFrameNumber]
@@ -569,6 +566,14 @@ export default function ClioApp() {
         [stories, strategies]
     );
 
+    const addNewFrame = useCallback(
+        () => {
+            selectFrameNumber(frames.length - 1);
+            console.log("Scheduling frames request.");
+            getFramesInterval = setInterval(() => stateRef.current.getFrames(null), 10);
+        },
+        [selectedFrameNumber, selectFrameNumber, frames]
+    )
     type VideoConstraints = {
         width?: number,
         height?: number,
@@ -646,9 +651,11 @@ export default function ClioApp() {
                 toEnd={toEnd}
                 toggleIsPlaying={toggleIsPlaying}
                 isPlaying={isPlaying}
+                isLoading={loading}
                 isFullScreen={isFullScreen}
                 toggleFullScreen={toggleFullScreen}
                 startCameraCapture={startCameraCapture}
+                addNewFrame={addNewFrame}
                 menu={<MainMenu
                     strategies={strategies}
                     strategy={strategy}
