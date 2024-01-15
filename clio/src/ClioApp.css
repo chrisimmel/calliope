@@ -290,7 +290,7 @@ div#root {
 
 .navButton.bottom {
     position: absolute;
-    bottom: 0;
+    bottom: 15vh;
 }
 
 svg {
@@ -300,23 +300,12 @@ svg {
 
 .spinnerFrame {
     position: absolute;
-    /*
     top: 0;
-    left: 0;
-    width: 100vw;
-    */
-    bottom: 0;
     right: 0;
-    /*height: var(--vp-height);*/
     background: transparent;
     display:inline-flex;
-    padding: 10px;
+    padding: 14px;
     width: 26px;
-    /*
-    vertical-align:top;
-    justify-content:center;
-    align-items:center;
-    */
 }
 
 
