@@ -74,3 +74,6 @@ class StrategyConfigDescriptortModel(BaseModel):
     # Whether this strategy config is the default for the
     # requesting client.
     is_default_for_client: bool
+
+    # Whether this strategy config is considered experimental.
+    is_experimental: bool

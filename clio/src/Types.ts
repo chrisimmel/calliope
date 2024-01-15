@@ -16,6 +16,7 @@ const DEVICE_ID_DEFAULT = "default";
 
 type Strategy = {
     is_default_for_client: boolean,
+    is_experimental: boolean,
     slug: string,
 }
 

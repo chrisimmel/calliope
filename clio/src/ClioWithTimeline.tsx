@@ -6,9 +6,11 @@ import Carousel, { CarouselItem } from "./Carousel";
 import './Clio.css';
 import './ClioApp.css';
 
-import { DEVICE_ID_DEFAULT, DEVICE_ID_NONE, Frame, Story, Strategy } from './Types'; 
+import { Frame, Story, Strategy } from './Types'; 
 import IconChevronLeft from "./icons/IconChevronLeft";
 import IconChevronRight from "./icons/IconChevronRight";
+import IconFastForward from "./icons/IconFastForward";
+import IconRewind from "./icons/IconRewind";
 import Toolbar from "./Toolbar";
 import MainMenu from "./MainMenu";
 import PhotoCapture from "./PhotoCapture";
@@ -27,6 +29,20 @@ const getDefaultStrategy: () => string | null = () => {
     const savedStrategy = localStorage.getItem('strategy');
 
     return urlStrategy || (savedStrategy != "" ? savedStrategy : null);
+};
+const getDefaultStoryAndFrame: () => [string | null, number | null] = () => {
+    const queryParameters = new URLSearchParams(window.location.search);
+    const urlStory = queryParameters.get('story');
+    const parts = urlStory ? urlStory?.split(':') : [];
+    const storyId = parts.length ? parts[0] : null;
+    const frameNumber = parts.length > 1 ? parseInt(parts[1]) : (storyId != null ? 0 : null);
+
+    return [storyId, frameNumber];
+};
+const getAllowExperimental: () => boolean = () => {
+    const queryParameters = new URLSearchParams(window.location.search);
+    const xParam = queryParameters.get('x');
+    return xParam != null && xParam == '1';
 };
 
 let getFramesInterval: ReturnType<typeof setTimeout> | null = null;
@@ -56,6 +72,24 @@ const renderFrame = (frame: Frame, index: number) => {
 }
 
 
+const resetStory = async () => {
+    const params: {client_id: string} = {
+        client_id: thisBrowserID,
+    };
+
+    await axios.put(
+        "/v1/story/reset/",
+        null,
+        {
+            headers: {
+                "X-Api-Key": "xyzzy",
+            },
+            params: params,
+        },
+    );
+};
+
+
 export default function ClioApp() {
     type ClioState = {
         handleFullScreen: () => void,
@@ -71,8 +105,8 @@ export default function ClioApp() {
     const [isPlaying, setIsPlaying] = useState<boolean>(false);
     const [strategies, setStrategies] = useState<Strategy[]>([]);
     const [defaultStrategy, setDefaultStrategy] = useState<string | null>(getDefaultStrategy());
+    const [allowExperimental, setAllowExperimental] = useState<boolean>(getAllowExperimental());
     const [strategy, setStrategy] = useState<string | null>(defaultStrategy);
-    const [cameraDeviceId, setCameraDeviceId] = useState<string>(DEVICE_ID_DEFAULT);
     const [isFullScreen, setIsFullScreen] = useState<boolean>(false);
     const [stories, setStories] = useState<Story[]>([]);
     const [storyId, setStoryId] = useState<string | null>(null);
@@ -286,11 +320,13 @@ export default function ClioApp() {
         async (story_id: string | null, frame_num: number | null) => {
             setLoading(true)
             if (!story_id) {
-                story_id = storyId;
+                const [defaultStoryId, defaultFrameNum] = getDefaultStoryAndFrame();
+                story_id = defaultStoryId; // storyId;
+                frame_num = defaultFrameNum;
             }
 
             try {
-                let params = {
+                const params = {
                     client_id: thisBrowserID,
                     debug: true,
                     story_id: story_id,
@@ -347,7 +383,7 @@ export default function ClioApp() {
             const getStories = async () => {
                 setLoading(true)
                 try {
-                    let params = {
+                    const params = {
                         client_id: thisBrowserID,
                         debug: true,
                     };
@@ -375,6 +411,7 @@ export default function ClioApp() {
         },
         []
     );
+
  
     const selectFrameNumber = useCallback(
         async (newSelectedFrameNumber: number) => {
@@ -424,7 +461,7 @@ export default function ClioApp() {
         () => {
             const getStrategies = async () => {
                 try {
-                    let params = {
+                    const params = {
                         client_id: thisBrowserID,
                     };
                     console.log("Getting strategies...");
@@ -491,14 +528,30 @@ export default function ClioApp() {
         },
         []
     );
-    const updateStrategy = useCallback(
-        (strategy: string | null) => {
-            console.log(`Setting strategy to ${strategy}.`);
+    const startNewStory = useCallback(
+        async (strategy: string | null) => {
+            console.log(`Starting new story with ${strategy}.`);
             localStorage.setItem('strategy', strategy || "");
             setStrategy(strategy);
+            await resetStory();
+
+            console.log("Scheduling frames request.");
+            getFramesInterval = setInterval(() => stateRef.current.getFrames(null), 10);
         },
         []
     );
+    const startNewStoryWithPhoto = useCallback(
+        async (strategy: string | null) => {
+            console.log(`Starting new story with ${strategy}.`);
+            localStorage.setItem('strategy', strategy || "");
+            setStrategy(strategy);
+            await resetStory();
+
+            startCameraCapture();
+        },
+        []
+    );
+
     const findNearestStrategy = useCallback(
         (strategy_name: string | null) => {
             const matchingPrefixLength = (str1: string, str2: string) => {
@@ -574,24 +627,6 @@ export default function ClioApp() {
         },
         [selectedFrameNumber, selectFrameNumber, frames]
     )
-    type VideoConstraints = {
-        width?: number,
-        height?: number,
-        deviceId?: string,
-        facingMode?: string,
-    }
-    const videoConstraints: VideoConstraints = {
-        width: 512,
-        height: 512,
-        deviceId: undefined,
-        facingMode: undefined,
-    };
-    if (cameraDeviceId != DEVICE_ID_DEFAULT && cameraDeviceId != DEVICE_ID_NONE) {
-        videoConstraints.deviceId = cameraDeviceId;
-    }
-    else {
-        videoConstraints.facingMode = "environment";
-    }
 
     /*
     One panel for each frame, including an empty rightmost panel whose selection
@@ -603,7 +638,7 @@ export default function ClioApp() {
     */
     return <>
         {
-            /*!isFullScreen &&*/
+            (selectedFrameNumber > 0) &&
             <div className="navLeft">
                 <button
                     className="navButton"
@@ -612,6 +647,14 @@ export default function ClioApp() {
                     }}
                 >
                     <IconChevronLeft/>
+                </button>
+                <button
+                    className="navButton bottom"
+                    onClick={() => {
+                        toStart();
+                    }}
+                >
+                    <IconRewind/>
                 </button>
             </div>
         }
@@ -632,7 +675,7 @@ export default function ClioApp() {
             {/*{renderEmptyFrame()}*/}
         </Carousel>
         {
-            /*!isFullScreen &&*/
+            selectedFrameNumber < frames.length - 1 &&
             <div className="navRight">
                 <button
                     className="navButton"
@@ -642,13 +685,19 @@ export default function ClioApp() {
                 >
                     <IconChevronRight/>
                 </button>
+                <button
+                    className="navButton bottom"
+                    onClick={() => {
+                        toEnd();
+                    }}
+                >
+                    <IconFastForward/>
+                </button>
             </div>
         }
         {
             /*!isFullScreen &&*/
             <Toolbar
-                toStart={toStart}
-                toEnd={toEnd}
                 toggleIsPlaying={toggleIsPlaying}
                 isPlaying={isPlaying}
                 isLoading={loading}
@@ -657,9 +706,11 @@ export default function ClioApp() {
                 startCameraCapture={startCameraCapture}
                 addNewFrame={addNewFrame}
                 menu={<MainMenu
+                    allowExperimental={allowExperimental}
                     strategies={strategies}
                     strategy={strategy}
-                    setStrategy={updateStrategy}
+                    startNewStory={startNewStory}
+                    startNewStoryWithPhoto={startNewStoryWithPhoto}
                     toggleIsPlaying={toggleIsPlaying}
                     isPlaying={isPlaying}
                     toggleFullScreen={toggleFullScreen}

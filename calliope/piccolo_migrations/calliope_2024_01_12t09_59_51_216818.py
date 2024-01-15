@@ -533,4 +533,9 @@ async def forwards():
         schema=None,
     )
 
+    # Note: this migration actually failed for some reason, although
+    # I've forced it to be marked as run.
+    # TODO: Go back and figure out what happened when bringing bookmark
+    # features online. Other functions appear fine.
+
     return manager

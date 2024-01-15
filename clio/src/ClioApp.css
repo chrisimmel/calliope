@@ -43,6 +43,16 @@ div#root {
     justify-self: center;
     object-fit: contain;
 }
+.szh-menu__item img {
+    margin-right: 6px;
+}
+.szh-menu__item.story {
+    padding: 2px;
+    padding-left: 6px;
+}
+.szh-menu__item.story::before {
+    content: none;
+}
 
 @media (orientation: landscape) {
     .clio_app {
@@ -276,6 +286,11 @@ div#root {
 
 #root.fullscreen.show-overlays .navButton {
     opacity: 1;
+}
+
+.navButton.bottom {
+    position: absolute;
+    bottom: 0;
 }
 
 svg {

@@ -155,6 +155,10 @@ class StrategyConfig(Table, tablename="strategy_config"):
     # Whether this is the default configuration for its strategy.
     is_default = Boolean(default=False)
 
+    # Whether this strategy config is experimental. True unless
+    # chosen to be ready for the general public.
+    is_experimental = Boolean(default=True)
+
     # Description and commentary.
     description = Text(null=True, required=False)
 

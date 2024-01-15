@@ -98,7 +98,7 @@ class StoriesResponseV1(BaseModel):
     generation_date: str
 
 
-@router.put("/story/reset")
+@router.put("/story/reset/")
 async def put_story_reset(
     request: Request,
     client_id: str,
