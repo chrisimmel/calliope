@@ -30,7 +30,6 @@ keepers/
 
 # Distribution / packaging
 .Python
-bin/
 build/
 develop-eggs/
 dist/
@@ -132,6 +131,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+bin/
 
 # Spyder project settings
 .spyderproject
