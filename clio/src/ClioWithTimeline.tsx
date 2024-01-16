@@ -723,13 +723,6 @@ export default function ClioApp() {
         {
             loading &&
             <div className="spinnerFrame">
-                {/*
-                <IconRefresh style={{
-                    animation: 'rotate 2s linear infinite',
-                    display: "block",
-                    margin: "auto"
-                }}/>
-                */}
                 <Loader/>
             </div>
         }

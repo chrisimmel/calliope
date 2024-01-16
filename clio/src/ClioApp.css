@@ -163,17 +163,6 @@ div#root {
     font-size: 11pt;
 }
 
-.webcamVideo {
-    /*z-index: -1;*/
-    z-index: 1;
-    width: 100vw;
-    height: 90vh;
-    position: absolute;
-    left: 0;
-    top: 0;
-    max-height: 100vh;
-    max-width: 100vw;
-}
 .photoCapture {
     z-index: 1;
     width: 100vw;
@@ -290,7 +279,7 @@ div#root {
 
 .navButton.bottom {
     position: absolute;
-    bottom: 15vh;
+    bottom: 0;
 }
 
 svg {
@@ -307,18 +296,14 @@ svg {
     padding: 14px;
     width: 26px;
 }
+@media (orientation: portrait) {
+    .spinnerFrame {
+        top: 100vw;
+    }
+}
 
 
 /**  loader  **/
-/*
-html {
-    height: 100%;
-  }
-  
-  body {
-    background-image: radial-gradient(circle farthest-corner at center, #3C4B57 0%, #1C262B 100%);
-  }
-  */
 .loader {
     width: 64px;
     height: 64px;
@@ -354,22 +339,16 @@ html {
 
 
 .loader .inner.one {
-    /*left: 0%;
-    top: 0%;*/
     animation: rotate-one 2s linear infinite;
     border-bottom: 3px solid #EFEFFA;
 }
 
 .loader .inner.two {
-    /*right: 0%;
-    top: 0%;*/
     animation: rotate-two 2s linear infinite;
     border-right: 3px solid #EFEFFA;
 }
 
 .loader .inner.three {
-    /*right: 0%;
-    bottom: 0%;*/
     animation: rotate-three 2s linear infinite;
     border-top: 3px solid #EFEFFA;
 }
