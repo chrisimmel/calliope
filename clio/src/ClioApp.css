@@ -166,11 +166,11 @@ div#root {
 .photoCapture {
     z-index: 1;
     width: 100vw;
-    height: 100vh;
+    height: var(--vp-height);
     position: absolute;
     left: 0;
     top: 0;
-    max-height: 100vh;
+    max-height: var(--vp-height);
     max-width: 100vw;
 
     display: flex;
@@ -181,7 +181,7 @@ div#root {
 .photoCaptureInner {
     max-width: 100%; /* div B can't be wider than div A */
     max-height: 100%; /* div B can't be taller than div A */
-    width: 100vmin; /* 100vmin ensures that div B is the largest square that will fit in div A */
+    /*width: 100vmin;*/ /* 100vmin ensures that div B is the largest square that will fit in div A */
     /*height: 100vmin;*/
     height: calc(50vw - var(--toolbar-height));
     background-color: black;
@@ -189,10 +189,28 @@ div#root {
 }
 @media (orientation: landscape) {
     .photoCapture {
+        height: var(--vp-height);
+        /*height: 100vh;*/
         align-items: center;
+    }
+    .photoCaptureInner {
+        /*
+        height: 100vh;
+        width: 100vh;
+        */
+        height: var(--vp-height);
+        width: var(--vp-height);
+        /*
+        height: calc(100vh - var(--toolbar-height));
+        width: calc(100vh - var(--toolbar-height));
+        */
     }
 }
 @media (orientation: portrait) {
+    .photoCapture {
+        height: 100vw;
+        align-items: center;
+    }
     .photoCaptureInner {
         min-width: 100vw;
         height: 100vw;
@@ -200,6 +218,7 @@ div#root {
     }    
 }
 
+/*
 .photoCaptureInner > div {
     max-width: 100%;
     max-height: 100%;
@@ -209,6 +228,7 @@ div#root {
 .photoCaptureInner div {
     position: relative;
 }
+*/
 .photoCapture .captureButton {
     position: absolute;
 }
@@ -231,7 +251,7 @@ div#root {
     position: absolute;
     top: 0;
     left: 0;
-    height: 100vh;
+    height: var(--vp-height);
     z-index: 100;
     background: transparent;
     margin-left: -10px;
