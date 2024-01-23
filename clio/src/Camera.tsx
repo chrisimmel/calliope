@@ -9,6 +9,7 @@ import {
   SetPermissionDenied,
 } from './cameraTypes';
 import { Container, Wrapper, Canvas, Cam, ErrorMsg } from './cameraStyles';
+import { any } from 'prop-types';
 
 export const Camera = React.forwardRef<unknown, CameraProps>(
   (
@@ -185,19 +186,20 @@ const initCameraStream = (
         handleError(err, setNotSupported, setPermissionDenied);
       });
   } else {
+    const navAny: any = navigator;
     const getWebcam =
-      navigator.getUserMedia ||
-      navigator.webkitGetUserMedia ||
-      navigator.mozGetUserMedia ||
-      navigator.mozGetUserMedia ||
-      navigator.msGetUserMedia;
+      navAny.getUserMedia ||
+      navAny.webkitGetUserMedia ||
+      navAny.mozGetUserMedia ||
+      navAny.mozGetUserMedia ||
+      navAny.msGetUserMedia;
     if (getWebcam) {
       getWebcam(
         constraints,
-        stream => {
+        (stream: any) => {
           setStream(handleSuccess(stream, setNumberOfCameras));
         },
-        err => {
+        (err: any) => {
           handleError(err as Error, setNotSupported, setPermissionDenied);
         },
       );
