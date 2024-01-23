@@ -554,7 +554,7 @@ async def get_stories(
             title=shorten_title(story.title),
             story_frame_count=1,  # await story.get_num_frames(),
             is_bookmarked=False,
-            is_current=story.cuid == current_story.cuid,
+            is_current=story.cuid == current_story is not None and current_story.cuid,
             is_read_only=False,
             strategy_name=story.strategy_name,
             created_for_sparrow_id=story.created_for_sparrow_id,
