@@ -49,7 +49,6 @@ let getFramesInterval: ReturnType<typeof setTimeout> | null = null;
 let hideOverlaysInterval: ReturnType<typeof setTimeout> | null = null;
 
 
-
 const renderFrame = (frame: Frame, index: number) => {
     const image_url = (frame.image && frame.image.url) ? `/${frame.image.url}` : '';
 
@@ -648,14 +647,17 @@ export default function ClioApp() {
                 >
                     <IconChevronLeft/>
                 </button>
-                <button
-                    className="navButton bottom"
-                    onClick={() => {
-                        toStart();
-                    }}
-                >
-                    <IconRewind/>
-                </button>
+                {
+                    (selectedFrameNumber > 1) &&
+                    <button
+                        className="navButton bottom"
+                        onClick={() => {
+                            toStart();
+                        }}
+                    >
+                        <IconRewind/>
+                    </button>
+                }
             </div>
         }
         <div className="clio_app">
@@ -675,7 +677,7 @@ export default function ClioApp() {
             {/*{renderEmptyFrame()}*/}
         </Carousel>
         {
-            selectedFrameNumber < frames.length - 1 &&
+            (selectedFrameNumber < frames.length - 1) &&
             <div className="navRight">
                 <button
                     className="navButton"
@@ -685,14 +687,17 @@ export default function ClioApp() {
                 >
                     <IconChevronRight/>
                 </button>
-                <button
-                    className="navButton bottom"
-                    onClick={() => {
-                        toEnd();
-                    }}
-                >
-                    <IconFastForward/>
-                </button>
+                {
+                    (selectedFrameNumber < frames.length - 2) &&
+                    <button
+                        className="navButton bottom"
+                        onClick={() => {
+                            toEnd();
+                        }}
+                    >
+                        <IconFastForward/>
+                    </button>
+                }
             </div>
         }
         {
