@@ -1,5 +1,7 @@
 import { useCallback, useRef, useState, useEffect } from "react";
-import {Camera, CameraType} from "react-camera-pro";
+//import {Camera, CameraType} from "react-camera-pro";
+import {Camera} from "./Camera";
+import {CameraType} from "./cameraTypes";
 
 import IconCameraReverse from './icons/IconCameraReverse';
 import IconClose from './icons/IconClose';
@@ -34,6 +36,24 @@ export default function PhotoCapture({sendPhoto, closePhotoCapture}: PhotoCaptur
        },
        [camera]
     );
+    const videoReadyCallback = useCallback(
+        () => {
+            console.log("Camera ready.");
+        },
+        [camera]
+    )
+    useEffect(
+        () => {
+            if (numberOfCameras == 1) {
+                /*
+                If there is only one camera, assume it's a webcam
+                facing the user, and should be mirrored.
+                */
+                setFacingMode("user");
+            }
+        },
+        [numberOfCameras]
+    );
 
     return (
         <div className="photoCapture">
@@ -45,7 +65,9 @@ export default function PhotoCapture({sendPhoto, closePhotoCapture}: PhotoCaptur
                 <Camera
                     facingMode={facingMode == "user" ? "user" : "environment"}
                     ref={camera} errorMessages={errorMessages}
+                    aspectRatio="cover"
                     numberOfCamerasCallback={(i) => setNumberOfCameras(i)}
+                    videoReadyCallback={videoReadyCallback}
                 />
                 <button
                     className="captureButton close"
