@@ -44,69 +44,54 @@ export default function MainMenu(
     return (
         <Menu menuButton={<MenuButton className="navButton"><IconMenu/></MenuButton>}>
             <SubMenu label="Story">
-                <SubMenu label="Pick a story in progress...">
-                    <MenuRadioGroup
-                        value={strategy}
-                        onRadioChange={(e) => setStory(e.value)}
-                    >
-                        {                
-                            stories.map(
-                                (story, index) => {
-                                    const image_url = (story.thumbnail_image && story.thumbnail_image.url) ? `/${story.thumbnail_image.url}` : '';
+                {
+                    stories.length > 1 &&
+                    <SubMenu label="Read or rejoin a story">
+                        <MenuRadioGroup
+                            value={strategy}
+                            onRadioChange={(e) => setStory(e.value)}
+                        >
+                            {
+                                stories.map(
+                                    (story, index) => {
+                                        const image_url = (story.thumbnail_image && story.thumbnail_image.url) ? `/${story.thumbnail_image.url}` : '';
 
-                                    return <MenuItem
-                                        type="radio"
-                                        className="story"
-                                        value={story.story_id}
-                                        key={story.story_id}>
-                                        {
-                                            image_url &&
-                                            <img src={image_url} width={48} height={48}/>
-                                        }
-                                        {story.title}
+                                        return <MenuItem
+                                            type="radio"
+                                            className="story"
+                                            value={story.story_id}
+                                            key={story.story_id}>
+                                            {
+                                                image_url &&
+                                                <img src={image_url} width={48} height={48}/>
+                                            }
+                                            {story.title}
+                                        </MenuItem>
+                                    }
+                                )
+                            }
+                        </MenuRadioGroup>
+                    </SubMenu>
+                }
+                <SubMenu label="Start a new story by">
+                    {
+                        strategies.map(
+                            (strat, index) => {
+                                return <SubMenu label={strat.slug}>
+                                    <MenuItem
+                                        onClick={(e) => startNewStoryWithPhoto(strat.slug)}
+                                        key={`${strat.slug}-photo`}>
+                                        With photo
                                     </MenuItem>
-                                }
-                            )
-                        }
-                    </MenuRadioGroup>
-                </SubMenu>
-                <SubMenu label="Start a new story by...">
-                    <MenuRadioGroup
-                        value={strategy}
-                        onRadioChange={(e) => startNewStory(e.value)}
-                    >
-                        {
-                            strategies.map(
-                                (strat, index) => {
-                                    return <MenuItem
-                                        type="radio"
-                                        value={strat.slug}
-                                        key={index}>
-                                        {strat.slug}
+                                    <MenuItem
+                                        onClick={(e) => startNewStory(strat.slug)}
+                                        key={`${strat.slug}-nophoto`}>
+                                        Without
                                     </MenuItem>
-                                }
-                            )
-                        }
-                    </MenuRadioGroup>
-                </SubMenu>
-                <SubMenu label="Send a photo to start a new story by...">
-                    <MenuRadioGroup
-                        value={strategy}
-                        onRadioChange={(e) => startNewStoryWithPhoto(e.value)}
-                    >
-                        {
-                            strategies.map(
-                                (strat, index) => {
-                                    return <MenuItem
-                                        type="radio"
-                                        value={strat.slug}
-                                        key={index}>
-                                        {strat.slug}
-                                    </MenuItem>
-                                }
-                            )
-                        }
-                    </MenuRadioGroup>
+                                </SubMenu>
+                            }
+                        )
+                    }
                 </SubMenu>
             </SubMenu>
             <SubMenu label="Advanced">
