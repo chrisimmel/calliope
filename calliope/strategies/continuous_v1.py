@@ -80,7 +80,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
         frame_number = await story.get_num_frames()
 
         # Get some recent text.
-        last_text: Optional[str] = await story.get_text(-3)
+        last_text: Optional[str] = await story.get_text(-5)
         if not last_text or last_text.isspace():
             last_text = await self.get_seed_prompt(strategy_config)
             debug_data["applied_seed_prompt"] = last_text
