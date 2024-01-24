@@ -340,6 +340,7 @@ export default function ClioApp() {
                         params: params,
                     },
                 );
+                console.log("Hello from Calliope.");
                 console.log(`Got ${response.data?.frames?.length} frames.`);
                 const newFrames = response.data?.frames || [];
                 setFrames(newFrames);
@@ -353,10 +354,6 @@ export default function ClioApp() {
 
                 if (!newFrames.length && !getFramesInterval) {
                     // If the story is empty, get a new frame.
-                    setCaptureActive(true);
-                    // Wait a moment before capturing an image, giving the
-                    // Webcam a beat to initialize.
-
                     console.log("Scheduling a request for an initial frame.");
                     getFramesInterval = setInterval(() => stateRef.current.getFrames(null), 500);
                 }

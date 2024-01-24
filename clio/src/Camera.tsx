@@ -3,6 +3,7 @@ import {
   CameraProps,
   FacingMode,
   Stream,
+  SetFacingMode,
   SetStream,
   SetNumberOfCameras,
   SetNotSupported,
@@ -106,6 +107,7 @@ export const Camera = React.forwardRef<unknown, CameraProps>(
         setStream,
         currentFacingMode,
         videoSourceDeviceId,
+        setFacingMode,
         setNumberOfCameras,
         setNotSupported,
         setPermissionDenied,
@@ -155,6 +157,7 @@ const initCameraStream = (
   setStream: SetStream,
   currentFacingMode: FacingMode,
   videoSourceDeviceId: string | undefined,
+  setFacingMode: SetFacingMode,
   setNumberOfCameras: SetNumberOfCameras,
   setNotSupported: SetNotSupported,
   setPermissionDenied: SetPermissionDenied,
@@ -180,7 +183,7 @@ const initCameraStream = (
     navigator.mediaDevices
       .getUserMedia(constraints)
       .then(stream => {
-        setStream(handleSuccess(stream, setNumberOfCameras));
+        setStream(handleSuccess(stream, setNumberOfCameras, setFacingMode));
       })
       .catch(err => {
         handleError(err, setNotSupported, setPermissionDenied);
@@ -197,7 +200,7 @@ const initCameraStream = (
       getWebcam(
         constraints,
         (stream: any) => {
-          setStream(handleSuccess(stream, setNumberOfCameras));
+          setStream(handleSuccess(stream, setNumberOfCameras, setFacingMode));
         },
         (err: any) => {
           handleError(err as Error, setNotSupported, setPermissionDenied);
@@ -209,10 +212,17 @@ const initCameraStream = (
   }
 };
 
-const handleSuccess = (stream: MediaStream, setNumberOfCameras: SetNumberOfCameras) => {
+const handleSuccess = (stream: MediaStream, setNumberOfCameras: SetNumberOfCameras, setFacingMode: SetFacingMode) => {
   navigator.mediaDevices
     .enumerateDevices()
-    .then(r => setNumberOfCameras(r.filter(i => i.kind === 'videoinput').length));
+    .then(r => {
+      const numCameras = r.filter(i => i.kind === 'videoinput').length;
+      setNumberOfCameras(numCameras);
+      if (numCameras == 1) {
+        setFacingMode('user');
+      }
+    });
+
 
   return stream;
 };

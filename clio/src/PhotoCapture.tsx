@@ -49,7 +49,11 @@ export default function PhotoCapture({sendPhoto, closePhotoCapture}: PhotoCaptur
                 If there is only one camera, assume it's a webcam
                 facing the user, and should be mirrored.
                 */
+                console.log("numberOfCameras is 1; Setting facingMode to user.");
                 setFacingMode("user");
+            }
+            else {
+                console.log(`numberOfCameras is ${numberOfCameras}`);
             }
         },
         [numberOfCameras]
