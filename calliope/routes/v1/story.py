@@ -69,6 +69,8 @@ class StoryResponseV1(BaseModel):
     # previously.
     append_to_prior_frames: bool = False
 
+    strategy: Optional[str]
+
     request_id: str
     generation_date: str
     debug_data: Optional[Dict[str, Any]] = None
@@ -213,6 +215,7 @@ Calliope sleeps. She will awake shortly, improved.
         story_id=None,
         story_frame_count=1,
         append_to_prior_frames=False,
+        strategy=None,
         request_id=cuid.cuid(),
         generation_date=str(datetime.utcnow()),
         debug_data={},
@@ -351,6 +354,7 @@ async def handle_frames_request(
         story_id=story.cuid,
         story_frame_count=await story.get_num_frames(),
         append_to_prior_frames=story_frames_response.append_to_prior_frames,
+        strategy=story.strategy_name,
         request_id=cuid.cuid(),
         generation_date=str(datetime.utcnow()),
         debug_data=story_frames_response.debug_data if parameters.debug else {},
@@ -411,6 +415,7 @@ async def handle_existing_frames_request(
         story_frame_count=await story.get_num_frames(),
         append_to_prior_frames=False,
         request_id=cuid.cuid(),
+        strategy=story.strategy_name,
         generation_date=str(datetime.utcnow()),
         debug_data=debug_data if request_params.debug else {},
         errors=errors,

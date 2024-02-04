@@ -344,6 +344,7 @@ export default function ClioApp() {
                 console.log(`Got ${response.data?.frames?.length} frames.`);
                 const newFrames = response.data?.frames || [];
                 setFrames(newFrames);
+                setStrategy(response.data?.strategy || defaultStrategy);
                 const maxFrameNum = newFrames ? newFrames.length - 1 : 0;
                 if (frame_num != null) {
                     frame_num = Math.min(frame_num, maxFrameNum);
