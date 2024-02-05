@@ -29,7 +29,9 @@ const Carousel = ({ children, selectedIndex, incrementSelectedIndex, decrementSe
     const handlers = useSwipeable({
         onSwipedLeft: () => incrementSelectedIndex(),
         onSwipedRight: () => decrementSelectedIndex(),
-        preventScrollOnSwipe: true,
+        onSwipedUp: () => {},
+        onSwipedDown: () => {},
+        //preventScrollOnSwipe: true,
         touchEventOptions: { passive: false },
     });
 

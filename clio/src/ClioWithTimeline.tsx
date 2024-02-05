@@ -113,7 +113,8 @@ export default function ClioApp() {
     function handleResize() {
         const root: HTMLElement | null = document.querySelector(':root');
         if (root) {
-            const vp_height = `${window.innerHeight}px`;
+            //const vp_height = `${window.innerHeight}px`;
+            const vp_height = `${document.documentElement.clientHeight}px`;
             root.style.setProperty('--vp-height', vp_height);
             console.log(`Set --vp-height to ${vp_height}`)
         }

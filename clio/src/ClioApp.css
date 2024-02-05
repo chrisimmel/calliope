@@ -16,6 +16,7 @@ html {
 
 body {
     margin: 0;
+    overflow: hidden;
 }
 
 div {
@@ -75,7 +76,7 @@ div#root {
 
 @media (orientation: portrait) {
     .clio_app {
-        grid-template-rows: repeat(2, 1fr);
+        /*grid-template-rows: repeat(2, 1fr);*/
         grid-template-columns: auto;
     }
     .image {
@@ -99,7 +100,6 @@ div#root {
 }
 
 .textInner {
-    /*padding: 12px;*/
     max-height: var(--vp-height);
     display: flex;
     flex-direction: column;
@@ -111,12 +111,10 @@ div#root {
         height: calc(50vw - (var(--toolbar-height) - 6px));
         max-height: var(--vp-height);
         padding-right: 48px;
-        /*margin-top: 6px;*/
     }
     .textInner {
         height: calc(50vw - (var(--toolbar-height)));
         max-height: calc(var(--vp-height) - 62px);
-        /*max-height: calc(var(--vp-height) - 50px);*/
     }
 }
 @media (orientation: landscape) and (max-aspect-ratio: 2) {
@@ -176,13 +174,10 @@ div#root {
     display: flex;
     justify-content: center;
     background: transparent;
-    /* height: 100vh; Full viewport height */
 }
 .photoCaptureInner {
     max-width: 100%; /* div B can't be wider than div A */
     max-height: 100%; /* div B can't be taller than div A */
-    /*width: 100vmin;*/ /* 100vmin ensures that div B is the largest square that will fit in div A */
-    /*height: 100vmin;*/
     height: calc(50vw - var(--toolbar-height));
     background-color: black;
     position: relative;
@@ -194,16 +189,8 @@ div#root {
         align-items: center;
     }
     .photoCaptureInner {
-        /*
-        height: 100vh;
-        width: 100vh;
-        */
         height: var(--vp-height);
         width: var(--vp-height);
-        /*
-        height: calc(100vh - var(--toolbar-height));
-        width: calc(100vh - var(--toolbar-height));
-        */
     }
 }
 @media (orientation: portrait) {
@@ -218,17 +205,6 @@ div#root {
     }    
 }
 
-/*
-.photoCaptureInner > div {
-    max-width: 100%;
-    max-height: 100%;
-    width: 100%;
-    height: 100%;
-}
-.photoCaptureInner div {
-    position: relative;
-}
-*/
 .photoCapture .captureButton {
     position: absolute;
 }
@@ -254,7 +230,6 @@ div#root {
     height: var(--vp-height);
     z-index: 100;
     background: transparent;
-    margin-left: -10px;
 }
 
 .navRight {
@@ -266,7 +241,6 @@ div#root {
     height: var(--vp-height);
     z-index: 100;
     background: transparent;
-    margin-right: -10px;
 }
 
 @media (orientation: portrait) {
@@ -288,6 +262,13 @@ div#root {
     transition: opacity 1s;
     padding: 10px;
 }
+.navLeft .navButton {
+    padding-left: 0;
+}
+.navRight .navButton {
+    padding-right: 0;
+}
+
 
 #root.fullscreen .navButton {
     opacity: 0;
