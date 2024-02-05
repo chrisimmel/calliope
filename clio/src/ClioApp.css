@@ -290,18 +290,20 @@ svg {
 
 .spinnerFrame {
     position: absolute;
-    top: 0;
-    right: 0;
+    bottom: 0;
+    right: 3px;
     background: transparent;
     display:inline-flex;
     padding: 14px;
     width: 26px;
 }
+/*
 @media (orientation: portrait) {
     .spinnerFrame {
         top: 100vw;
     }
 }
+*/
 
 
 /**  loader  **/

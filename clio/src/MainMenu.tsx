@@ -20,6 +20,10 @@ type MainMenuProps = {
     stories: Story[],
     story_id: string | null,
     setStory: (story_id: string | null) => void,
+    jumpToBeginning: () => void,
+    jumpToEnd: () => void,
+    selectedFrameNumber: number,
+    frameCount: number,
 }
 
 export default function MainMenu(
@@ -35,6 +39,10 @@ export default function MainMenu(
     stories,
     story_id,
     setStory,
+    jumpToBeginning,
+    jumpToEnd,
+    selectedFrameNumber,
+    frameCount,
 }: MainMenuProps) {
     strategies ||= [];
     strategies = strategies.filter((strat) => allowExperimental || !strat.is_experimental);
@@ -93,6 +101,23 @@ export default function MainMenu(
                         )
                     }
                 </SubMenu>
+                {
+                    (selectedFrameNumber > 1) &&
+                    <MenuItem
+                        onClick={(e) => jumpToBeginning()}
+                    >
+                        Jump to beginning
+                    </MenuItem>
+                }
+                {
+                    (selectedFrameNumber < frameCount - 2) &&
+                    <MenuItem
+                        onClick={(e) => jumpToEnd()}
+                    >
+                        Jump to end
+                    </MenuItem>
+
+                }
             </SubMenu>
             <SubMenu label="Advanced">
                 <MenuRadioGroup>

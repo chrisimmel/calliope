@@ -346,6 +346,7 @@ export default function ClioApp() {
                 const newFrames = response.data?.frames || [];
                 setFrames(newFrames);
                 setStrategy(response.data?.strategy || defaultStrategy);
+                setStoryId(response.data?.story_id || null);
                 const maxFrameNum = newFrames ? newFrames.length - 1 : 0;
                 if (frame_num != null) {
                     frame_num = Math.min(frame_num, maxFrameNum);
@@ -646,6 +647,7 @@ export default function ClioApp() {
                 >
                     <IconChevronLeft/>
                 </button>
+                {/*
                 {
                     (selectedFrameNumber > 1) &&
                     <button
@@ -657,6 +659,7 @@ export default function ClioApp() {
                         <IconRewind/>
                     </button>
                 }
+                */}
             </div>
         }
         <div className="clio_app">
@@ -686,6 +689,7 @@ export default function ClioApp() {
                 >
                     <IconChevronRight/>
                 </button>
+                {/*
                 {
                     (selectedFrameNumber < frames.length - 2) &&
                     <button
@@ -697,6 +701,7 @@ export default function ClioApp() {
                         <IconFastForward/>
                     </button>
                 }
+                */}
             </div>
         }
         {
@@ -721,6 +726,10 @@ export default function ClioApp() {
                     stories={stories}
                     story_id={storyId}
                     setStory={updateStory}
+                    jumpToBeginning={toStart}
+                    jumpToEnd={toEnd}
+                    selectedFrameNumber={selectedFrameNumber}
+                    frameCount={frames.length}
                 />}
             />
         }
