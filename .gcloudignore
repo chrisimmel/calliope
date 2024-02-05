@@ -9,8 +9,9 @@ start.sh
 uwsgi.ini
 README.md
 
-# IDEs
+# IDEs, dev tools
 .vscode/
+.mypy_cache
 
 # Mac doodads
 .DS_Store
@@ -31,7 +32,25 @@ state/
 data/
 keepers/
 
+# Unused for production:
+docs/
+clio-elm/
+client/
+
 # Source dirs not used at runtime
 # clio/
 clio-elm/
 client/
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+bin/
+**/bin/
+lib/
+**/lib/

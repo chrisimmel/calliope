@@ -13,6 +13,7 @@ class InferenceModelProvider(str, Enum):
 
 
 class InferenceModelProviderVariant(str, Enum):
+    DEFAULT = "default"
     OPENAI_COMPLETION = "openai_completion"
     OPENAI_CHAT_COMPLETION = "openai_chat_completion"
 
@@ -26,7 +27,9 @@ class InferenceModelConfigModel(BaseModel):
     provider: InferenceModelProvider
 
     # The provider's API variant, if pertinent.
-    provider_variant: Optional[InferenceModelProviderVariant] = None
+    provider_variant: InferenceModelProviderVariant = (
+        InferenceModelProviderVariant.DEFAULT
+    )
 
     # The model's name. There may be multiple configurations per model.
     provider_model_name: StrictStr

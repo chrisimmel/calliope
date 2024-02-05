@@ -13,8 +13,6 @@ from piccolo.columns import (
 from piccolo.table import Table
 from pydantic import BaseModel, StrictStr
 
-from calliope.models import InferenceModelProvider, InferenceModelProviderVariant
-
 ID = "2023-04-08T12:26:43:543540"
 VERSION = "0.106.0"
 DESCRIPTION = "Seeding the InferenceModel table."
@@ -28,6 +26,7 @@ class InferenceModelProvider(str, Enum):
 
 
 class InferenceModelProviderVariant(str, Enum):
+    DEFAULT = "default"
     OPENAI_COMPLETION = "openai_completion"
     OPENAI_CHAT_COMPLETION = "openai_chat_completion"
 
@@ -43,7 +42,9 @@ class InferenceModelConfigModel(BaseModel):
     provider: InferenceModelProvider
 
     # The provider's API variant, if pertinent.
-    provider_variant: Optional[InferenceModelProviderVariant]
+    provider_variant: InferenceModelProviderVariant = (
+        InferenceModelProviderVariant.DEFAULT
+    )
 
     # The model's name. There may be multiple configurations per model.
     provider_model_name: StrictStr

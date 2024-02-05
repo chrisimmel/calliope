@@ -165,6 +165,17 @@ async def put_story(story: Story, update_dates: bool = True) -> None:
     await story.save().run()
 
 
+async def get_stories_by_client(client_id: str) -> Sequence[Story]:
+    """
+    Retrieves all stories attributed to the given client.
+    """
+    return await Story.objects(Story.thumbnail_image).where(
+        Story.created_for_sparrow_id == client_id
+    ).order_by(
+        Story.date_updated, ascending=False
+    ).run()
+
+
 def _compose_state_filename(type: StateType, id: str) -> str:
     """
     Composes the filename of a sparrow or story state file.

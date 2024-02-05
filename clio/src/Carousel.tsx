@@ -28,7 +28,11 @@ type CarouselProps = {
 const Carousel = ({ children, selectedIndex, incrementSelectedIndex, decrementSelectedIndex }: CarouselProps) => {
     const handlers = useSwipeable({
         onSwipedLeft: () => incrementSelectedIndex(),
-        onSwipedRight: () => decrementSelectedIndex()
+        onSwipedRight: () => decrementSelectedIndex(),
+        onSwipedUp: () => {},
+        onSwipedDown: () => {},
+        //preventScrollOnSwipe: true,
+        touchEventOptions: { passive: false },
     });
 
     return (

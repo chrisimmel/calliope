@@ -1,7 +1,7 @@
 // icon:bx-play | Boxicons https://boxicons.com/ | Atisa
 import * as React from "react";
 
-function IconPlay(props: any) {
+export default function IconPlay(props: any) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -14,5 +14,3 @@ function IconPlay(props: any) {
     </svg>
   );
 }
-
-export default IconPlay;

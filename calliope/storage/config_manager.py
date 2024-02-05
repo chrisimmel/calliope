@@ -261,7 +261,7 @@ async def get_strategy_config_descriptors(
     else:
         default_strategy_config = None
 
-    strategy_configs = await StrategyConfig.objects(
+    strategy_configs: Sequence[StrategyConfig] = await StrategyConfig.objects(
         StrategyConfig.text_to_image_model_config.all_related(),
         StrategyConfig.text_to_text_model_config.all_related(),
     ).run()
@@ -273,6 +273,7 @@ async def get_strategy_config_descriptors(
             description=strategy_config.description,
             is_default_for_client=default_strategy_config is not None
             and strategy_config.slug == default_strategy_config.slug,
+            is_experimental=strategy_config.is_experimental,
         )
         for strategy_config in strategy_configs
     ]

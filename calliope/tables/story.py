@@ -147,6 +147,10 @@ class Story(Table):
     # A thumbnail image illustrating the story.
     thumbnail_image = ForeignKey(references=Image, null=True)
 
+    # Any additional state the author may want to retain while
+    # telling the story. Cast, setting, time of day, season, plot...
+    state_props = JSONB(null=True)
+
     # The dates the story was created and updated.
     date_created = Timestamptz()
     date_updated = Timestamptz(auto_update=datetime.now)

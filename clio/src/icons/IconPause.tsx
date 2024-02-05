@@ -1,7 +1,7 @@
 // icon:bx-pause | Boxicons https://boxicons.com/ | Atisa
 import * as React from "react";
 
-function IconPause(props: any) {
+export default function IconPause(props: any) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -14,5 +14,3 @@ function IconPause(props: any) {
     </svg>
   );
 }
-
-export default IconPause;

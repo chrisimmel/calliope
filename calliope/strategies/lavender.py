@@ -27,7 +27,11 @@ from calliope.tables import (
 from calliope.utils.file import create_sequential_filename
 from calliope.utils.image import get_image_attributes
 from calliope.utils.text import (
-    load_llm_output_as_json, split_into_sentences, translate_text
+    balance_quotes,
+    ends_with_punctuation,
+    load_llm_output_as_json,
+    split_into_sentences,
+    translate_text,
 )
 
 @StoryStrategyRegistry.register()
@@ -76,7 +80,7 @@ class LavenderStrategy(StoryStrategy):
         frame_number = await story.get_num_frames()
 
         # Get some recent text.
-        last_text = await story.get_text(-3)
+        last_text = await story.get_text(-10)
         if not last_text or last_text.isspace():
             last_text = await self.get_seed_prompt(strategy_config)
 
@@ -121,6 +125,7 @@ class LavenderStrategy(StoryStrategy):
             )
 
         image_description = None
+        state_props = {}
         if story_continuation and not story_continuation.isspace():
             print(f"{story_continuation=}")
             continuation_json = load_llm_output_as_json(story_continuation)
@@ -132,6 +137,7 @@ class LavenderStrategy(StoryStrategy):
                 image_description = cast(
                     Optional[str], continuation_json.get("illustration")
                 )
+                state_props = {key: val for key, val in continuation_json if key not in ("continuation", "illustration")}
 
         if not story_continuation or story_continuation.isspace():
             story_continuation = situation + "\n"
@@ -281,19 +287,6 @@ class LavenderStrategy(StoryStrategy):
             )
             print(f"Raw output: '{text}'")
 
-            def ends_with_punctuation(string: str) -> bool:
-                return len(string) > 0 and string[-1] in (
-                    ".",
-                    "!",
-                    "?",
-                    ":",
-                    ",",
-                    ";",
-                    "-",
-                    '"',
-                    "'",
-                )
-
             if text:
                 LIMIT = 1024
 
@@ -319,6 +312,7 @@ class LavenderStrategy(StoryStrategy):
                     # Adding blank lines between sentences helps break up
                     # dense text from especially GPT-4.
                     text = "\n\n".join(lines)
+                    text = balance_quotes(text)
                 text = text.strip()
                 if not ends_with_punctuation(text):
                     text += "."

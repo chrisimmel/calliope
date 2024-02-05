@@ -1,10 +1,11 @@
+const cuid2 = require("@paralleldrive/cuid2");
 const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 
 module.exports = {
     entry: "./src/index.tsx",
     output: {
-        filename: "main.js",
+        filename: `main.js?${cuid2.createId()}`,
         path: path.resolve(__dirname, "build"),
     },
     plugins: [

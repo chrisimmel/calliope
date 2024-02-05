@@ -9,6 +9,7 @@ from .inference_model_config import (
 )
 from .parameters import (
     FramesRequestParamsModel,
+    StoriesRequestParamsModel,
     StoryParamsModel,
     StoryRequestParamsModel,
 )
@@ -75,6 +76,7 @@ __all__ = [
     "SolarEclipseModel",
     "SparrowConfigModel",
     "SparrowStateModel",
+    "StoriesRequestParamsModel",
     "StoryFrameModel",
     "StoryModel",
     "StoryParamsModel",

@@ -1,7 +1,7 @@
 // icon:fullscreen | Material Design Icons https://materialdesignicons.com/ | Austin Andrews
 import * as React from "react";
 
-function IconFullscreen(props: any) {
+export default function IconFullscreen(props: any) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -14,5 +14,3 @@ function IconFullscreen(props: any) {
     </svg>
   );
 }
-
-export default IconFullscreen;
