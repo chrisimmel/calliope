@@ -3,7 +3,7 @@ import axios from "axios"
 import browserID from "browser-id";
 import Carousel, { CarouselItem } from "./Carousel";
 
-import './Clio.css';
+//import './Clio.css';
 import './ClioApp.css';
 
 import { Frame, Story, Strategy } from './Types'; 
@@ -12,10 +12,10 @@ import IconChevronRight from "./icons/IconChevronRight";
 import IconFastForward from "./icons/IconFastForward";
 import IconRewind from "./icons/IconRewind";
 import Toolbar from "./Toolbar";
-import MainMenu from "./MainMenu";
+import MainMenu, { ControlledMainMenu } from "./MainMenu";
 import PhotoCapture from "./PhotoCapture";
 import Loader from "./Loader";
-
+import ClioDrawer from "./ClioDrawer";
 
 const audioConstraints = {
     suppressLocalAudioPlayback: true,
@@ -109,7 +109,8 @@ export default function ClioApp() {
     const [isFullScreen, setIsFullScreen] = useState<boolean>(false);
     const [stories, setStories] = useState<Story[]>([]);
     const [storyId, setStoryId] = useState<string | null>(null);
-
+    const [drawerIsOpen, setDrawerIsOpen] = useState<boolean>(false);
+  
     function handleResize() {
         const root: HTMLElement | null = document.querySelector(':root');
         if (root) {
@@ -297,6 +298,7 @@ export default function ClioApp() {
                 const newFrames = response.data?.frames;
                 if (newFrames) {
                     setFrames(frames => [...frames, ...newFrames]);
+                    setStoryId(response.data?.story_id || null);
                 }
 
                 setError(null);
@@ -341,7 +343,6 @@ export default function ClioApp() {
                         params: params,
                     },
                 );
-                console.log("Hello from Calliope.");
                 console.log(`Got ${response.data?.frames?.length} frames.`);
                 const newFrames = response.data?.frames || [];
                 setFrames(newFrames);
@@ -676,7 +677,6 @@ export default function ClioApp() {
             decrementSelectedIndex={backOne}
         >
             {frames.map(renderFrame)}
-            {/*{renderEmptyFrame()}*/}
         </Carousel>
         {
             (selectedFrameNumber < frames.length - 1) &&
@@ -714,7 +714,21 @@ export default function ClioApp() {
                 toggleFullScreen={toggleFullScreen}
                 startCameraCapture={startCameraCapture}
                 addNewFrame={addNewFrame}
-                menu={<MainMenu
+                allowExperimental={allowExperimental}
+                strategies={strategies}
+                strategy={strategy}
+                startNewStory={startNewStory}
+                startNewStoryWithPhoto={startNewStoryWithPhoto}
+                stories={stories}
+                story_id={storyId}
+                setStory={updateStory}
+                jumpToBeginning={toStart}
+                jumpToEnd={toEnd}
+                selectedFrameNumber={selectedFrameNumber}
+                frames={frames}
+
+                /*
+                menu={<ControlledMainMenu
                     allowExperimental={allowExperimental}
                     strategies={strategies}
                     strategy={strategy}
@@ -731,6 +745,9 @@ export default function ClioApp() {
                     selectedFrameNumber={selectedFrameNumber}
                     frameCount={frames.length}
                 />}
+                */
+                drawerIsOpen={drawerIsOpen}
+                setDrawerIsOpen={setDrawerIsOpen}
             />
         }
         {

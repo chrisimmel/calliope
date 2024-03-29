@@ -4,27 +4,60 @@ import IconPause from "./icons/IconPause";
 import IconFullscreen from './icons/IconFullscreen';
 import IconCamera from './icons/IconCamera';
 import IconPlus from "./icons/IconPlus";
+import IconMenu from './icons/IconMenu';
+import ClioDrawer from './ClioDrawer';
+import { Frame, Story, Strategy } from './Types';
 
 type ToolbarProps = {
-    toggleIsPlaying: () => void,
-    isPlaying: boolean,
+    drawerIsOpen: boolean,
+    setDrawerIsOpen: (drawerIsOpen: boolean) => void,
+    allowExperimental: boolean,
+    strategies: Strategy[],
+    strategy: string | null,
+    startNewStory: (strategy: string | null) => void,
+    startNewStoryWithPhoto: (strategy: string | null) => void,
+
     isLoading: boolean,
-    toggleFullScreen: () => void,
+    isPlaying: boolean,
+    toggleIsPlaying: () => void,
     isFullScreen: boolean,
+    toggleFullScreen: () => void,
+    stories: Story[],
+    story_id: string | null,
+    setStory: (story_id: string | null) => void,
+    jumpToBeginning: () => void,
+    jumpToEnd: () => void,
+    selectedFrameNumber: number,
+    frames: Frame[],
+
     startCameraCapture: () => void,
     addNewFrame: () => void,
-    menu: any,
 }
 
 export default function Toolbar({
-    toggleIsPlaying,
-    isPlaying,
+    drawerIsOpen,
+    setDrawerIsOpen,
+    allowExperimental,
+    strategies,
+    strategy,
+    startNewStory,
+    startNewStoryWithPhoto,
+
     isLoading,
-    toggleFullScreen,
+    isPlaying,
+    toggleIsPlaying,
     isFullScreen,
+    toggleFullScreen,
+    stories,
+    story_id,
+    setStory,
+    jumpToBeginning,
+    jumpToEnd,
+    selectedFrameNumber,
+    frames,
+
     startCameraCapture,
     addNewFrame,
-    menu,
 }: ToolbarProps) {
     return <>
         <div className="nav">
@@ -80,7 +113,34 @@ export default function Toolbar({
                     <IconCamera/>
                 </button>
             }
-            {menu}
+            <button
+                className="navButton"
+                onClick={() => {
+                    setDrawerIsOpen(true);
+                }}
+            >
+                <IconMenu/>
+            </button>
+            <ClioDrawer
+                drawerIsOpen={drawerIsOpen}
+                setDrawerIsOpen={setDrawerIsOpen}
+                stories={stories}
+
+                toggleIsPlaying={toggleIsPlaying}
+                isPlaying={isPlaying}
+                toggleFullScreen={toggleFullScreen}
+                allowExperimental={allowExperimental}
+                strategies={strategies}
+                strategy={strategy}
+                startNewStory={startNewStory}
+                startNewStoryWithPhoto={startNewStoryWithPhoto}
+                frames={frames}
+                story_id={story_id}
+                setStory={setStory}
+                jumpToBeginning={jumpToBeginning}
+                jumpToEnd={jumpToEnd}
+                selectedFrameNumber={selectedFrameNumber}
+                />
         </div>
     </>;
 }

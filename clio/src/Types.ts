@@ -2,9 +2,14 @@
 type Image = {
     url: string
 }
+interface FrameMetadata {
+    situation: string;
+    [key: string]: any;
+}
 type Frame = {
     image?: Image,
     text?: string,
+    metadata?: FrameMetadata,
 }
 type MediaDevice = {
     kind: string,

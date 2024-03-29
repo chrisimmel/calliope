@@ -41,7 +41,7 @@ export const StyledContainer = styled.div`
   position: fixed;
 `
 
-export const StyledMenu = styled.section`
+export const StyledMenu = styled.section<{ open: boolean }>`
   position: fixed;
   top: 0;
   z-index: 9999;
@@ -49,7 +49,6 @@ export const StyledMenu = styled.section`
   width: 100%;
   height: 100%;
   background: #fff;
-  opacity: ${({ open }) => (open ? '1' : '0')};
   transition: ${({ open }) =>
     open ? 'all 0.5s ease 0s' : 'all 0.5s ease 0s;'};
   transform:  ${({ open }) =>

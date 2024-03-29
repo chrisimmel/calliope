@@ -44,6 +44,12 @@ div#root {
     justify-self: center;
     object-fit: contain;
 }
+.szh-menu {
+    height: var(--vp-height);
+}
+.szh-menu__item {
+    width: 100vw;
+}
 .szh-menu__item img {
     margin-right: 6px;
 }
@@ -54,6 +60,16 @@ div#root {
 .szh-menu__item.story::before {
     content: none;
 }
+.szh-menu__item.closeMenu {
+    justify-self: right;
+    padding: 0;
+}
+.szh-menu__item.backMenu {
+    justify-self: left;
+    padding: 0;
+}
+
+
 
 @media (orientation: landscape) {
     .clio_app {
@@ -304,6 +320,18 @@ svg {
     }
 }
 */
+@keyframes rotate {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.spinner {
+    animation: 'rotate 2s linear infinite';
+}
 
 
 /**  loader  **/
@@ -381,4 +409,35 @@ svg {
     100% {
         transform: rotateX(35deg) rotateY(55deg) rotateZ(360deg);
     }
+}
+
+
+.MuiDrawer-root {
+    background: transparent;
+}
+.MuiPaper-root.css-fy2uxz, .MuiPaper-root.css-1ab2xsx{
+    background-color: black;
+}
+.MuiPaper-root svg {
+    stroke: white;
+    fill: white;
+}
+li.MuiListItem-root {
+    display: block;
+}
+.MuiDivider-root.css-39bbo6 {
+    border-color: white;
+}
+
+.MuiDialog-container div {
+    background-color: white;
+    color: black;
+}
+
+.MuiDialog-container .MuiPaper-root svg {
+    stroke: inherit;
+    fill: inherit;
+}
+.MuiDialog-container .Mui-checked.MuiCheckbox-root {
+    color: rgb(25, 118, 210);
 }
