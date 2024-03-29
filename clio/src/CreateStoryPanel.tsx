@@ -122,7 +122,7 @@ export default function CreateStoryDialog({
             Cancel
           </Button>
           <Button autoFocus variant="contained" onClick={handleStartStory}>
-            Start my story...
+            Start my story by {newStrategy}...
           </Button>
         </DialogActions>
       </BootstrapDialog>

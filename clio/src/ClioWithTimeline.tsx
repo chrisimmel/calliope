@@ -110,11 +110,11 @@ export default function ClioApp() {
     const [stories, setStories] = useState<Story[]>([]);
     const [storyId, setStoryId] = useState<string | null>(null);
     const [drawerIsOpen, setDrawerIsOpen] = useState<boolean>(false);
+    const [showOverlays, setShowOverlays] = useState<boolean>(false);
   
     function handleResize() {
         const root: HTMLElement | null = document.querySelector(':root');
         if (root) {
-            //const vp_height = `${window.innerHeight}px`;
             const vp_height = `${document.documentElement.clientHeight}px`;
             root.style.setProperty('--vp-height', vp_height);
             console.log(`Set --vp-height to ${vp_height}`)
@@ -125,11 +125,11 @@ export default function ClioApp() {
             function handleMouseMove(e: any) {
                 e.preventDefault();
 
-                //if (isFullScreen && !hideOverlaysInterval) {
                 if (!hideOverlaysInterval) {
                     const rootElement: HTMLElement | null = document.getElementById("root");
                     if (rootElement) {
                         rootElement.classList.add("show-overlays");
+                        setShowOverlays(true);
 
                         hideOverlaysInterval = setInterval(() => {
                             if (hideOverlaysInterval) {
@@ -137,6 +137,7 @@ export default function ClioApp() {
                                 hideOverlaysInterval = null;
                             }
                             rootElement.classList.remove('show-overlays');
+                            setShowOverlays(false);
                         }, 2000);
                     }
                 }
@@ -751,7 +752,7 @@ export default function ClioApp() {
             />
         }
         {
-            loading &&
+            loading && !drawerIsOpen && !showOverlays &&
             <div className="spinnerFrame">
                 <Loader/>
             </div>

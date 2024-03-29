@@ -60,7 +60,6 @@ export default function AboutPanel({
     const locationAndTail = situation.startsWith("Location\n") ? situation.slice("Location\n".length) : null;
     const endLocationIndex = locationAndTail?.indexOf("\n\n") || locationAndTail?.length;
     const location = locationAndTail?.slice(0, endLocationIndex);
-     // Location\nParis,  Île-de-France,  France
 
     return (
         <Drawer

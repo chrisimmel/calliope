@@ -114,7 +114,7 @@ export default function Toolbar({
                 </button>
             }
             <button
-                className="navButton"
+                className="navButton menuButton"
                 onClick={() => {
                     setDrawerIsOpen(true);
                 }}

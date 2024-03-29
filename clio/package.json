@@ -39,6 +39,7 @@
     "@fontsource/roboto": "^5.0.12",
     "@mui/icons-material": "^5.15.13",
     "@mui/material": "^5.15.9",
+    "@paralleldrive/cuid2": "^2.2.2",
     "@szhsin/react-menu": "^4.0.0",
     "@types/jest": "^29.5.3",
     "@types/node": "^20.4.7",

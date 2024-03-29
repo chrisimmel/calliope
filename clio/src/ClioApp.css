@@ -284,6 +284,11 @@ div#root {
 .navRight .navButton {
     padding-right: 0;
 }
+.navButton.menuButton {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+}
 
 
 #root.fullscreen .navButton {
