@@ -19,7 +19,7 @@ function Copyright() {
       <Link color="inherit" href="https://chrisimmel.com/">
         Chris Immel
       </Link>{' '}
-      {new Date().getFullYear()}
+      2022-{new Date().getFullYear()}
     </Typography>
   );
 }
@@ -100,7 +100,7 @@ export default function AboutPanel({
                     {
                         location &&
                         <Typography variant="subtitle1">
-                            at {location}.
+                            in {location}.
                         </Typography>
                     }
                 </Box>

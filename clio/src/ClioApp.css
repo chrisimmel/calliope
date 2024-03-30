@@ -243,7 +243,7 @@ div#root {
     position: absolute;
     top: 0;
     left: 0;
-    height: calc(var(--vp-height) - 40px);
+    height: calc(var(--vp-height) - 60px);
     z-index: 100;
     background: transparent;
 }
@@ -254,7 +254,7 @@ div#root {
     position: absolute;
     top: 0;
     right: 0;
-    height: calc(var(--vp-height) - 40px);
+    height: calc(var(--vp-height) - 60px);
     z-index: 100;
     background: transparent;
 }
@@ -262,11 +262,11 @@ div#root {
 @media (orientation: portrait) {
     .navLeft {
         top: 100vw;
-        height: calc(var(--vp-height) - (100vw + 40px));
+        height: calc(var(--vp-height) - (100vw + 60px));
     }
     .navRight {
         top: 100vw;
-        height: calc(var(--vp-height) - (100vw + 40px));
+        height: calc(var(--vp-height) - (100vw + 60px));
     }
 }
 
