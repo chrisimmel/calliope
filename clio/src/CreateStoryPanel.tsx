@@ -74,13 +74,6 @@ export default function CreateStoryDialog({
   const handleChangeSendPhoto = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSendPhoto(event.target.checked);
   };
-  /*
-      <BootstrapDialog
-        onClose={handleClose}
-        aria-labelledby="customized-dialog-title"
-        open={isOpen}
-      >
-  */
 
   return (
     <React.Fragment>

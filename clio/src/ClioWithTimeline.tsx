@@ -3,19 +3,14 @@ import axios from "axios"
 import browserID from "browser-id";
 import Carousel, { CarouselItem } from "./Carousel";
 
-//import './Clio.css';
 import './ClioApp.css';
 
 import { Frame, Story, Strategy } from './Types'; 
 import IconChevronLeft from "./icons/IconChevronLeft";
 import IconChevronRight from "./icons/IconChevronRight";
-import IconFastForward from "./icons/IconFastForward";
-import IconRewind from "./icons/IconRewind";
 import Toolbar from "./Toolbar";
-import MainMenu, { ControlledMainMenu } from "./MainMenu";
 import PhotoCapture from "./PhotoCapture";
 import Loader from "./Loader";
-import ClioDrawer from "./ClioDrawer";
 
 const audioConstraints = {
     suppressLocalAudioPlayback: true,
@@ -204,11 +199,9 @@ export default function ClioApp() {
 
             const rootElement = document.getElementById("root");
             if (isCurrentlyFullScreen) {
-                //rootElement.classList.add("fullscreen");
                 setIsFullScreen(true);
             }
             else {
-                //rootElement.classList.remove('fullscreen');
                 setIsFullScreen(false);
             }
         },
@@ -224,37 +217,6 @@ export default function ClioApp() {
             document.removeEventListener('fullscreenchange', dynHandleFullScreen);
         }
     }, []);
-
-    /*
-    const renderEmptyFrame = useCallback(
-        () => {
-            return <CarouselItem>
-                <div className="clio_app">
-                </div>
-            </CarouselItem>;
-        },
-        [webcamRef, captureActive]
-    );
-    */
-
-    /*
-    const handleStartCaptureClick = useCallback(() => {
-        setCapturing(true);
-        mediaRecorderRef.current = new MediaRecorder(webcamRef.current.stream, {
-            mimeType: "audio/wav",
-        });
-        mediaRecorderRef.current.addEventListener(
-            "dataavailable",
-            handleDataAvailable
-        );
-        mediaRecorderRef.current.start();
-    }, [webcamElement, setCapturing, mediaRecorderRef, handleDataAvailable]);
-
-    const handleStopCaptureClick = useCallback(() => {
-        mediaRecorderRef.current.stop();
-        setCapturing(false);
-    }, [mediaRecorderRef, setCapturing]);
-    */
 
     const getFrames = useCallback(
         async (image: string | null) => {
@@ -649,19 +611,6 @@ export default function ClioApp() {
                 >
                     <IconChevronLeft/>
                 </button>
-                {/*
-                {
-                    (selectedFrameNumber > 1) &&
-                    <button
-                        className="navButton bottom"
-                        onClick={() => {
-                            toStart();
-                        }}
-                    >
-                        <IconRewind/>
-                    </button>
-                }
-                */}
             </div>
         }
         <div className="clio_app">
@@ -690,23 +639,9 @@ export default function ClioApp() {
                 >
                     <IconChevronRight/>
                 </button>
-                {/*
-                {
-                    (selectedFrameNumber < frames.length - 2) &&
-                    <button
-                        className="navButton bottom"
-                        onClick={() => {
-                            toEnd();
-                        }}
-                    >
-                        <IconFastForward/>
-                    </button>
-                }
-                */}
             </div>
         }
         {
-            /*!isFullScreen &&*/
             <Toolbar
                 toggleIsPlaying={toggleIsPlaying}
                 isPlaying={isPlaying}
@@ -727,26 +662,6 @@ export default function ClioApp() {
                 jumpToEnd={toEnd}
                 selectedFrameNumber={selectedFrameNumber}
                 frames={frames}
-
-                /*
-                menu={<ControlledMainMenu
-                    allowExperimental={allowExperimental}
-                    strategies={strategies}
-                    strategy={strategy}
-                    startNewStory={startNewStory}
-                    startNewStoryWithPhoto={startNewStoryWithPhoto}
-                    toggleIsPlaying={toggleIsPlaying}
-                    isPlaying={isPlaying}
-                    toggleFullScreen={toggleFullScreen}
-                    stories={stories}
-                    story_id={storyId}
-                    setStory={updateStory}
-                    jumpToBeginning={toStart}
-                    jumpToEnd={toEnd}
-                    selectedFrameNumber={selectedFrameNumber}
-                    frameCount={frames.length}
-                />}
-                */
                 drawerIsOpen={drawerIsOpen}
                 setDrawerIsOpen={setDrawerIsOpen}
             />
