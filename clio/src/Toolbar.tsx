@@ -62,7 +62,7 @@ export default function Toolbar({
     return <>
         <div className="nav">
             {
-                isPlaying &&
+                isPlaying && !drawerIsOpen &&
                 <button
                     className="navButton"
                     onClick={() => {
@@ -73,7 +73,7 @@ export default function Toolbar({
                 </button>
             }
             {
-                isFullScreen &&
+                isFullScreen && !drawerIsOpen &&
                 <button
                     className="navButton"
                     onClick={() => {
@@ -84,7 +84,7 @@ export default function Toolbar({
                 </button>
             }
             {
-                !isPlaying && !isLoading &&
+                !isPlaying && !isLoading && !drawerIsOpen &&
                 /*
                 Enable add new frame for now only if not playing.
                 This avoids a concurrency bug.
@@ -99,7 +99,7 @@ export default function Toolbar({
                 </button>
             }
             {
-                !isPlaying && !isLoading &&
+                !isPlaying && !isLoading && !drawerIsOpen &&
                 /*
                 Enable camera capture for now only if not playing.
                 This avoids a concurrency bug.
@@ -113,14 +113,17 @@ export default function Toolbar({
                     <IconCamera/>
                 </button>
             }
-            <button
-                className="navButton menuButton"
-                onClick={() => {
-                    setDrawerIsOpen(true);
-                }}
-            >
-                <IconMenu/>
-            </button>
+            {
+                !drawerIsOpen &&
+                <button
+                    className="navButton menuButton"
+                    onClick={() => {
+                        setDrawerIsOpen(true);
+                    }}
+                >
+                    <IconMenu/>
+                </button>
+            }
             <ClioDrawer
                 drawerIsOpen={drawerIsOpen}
                 setDrawerIsOpen={setDrawerIsOpen}

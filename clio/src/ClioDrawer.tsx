@@ -87,20 +87,8 @@ export default function ClioDrawer({
         setDrawerIsOpen(open);
       };
 
-    /*
-    Story
-      <icon info> About
-      <icon rw> Jump to Beginning
-      <icon ff> Jump to End
-      -----
-      Browse
-      Start New
-    Other
-      <icon fs> Fullscreen
-      <icon play> Auto-Play (or Stop Auto-Play, w <icon pause>)
-    */
-   const drawerAnchor = document.documentElement.clientHeight > document.documentElement.clientWidth ? "bottom" : "right";
-
+    //const drawerAnchor = document.documentElement.clientHeight > document.documentElement.clientWidth ? "bottom" : "right";
+    const drawerAnchor = "right";
     return (
         <>
             <Drawer
@@ -108,20 +96,6 @@ export default function ClioDrawer({
                 open={drawerIsOpen}
                 onClose={toggleDrawer(false)}
             >
-                <IconButton
-                    aria-label="close"
-                    onClick={() => {
-                        setDrawerIsOpen(false);
-                    }}
-                    sx={{
-                        position: 'absolute',
-                        right: 8,
-                        top: 8,
-                        color: "gray",
-                    }}
-                >
-                    <CloseIcon />
-                </IconButton>
                 <Box sx={{ my: 6 }} >
                     <List>
                         <ListItem disablePadding>
@@ -195,7 +169,7 @@ export default function ClioDrawer({
                                     >
                                         <ListItemIcon>
                                         </ListItemIcon>
-                                        <ListItemText primary="Start New" />
+                                        <ListItemText primary="Create New" />
                                     </ListItemButton>
                                 </ListItem>
                             </List>
@@ -237,6 +211,17 @@ export default function ClioDrawer({
                     </List>
                 </Box>
             </Drawer>
+            {
+                drawerIsOpen &&
+                <button
+                    className="navButton menuButton drawerOpen"
+                    onClick={() => {
+                        setDrawerIsOpen(false);
+                    }}
+                >
+                    <IconClose/>
+                </button>
+            }
             <StoryBrowser
                 storyBrowserIsOpen={storyBrowserIsOpen}
                 setStoryBrowserIsOpen={setStoryBrowserIsOpen}

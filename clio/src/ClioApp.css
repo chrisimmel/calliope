@@ -243,7 +243,7 @@ div#root {
     position: absolute;
     top: 0;
     left: 0;
-    height: var(--vp-height);
+    height: calc(var(--vp-height) - 40px);
     z-index: 100;
     background: transparent;
 }
@@ -254,7 +254,7 @@ div#root {
     position: absolute;
     top: 0;
     right: 0;
-    height: var(--vp-height);
+    height: calc(var(--vp-height) - 40px);
     z-index: 100;
     background: transparent;
 }
@@ -262,11 +262,11 @@ div#root {
 @media (orientation: portrait) {
     .navLeft {
         top: 100vw;
-        height: calc(var(--vp-height) - 100vw);
+        height: calc(var(--vp-height) - (100vw + 40px));
     }
     .navRight {
         top: 100vw;
-        height: calc(var(--vp-height) - 100vw);
+        height: calc(var(--vp-height) - (100vw + 40px));
     }
 }
 
@@ -290,7 +290,6 @@ div#root {
     bottom: 0;
 }
 
-
 #root.fullscreen .navButton {
     opacity: 0;
 }
@@ -302,6 +301,10 @@ div#root {
 .navButton.bottom {
     position: absolute;
     bottom: 0;
+}
+.navButton.menuButton.drawerOpen, #root.fullscreen .navButton.menuButton.drawerOpen {
+    background: black;
+    opacity: 1;
 }
 
 svg {
@@ -417,15 +420,48 @@ svg {
 }
 
 
+.MuiDrawer-paperAnchorBottom.css-fy2uxz, .MuiDrawer-paperAnchorRight.css-1ab2xsx {
+    max-width: 300px;
+    inset: auto 0 60px auto;
+    height: auto;
+    max-height: 100%;
+}
+.css-62igne {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
 .MuiDrawer-root {
     background: transparent;
 }
 .MuiPaper-root.css-fy2uxz, .MuiPaper-root.css-1ab2xsx{
     background-color: black;
+    background-color: white;
+    color: black;
+}
+.MuiDialogContent-root{
+    min-width: 350px;
+}
+
+.MuiBackdrop-root, .MuiPopover-root {
+    background: transparent;
 }
 .MuiPaper-root svg {
-    stroke: white;
-    fill: white;
+    /*stroke: white;
+    fill: white;*/
+}
+.MuiBox-root {
+    margin: 14px;
+}
+.MuiPaper-root div, .MuiDialogContent-root div {
+    background-color: transparent;
+    color: black;
+}
+.MuiButton-containedPrimary.css-1hw9j7s {
+    background-color: gray;
+    color: white;
+}
+.MuiButton-outlined.css-79xub {
+    color: black;
 }
 li.MuiListItem-root {
     display: block;
@@ -435,7 +471,7 @@ li.MuiListItem-root {
 }
 
 .MuiDialog-container div {
-    background-color: white;
+    background-color: transparent;
     color: black;
 }
 

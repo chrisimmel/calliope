@@ -10,6 +10,7 @@ import Drawer from '@mui/material/Drawer';
 
 import { Frame, Story } from './Types';
 import { IconButton } from '@mui/material';
+import { Fragment } from 'react';
 
 function Copyright() {
   return (
@@ -18,7 +19,7 @@ function Copyright() {
       <Link color="inherit" href="https://chrisimmel.com/">
         Chris Immel
       </Link>{' '}
-      {new Date().getFullYear()}.
+      {new Date().getFullYear()}
     </Typography>
   );
 }
@@ -94,14 +95,19 @@ export default function AboutPanel({
                         {story.title}
                     </Typography>
                     <Typography variant="subtitle1">
-                        Created on {story.date_created} by storyteller {story.strategy_name}.
+                        Created on {story.date_created} by storyteller {story.strategy_name}
                     </Typography>
                     {
                         location &&
                         <Typography variant="subtitle1">
-                            Created at: {location}.
+                            at {location}.
                         </Typography>
                     }
+                </Box>
+            }
+            {
+                story &&
+                <Box sx={{ my: 4 }} >
                     <Typography variant="subtitle1">
                         Last updated {story.date_updated}.
                     </Typography>

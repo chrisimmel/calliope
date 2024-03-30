@@ -17,6 +17,7 @@ import Select, { SelectChangeEvent } from '@mui/material/Select';
 import IconButton from '@mui/material/IconButton';
 import CloseIcon from '@mui/icons-material/Close';
 import Typography from '@mui/material/Typography';
+import Drawer from '@mui/material/Drawer';
 
 import { Strategy } from './Types';
 
@@ -73,15 +74,22 @@ export default function CreateStoryDialog({
   const handleChangeSendPhoto = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSendPhoto(event.target.checked);
   };
-
-  return (
-    <React.Fragment>
+  /*
       <BootstrapDialog
         onClose={handleClose}
         aria-labelledby="customized-dialog-title"
         open={isOpen}
       >
-        <DialogTitle>Start a New Story</DialogTitle>
+  */
+
+  return (
+    <React.Fragment>
+      <Drawer
+          anchor={"right"}
+          open={isOpen}
+          onClose={handleClose}
+      >
+        <DialogTitle>Create a New Story</DialogTitle>
         <IconButton
           aria-label="close"
           onClick={handleClose}
@@ -94,7 +102,7 @@ export default function CreateStoryDialog({
           <CloseIcon />
         </IconButton>
         <DialogContent dividers>
-          <FormControl>
+          <FormControl fullWidth>
             <InputLabel id="strategy-select-label">By Storyteller</InputLabel>
             <Select
               labelId="strategy-select-label"
@@ -102,7 +110,6 @@ export default function CreateStoryDialog({
               value={newStrategy || undefined}
               label="By Storyteller"
               onChange={handleChangeStrategy}
-              sx={{ minWidth: 200 }}
             >
               {
                 strategies.map(
@@ -122,10 +129,10 @@ export default function CreateStoryDialog({
             Cancel
           </Button>
           <Button autoFocus variant="contained" onClick={handleStartStory}>
-            Start my story by {newStrategy}...
+            Begin Story
           </Button>
         </DialogActions>
-      </BootstrapDialog>
+      </Drawer>
     </React.Fragment>
   );
 }
