@@ -115,50 +115,59 @@ export default function ClioDrawer({
                                         <ListItemText primary="About" />
                                     </ListItemButton>
                                 </ListItem>
-                                <ListItem disablePadding>
-                                    <ListItemButton
-                                        onClick={(e) => {
-                                            setDrawerIsOpen(false);
-                                            jumpToBeginning()
+                                {
+                                    frames.length > 2 && selectedFrameNumber > 0 &&
+                                    <ListItem disablePadding>
+                                        <ListItemButton
+                                            onClick={(e) => {
+                                                setDrawerIsOpen(false);
+                                                jumpToBeginning()
+                                            }
                                         }
-                                    }
-                                    >
-                                        <ListItemIcon>
-                                            <IconRewind />
-                                        </ListItemIcon>
-                                        <ListItemText primary="Jump to Beginning" />
-                                    </ListItemButton>
-                                </ListItem>
-                                <ListItem disablePadding>
-                                    <ListItemButton
-                                        onClick={(e) => {
-                                            setDrawerIsOpen(false);
-                                            jumpToEnd()
+                                        >
+                                            <ListItemIcon>
+                                                <IconRewind />
+                                            </ListItemIcon>
+                                            <ListItemText primary="Jump to Beginning" />
+                                        </ListItemButton>
+                                    </ListItem>
+                                }
+                                {
+                                    frames.length > 2 && selectedFrameNumber < frames.length - 1 &&
+                                    <ListItem disablePadding>
+                                        <ListItemButton
+                                            onClick={(e) => {
+                                                setDrawerIsOpen(false);
+                                                jumpToEnd()
+                                            }
                                         }
-                                    }
-                                    >
-                                        <ListItemIcon>
-                                            <IconFastForward />
-                                        </ListItemIcon>
-                                        <ListItemText primary="Jump to End" />
-                                    </ListItemButton>
-                                </ListItem>
+                                        >
+                                            <ListItemIcon>
+                                                <IconFastForward />
+                                            </ListItemIcon>
+                                            <ListItemText primary="Jump to End" />
+                                        </ListItemButton>
+                                    </ListItem>
+                                }
                                 <ListItem disablePadding>
                                     <Divider/>
                                 </ListItem>
-                                <ListItem disablePadding>
-                                    <ListItemButton
-                                        onClick={(e) => {
-                                            setDrawerIsOpen(false);
-                                            setStoryBrowserIsOpen(true)
+                                {
+                                    stories.length > 1 &&
+                                    <ListItem disablePadding>
+                                        <ListItemButton
+                                            onClick={(e) => {
+                                                setDrawerIsOpen(false);
+                                                setStoryBrowserIsOpen(true)
+                                            }
                                         }
-                                    }
-                                    >
-                                        <ListItemIcon>
-                                        </ListItemIcon>
-                                        <ListItemText primary="Browse" />
-                                    </ListItemButton>
-                                </ListItem>
+                                        >
+                                            <ListItemIcon>
+                                            </ListItemIcon>
+                                            <ListItemText primary="Browse" />
+                                        </ListItemButton>
+                                    </ListItem>
+                                }
                                 <ListItem disablePadding>
                                     <ListItemButton
                                         onClick={(e) => {
