@@ -1,4 +1,4 @@
-// icon:bx-dots-vertical-rounded | Boxicons https://boxicons.com/ | Atisa
+// Boxicons https://boxicons.com/ | menu
 import * as React from "react";
 
 export default function IconMenu(props: any) {

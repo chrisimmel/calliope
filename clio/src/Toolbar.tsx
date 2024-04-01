@@ -7,6 +7,7 @@ import IconPlus from "./icons/IconPlus";
 import IconMenu from './icons/IconMenu';
 import ClioDrawer from './ClioDrawer';
 import { Frame, Story, Strategy } from './Types';
+import IconMicrophone from './icons/IconMicrophone';
 
 type ToolbarProps = {
     drawerIsOpen: boolean,
@@ -30,6 +31,7 @@ type ToolbarProps = {
     selectedFrameNumber: number,
     frames: Frame[],
 
+    startAudioCapture: () => void,
     startCameraCapture: () => void,
     addNewFrame: () => void,
 }
@@ -56,9 +58,15 @@ export default function Toolbar({
     selectedFrameNumber,
     frames,
 
+    startAudioCapture,
     startCameraCapture,
     addNewFrame,
 }: ToolbarProps) {
+    /*
+    Enable camera capture for now only if not playing.
+    This avoids a concurrency bug.
+        */
+    const allowAddFrame = !isPlaying && !isLoading && !drawerIsOpen;
     return <>
         <div className="nav">
             {
@@ -84,11 +92,7 @@ export default function Toolbar({
                 </button>
             }
             {
-                !isPlaying && !isLoading && !drawerIsOpen &&
-                /*
-                Enable add new frame for now only if not playing.
-                This avoids a concurrency bug.
-                 */
+                allowAddFrame &&
                 <button
                     className="navButton"
                     onClick={() => {
@@ -99,11 +103,18 @@ export default function Toolbar({
                 </button>
             }
             {
-                !isPlaying && !isLoading && !drawerIsOpen &&
-                /*
-                Enable camera capture for now only if not playing.
-                This avoids a concurrency bug.
-                 */
+                allowAddFrame && !!navigator.mediaDevices &&
+                <button
+                    className="navButton"
+                    onClick={() => {
+                        startAudioCapture();
+                    }}
+                >
+                    <IconMicrophone/>
+                </button>
+            }
+            {
+                allowAddFrame &&
                 <button
                     className="navButton"
                     onClick={() => {

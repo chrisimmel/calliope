@@ -474,3 +474,20 @@ li.MuiListItem-root {
 .MuiDialog-container .Mui-checked.MuiCheckbox-root {
     color: rgb(25, 118, 210);
 }
+
+.audioCapture {
+    position: absolute;
+    bottom: 6px;
+    left: 50%;
+    transform: translate(-50%, 0);
+    display: flex;
+    justify-content: center;
+}
+
+.audioCapture > * {
+    flex: 1;
+}
+
+.audioCapture .captureButton {
+    color: black;
+}

@@ -11,6 +11,7 @@ import IconChevronRight from "./icons/IconChevronRight";
 import Toolbar from "./Toolbar";
 import PhotoCapture from "./PhotoCapture";
 import Loader from "./Loader";
+import AudioCapture from "./AudioCapture";
 
 const audioConstraints = {
     suppressLocalAudioPlayback: true,
@@ -87,7 +88,7 @@ const resetStory = async () => {
 export default function ClioApp() {
     type ClioState = {
         handleFullScreen: () => void,
-        getFrames: (image: string | null) => void,
+        getFrames: (image: string | null, audio: string | null) => void,
     }
 
     const stateRef = useRef<ClioState>({handleFullScreen: () => null, getFrames: () => null});
@@ -96,6 +97,7 @@ export default function ClioApp() {
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
     const [captureActive, setCaptureActive] = useState<boolean>(false);
+    const [captureAudioActive, setCaptureAudioActive] = useState<boolean>(false);
     const [isPlaying, setIsPlaying] = useState<boolean>(false);
     const [strategies, setStrategies] = useState<Strategy[]>([]);
     const [defaultStrategy, setDefaultStrategy] = useState<string | null>(getDefaultStrategy());
@@ -190,6 +192,13 @@ export default function ClioApp() {
         },
         []
     );
+    const startAudioCapture = useCallback(
+        () => {
+            setCaptureAudioActive(true);
+            console.log("Starting audio capture...");
+        },
+        []
+    );
 
     const handleFullScreen = useCallback(
         () => {
@@ -219,7 +228,7 @@ export default function ClioApp() {
     }, []);
 
     const getFrames = useCallback(
-        async (image: string | null) => {
+        async (image: string | null, audio: string | null) => {
             console.log(`Enter getFrames. isPlaying=${isPlaying}`)
             setLoading(true)
             try {
@@ -228,10 +237,11 @@ export default function ClioApp() {
                     getFramesInterval = null;
                 }
     
-                let params: {client_id: string, client_type: string, input_image: string | null, debug: boolean, strategy?: string} = {
+                let params: {client_id: string, client_type: string, input_image: string | null, input_audio: string | null, debug: boolean, strategy?: string} = {
                     client_id: thisBrowserID,
                     client_type: "clio",
                     input_image: image,
+                    input_audio: audio,
                     debug: true,
                 };
 
@@ -268,7 +278,7 @@ export default function ClioApp() {
                 console.log(`Got frames. isPlaying=${isPlaying}`)
                 if (isPlaying) {
                     console.log("Scheduling frames request in 20s.");
-                    getFramesInterval = setInterval(() => stateRef.current.getFrames(null), 20000);
+                    getFramesInterval = setInterval(() => stateRef.current.getFrames(null, null), 20000);
                 }
             } catch (err: any) {
                 setError(err.message);
@@ -322,7 +332,7 @@ export default function ClioApp() {
                 if (!newFrames.length && !getFramesInterval) {
                     // If the story is empty, get a new frame.
                     console.log("Scheduling a request for an initial frame.");
-                    getFramesInterval = setInterval(() => stateRef.current.getFrames(null), 500);
+                    getFramesInterval = setInterval(() => stateRef.current.getFrames(null, null), 500);
                 }
             } catch (err: any) {
                 setError(err.message);
@@ -480,8 +490,19 @@ export default function ClioApp() {
             const parts = image ? image.split(",") : null;
             image = (parts && parts.length > 1) ? parts[1] : null;
 
-            console.log("Scheduling frames request.");
-            getFramesInterval = setInterval(() => stateRef.current.getFrames(image), 10);
+            console.log("Scheduling frames request with image.");
+            getFramesInterval = setInterval(() => stateRef.current.getFrames(image, null), 10);
+        },
+        []
+    );
+    const sendAudio = useCallback(
+        (audio: string) => {
+            setCaptureAudioActive(false);
+            const parts = audio ? audio.split(",") : null;
+            audio = (parts && parts.length > 1) ? parts[1] : audio;
+
+            console.log(`Scheduling frames request with audio.`);
+            getFramesInterval = setInterval(() => stateRef.current.getFrames(null, audio), 10);
         },
         []
     );
@@ -499,7 +520,7 @@ export default function ClioApp() {
             await resetStory();
 
             console.log("Scheduling frames request.");
-            getFramesInterval = setInterval(() => stateRef.current.getFrames(null), 10);
+            getFramesInterval = setInterval(() => stateRef.current.getFrames(null, null), 10);
         },
         []
     );
@@ -586,7 +607,7 @@ export default function ClioApp() {
         () => {
             selectFrameNumber(frames.length - 1);
             console.log("Scheduling frames request.");
-            getFramesInterval = setInterval(() => stateRef.current.getFrames(null), 10);
+            getFramesInterval = setInterval(() => stateRef.current.getFrames(null, null), 10);
         },
         [selectedFrameNumber, selectFrameNumber, frames]
     )
@@ -648,6 +669,7 @@ export default function ClioApp() {
                 isLoading={loading}
                 isFullScreen={isFullScreen}
                 toggleFullScreen={toggleFullScreen}
+                startAudioCapture={startAudioCapture}
                 startCameraCapture={startCameraCapture}
                 addNewFrame={addNewFrame}
                 allowExperimental={allowExperimental}
@@ -664,6 +686,13 @@ export default function ClioApp() {
                 frames={frames}
                 drawerIsOpen={drawerIsOpen}
                 setDrawerIsOpen={setDrawerIsOpen}
+            />
+        }
+        {
+            captureAudioActive &&
+            <AudioCapture
+              setIsOpen={setCaptureAudioActive}
+              sendAudio={sendAudio}
             />
         }
         {
