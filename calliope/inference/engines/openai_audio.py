@@ -1,4 +1,3 @@
-import base64
 import httpx
 
 from openai import AsyncOpenAI
@@ -10,7 +9,7 @@ from calliope.models import (
 
 async def openai_text_to_text_inference(
     httpx_client: httpx.AsyncClient,
-    audio_base64: str,
+    input_audio_filename: str,
     keys: KeysModel,
 ) -> str:
     """
@@ -18,22 +17,33 @@ async def openai_text_to_text_inference(
 
     Args:
         httpx_client: the async HTTP session.
-        text: the input text, to be sent as a prompt.
-        model_config: the ModelConfig with model and parameters.
+        input_audio_filename: the name of a file containing the input audio.
         keys: API keys, etc.
 
     Returns:
         the generated text.
     """
+    """
     bytes = str.encode(audio_base64)
     decoded_bytes = base64.b64decode(bytes)
+    input_image_filename = create_sequential_filename(
+        "input",
+        sparrow_id,
+        "in",
+        "jpg",
+        story.cuid,
+        0,  # TODO: Handle non-jpeg image input.
+    )
+
+
     with open("input_audio.webm", "wb") as f:
         f.write(decoded_bytes)
+    """
 
     # For some reason, writing, then reading the file works, where reading
     # through a BytesIO object does not.
     # audio_file = BytesIO(decoded_bytes)
-    with open("input_audio.webm", "rb") as audio_file:
+    with open(input_audio_filename, "rb") as audio_file:
         client = AsyncOpenAI(api_key=keys.openai_api_key, http_client=httpx_client)
         transcription = await client.audio.transcriptions.create(
             model="whisper-1", file=audio_file, response_format="text"

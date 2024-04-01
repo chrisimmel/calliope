@@ -1,4 +1,5 @@
 from datetime import datetime
+import os
 import sys
 import traceback
 from typing import Any, Dict, List, Optional
@@ -323,9 +324,9 @@ async def handle_frames_request(
                 traceback.print_exc(file=sys.stderr)
                 errors.append(str(e))
 
-        if parameters.input_audio:
+        if parameters.input_audio_filename:
             text = await audio_to_text_inference(
-                httpx_client, parameters.input_audio, keys
+                httpx_client, parameters.input_audio_filename, keys
             )
             parameters.input_text = text
 
@@ -444,17 +445,29 @@ async def prepare_input_files(
             "in",
             "jpg",
             story.cuid,
-            0,  # TODO: Handle non-jpeg image input.
+            0,
         )
         decode_b64_to_file(request_params.input_image, input_image_filename)
         request_params.input_image_filename = input_image_filename
 
     if request_params.input_audio:
-        input_audio_filename = create_sequential_filename(
-            "input", sparrow_id, "in", "wav", story.cuid, 0
+        frame_number = await story.get_num_frames()
+        input_audio_filename_webm = create_sequential_filename(
+            "input", sparrow_id, "in", "webm", story.cuid, frame_number
         )
-        decode_b64_to_file(request_params.input_audio, input_audio_filename)
-        request_params.input_audio_filename = input_audio_filename
+        decode_b64_to_file(request_params.input_audio, input_audio_filename_webm)
+        input_audio_filename_wav = input_audio_filename_webm + ".wav"
+        command = (
+            f"ffmpeg -y -i {input_audio_filename_webm} -vn {input_audio_filename_wav}"
+        )
+
+        print(f"Executing '{command}'")
+        retval = os.system(command)
+        if retval != 0:
+            print(f"ffmpeg failed with return code {retval}")
+            # raise RuntimeError(f"ffmpeg command failed with return code {retval}")
+
+        request_params.input_audio_filename = input_audio_filename_wav
 
     return request_params
 

@@ -8,19 +8,19 @@ from calliope.models import (
 
 async def audio_to_text_inference(
     httpx_client: httpx.AsyncClient,
-    b64_encoded_audio: str,
+    input_audio_filename: str,
     keys: KeysModel,
 ) -> str:
     """
-    Takes a base64-encoded audio file and produces text.
+    Takes an audio file as input and produces text.
 
     Args:
         httpx_client: the async HTTP session.
-        b64_encoded_audio: the filename of the input image.
+        input_audio_filename: the filename of the input audio.
         keys: API keys, etc.
 
     Returns:
         a string containing the transcribed text.
     """
 
-    return await openai_text_to_text_inference(httpx_client, b64_encoded_audio, keys)
+    return await openai_text_to_text_inference(httpx_client, input_audio_filename, keys)
