@@ -15,7 +15,7 @@ import { Fragment } from 'react';
 function Copyright() {
   return (
     <Typography variant="body2" color="text.secondary" align="center">
-      {'Calliope and Clio Copyright © '}
+      {'Calliope and Clio copyright © '}
       <Link color="inherit" href="https://chrisimmel.com/">
         Chris Immel
       </Link>{' '}
@@ -95,7 +95,7 @@ export default function AboutPanel({
                         {story.title}
                     </Typography>
                     <Typography variant="subtitle1">
-                        Created on {story.date_created} by storyteller {story.strategy_name}
+                        Story created on {story.date_created} by storyteller {story.strategy_name}
                     </Typography>
                     {
                         location &&
@@ -112,7 +112,7 @@ export default function AboutPanel({
                         Last updated {story.date_updated}.
                     </Typography>
                     <Typography variant="subtitle1">
-                        Viewing frame {selectedFrameNumber + 1} of {frames.length} frames.
+                        Viewing frame {selectedFrameNumber + 1} of {frames.length}.
                     </Typography>
                 </Box>
             }

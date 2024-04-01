@@ -420,8 +420,8 @@ svg {
 }
 
 
-.MuiDrawer-paperAnchorBottom.css-fy2uxz, .MuiDrawer-paperAnchorRight.css-1ab2xsx {
-    max-width: 300px;
+.MuiDrawer-paperAnchorBottom.css-fy2uxz, .MuiDrawer-paperAnchorRight.css-1ab2xsx, .MuiDrawer-paperAnchorRight.css-1jcl2ys {
+    max-width: 350px;
     inset: auto 0 60px auto;
     height: auto;
     max-height: 100%;
@@ -438,16 +438,8 @@ svg {
     background-color: white;
     color: black;
 }
-.MuiDialogContent-root{
-    min-width: 350px;
-}
-
 .MuiBackdrop-root, .MuiPopover-root {
     background: transparent;
-}
-.MuiPaper-root svg {
-    /*stroke: white;
-    fill: white;*/
 }
 .MuiBox-root {
     margin: 14px;

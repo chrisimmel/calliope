@@ -81,6 +81,12 @@ export default function CreateStoryDialog({
           anchor={"right"}
           open={isOpen}
           onClose={handleClose}
+          className="create-story-panel"
+          PaperProps={{
+            sx: {
+              width: 350,
+             },
+          }}
       >
         <DialogTitle>Create a New Story</DialogTitle>
         <IconButton
