@@ -67,12 +67,8 @@ class ContinuousStoryV1Strategy(StoryStrategy):
             "Prefer abstraction and softer colors or grayscale. Avoid photorealism. "
             "No signature. Don't sign the painting."
         )
-        situation = get_local_situation_text(
-            image_analysis, location_metadata
-        )
-        debug_data = self._get_default_debug_data(
-            parameters, strategy_config, situation
-        )
+        situation = get_local_situation_text(image_analysis, location_metadata)
+        debug_data = self._get_default_debug_data(parameters, strategy_config, situation)
         errors: List[str] = []
         prompt = None
         image = None
@@ -199,6 +195,8 @@ class ContinuousStoryV1Strategy(StoryStrategy):
         strategy_config: StrategyConfig,
         debug_data: Dict[str, Any],
     ) -> str:
+        input_text = parameters.input_text
+
         if last_text:
             last_text_lines = last_text.split("\n")
             last_text_lines = last_text_lines[-8:]
@@ -207,13 +205,14 @@ class ContinuousStoryV1Strategy(StoryStrategy):
             # If there is no text from the existing story,
             # fall back to either the input_text parameter
             # or the seed prompt, in that order of preference.
-            last_text = parameters.input_text or (
-                strategy_config.seed_prompt_template
-                and cast(
-                    Optional[str],
-                    strategy_config.seed_prompt_template.text
+            last_text = (
+                input_text
+                or (
+                    strategy_config.seed_prompt_template
+                    and cast(Optional[str], strategy_config.seed_prompt_template.text)
                 )
-            ) or ""
+                or ""
+            )
             debug_data["applied_seed_prompt"] = last_text
 
         if image_analysis:
@@ -239,7 +238,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
                 {
                     "poem": last_text,
                     "scene": image_scene,
-                    "text": image_text,
+                    "text": image_text or input_text,
                     "objects": image_objects,
                     "situation": situation,
                 }
@@ -247,10 +246,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
         else:
             debug_data["prompt_template"] = None
             prompt = (
-                last_text + "\n" + 
-                image_scene + "\n" +
-                image_text + "\n" +
-                image_objects
+                last_text + "\n" + image_scene + "\n" + image_text + "\n" + image_objects
             )
 
         return prompt

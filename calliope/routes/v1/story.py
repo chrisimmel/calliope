@@ -10,6 +10,7 @@ from fastapi.security.api_key import APIKey
 from pydantic import BaseModel
 
 from calliope.inference import image_analysis_inference
+from calliope.inference.audio_to_text import audio_to_text_inference
 from calliope.intel.location import get_location_metadata_for_ip
 from calliope.models import (
     FramesRequestParamsModel,
@@ -149,9 +150,7 @@ async def post_frames(
 async def get_frames(
     request: Request,
     api_key: APIKey = Depends(get_api_key),
-    request_params: FramesRequestParamsModel = Depends(
-        FramesRequestParamsModel
-    ),
+    request_params: FramesRequestParamsModel = Depends(FramesRequestParamsModel),
 ) -> StoryResponseV1:
     """
     Provide some harvested data (image, sound, text). Get a new episode of an
@@ -280,12 +279,15 @@ async def handle_frames_request(
         if forwarded_header:
             # Handle case where request comes through a load balancer, altering
             # request.client.host.
-            source_ip_address: Optional[str] = request.headers.getlist("X-Forwarded-For")[0]
+            source_ip_address: Optional[str] = request.headers.getlist(
+                "X-Forwarded-For"
+            )[0]
         else:
             # Handle the normal case of a direct request.
             source_ip_address = request.client.host if request.client else None
         location_metadata = await get_location_metadata_for_ip(
-            httpx_client, source_ip_address,
+            httpx_client,
+            source_ip_address,
         )
         print(f"{location_metadata=}")
 
@@ -320,6 +322,12 @@ async def handle_frames_request(
             except Exception as e:
                 traceback.print_exc(file=sys.stderr)
                 errors.append(str(e))
+
+        if parameters.input_audio:
+            text = await audio_to_text_inference(
+                httpx_client, parameters.input_audio, keys
+            )
+            parameters.input_text = text
 
         story_frames_response = await strategy_class().get_frame_sequence(
             parameters,
@@ -539,9 +547,7 @@ def shorten_title(title: Optional[str], max_length: int = 64) -> str:
 async def get_stories(
     request: Request,
     api_key: APIKey = Depends(get_api_key),
-    request_params: StoriesRequestParamsModel = Depends(
-        StoriesRequestParamsModel
-    ),
+    request_params: StoriesRequestParamsModel = Depends(StoriesRequestParamsModel),
 ) -> StoriesResponseV1:
     """
     Gets all stories attributed to this client_id.
@@ -563,7 +569,9 @@ async def get_stories(
             is_read_only=False,
             strategy_name=story.strategy_name,
             created_for_sparrow_id=story.created_for_sparrow_id,
-            thumbnail_image=story.thumbnail_image.to_pydantic() if story.thumbnail_image else None,
+            thumbnail_image=(
+                story.thumbnail_image.to_pydantic() if story.thumbnail_image else None
+            ),
             date_created=str(story.date_created.date()),
             date_updated=str(story.date_updated.date()),
         )

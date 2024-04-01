@@ -34,6 +34,7 @@ from calliope.utils.text import (
     translate_text,
 )
 
+
 @StoryStrategyRegistry.register()
 class LavenderStrategy(StoryStrategy):
     """
@@ -67,12 +68,8 @@ class LavenderStrategy(StoryStrategy):
             "No signature. Don't sign the painting."
         )
 
-        situation = get_local_situation_text(
-            image_analysis, location_metadata
-        )
-        debug_data = self._get_default_debug_data(
-            parameters, strategy_config, situation
-        )
+        situation = get_local_situation_text(image_analysis, location_metadata)
+        debug_data = self._get_default_debug_data(parameters, strategy_config, situation)
         errors: List[str] = []
         prompt = None
         image = None
@@ -137,7 +134,11 @@ class LavenderStrategy(StoryStrategy):
                 image_description = cast(
                     Optional[str], continuation_json.get("illustration")
                 )
-                state_props = {key: val for key, val in continuation_json if key not in ("continuation", "illustration")}
+                state_props = {
+                    key: val
+                    for key, val in continuation_json
+                    if key not in ("continuation", "illustration")
+                }
 
         if not story_continuation or story_continuation.isspace():
             story_continuation = situation + "\n"
@@ -214,6 +215,8 @@ class LavenderStrategy(StoryStrategy):
         strategy_config: StrategyConfig,
         debug_data: Dict[str, Any],
     ) -> str:
+        input_text = parameters.input_text
+
         if last_text:
             last_text_lines = last_text.split("\n")
             last_text_lines = last_text_lines[-8:]
@@ -222,7 +225,7 @@ class LavenderStrategy(StoryStrategy):
             # If there is no text from the existing story,
             # fall back to either the input_text parameter
             # or the seed prompt, in that order of preference.
-            last_text = parameters.input_text or (
+            last_text = input_text or (
                 strategy_config.seed_prompt_template
                 and strategy_config.seed_prompt_template.text
             )
@@ -255,7 +258,7 @@ class LavenderStrategy(StoryStrategy):
                 {
                     "poem": last_text,
                     "scene": image_scene,
-                    "text": image_text,
+                    "text": image_text or input_text,
                     "objects": image_objects,
                     "situation": situation,
                 }

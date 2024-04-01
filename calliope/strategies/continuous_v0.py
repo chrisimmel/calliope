@@ -59,12 +59,8 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         output_image_style = (
             parameters.output_image_style or "A watercolor, paper texture."
         )
-        situation = get_local_situation_text(
-            image_analysis, location_metadata
-        )
-        debug_data = self._get_default_debug_data(
-            parameters, strategy_config, situation
-        )
+        situation = get_local_situation_text(image_analysis, location_metadata)
+        debug_data = self._get_default_debug_data(parameters, strategy_config, situation)
         errors: List[str] = []
         caption = image_analysis.get("description") if image_analysis else None
         text: Optional[str] = None
