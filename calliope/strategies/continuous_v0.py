@@ -203,6 +203,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         input_text = parameters.input_text
 
         # Filter out some basic nonsense we don't like to see in stories...
+        """
         if input_text and text.find(input_text) >= 0:
             # Don't want to see the input text parroted back.
             msg = (
@@ -212,7 +213,9 @@ class ContinuousStoryV0Strategy(StoryStrategy):
             print(msg)
             errors.append(msg)
             text = ""
-        elif re.search(r"[<>#^#\\{}]|0x|://", text):
+        el
+        """
+        if re.search(r"[<>#^#\\{}]|0x|://", text):
             # Don't want to see computer code or similar digital detritus.
             msg = (
                 "Rejecting story continuation because it smells like code: "

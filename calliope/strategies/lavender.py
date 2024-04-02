@@ -326,11 +326,11 @@ class LavenderStrategy(StoryStrategy):
             traceback.print_exc(file=sys.stderr)
             errors.append(str(e))
 
-        stripped_text = text.strip()
-        input_text = parameters.input_text
-
         # Reject same things as continuous-v0. (TODO: extract this to a
         # shared utility.)
+        """
+        stripped_text = text.strip()
+        input_text = parameters.input_text
         if input_text and stripped_text.find(input_text) >= 0:
             msg = (
                 "Rejecting story continuation because it contains the input text: "
@@ -339,6 +339,7 @@ class LavenderStrategy(StoryStrategy):
             print(msg)
             errors.append(msg)
             text = ""
+        """
 
         # Don't want to see fragments of the prompt in the story.
         prompt_words = ("Scene:", "Text:", "Objects:", "Continuation:")

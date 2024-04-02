@@ -312,6 +312,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
 
         # Reject same things as continuous-v0. (TODO: extract this to a
         # shared utility.)
+        """
         if input_text and stripped_text.find(input_text) >= 0:
             msg = (
                 "Rejecting story continuation because it contains the input text: "
@@ -320,7 +321,9 @@ class ContinuousStoryV1Strategy(StoryStrategy):
             print(msg)
             errors.append(msg)
             text = ""
-        elif stripped_text and last_text and stripped_text in last_text:
+        el
+        """
+        if stripped_text and last_text and stripped_text in last_text:
             msg = (
                 "Rejecting story continuation because it's already appeared in the "
                 f"story: {stripped_text[:100]}[...]"

@@ -20,6 +20,7 @@ from calliope.models import (
     StoryFrameModel,
     StoryRequestParamsModel,
 )
+from calliope.settings import settings
 from calliope.storage.config_manager import (
     get_sparrow_story_parameters_and_keys,
     load_json_if_necessary,
@@ -468,17 +469,17 @@ async def prepare_input_files(
         )
         decode_b64_to_file(request_params.input_audio, input_audio_filename_webm)
         input_audio_filename_wav = input_audio_filename_webm + ".wav"
-        command = (
-            f"ffmpeg -y -i {input_audio_filename_webm} -vn {input_audio_filename_wav}"
-        )
+        command = f"/usr/local/bin/ffmpeg -y -i {input_audio_filename_webm} -vn {input_audio_filename_wav}"
 
         print(f"Executing '{command}'")
         retval = os.system(command)
-        if retval != 0:
-            print(f"ffmpeg failed with return code {retval}")
+        if retval == 0:
+            request_params.input_audio_filename = input_audio_filename_wav
+        else:
+            print(f"Warning: ffmpeg failed with return code {retval}")
             # raise RuntimeError(f"ffmpeg command failed with return code {retval}")
-
-        request_params.input_audio_filename = input_audio_filename_wav
+            # Whisper claims to understand webm, so let it try.
+            request_params.input_audio_filename = input_audio_filename_webm
 
     return request_params
 
