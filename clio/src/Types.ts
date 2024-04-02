@@ -41,4 +41,7 @@ type Story = {
     date_updated: string
 }
 
-export {DEVICE_ID_DEFAULT, DEVICE_ID_NONE, Frame, Image, Story, Strategy, MediaDevice};
+type FrameSeedMediaType = "photo" | "audio" | "none";
+
+
+export {DEVICE_ID_DEFAULT, DEVICE_ID_NONE, Frame, Image, Story, Strategy, MediaDevice, FrameSeedMediaType};

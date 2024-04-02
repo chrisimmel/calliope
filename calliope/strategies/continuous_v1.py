@@ -224,6 +224,11 @@ class ContinuousStoryV1Strategy(StoryStrategy):
             image_objects = ""
             image_text = ""
 
+        if input_text:
+            if image_text:
+                image_text += "\n\n"
+            image_text += input_text
+
         model_config = (
             cast(ModelConfig, strategy_config.text_to_text_model_config)
             if strategy_config
@@ -238,7 +243,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
                 {
                     "poem": last_text,
                     "scene": image_scene,
-                    "text": image_text or input_text,
+                    "text": image_text,
                     "objects": image_objects,
                     "situation": situation,
                 }
@@ -308,11 +313,11 @@ class ContinuousStoryV1Strategy(StoryStrategy):
             errors.append(str(e))
 
         stripped_text = text.strip()
-        input_text = parameters.input_text
 
         # Reject same things as continuous-v0. (TODO: extract this to a
         # shared utility.)
         """
+        input_text = parameters.input_text
         if input_text and stripped_text.find(input_text) >= 0:
             msg = (
                 "Rejecting story continuation because it contains the input text: "

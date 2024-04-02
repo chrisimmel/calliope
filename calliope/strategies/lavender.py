@@ -243,6 +243,11 @@ class LavenderStrategy(StoryStrategy):
             image_objects = ""
             image_text = ""
 
+        if input_text:
+            if image_text:
+                image_text += "\n\n"
+            image_text += input_text
+
         model_config = (
             cast(ModelConfig, strategy_config.text_to_text_model_config)
             if strategy_config
@@ -258,7 +263,7 @@ class LavenderStrategy(StoryStrategy):
                 {
                     "poem": last_text,
                     "scene": image_scene,
-                    "text": image_text or input_text,
+                    "text": image_text,
                     "objects": image_objects,
                     "situation": situation,
                 }

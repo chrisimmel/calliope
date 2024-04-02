@@ -5,7 +5,7 @@ import Carousel, { CarouselItem } from "./Carousel";
 
 import './ClioApp.css';
 
-import { Frame, Story, Strategy } from './Types'; 
+import { Frame, FrameSeedMediaType, Story, Strategy } from './Types'; 
 import IconChevronLeft from "./icons/IconChevronLeft";
 import IconChevronRight from "./icons/IconChevronRight";
 import Toolbar from "./Toolbar";
@@ -267,6 +267,10 @@ export default function ClioApp() {
                 if (caption) {
                     console.log(`I think I see: ${caption}.`);
                 }
+                const transcript = response.data?.debug_data?.i_hear;
+                if (transcript) {
+                    console.log(`I think I hear: ${transcript}.`);
+                }
 
                 const newFrames = response.data?.frames;
                 if (newFrames) {
@@ -513,25 +517,20 @@ export default function ClioApp() {
         []
     );
     const startNewStory = useCallback(
-        async (strategy: string | null) => {
-            console.log(`Starting new story with ${strategy}.`);
+        async (strategy: string | null, media_type: FrameSeedMediaType) => {
+            console.log(`Starting new story with ${strategy} and media: ${media_type}.`);
             localStorage.setItem('strategy', strategy || "");
             setStrategy(strategy);
             await resetStory();
 
-            console.log("Scheduling frames request.");
-            getFramesInterval = setInterval(() => stateRef.current.getFrames(null, null), 10);
-        },
-        []
-    );
-    const startNewStoryWithPhoto = useCallback(
-        async (strategy: string | null) => {
-            console.log(`Starting new story with ${strategy}.`);
-            localStorage.setItem('strategy', strategy || "");
-            setStrategy(strategy);
-            await resetStory();
-
-            startCameraCapture();
+            if (media_type == "photo") {
+                startCameraCapture();
+            } else if (media_type == "audio") {
+                startAudioCapture();
+            } else {
+                console.log("Scheduling frames request.");
+                getFramesInterval = setInterval(() => stateRef.current.getFrames(null, null), 10);
+            }
         },
         []
     );
@@ -676,7 +675,6 @@ export default function ClioApp() {
                 strategies={strategies}
                 strategy={strategy}
                 startNewStory={startNewStory}
-                startNewStoryWithPhoto={startNewStoryWithPhoto}
                 stories={stories}
                 story_id={storyId}
                 setStory={updateStory}

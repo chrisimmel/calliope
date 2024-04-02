@@ -3,23 +3,23 @@ import { useState } from 'react';
 
 import Button from '@mui/material/Button';
 import { styled } from '@mui/material/styles';
-import Checkbox from '@mui/material/Checkbox';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import FormControl from '@mui/material/FormControl';
 import FormControlLabel from '@mui/material/FormControlLabel';
-import FormGroup from '@mui/material/FormGroup';
 import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 import IconButton from '@mui/material/IconButton';
 import CloseIcon from '@mui/icons-material/Close';
-import Typography from '@mui/material/Typography';
 import Drawer from '@mui/material/Drawer';
 
-import { Strategy } from './Types';
+import { FrameSeedMediaType, Strategy } from './Types';
+import FormLabel from '@mui/material/FormLabel';
+import RadioGroup from '@mui/material/RadioGroup';
+import Radio from '@mui/material/Radio';
 
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   '& .MuiDialogContent-root': {
@@ -37,8 +37,7 @@ type CreateStoryDialogProps = {
     allowExperimental: boolean
     strategies: Strategy[],
     strategy: string | null,
-    startNewStory: (strategy: string | null) => void,
-    startNewStoryWithPhoto: (strategy: string | null) => void,
+    startNewStory: (strategy: string | null, media_type: FrameSeedMediaType) => void,
 }
 
 export default function CreateStoryDialog({
@@ -48,31 +47,26 @@ export default function CreateStoryDialog({
     strategies,
     strategy,
     startNewStory,
-    startNewStoryWithPhoto,
 }: CreateStoryDialogProps) {
   strategies ||= [];
   strategies = strategies.filter((strat) => allowExperimental || !strat.is_experimental);
   strategy ||= (strategies.find(strategy => strategy.is_default_for_client) || {slug: null}).slug;
   strategy ||= null;
   const [newStrategy, setNewStrategy] = useState(strategy);
-  const [sendPhoto, setSendPhoto] = useState(true);
+  const [media, setMedia] = useState<FrameSeedMediaType>("photo");
 
   const handleClose = () => {
     setIsOpen(false);
   };
   const handleStartStory = () => {
     setIsOpen(false);
-    if (sendPhoto) {
-      startNewStoryWithPhoto(newStrategy);
-    } else {
-      startNewStory(newStrategy);
-    }
+    startNewStory(newStrategy, media);
   };
   const handleChangeStrategy = (event: SelectChangeEvent) => {
     setNewStrategy(event.target.value);
   };
-  const handleChangeSendPhoto = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSendPhoto(event.target.checked);
+  const handleChangeMedia = (event: React.ChangeEvent<HTMLInputElement>, value: string) => {
+    setMedia(value as FrameSeedMediaType);
   };
 
   return (
@@ -119,9 +113,23 @@ export default function CreateStoryDialog({
               }
             </Select>
           </FormControl>
-          <FormGroup>
+          {/*<FormGroup>
             <FormControlLabel control={<Checkbox defaultChecked={sendPhoto} onChange={handleChangeSendPhoto} />} label="Send a Photo" />
           </FormGroup>
+          */}
+        <FormControl>
+          <FormLabel id="demo-radio-buttons-group-label">Begin Story From</FormLabel>
+          <RadioGroup
+            aria-labelledby="demo-radio-buttons-group-label"
+            value={media}
+            onChange={handleChangeMedia}
+            name="radio-buttons-group"
+          >
+            <FormControlLabel value="photo" control={<Radio />} label="A Photo" />
+            <FormControlLabel value="audio" control={<Radio />} label="Spoken Words" />
+            <FormControlLabel value="none" control={<Radio />} label="Thin Air" />
+          </RadioGroup>
+        </FormControl>
         </DialogContent>
         <DialogActions>
           <Button variant="outlined" onClick={handleClose}>

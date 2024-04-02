@@ -200,10 +200,9 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         text = text[fragment_len:]
         stripped_text = text.strip()
 
-        input_text = parameters.input_text
-
         # Filter out some basic nonsense we don't like to see in stories...
         """
+        input_text = parameters.input_text
         if input_text and text.find(input_text) >= 0:
             # Don't want to see the input text parroted back.
             msg = (

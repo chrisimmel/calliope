@@ -18,7 +18,7 @@ import IconPlay from './icons/IconPlay';
 import IconRewind from './icons/IconRewind';
 import AboutPanel from './AboutPanel';
 import StoryBrowser from './StoryBrowser';
-import { Frame, Story, Strategy } from './Types';
+import { Frame, FrameSeedMediaType, Story, Strategy } from './Types';
 import { useState } from 'react';
 import CreateStoryDialog from './CreateStoryPanel';
 
@@ -29,8 +29,7 @@ type ClioDrawerProps = {
     allowExperimental: boolean
     strategies: Strategy[],
     strategy: string | null,
-    startNewStory: (strategy: string | null) => void,
-    startNewStoryWithPhoto: (strategy: string | null) => void,
+    startNewStory: (strategy: string | null, media_type: FrameSeedMediaType) => void,
 
     toggleIsPlaying: () => void,
     isPlaying: boolean,
@@ -50,7 +49,6 @@ export default function ClioDrawer({
     strategies,
     strategy,
     startNewStory,
-    startNewStoryWithPhoto,
     isPlaying,
     toggleIsPlaying,
     toggleFullScreen,
@@ -254,7 +252,6 @@ export default function ClioDrawer({
                 strategies={strategies}
                 strategy={strategy}
                 startNewStory={startNewStory}
-                startNewStoryWithPhoto={startNewStoryWithPhoto}
             />
         </>
     );

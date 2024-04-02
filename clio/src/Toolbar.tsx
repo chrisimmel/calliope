@@ -6,7 +6,7 @@ import IconCamera from './icons/IconCamera';
 import IconPlus from "./icons/IconPlus";
 import IconMenu from './icons/IconMenu';
 import ClioDrawer from './ClioDrawer';
-import { Frame, Story, Strategy } from './Types';
+import { Frame, FrameSeedMediaType, Story, Strategy } from './Types';
 import IconMicrophone from './icons/IconMicrophone';
 
 type ToolbarProps = {
@@ -15,8 +15,7 @@ type ToolbarProps = {
     allowExperimental: boolean,
     strategies: Strategy[],
     strategy: string | null,
-    startNewStory: (strategy: string | null) => void,
-    startNewStoryWithPhoto: (strategy: string | null) => void,
+    startNewStory: (strategy: string | null, media_type: FrameSeedMediaType) => void,
 
     isLoading: boolean,
     isPlaying: boolean,
@@ -43,7 +42,6 @@ export default function Toolbar({
     strategies,
     strategy,
     startNewStory,
-    startNewStoryWithPhoto,
 
     isLoading,
     isPlaying,
@@ -147,7 +145,6 @@ export default function Toolbar({
                 strategies={strategies}
                 strategy={strategy}
                 startNewStory={startNewStory}
-                startNewStoryWithPhoto={startNewStoryWithPhoto}
                 frames={frames}
                 story_id={story_id}
                 setStory={setStory}

@@ -362,6 +362,10 @@ async def handle_frames_request(
     if image_analysis:
         i_see = image_analysis.get("description")
         story_frames_response.debug_data["i_see"] = i_see
+        story_frames_response.debug_data["image_analysis"] = image_analysis
+    if parameters.input_audio_filename and parameters.input_text:
+        i_hear = parameters.input_text
+        story_frames_response.debug_data["i_hear"] = i_hear
 
     await prepare_frame_images(parameters, story_frames_response.frames)
 
