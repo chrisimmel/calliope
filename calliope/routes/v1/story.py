@@ -324,9 +324,20 @@ async def handle_frames_request(
                 traceback.print_exc(file=sys.stderr)
                 errors.append(str(e))
 
+        language = "en"
+        if (
+            strategy_config.text_to_text_model_config
+            and strategy_config.text_to_text_model_config
+            and strategy_config.text_to_text_model_config.prompt_template
+            and strategy_config.text_to_text_model_config.prompt_template.target_language  # noqa: E501
+        ):
+            language = (
+                strategy_config.text_to_text_model_config.prompt_template.target_language  # noqa: E501
+            )
+
         if parameters.input_audio_filename:
             text = await audio_to_text_inference(
-                httpx_client, parameters.input_audio_filename, keys
+                httpx_client, parameters.input_audio_filename, language, keys
             )
             parameters.input_text = text
 
