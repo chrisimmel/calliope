@@ -1,7 +1,6 @@
-//import { css } from '@emotion/react'
+import { useState } from 'react';
+
 import Box from '@mui/material/Box';
-import CloseIcon from '@mui/icons-material/Close';
-import IconButton from '@mui/material/IconButton';
 import Divider from '@mui/material/Divider';
 import Drawer from '@mui/material/Drawer';
 import List from '@mui/material/List';
@@ -10,20 +9,19 @@ import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 
-import IconClose from './icons/IconClose';
-import IconFastForward from './icons/IconFastForward';
-import IconFullscreen from './icons/IconFullscreen';
-import IconPause from './icons/IconPause';
-import IconPlay from './icons/IconPlay';
-import IconRewind from './icons/IconRewind';
-import AboutPanel from './AboutPanel';
-import StoryBrowser from './StoryBrowser';
-import { Frame, FrameSeedMediaType, Story, Strategy } from './Types';
-import { useState } from 'react';
-import CreateStoryDialog from './CreateStoryPanel';
+import AboutPanel from '../story/AboutPanel';
+import CreateStoryDialog from '../story/CreateStoryPanel';
+import { Frame, FrameSeedMediaType, Story, Strategy } from '../story/storyTypes';
+import IconClose from '../icons/IconClose';
+import IconFastForward from '../icons/IconFastForward';
+import IconFullscreen from '../icons/IconFullscreen';
+import IconPause from '../icons/IconPause';
+import IconPlay from '../icons/IconPlay';
+import IconRewind from '../icons/IconRewind';
+import StoryBrowser from '../story/StoryBrowser';
 
 
-type ClioDrawerProps = {
+type MainDrawerProps = {
     drawerIsOpen: boolean,
     setDrawerIsOpen: (open: boolean) => void,
     allowExperimental: boolean
@@ -44,7 +42,7 @@ type ClioDrawerProps = {
 }
 
 
-export default function ClioDrawer({
+export default function MainDrawer({
     allowExperimental,
     strategies,
     strategy,
@@ -61,7 +59,7 @@ export default function ClioDrawer({
     frames,
     drawerIsOpen,
     setDrawerIsOpen,
-}: ClioDrawerProps) {
+}: MainDrawerProps) {
     const [storyBrowserIsOpen, setStoryBrowserIsOpen] = useState<boolean>(false);
     const [aboutPanelIsOpen, setAboutPanelIsOpen] = useState<boolean>(false);
     const [creatStoryDialogIsOpen, setCreatStoryDialogIsOpen] = useState<boolean>(false);

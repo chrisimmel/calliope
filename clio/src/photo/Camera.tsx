@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useImperativeHandle } from 'react';
+
 import {
   CameraProps,
   FacingMode,
@@ -10,7 +11,7 @@ import {
   SetPermissionDenied,
 } from './cameraTypes';
 import { Container, Wrapper, Canvas, Cam, ErrorMsg } from './cameraStyles';
-import { any } from 'prop-types';
+
 
 export const Camera = React.forwardRef<unknown, CameraProps>(
   (

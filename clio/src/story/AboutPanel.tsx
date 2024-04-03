@@ -1,16 +1,13 @@
 import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
-import Icon from '@mui/material/Icon';
 import CloseIcon from '@mui/icons-material/Close';
 import Container from '@mui/material/Container';
+import Drawer from '@mui/material/Drawer';
 import Typography from '@mui/material/Typography';
 import Link from '@mui/material/Link';
 
-import Drawer from '@mui/material/Drawer';
-
-import { Frame, Story } from './Types';
+import { Frame, Story } from './storyTypes';
 import { IconButton } from '@mui/material';
-import { Fragment } from 'react';
+
 
 function Copyright() {
   return (

@@ -6,8 +6,8 @@ import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 
-import IconClose from './icons/IconClose';
-import { Story } from './Types';
+import IconClose from '../icons/IconClose';
+import { Story } from './storyTypes';
 
 
 type StoryBrowserProps = {

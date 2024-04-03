@@ -1,9 +1,10 @@
 import React, { Suspense, useEffect, useState } from 'react';
-import IconClose from './icons/IconClose';
-import IconSend from './icons/IconSend';
-import useAudioRecorder from './audio/useAudioRecorder';
 
-import "./audio/audio-recorder.css";
+import "./audio-recorder.css";
+import IconClose from '../icons/IconClose';
+import IconSend from '../icons/IconSend';
+import useAudioRecorder from '../audio/useAudioRecorder';
+
 
 const LiveAudioVisualizer = React.lazy(async () => {
   const { LiveAudioVisualizer } = await import("react-audio-visualize");

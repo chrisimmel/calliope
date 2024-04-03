@@ -1,13 +1,14 @@
-import './ClioApp.css';
+import '../ClioApp.css';
 import './Toolbar.css';
-import IconPause from "./icons/IconPause";
-import IconFullscreen from './icons/IconFullscreen';
-import IconCamera from './icons/IconCamera';
-import IconPlus from "./icons/IconPlus";
-import IconMenu from './icons/IconMenu';
-import ClioDrawer from './ClioDrawer';
-import { Frame, FrameSeedMediaType, Story, Strategy } from './Types';
-import IconMicrophone from './icons/IconMicrophone';
+import IconPause from "../icons/IconPause";
+import IconFullscreen from '../icons/IconFullscreen';
+import IconCamera from '../icons/IconCamera';
+import IconPlus from "../icons/IconPlus";
+import IconMenu from '../icons/IconMenu';
+import IconMicrophone from '../icons/IconMicrophone';
+import MainDrawer from '../components/MainDrawer';
+import { Frame, FrameSeedMediaType, Story, Strategy } from '../story/storyTypes';
+
 
 type ToolbarProps = {
     drawerIsOpen: boolean,
@@ -133,7 +134,7 @@ export default function Toolbar({
                     <IconMenu/>
                 </button>
             }
-            <ClioDrawer
+            <MainDrawer
                 drawerIsOpen={drawerIsOpen}
                 setDrawerIsOpen={setDrawerIsOpen}
                 stories={stories}

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { useSwipeable } from "react-swipeable";
 
 import "./Carousel.css";

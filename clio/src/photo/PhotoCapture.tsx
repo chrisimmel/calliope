@@ -1,12 +1,11 @@
 import { useCallback, useRef, useState, useEffect } from "react";
-//import {Camera, CameraType} from "react-camera-pro";
+
 import {Camera} from "./Camera";
 import {CameraType} from "./cameraTypes";
-
-import IconCameraReverse from './icons/IconCameraReverse';
-import IconClose from './icons/IconClose';
-import IconSend from './icons/IconSend';
-import Loader from "./Loader";
+import IconCameraReverse from '../icons/IconCameraReverse';
+import IconClose from '../icons/IconClose';
+import IconSend from '../icons/IconSend';
+import Loader from "../components/Loader";
 
 
 type PhotoCaptureProps = {

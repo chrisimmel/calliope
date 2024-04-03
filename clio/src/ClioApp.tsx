@@ -1,17 +1,17 @@
 import { useCallback, useRef, useState, useEffect } from "react";
 import axios from "axios"
 import browserID from "browser-id";
-import Carousel, { CarouselItem } from "./Carousel";
 
 import './ClioApp.css';
-
-import { Frame, FrameSeedMediaType, Story, Strategy } from './Types'; 
+import AudioCapture from "./audio/AudioCapture";
+import Carousel, { CarouselItem } from "./components/Carousel";
+import { Frame, FrameSeedMediaType, Story, Strategy } from './story/storyTypes'; 
 import IconChevronLeft from "./icons/IconChevronLeft";
 import IconChevronRight from "./icons/IconChevronRight";
-import Toolbar from "./Toolbar";
-import PhotoCapture from "./PhotoCapture";
-import Loader from "./Loader";
-import AudioCapture from "./AudioCapture";
+import Loader from "./components/Loader";
+import PhotoCapture from "./photo/PhotoCapture";
+import Toolbar from "./components/Toolbar";
+
 
 const audioConstraints = {
     suppressLocalAudioPlayback: true,
