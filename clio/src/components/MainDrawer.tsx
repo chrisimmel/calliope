@@ -10,7 +10,7 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 
 import AboutPanel from '../story/AboutPanel';
-import CreateStoryDialog from '../story/CreateStoryPanel';
+import CreateStoryPanel from '../story/CreateStoryPanel';
 import { Frame, FrameSeedMediaType, Story, Strategy } from '../story/storyTypes';
 import IconClose from '../icons/IconClose';
 import IconFastForward from '../icons/IconFastForward';
@@ -243,7 +243,7 @@ export default function MainDrawer({
                 selectedFrameNumber={selectedFrameNumber}
                 frames={frames}
             />
-            <CreateStoryDialog
+            <CreateStoryPanel
                 isOpen={creatStoryDialogIsOpen}
                 setIsOpen={setCreatStoryDialogIsOpen}
                 allowExperimental={allowExperimental}

@@ -25,26 +25,7 @@ async def openai_audio_to_text_inference(
     Returns:
         the generated text.
     """
-    """
-    bytes = str.encode(audio_base64)
-    decoded_bytes = base64.b64decode(bytes)
-    input_image_filename = create_sequential_filename(
-        "input",
-        sparrow_id,
-        "in",
-        "jpg",
-        story.cuid,
-        0,  # TODO: Handle non-jpeg image input.
-    )
 
-
-    with open("input_audio.webm", "wb") as f:
-        f.write(decoded_bytes)
-    """
-
-    # For some reason, writing, then reading the file works, where reading
-    # through a BytesIO object does not.
-    # audio_file = BytesIO(decoded_bytes)
     with open(input_audio_filename, "rb") as audio_file:
         client = AsyncOpenAI(api_key=keys.openai_api_key, http_client=httpx_client)
         transcription = await client.audio.transcriptions.create(

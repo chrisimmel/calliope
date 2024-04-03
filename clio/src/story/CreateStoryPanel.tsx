@@ -31,7 +31,7 @@ const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   },
 }));
 
-type CreateStoryDialogProps = {
+type CreateStoryPanelProps = {
     isOpen: boolean,
     setIsOpen: (open: boolean) => void,
 
@@ -41,14 +41,14 @@ type CreateStoryDialogProps = {
     startNewStory: (strategy: string | null, media_type: FrameSeedMediaType) => void,
 }
 
-export default function CreateStoryDialog({
+export default function CreateStoryPanel({
     isOpen,
     setIsOpen,
     allowExperimental,
     strategies,
     strategy,
     startNewStory,
-}: CreateStoryDialogProps) {
+}: CreateStoryPanelProps) {
   strategies ||= [];
   strategies = strategies.filter((strat) => allowExperimental || !strat.is_experimental);
   strategy ||= (strategies.find(strategy => strategy.is_default_for_client) || {slug: null}).slug;
