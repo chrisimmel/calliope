@@ -1,4 +1,5 @@
 from datetime import datetime
+import os
 import sys
 import traceback
 from typing import Any, Dict, List, Optional
@@ -10,18 +11,24 @@ from fastapi.security.api_key import APIKey
 from pydantic import BaseModel
 
 from calliope.inference import image_analysis_inference
+from calliope.inference.audio_to_text import audio_to_text_inference
 from calliope.intel.location import get_location_metadata_for_ip
 from calliope.models import (
     FramesRequestParamsModel,
+    ImageModel,
+    StoriesRequestParamsModel,
     StoryFrameModel,
     StoryRequestParamsModel,
 )
+from calliope.settings import settings
 from calliope.storage.config_manager import (
     get_sparrow_story_parameters_and_keys,
     load_json_if_necessary,
 )
 from calliope.storage.state_manager import (
     get_sparrow_state,
+    get_stories_by_client,
+    get_story,
     put_sparrow_state,
     put_story,
 )
@@ -65,13 +72,38 @@ class StoryResponseV1(BaseModel):
     # previously.
     append_to_prior_frames: bool = False
 
+    strategy: Optional[str]
+
     request_id: str
     generation_date: str
     debug_data: Optional[Dict[str, Any]] = None
     errors: List[str]
 
 
-@router.put("/story/reset")
+class StoryInfo(BaseModel):
+    story_id: str
+    title: str
+    story_frame_count: int
+    is_bookmarked: bool
+    is_current: bool
+    is_read_only: bool
+
+    strategy_name: str
+    created_for_sparrow_id: str
+    thumbnail_image: Optional[ImageModel] = None
+
+    # The dates the story was created and updated.
+    date_created: str
+    date_updated: str
+
+
+class StoriesResponseV1(BaseModel):
+    stories: List[StoryInfo]
+    request_id: str
+    generation_date: str
+
+
+@router.put("/story/reset/")
 async def put_story_reset(
     request: Request,
     client_id: str,
@@ -87,7 +119,7 @@ async def put_story_reset(
 
 
 @router.get("/story/", response_model=StoryResponseV1)
-async def get_story(
+async def get_story_request(
     request: Request,
     api_key: APIKey = Depends(get_api_key),
     request_params: StoryRequestParamsModel = Depends(StoryRequestParamsModel),
@@ -120,9 +152,7 @@ async def post_frames(
 async def get_frames(
     request: Request,
     api_key: APIKey = Depends(get_api_key),
-    request_params: FramesRequestParamsModel = Depends(
-        FramesRequestParamsModel
-    ),
+    request_params: FramesRequestParamsModel = Depends(FramesRequestParamsModel),
 ) -> StoryResponseV1:
     """
     Provide some harvested data (image, sound, text). Get a new episode of an
@@ -186,6 +216,7 @@ Calliope sleeps. She will awake shortly, improved.
         story_id=None,
         story_frame_count=1,
         append_to_prior_frames=False,
+        strategy=None,
         request_id=cuid.cuid(),
         generation_date=str(datetime.utcnow()),
         debug_data={},
@@ -202,6 +233,7 @@ async def handle_frames_request(
     print("handle_frames_request")
     client_id = request_params.client_id
     sparrow_state = await get_sparrow_state(client_id)
+    story_id = request_params.story_id
 
     (
         parameters,
@@ -217,10 +249,13 @@ async def handle_frames_request(
     )
     strategy_class = StoryStrategyRegistry.get_strategy_class(strategy_name)
 
-    story = sparrow_state.current_story
-    if story and story.strategy_name != parameters.strategy:
-        # The story in progress was created by a different strategy. Start a new one.
-        story = None
+    if story_id:
+        story = await get_story(story_id)
+    else:
+        story = sparrow_state.current_story
+        if story and story.strategy_name != parameters.strategy:
+            # The story in progress was created by a different strategy. Start a new one.
+            story = None
 
     if not story:
         story = Story.create_new(
@@ -246,12 +281,15 @@ async def handle_frames_request(
         if forwarded_header:
             # Handle case where request comes through a load balancer, altering
             # request.client.host.
-            source_ip_address: Optional[str] = request.headers.getlist("X-Forwarded-For")[0]
+            source_ip_address: Optional[str] = request.headers.getlist(
+                "X-Forwarded-For"
+            )[0]
         else:
             # Handle the normal case of a direct request.
             source_ip_address = request.client.host if request.client else None
         location_metadata = await get_location_metadata_for_ip(
-            httpx_client, source_ip_address,
+            httpx_client,
+            source_ip_address,
         )
         print(f"{location_metadata=}")
 
@@ -287,6 +325,23 @@ async def handle_frames_request(
                 traceback.print_exc(file=sys.stderr)
                 errors.append(str(e))
 
+        language = "en"
+        if (
+            strategy_config.text_to_text_model_config
+            and strategy_config.text_to_text_model_config
+            and strategy_config.text_to_text_model_config.prompt_template
+            and strategy_config.text_to_text_model_config.prompt_template.target_language  # noqa: E501
+        ):
+            language = (
+                strategy_config.text_to_text_model_config.prompt_template.target_language  # noqa: E501
+            )
+
+        if parameters.input_audio_filename:
+            text = await audio_to_text_inference(
+                httpx_client, parameters.input_audio_filename, language, keys
+            )
+            parameters.input_text = text
+
         story_frames_response = await strategy_class().get_frame_sequence(
             parameters,
             image_analysis,
@@ -307,6 +362,10 @@ async def handle_frames_request(
     if image_analysis:
         i_see = image_analysis.get("description")
         story_frames_response.debug_data["i_see"] = i_see
+        story_frames_response.debug_data["image_analysis"] = image_analysis
+    if parameters.input_audio_filename and parameters.input_text:
+        i_hear = parameters.input_text
+        story_frames_response.debug_data["i_hear"] = i_hear
 
     await prepare_frame_images(parameters, story_frames_response.frames)
 
@@ -320,6 +379,7 @@ async def handle_frames_request(
         story_id=story.cuid,
         story_frame_count=await story.get_num_frames(),
         append_to_prior_frames=story_frames_response.append_to_prior_frames,
+        strategy=story.strategy_name,
         request_id=cuid.cuid(),
         generation_date=str(datetime.utcnow()),
         debug_data=story_frames_response.debug_data if parameters.debug else {},
@@ -337,7 +397,13 @@ async def handle_existing_frames_request(
     sparrow_state = await get_sparrow_state(client_id)
 
     errors: List[str] = []
-    story = sparrow_state.current_story
+    story_id = request_params.story_id
+    if story_id:
+        # Get the specified story.
+        story = await get_story(story_id)
+    else:
+        # Use Sparrow's current story.
+        story = sparrow_state.current_story
 
     frame_parameters = FramesRequestParamsModel(**request_params.dict())
 
@@ -374,6 +440,7 @@ async def handle_existing_frames_request(
         story_frame_count=await story.get_num_frames(),
         append_to_prior_frames=False,
         request_id=cuid.cuid(),
+        strategy=story.strategy_name,
         generation_date=str(datetime.utcnow()),
         debug_data=debug_data if request_params.debug else {},
         errors=errors,
@@ -394,17 +461,29 @@ async def prepare_input_files(
             "in",
             "jpg",
             story.cuid,
-            0,  # TODO: Handle non-jpeg image input.
+            0,
         )
         decode_b64_to_file(request_params.input_image, input_image_filename)
         request_params.input_image_filename = input_image_filename
 
     if request_params.input_audio:
-        input_audio_filename = create_sequential_filename(
-            "input", sparrow_id, "in", "wav", story.cuid, 0
+        frame_number = await story.get_num_frames()
+        input_audio_filename_webm = create_sequential_filename(
+            "input", sparrow_id, "in", "webm", story.cuid, frame_number
         )
-        decode_b64_to_file(request_params.input_audio, input_audio_filename)
-        request_params.input_audio_filename = input_audio_filename
+        decode_b64_to_file(request_params.input_audio, input_audio_filename_webm)
+        input_audio_filename_wav = input_audio_filename_webm + ".wav"
+        command = f"/usr/local/bin/ffmpeg -y -i {input_audio_filename_webm} -vn {input_audio_filename_wav}"
+
+        print(f"Executing '{command}'")
+        retval = os.system(command)
+        if retval == 0:
+            request_params.input_audio_filename = input_audio_filename_wav
+        else:
+            print(f"Warning: ffmpeg failed with return code {retval}")
+            # raise RuntimeError(f"ffmpeg command failed with return code {retval}")
+            # Whisper claims to understand webm, so let it try.
+            request_params.input_audio_filename = input_audio_filename_webm
 
     return request_params
 
@@ -472,3 +551,66 @@ async def prepare_frame_images(
                     await frame.save().run()
                 if is_google_cloud:
                     put_media_file(image.url)
+
+
+def shorten_title(title: Optional[str], max_length: int = 64) -> str:
+    if not title:
+        return ""
+
+    lines: List[str] = title.split("\n")
+    title = ""
+    for line in lines:
+        if len(title):
+            title += " "
+        title += line
+        if len(title) > max_length:
+            break
+
+    if len(title) > max_length:
+        return title[:max_length] + "..."
+
+    return title
+
+
+@router.get("/stories/", response_model=StoriesResponseV1)
+async def get_stories(
+    request: Request,
+    api_key: APIKey = Depends(get_api_key),
+    request_params: StoriesRequestParamsModel = Depends(StoriesRequestParamsModel),
+) -> StoriesResponseV1:
+    """
+    Gets all stories attributed to this client_id.
+    """
+    client_id = request_params.client_id
+    sparrow_state = await get_sparrow_state(client_id)
+
+    current_story = sparrow_state.current_story
+
+    all_stories = await get_stories_by_client(client_id)
+
+    story_infos = [
+        StoryInfo(
+            story_id=story.cuid,
+            title=shorten_title(story.title),
+            story_frame_count=1,  # await story.get_num_frames(),
+            is_bookmarked=False,
+            is_current=story.cuid == current_story is not None and current_story.cuid,
+            is_read_only=False,
+            strategy_name=story.strategy_name,
+            created_for_sparrow_id=story.created_for_sparrow_id,
+            thumbnail_image=(
+                story.thumbnail_image.to_pydantic() if story.thumbnail_image else None
+            ),
+            date_created=str(story.date_created.date()),
+            date_updated=str(story.date_updated.date()),
+        )
+        for story in all_stories
+    ]
+
+    response = StoriesResponseV1(
+        stories=story_infos,
+        request_id=cuid.cuid(),
+        generation_date=str(datetime.utcnow()),
+    )
+
+    return response

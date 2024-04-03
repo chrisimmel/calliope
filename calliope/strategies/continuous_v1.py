@@ -27,7 +27,12 @@ from calliope.tables import (
 )
 from calliope.utils.file import create_sequential_filename
 from calliope.utils.image import get_image_attributes
-from calliope.utils.text import split_into_sentences, translate_text
+from calliope.utils.text import (
+    balance_quotes,
+    ends_with_punctuation,
+    split_into_sentences,
+    translate_text,
+)
 
 
 @StoryStrategyRegistry.register()
@@ -62,12 +67,8 @@ class ContinuousStoryV1Strategy(StoryStrategy):
             "Prefer abstraction and softer colors or grayscale. Avoid photorealism. "
             "No signature. Don't sign the painting."
         )
-        situation = get_local_situation_text(
-            image_analysis, location_metadata
-        )
-        debug_data = self._get_default_debug_data(
-            parameters, strategy_config, situation
-        )
+        situation = get_local_situation_text(image_analysis, location_metadata)
+        debug_data = self._get_default_debug_data(parameters, strategy_config, situation)
         errors: List[str] = []
         prompt = None
         image = None
@@ -75,7 +76,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
         frame_number = await story.get_num_frames()
 
         # Get some recent text.
-        last_text: Optional[str] = await story.get_text(-3)
+        last_text: Optional[str] = await story.get_text(-5)
         if not last_text or last_text.isspace():
             last_text = await self.get_seed_prompt(strategy_config)
             debug_data["applied_seed_prompt"] = last_text
@@ -194,6 +195,8 @@ class ContinuousStoryV1Strategy(StoryStrategy):
         strategy_config: StrategyConfig,
         debug_data: Dict[str, Any],
     ) -> str:
+        input_text = parameters.input_text
+
         if last_text:
             last_text_lines = last_text.split("\n")
             last_text_lines = last_text_lines[-8:]
@@ -202,13 +205,14 @@ class ContinuousStoryV1Strategy(StoryStrategy):
             # If there is no text from the existing story,
             # fall back to either the input_text parameter
             # or the seed prompt, in that order of preference.
-            last_text = parameters.input_text or (
-                strategy_config.seed_prompt_template
-                and cast(
-                    Optional[str],
-                    strategy_config.seed_prompt_template.text
+            last_text = (
+                input_text
+                or (
+                    strategy_config.seed_prompt_template
+                    and cast(Optional[str], strategy_config.seed_prompt_template.text)
                 )
-            ) or ""
+                or ""
+            )
             debug_data["applied_seed_prompt"] = last_text
 
         if image_analysis:
@@ -219,6 +223,11 @@ class ContinuousStoryV1Strategy(StoryStrategy):
             image_scene = ""
             image_objects = ""
             image_text = ""
+
+        if input_text:
+            if image_text:
+                image_text += "\n\n"
+            image_text += input_text
 
         model_config = (
             cast(ModelConfig, strategy_config.text_to_text_model_config)
@@ -242,10 +251,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
         else:
             debug_data["prompt_template"] = None
             prompt = (
-                last_text + "\n" + 
-                image_scene + "\n" +
-                image_text + "\n" +
-                image_objects
+                last_text + "\n" + image_scene + "\n" + image_text + "\n" + image_objects
             )
 
         return prompt
@@ -269,19 +275,6 @@ class ContinuousStoryV1Strategy(StoryStrategy):
                 httpx_client, text, strategy_config.text_to_text_model_config, keys
             )
             print(f"Raw output: '{text}'")
-
-            def ends_with_punctuation(string: str) -> bool:
-                return len(string) > 0 and string[-1] in (
-                    ".",
-                    "!",
-                    "?",
-                    ":",
-                    ",",
-                    ";",
-                    "-",
-                    '"',
-                    "'",
-                )
 
             if text:
                 LIMIT = 1024
@@ -308,6 +301,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
                     # Adding blank lines between sentences helps break up
                     # dense text from especially GPT-4.
                     text = "\n\n".join(lines)
+                    text = balance_quotes(text)
                 text = text.strip()
                 if not ends_with_punctuation(text):
                     text += "."
@@ -319,10 +313,11 @@ class ContinuousStoryV1Strategy(StoryStrategy):
             errors.append(str(e))
 
         stripped_text = text.strip()
-        input_text = parameters.input_text
 
         # Reject same things as continuous-v0. (TODO: extract this to a
         # shared utility.)
+        """
+        input_text = parameters.input_text
         if input_text and stripped_text.find(input_text) >= 0:
             msg = (
                 "Rejecting story continuation because it contains the input text: "
@@ -331,7 +326,9 @@ class ContinuousStoryV1Strategy(StoryStrategy):
             print(msg)
             errors.append(msg)
             text = ""
-        elif stripped_text and last_text and stripped_text in last_text:
+        el
+        """
+        if stripped_text and last_text and stripped_text in last_text:
             msg = (
                 "Rejecting story continuation because it's already appeared in the "
                 f"story: {stripped_text[:100]}[...]"

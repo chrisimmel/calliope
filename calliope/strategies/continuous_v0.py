@@ -59,12 +59,8 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         output_image_style = (
             parameters.output_image_style or "A watercolor, paper texture."
         )
-        situation = get_local_situation_text(
-            image_analysis, location_metadata
-        )
-        debug_data = self._get_default_debug_data(
-            parameters, strategy_config, situation
-        )
+        situation = get_local_situation_text(image_analysis, location_metadata)
+        debug_data = self._get_default_debug_data(parameters, strategy_config, situation)
         errors: List[str] = []
         caption = image_analysis.get("description") if image_analysis else None
         text: Optional[str] = None
@@ -204,9 +200,9 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         text = text[fragment_len:]
         stripped_text = text.strip()
 
-        input_text = parameters.input_text
-
         # Filter out some basic nonsense we don't like to see in stories...
+        """
+        input_text = parameters.input_text
         if input_text and text.find(input_text) >= 0:
             # Don't want to see the input text parroted back.
             msg = (
@@ -216,7 +212,9 @@ class ContinuousStoryV0Strategy(StoryStrategy):
             print(msg)
             errors.append(msg)
             text = ""
-        elif re.search(r"[<>#^#\\{}]|0x|://", text):
+        el
+        """
+        if re.search(r"[<>#^#\\{}]|0x|://", text):
             # Don't want to see computer code or similar digital detritus.
             msg = (
                 "Rejecting story continuation because it smells like code: "

@@ -80,6 +80,34 @@ def split_into_sentences(text: str) -> List[str]:
     return sentences
 
 
+def ends_with_punctuation(string: str) -> bool:
+    """
+    Determines whether the string ends with a simple set of recognized
+    punctuation marks. Is simplistic and English/Latin-centric.
+    """
+    return len(string) > 0 and string[-1] in (
+        ".",
+        "!",
+        "?",
+        ":",
+        ",",
+        ";",
+        "-",
+        '"',
+        "'",
+    )
+
+
+def balance_quotes(string: str) -> str:
+    """
+    Counts the quotes (") in string. If there are an odd number,
+    appends an additional quote in returned string. Otherwise
+    returns the unmodified original string.
+    """
+    num_quotes_mod_2 = string.count('"') % 2
+    return (string + '"') if num_quotes_mod_2 else string
+
+
 def translate_text(target: str, text: Union[str, bytes]) -> str:
     """Translates text into the target language.
 

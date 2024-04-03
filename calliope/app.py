@@ -26,6 +26,7 @@ from calliope.utils.google import is_google_cloud_run_environment
 from calliope.settings import settings
 
 from calliope.tables import (
+    BookmarkList,
     ClientTypeConfig,
     Image,
     InferenceModel,
@@ -34,7 +35,9 @@ from calliope.tables import (
     SparrowConfig,
     SparrowState,
     Story,
+    StoryBookmark,
     StoryFrame,
+    StoryFrameBookmark,
     StrategyConfig,
 )
 
@@ -53,6 +56,7 @@ def get_db_uri(user: str, passwd: str, host: str, db: str) -> str:
 
 
 PICCOLO_TABLES = [
+    BookmarkList,
     ClientTypeConfig,
     Image,
     InferenceModel,
@@ -61,7 +65,9 @@ PICCOLO_TABLES = [
     SparrowConfig,
     SparrowState,
     Story,
+    StoryBookmark,
     StoryFrame,
+    StoryFrameBookmark,
     StrategyConfig,
 ]
 

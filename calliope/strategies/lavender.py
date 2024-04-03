@@ -27,8 +27,13 @@ from calliope.tables import (
 from calliope.utils.file import create_sequential_filename
 from calliope.utils.image import get_image_attributes
 from calliope.utils.text import (
-    load_llm_output_as_json, split_into_sentences, translate_text
+    balance_quotes,
+    ends_with_punctuation,
+    load_llm_output_as_json,
+    split_into_sentences,
+    translate_text,
 )
+
 
 @StoryStrategyRegistry.register()
 class LavenderStrategy(StoryStrategy):
@@ -63,12 +68,8 @@ class LavenderStrategy(StoryStrategy):
             "No signature. Don't sign the painting."
         )
 
-        situation = get_local_situation_text(
-            image_analysis, location_metadata
-        )
-        debug_data = self._get_default_debug_data(
-            parameters, strategy_config, situation
-        )
+        situation = get_local_situation_text(image_analysis, location_metadata)
+        debug_data = self._get_default_debug_data(parameters, strategy_config, situation)
         errors: List[str] = []
         prompt = None
         image = None
@@ -76,7 +77,7 @@ class LavenderStrategy(StoryStrategy):
         frame_number = await story.get_num_frames()
 
         # Get some recent text.
-        last_text = await story.get_text(-3)
+        last_text = await story.get_text(-10)
         if not last_text or last_text.isspace():
             last_text = await self.get_seed_prompt(strategy_config)
 
@@ -121,6 +122,7 @@ class LavenderStrategy(StoryStrategy):
             )
 
         image_description = None
+        state_props = {}
         if story_continuation and not story_continuation.isspace():
             print(f"{story_continuation=}")
             continuation_json = load_llm_output_as_json(story_continuation)
@@ -132,6 +134,11 @@ class LavenderStrategy(StoryStrategy):
                 image_description = cast(
                     Optional[str], continuation_json.get("illustration")
                 )
+                state_props = {
+                    key: val
+                    for key, val in continuation_json
+                    if key not in ("continuation", "illustration")
+                }
 
         if not story_continuation or story_continuation.isspace():
             story_continuation = situation + "\n"
@@ -208,6 +215,8 @@ class LavenderStrategy(StoryStrategy):
         strategy_config: StrategyConfig,
         debug_data: Dict[str, Any],
     ) -> str:
+        input_text = parameters.input_text
+
         if last_text:
             last_text_lines = last_text.split("\n")
             last_text_lines = last_text_lines[-8:]
@@ -216,7 +225,7 @@ class LavenderStrategy(StoryStrategy):
             # If there is no text from the existing story,
             # fall back to either the input_text parameter
             # or the seed prompt, in that order of preference.
-            last_text = parameters.input_text or (
+            last_text = input_text or (
                 strategy_config.seed_prompt_template
                 and strategy_config.seed_prompt_template.text
             )
@@ -233,6 +242,11 @@ class LavenderStrategy(StoryStrategy):
             image_scene = ""
             image_objects = ""
             image_text = ""
+
+        if input_text:
+            if image_text:
+                image_text += "\n\n"
+            image_text += input_text
 
         model_config = (
             cast(ModelConfig, strategy_config.text_to_text_model_config)
@@ -281,19 +295,6 @@ class LavenderStrategy(StoryStrategy):
             )
             print(f"Raw output: '{text}'")
 
-            def ends_with_punctuation(string: str) -> bool:
-                return len(string) > 0 and string[-1] in (
-                    ".",
-                    "!",
-                    "?",
-                    ":",
-                    ",",
-                    ";",
-                    "-",
-                    '"',
-                    "'",
-                )
-
             if text:
                 LIMIT = 1024
 
@@ -319,6 +320,7 @@ class LavenderStrategy(StoryStrategy):
                     # Adding blank lines between sentences helps break up
                     # dense text from especially GPT-4.
                     text = "\n\n".join(lines)
+                    text = balance_quotes(text)
                 text = text.strip()
                 if not ends_with_punctuation(text):
                     text += "."
@@ -329,11 +331,11 @@ class LavenderStrategy(StoryStrategy):
             traceback.print_exc(file=sys.stderr)
             errors.append(str(e))
 
-        stripped_text = text.strip()
-        input_text = parameters.input_text
-
         # Reject same things as continuous-v0. (TODO: extract this to a
         # shared utility.)
+        """
+        stripped_text = text.strip()
+        input_text = parameters.input_text
         if input_text and stripped_text.find(input_text) >= 0:
             msg = (
                 "Rejecting story continuation because it contains the input text: "
@@ -342,6 +344,7 @@ class LavenderStrategy(StoryStrategy):
             print(msg)
             errors.append(msg)
             text = ""
+        """
 
         # Don't want to see fragments of the prompt in the story.
         prompt_words = ("Scene:", "Text:", "Objects:", "Continuation:")

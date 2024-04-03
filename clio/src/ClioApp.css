@@ -16,6 +16,7 @@ html {
 
 body {
     margin: 0;
+    overflow: hidden;
 }
 
 div {
@@ -38,11 +39,37 @@ div#root {
     display: grid;
 }
 
-img {
+.image img {
     align-self: center;
     justify-self: center;
     object-fit: contain;
 }
+.szh-menu {
+    height: var(--vp-height);
+}
+.szh-menu__item {
+    width: 100vw;
+}
+.szh-menu__item img {
+    margin-right: 6px;
+}
+.szh-menu__item.story {
+    padding: 2px;
+    padding-left: 6px;
+}
+.szh-menu__item.story::before {
+    content: none;
+}
+.szh-menu__item.closeMenu {
+    justify-self: right;
+    padding: 0;
+}
+.szh-menu__item.backMenu {
+    justify-self: left;
+    padding: 0;
+}
+
+
 
 @media (orientation: landscape) {
     .clio_app {
@@ -54,18 +81,18 @@ img {
         max-height: calc(var(--vp-height) - var(--toolbar-height));
         min-width: calc(50vw - var(--toolbar-height));
     }
-    img {
+    .image img {
         height: calc(var(--vp-height) - var(--toolbar-height));
         width: calc(50vw - var(--toolbar-height));
     }
-    .fullscreen img {
+    .fullscreen .image img {
         height: var(--vp-height);
     }
 }
 
 @media (orientation: portrait) {
     .clio_app {
-        grid-template-rows: repeat(2, 1fr);
+        /*grid-template-rows: repeat(2, 1fr);*/
         grid-template-columns: auto;
     }
     .image {
@@ -73,7 +100,7 @@ img {
         height: 100vw;
         width: 100vw;
     }
-    img {
+    .image img {
         height: 100vw;
         width: 100vw;
     }
@@ -89,7 +116,6 @@ img {
 }
 
 .textInner {
-    /*padding: 12px;*/
     max-height: var(--vp-height);
     display: flex;
     flex-direction: column;
@@ -101,12 +127,10 @@ img {
         height: calc(50vw - (var(--toolbar-height) - 6px));
         max-height: var(--vp-height);
         padding-right: 48px;
-        /*margin-top: 6px;*/
     }
     .textInner {
         height: calc(50vw - (var(--toolbar-height)));
         max-height: calc(var(--vp-height) - 62px);
-        /*max-height: calc(var(--vp-height) - 50px);*/
     }
 }
 @media (orientation: landscape) and (max-aspect-ratio: 2) {
@@ -153,13 +177,64 @@ img {
     font-size: 11pt;
 }
 
-.webcamVideo {
-    z-index: -1;
+.photoCapture {
+    z-index: 1;
+    width: 100vw;
+    height: var(--vp-height);
     position: absolute;
     left: 0;
     top: 0;
-    max-height: 100vh;
+    max-height: var(--vp-height);
     max-width: 100vw;
+
+    display: flex;
+    justify-content: center;
+    background: transparent;
+}
+.photoCaptureInner {
+    max-width: 100%; /* div B can't be wider than div A */
+    max-height: 100%; /* div B can't be taller than div A */
+    height: calc(50vw - var(--toolbar-height));
+    background-color: black;
+    position: relative;
+}
+@media (orientation: landscape) {
+    .photoCapture {
+        height: var(--vp-height);
+        /*height: 100vh;*/
+        align-items: center;
+    }
+    .photoCaptureInner {
+        height: var(--vp-height);
+        width: var(--vp-height);
+    }
+}
+@media (orientation: portrait) {
+    .photoCapture {
+        height: 100vw;
+        align-items: center;
+    }
+    .photoCaptureInner {
+        min-width: 100vw;
+        height: 100vw;
+        width: 100vw;
+    }    
+}
+
+.photoCapture .captureButton {
+    position: absolute;
+}
+.photoCapture .captureButton.close {
+    right: 0;
+    top: 0;
+}
+.photoCapture .captureButton.send {
+    right: 0;
+    bottom: 0;
+}
+.photoCapture .captureButton.reverseCamera {
+    right: 0;
+    bottom: calc(50% - 32px);
 }
 
 .navLeft {
@@ -168,10 +243,9 @@ img {
     position: absolute;
     top: 0;
     left: 0;
-    height: 100vh;
+    height: calc(var(--vp-height) - 60px);
     z-index: 100;
     background: transparent;
-    margin-left: -10px;
 }
 
 .navRight {
@@ -180,30 +254,40 @@ img {
     position: absolute;
     top: 0;
     right: 0;
-    height: var(--vp-height);
+    height: calc(var(--vp-height) - 60px);
     z-index: 100;
     background: transparent;
-    margin-right: -10px;
 }
 
 @media (orientation: portrait) {
     .navLeft {
         top: 100vw;
-        height: calc(var(--vp-height) - 100vw);
+        height: calc(var(--vp-height) - (100vw + 60px));
     }
     .navRight {
         top: 100vw;
-        height: calc(var(--vp-height) - 100vw);
+        height: calc(var(--vp-height) - (100vw + 60px));
     }
 }
 
-.navButton {
+.navButton, .captureButton {
     margin: 0;
     background: transparent;
     color: white;
     border: none;
     transition: opacity 1s;
     padding: 10px;
+}
+.navLeft .navButton {
+    padding-left: 0;
+}
+.navRight .navButton {
+    padding-right: 0;
+}
+.navButton.menuButton {
+    position: absolute;
+    right: 0;
+    bottom: 0;
 }
 
 #root.fullscreen .navButton {
@@ -214,6 +298,15 @@ img {
     opacity: 1;
 }
 
+.navButton.bottom {
+    position: absolute;
+    bottom: 0;
+}
+.navButton.menuButton.drawerOpen, #root.fullscreen .navButton.menuButton.drawerOpen {
+    background: black;
+    opacity: 1;
+}
+
 svg {
     width: 38px;
     height: 38px;
@@ -221,13 +314,180 @@ svg {
 
 .spinnerFrame {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: var(--vp-height);
+    bottom: 0;
+    right: 3px;
     background: transparent;
     display:inline-flex;
-    vertical-align:top;
-    justify-content:center;
-    align-items:center;
+    padding: 14px;
+    width: 26px;
+}
+/*
+@media (orientation: portrait) {
+    .spinnerFrame {
+        top: 100vw;
+    }
+}
+*/
+@keyframes rotate {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.spinner {
+    animation: 'rotate 2s linear infinite';
+}
+
+
+/**  loader  **/
+.loader {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    perspective: 800px;
+    background: transparent;
+}
+.spinnerFrame .loader {
+    width: 32px;
+    height: 32px;
+    padding-bottom: 10px;
+}
+
+.loader .inner {
+    position: absolute !important;
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: transparent;
+
+    width: 64px !important;
+    height: 64px !important;
+    left: calc(50% - 32px);
+    top: calc(50% - 32px);
+}
+.spinnerFrame .loader .inner {
+    width: 32px !important;
+    height: 32px !important;
+    left: calc(50% - 16px);
+    top: calc(50% - 16px);
+}
+
+
+.loader .inner.one {
+    animation: rotate-one 2s linear infinite;
+    border-bottom: 3px solid #EFEFFA;
+}
+
+.loader .inner.two {
+    animation: rotate-two 2s linear infinite;
+    border-right: 3px solid #EFEFFA;
+}
+
+.loader .inner.three {
+    animation: rotate-three 2s linear infinite;
+    border-top: 3px solid #EFEFFA;
+}
+
+@keyframes rotate-one {
+    0% {
+        transform: rotateX(35deg) rotateY(-45deg) rotateZ(0deg);
+    }
+    100% {
+        transform: rotateX(35deg) rotateY(-45deg) rotateZ(360deg);
+    }
+}
+
+@keyframes rotate-two {
+    0% {
+        transform: rotateX(50deg) rotateY(10deg) rotateZ(0deg);
+    }
+    100% {
+        transform: rotateX(50deg) rotateY(10deg) rotateZ(360deg);
+    }
+}
+
+@keyframes rotate-three {
+    0% {
+        transform: rotateX(35deg) rotateY(55deg) rotateZ(0deg);
+    }
+    100% {
+        transform: rotateX(35deg) rotateY(55deg) rotateZ(360deg);
+    }
+}
+
+
+.MuiDrawer-paperAnchorBottom.css-fy2uxz, .MuiDrawer-paperAnchorRight.css-1ab2xsx, .MuiDrawer-paperAnchorRight.css-1jcl2ys {
+    max-width: 350px;
+    inset: auto 0 60px auto;
+    height: auto;
+    max-height: 100%;
+}
+.css-62igne {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+.MuiDrawer-root {
+    background: transparent;
+}
+.MuiPaper-root.css-fy2uxz, .MuiPaper-root.css-1ab2xsx{
+    background-color: black;
+    background-color: white;
+    color: black;
+}
+.MuiBackdrop-root, .MuiPopover-root {
+    background: transparent;
+}
+.MuiBox-root {
+    margin: 14px;
+}
+.MuiPaper-root div, .MuiDialogContent-root div {
+    background-color: transparent;
+    color: black;
+}
+.MuiButton-containedPrimary.css-1hw9j7s {
+    background-color: gray;
+    color: white;
+}
+.MuiButton-outlined.css-79xub {
+    color: black;
+}
+li.MuiListItem-root {
+    display: block;
+}
+.MuiDivider-root.css-39bbo6 {
+    border-color: white;
+}
+
+.MuiDialog-container div {
+    background-color: transparent;
+    color: black;
+}
+
+.MuiDialog-container .MuiPaper-root svg {
+    stroke: inherit;
+    fill: inherit;
+}
+.MuiDialog-container .Mui-checked.MuiCheckbox-root {
+    color: rgb(25, 118, 210);
+}
+
+.audioCapture {
+    position: absolute;
+    bottom: 6px;
+    left: 50%;
+    transform: translate(-50%, 0);
+    display: flex;
+    justify-content: center;
+}
+
+.audioCapture > * {
+    flex: 1;
+}
+
+.audioCapture .captureButton {
+    color: black;
 }

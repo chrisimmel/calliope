@@ -9,6 +9,7 @@ APP_CONFIG = AppConfig(
     migrations_folder_path=os.path.join(CURRENT_DIRECTORY, "piccolo_migrations"),
     table_classes=table_finder(
         modules=[
+            "calliope.tables.bookmark",
             "calliope.tables.config",
             "calliope.tables.image",
             "calliope.tables.model_config",

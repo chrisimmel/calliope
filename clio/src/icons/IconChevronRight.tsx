@@ -1,7 +1,7 @@
 // icon:bx-chevron-right | Boxicons https://boxicons.com/ | Atisa
 import * as React from "react";
 
-function IconChevronRight(props: any) {
+export default function IconChevronRight(props: any) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -14,5 +14,3 @@ function IconChevronRight(props: any) {
     </svg>
   );
 }
-
-export default IconChevronRight;

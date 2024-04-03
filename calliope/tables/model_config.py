@@ -86,7 +86,10 @@ class InferenceModel(Table, tablename="inference_model"):
 
     # The provider's API variant, if pertinent.
     provider_api_variant = Varchar(
-        length=80, null=True, choices=InferenceModelProviderVariant
+        length=80,
+        null=True,
+        choices=InferenceModelProviderVariant,
+        default=InferenceModelProviderVariant.DEFAULT,
     )
 
     # The provider's name for this model. There may be multiple configurations per
@@ -151,6 +154,10 @@ class StrategyConfig(Table, tablename="strategy_config"):
 
     # Whether this is the default configuration for its strategy.
     is_default = Boolean(default=False)
+
+    # Whether this strategy config is experimental. True unless
+    # chosen to be ready for the general public.
+    is_experimental = Boolean(default=True)
 
     # Description and commentary.
     description = Text(null=True, required=False)

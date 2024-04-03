@@ -1,7 +1,7 @@
 // icon:bx-rewind | Boxicons https://boxicons.com/ | Atisa
 import * as React from "react";
 
-function IconRewind(props: any) {
+export default function IconRewind(props: any) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -14,5 +14,3 @@ function IconRewind(props: any) {
     </svg>
   );
 }
-
-export default IconRewind;
