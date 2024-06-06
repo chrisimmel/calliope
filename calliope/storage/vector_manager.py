@@ -3,7 +3,8 @@ from typing import cast, List, Optional, Sequence, Tuple
 
 from langchain.docstore.document import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.vectorstores import Pinecone
+from langchain_pinecone.vectorstores import PineconeVectorStore
+
 
 # from langchain.embeddings.sentence_transformer import SentenceTransformerEmbeddings
 from langchain.embeddings.openai import OpenAIEmbeddings
@@ -90,7 +91,7 @@ async def _get_frame_documents(
 
 async def _send_story_to_pinecone(
     story_cuid: str, keys: KeysModel, include_indexed_for_search: bool = False
-) -> Pinecone:
+) -> PineconeVectorStore:
     frames = await _get_story_frames(
         story_cuid, include_indexed_for_search=include_indexed_for_search
     )
@@ -102,12 +103,12 @@ async def _send_story_to_pinecone(
     )
     ids = [document.metadata["frame_id"] for document in documents]
 
-    pinecone.init(
-        api_key=keys.pinecone_api_key, environment=os.environ.get("PINECONE_ENVIRONMENT")
-    )
+    # pinecone.init(
+    #    api_key=keys.pinecone_api_key, environment=os.environ.get("PINECONE_ENVIRONMENT")
+    # )
     index_name = os.environ.get("SEMANTIC_SEARCH_INDEX")
 
-    pinecone_vector_store = Pinecone.from_texts(
+    pinecone_vector_store = await PineconeVectorStore.afrom_texts(
         [document.page_content for document in documents],
         embeddings,
         index_name=index_name,
@@ -199,12 +200,12 @@ async def index_frames(
     )
     ids = [document.metadata["frame_id"] for document in documents]
 
-    pinecone.init(
-        api_key=keys.pinecone_api_key, environment=os.environ.get("PINECONE_ENVIRONMENT")
-    )
+    # pinecone.init(
+    #    api_key=keys.pinecone_api_key, environment=os.environ.get("PINECONE_ENVIRONMENT")
+    # )
     index_name = os.environ.get("SEMANTIC_SEARCH_INDEX")
 
-    pinecone_vector_store = Pinecone.from_texts(
+    pinecone_vector_store = await PineconeVectorStore.afrom_texts(
         [document.page_content for document in documents],
         embeddings,
         index_name=index_name,
@@ -256,9 +257,9 @@ def semantic_search(
     if not openai_api_key:
         openai_api_key = os.environ.get("OPENAI_API_KEY")
 
-    pinecone.init(
-        api_key=pinecone_api_key, environment=os.environ.get("PINECONE_ENVIRONMENT")
-    )
+    # pinecone.init(
+    #    api_key=pinecone_api_key, environment=os.environ.get("PINECONE_ENVIRONMENT")
+    # )
     print("Initialized Pinecone.")
     index_name = os.environ.get("SEMANTIC_SEARCH_INDEX")
     if not index_name:
@@ -271,7 +272,7 @@ def semantic_search(
         openai_api_key=openai_api_key
     )
 
-    docsearch = Pinecone.from_existing_index(index_name, embeddings)
+    docsearch = PineconeVectorStore.from_existing_index(index_name, embeddings)
     print(f"Initialized Pinecone index {index_name}.")
 
     # For now, all cloud environments share the same (free) Pinecone index,
@@ -279,8 +280,8 @@ def semantic_search(
     cloud_env = get_cloud_environment()
     filter = {"env": {"$eq": cloud_env}}
     print(f"Searching in env {cloud_env}...")
-    documents_and_scores: Sequence[Tuple[Document, float]] = docsearch.similarity_search_with_score(
-        query, k=max_results, filter=filter
+    documents_and_scores: Sequence[Tuple[Document, float]] = (
+        docsearch.similarity_search_with_score(query, k=max_results, filter=filter)
     )
     print(f"Found {len(documents_and_scores)} documents:\n{documents_and_scores}")
 

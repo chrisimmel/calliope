@@ -16,6 +16,14 @@ README.md
 # Mac doodads
 .DS_Store
 
+# Misc
+.gcloudignore
+docker-compose.yml
+.gitignore
+.mypy.ini
+requirements.txt
+.flake8
+
 # Image files
 # *.jpg
 # *.raw
