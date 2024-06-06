@@ -10,7 +10,7 @@ Calliope is a framework meant to make modern AI tools like generative AI (large 
 
 The focus is on enabling the creation of works that are "aware" of the environment in which they are installed or running, in the sense that they can see, hear, and react to things or people in that environment. This is currently limited to image input, such as from a Webcam, but the hope is to extend that to cover audio input as well, including speech recognition.
 
-* Processing is driven by pluggable modules called _story strategies_, meant to be experimented with and extended by the artist-engineers who make use of the framework.
+* Processing is driven by pluggable modules called _story strategies_  (or "storytellers" in Clio parlance), meant to be experimented with and extended by the artist-engineers who make use of the framework.
 
 * AI models can be either commercial or open models accessed via APIs (HuggingFace, OpenAI, Stability, Replicate, Azure, etc.) or locally or cloud hosted open source and/or fine-tuned models. (GPT-4, GPT-3, Stable Diffusion, DALL-E 2, MiniGPT-4, LLaMa 2, Claude, FLAN, etc.)
 
@@ -29,20 +29,22 @@ its story API. The two existing clients are:
 ## Try it Out!
 You can try Calliope and Clio at [https://calliope.chrisimmel.com/clio/](https://calliope.chrisimmel.com/clio/).
 
-<img src="https://github.com/chrisimmel/calliope/assets/17924059/7e4f77b0-4bbb-4aba-ba42-4914c580b6d1" alt="drawing" height="400"/>
+![image](https://github.com/chrisimmel/calliope/assets/17924059/1c921993-9c3a-45a2-a6e5-f565933a4dc2)
 
 
 Hints:
-* Clio constructs a story for you, one frame at a time. You request a new frame by swiping to the left. You can review previous frames by swiping to the right. (Clicking the arrows also works.)
-* It will ask to access your camera. If you grant it access, it will take a shot of whatever is in the camera view each time you request a new story frame, and use whatever it sees to inform the story.
-* You can choose which camera to use from the menu at the lower right:
+* Clio works with "storytellers" in Calliope to construct a story for you, one frame at a time. You request a new frame by tapping any of the buttons at the bottom of the screen.
+  * Click the <img src="https://github.com/chrisimmel/calliope/assets/17924059/a54ca8db-96a3-4024-b88f-165294ba3de1" alt="plus" width="30"> (plus) icon to let the storyteller simply continue along its current train of thought.
+  * Click the <img src="https://github.com/chrisimmel/calliope/assets/17924059/dac8bfa2-1e84-4a2b-a94e-a7e6e6285212" alt="microphone" width="30" style="margin-bottom: -4px"> (microphone) icon and speak a few words to give the storyteller an idea or inspiration.
+  * Click the <img src="https://github.com/chrisimmel/calliope/assets/17924059/907bd4ea-87fc-4831-a0a6-f553f06e3bbd" alt="camera" width="30" style="margin-bottom: -4px"> (camera) icon to take a photo and send it to the storyteller for inspiration.
+* After you do this, Calliope will work for several seconds and give you a new frame.
+* You can review previous frames by swiping to the right. (Clicking the arrows also works.)
+* Input images and sounds are not kept on the Calliope server, so you don't need to worry about it hording a cache of your photos and soundlclips!
 
-<img src="https://github.com/chrisimmel/calliope/assets/17924059/bcb62949-0aa9-4470-8801-52b341ab584f" alt="drawing" width="200"/>
-
-If you're on a mobile device, the back camera is the one facing away from you, and is used by default. The front camera is the one facing you.
-* Input images are not kept on the Calliope server, so you don't need to worry about it collecting a cache of your photos! (It analyzes the input image, then forgets it, where it is deleted when the ephemeral file storage is cleaned up.)
-* You can also turn the camera off from this same menu.
-* The default strategy is chosen to give the best results for most people most of the time, but you can also experiment with choosing different strategies from the menu. If you change the strategy and request a new frame, a new story is begun using the new strategy.
+* You can start a new story at any time from the menu. The "Create New Story" option lets you start a new story using the storyteller of your choice, from either a photo, a spoken sound clip, or "thin air".
+* You can browse stories you've created in the past and select them to either review or update them.
+* Coming soon:
+  * Bookmark stories and share them with friends.
 
 
 ## Table of Contents
