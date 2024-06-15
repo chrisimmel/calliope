@@ -79,19 +79,18 @@ async def openai_vision_inference(
     Currently hardcoded to use the MiniGPT-4 model.
     """
     model = model_config.model
-    model = "gpt-4-vision-preview"
+    # model = "gpt-4-vision-preview"
+    model = "gpt-4o"
 
     if not keys.openai_api_key:
-        raise ValueError(
-            "Warning: Missing OpenAI authentication key. Aborting request."
-        )
+        raise ValueError("Warning: Missing OpenAI authentication key. Aborting request.")
 
     prompt = "Tell me everything you see."
     base64_image = b64_encoded_image or encode_image_file_to_b64(image_file)
 
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {keys.openai_api_key}"
+        "Authorization": f"Bearer {keys.openai_api_key}",
     }
 
     payload = {
@@ -106,20 +105,16 @@ async def openai_vision_inference(
                     },
                     {
                         "type": "image_url",
-                        "image_url": {
-                            "url": f"data:image/jpeg;base64,{base64_image}"
-                        }
-                    }
-                ]
+                        "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"},
+                    },
+                ],
             }
         ],
-        "max_tokens": 300
+        "max_tokens": 300,
     }
 
     response = await httpx_client.post(
-        "https://api.openai.com/v1/chat/completions",
-        headers=headers,
-        json=payload
+        "https://api.openai.com/v1/chat/completions", headers=headers, json=payload
     )
     response.raise_for_status()
 
