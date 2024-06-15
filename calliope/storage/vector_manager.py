@@ -2,13 +2,11 @@ import os
 from typing import cast, List, Optional, Sequence, Tuple
 
 from langchain.docstore.document import Document
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_pinecone.vectorstores import PineconeVectorStore
-
 
 # from langchain.embeddings.sentence_transformer import SentenceTransformerEmbeddings
 from langchain.embeddings.openai import OpenAIEmbeddings
-import pinecone
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_pinecone.vectorstores import PineconeVectorStore
 
 from calliope.models import KeysModel
 from calliope.tables.story import Story, StoryFrame
@@ -257,9 +255,6 @@ def semantic_search(
     if not openai_api_key:
         openai_api_key = os.environ.get("OPENAI_API_KEY")
 
-    # pinecone.init(
-    #    api_key=pinecone_api_key, environment=os.environ.get("PINECONE_ENVIRONMENT")
-    # )
     print("Initialized Pinecone.")
     index_name = os.environ.get("SEMANTIC_SEARCH_INDEX")
     if not index_name:
