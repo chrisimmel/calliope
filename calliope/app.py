@@ -104,14 +104,14 @@ def maybe_create_table_config(table: type[Table]) -> Union[type[Table], TableCon
         image_local_config
         # TODO: GCP custom MediaStorage for images.
         if table == Image and not is_google_cloud_run_environment()
-        else prompt_template_config
-        if table == PromptTemplate
-        else inference_model_config
-        if table == InferenceModel
-        else model_config_config
-        if table == ModelConfig
-        else strategy_config_config
-        if table == StrategyConfig
+        # else prompt_template_config
+        # if table == PromptTemplate
+        # else inference_model_config
+        # if table == InferenceModel
+        # else model_config_config
+        # if table == ModelConfig
+        # else strategy_config_config
+        # if table == StrategyConfig
         else table
     )
 
@@ -189,9 +189,7 @@ async def close_database_connection_pool() -> None:
 
 
 @app.get("/openapi.json", tags=["documentation"])
-async def get_open_api_endpoint(
-    api_key: APIKey = Depends(get_api_key)
-) -> JSONResponse:
+async def get_open_api_endpoint(api_key: APIKey = Depends(get_api_key)) -> JSONResponse:
     response = JSONResponse(
         get_openapi(title="FastAPI security test", version="1", routes=app.routes)
     )
