@@ -1,4 +1,5 @@
-from typing import Optional
+import json
+from typing import Any, Optional
 
 import httpx
 import aiofiles
@@ -65,6 +66,137 @@ async def text_to_image_file_inference_openai(
     await f.close()
 
     return output_image_filename
+
+
+async def openai_vision_inference_ext(
+    httpx_client: httpx.AsyncClient,
+    image_file: str,
+    b64_encoded_image: Optional[str],
+    model_config: ModelConfig,
+    keys: KeysModel,
+) -> dict[str, Any]:
+    """
+    Takes a stream of bytes representing an image. Returns text about the image.
+    """
+    model = model_config.model
+    # model = "gpt-4-vision-preview"
+    model = "gpt-4o"
+
+    if not keys.openai_api_key:
+        raise ValueError("Warning: Missing OpenAI authentication key. Aborting request.")
+
+    # prompt = "Tell me everything you see."
+    prompt = """Tell me everything you see. Focus especially on these elements:
+* People. People you see will be cast in the story like actors in a play. Describe each of
+them carefully, so the casting director can make good casting decisions and recognize
+whether they have already been seen in an earlier image.
+
+* Anything you can understand about the setting and atmosphere.
+
+* Objects that may be interesting to include in the story, now or later.
+
+* Text. If there is any text in the image, transcribe it and try to understand its
+context and significance. If text fragments are independent, describe them separately. If.
+for instance, there are multiple books with visible titles, describe each book separately.
+If there are multiple signs, describe each sign separately. Etc.
+
+Assemble your observations into the following JSON structure:
+{
+    "overall_description": "<OVERALL DESCRIPTION OF THE SCENE>",
+    "people": [
+        {
+            "description": "<OVERALL DESCRIPTION OF PERSON 1>",
+            "hair_color": "<HAIR COLOR OF PERSON 1>",
+            "gender": "<ESTIMATED BIOLOGICAL GENDER OF PERSON 1>",
+            "approximate_age": "<ONE OF: 'child', 'young_adult', 'adult', 'middle_aged', 'old_and_wise'>",
+            "emotions": "<EMOTIONS OF PERSON 1>",
+            "attire": "<NOTABLE ASPECTS OF ATTIRE>"
+            "other_attributes": {
+                <ANYTHING NOTABLE ABOUT THE PERSON THAT ISN'T OTHERWISE CAPTURED BY THIS SCHEMA>
+            }
+        },
+        {
+            <SAME FOR PERSON 2>
+        },
+        etc.
+    ],
+    "objects": [
+        {
+            "description": "<OVERALL DESCRIPTION OF OBJECT 1>",
+            "purpose": "<WHAT IS THIS OBJECT FOR?>",
+            "location": "<WHERE IS THIS OBJECT IN THE IMAGE?>",
+            "other_attributes": {
+                <ANYTHING NOTABLE ABOUT THE OBJECT THAT ISN'T OTHERWISE CAPTURED BY THIS SCHEMA>
+            }
+        },
+        {
+            <SAME FOR OBJECT 2>
+        },
+        etc.
+    ],
+    "text_fragments": [
+        {
+            "text": "<TEXT FRAGMENT 1>",
+            "language": "<LANGUAGE OF TEXT FRAGMENT 1>",
+            "context": "<CONTEXT OF TEXT FRAGMENT 1>",
+            "significance": "<SIGNIFICANCE OF TEXT FRAGMENT 1>"
+        },
+        {
+            <SAME FOR TEXT FRAGMENT 2>
+        },
+        etc.
+    ],
+    "atmosphere": "<A DESCRIPTION OF THE SCENE'S ATMOSPHERE, IF PERTINENT.",
+    "setting": "<A DESCRIPTION OF THE SPACE: INTERIOR OR EXTERIOR, WHAT KIND OF PLACE, ARCHITECTURE?, CULTURAL MARKERS?, ETC.>",
+}
+        """
+    base64_image = b64_encoded_image or encode_image_file_to_b64(image_file)
+
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {keys.openai_api_key}",
+    }
+
+    payload = {
+        "model": model,
+        "response_format": {"type": "json_object"},
+        "messages": [
+            {
+                "role": "system",
+                "content": "You are a very watchful and insightful analyzer of images. "
+                "You are analyzing a sequence of images, one at a time. "
+                "Your observations will be used as elements in an ongoing story. "
+                "You are especially good at describing the mood and atmosphere of a space, "
+                "as well as the physical attributes, attire, and emotions of people.",
+            },
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": prompt,
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"},
+                    },
+                ],
+            },
+        ],
+        "max_tokens": 1000,
+    }
+
+    response = await httpx_client.post(
+        "https://api.openai.com/v1/chat/completions", headers=headers, json=payload
+    )
+    response.raise_for_status()
+
+    json_response = response.json()
+    json_str = json_response["choices"][0]["message"]["content"]
+    json_response = json.loads(json_str)
+    print(json.dumps(json_response, indent=2))
+
+    return json_response
 
 
 async def openai_vision_inference(

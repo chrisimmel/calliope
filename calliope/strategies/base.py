@@ -155,7 +155,8 @@ class StoryStrategy(object, metaclass=ABCMeta):
         )
         prompt_template = (
             cast(PromptTemplate, text_to_text_model_config.prompt_template)
-            if text_to_text_model_config else None
+            if text_to_text_model_config
+            else None
         )
 
         return {
@@ -188,11 +189,10 @@ class StoryStrategy(object, metaclass=ABCMeta):
     async def get_seed_prompt(self, strategy_config: StrategyConfig) -> str:
         if strategy_config.seed_prompt_template:
             if isinstance(strategy_config.seed_prompt_template, int):
-                strategy_config.seed_prompt_template = (
-                    await strategy_config.get_related(
-                        StrategyConfig.seed_prompt_template
-                    )
+                strategy_config.seed_prompt_template = await strategy_config.get_related(
+                    StrategyConfig.seed_prompt_template
                 )
+            print(f"Seed prompt template: {strategy_config.seed_prompt_template.text}")
             return cast(str, strategy_config.seed_prompt_template.text or "")
 
         return ""
