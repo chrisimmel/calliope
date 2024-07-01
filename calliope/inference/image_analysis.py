@@ -9,7 +9,10 @@ from calliope.inference.engines.azure_vision import (
     interpret_azure_v4_metadata,
 )
 from calliope.inference.engines.hugging_face import image_to_text_inference_hugging_face
-from calliope.inference.engines.openai_image import openai_vision_inference
+from calliope.inference.engines.openai_image import (
+    openai_vision_inference,
+    openai_vision_inference_ext,
+)
 from calliope.inference.engines.replicate import replicate_vision_inference
 from calliope.models import (
     InferenceModelProvider,
@@ -65,7 +68,7 @@ async def _image_analysis_inference(
             "objects": a list of objects detected in the image.
             "all_tags_and_objects": the tags and objects lists,
                 concatenated into a single string for humans
-                and LLMs. 
+                and LLMs.
             "text": any text seen in the image.
             "description": a text description, summarizing all the
                 above.
@@ -78,6 +81,9 @@ async def _image_analysis_inference(
 
     if provider == InferenceModelProvider.OPENAI:
         description = await openai_vision_inference(
+            httpx_client, image_filename, b64_encoded_image, model_config, keys
+        )
+        image_data = await openai_vision_inference_ext(
             httpx_client, image_filename, b64_encoded_image, model_config, keys
         )
         print(f"GPT4 vision response: {description}")
@@ -182,7 +188,7 @@ async def image_analysis_inference(
             "objects": a list of objects detected in the image.
             "all_tags_and_objects": the tags and objects lists,
                 concatenated into a single string for humans
-                and LLMs. 
+                and LLMs.
             "text": any text seen in the image.
             "description": a text description, summarizing all the
                 above.
@@ -281,8 +287,6 @@ async def image_ocr_inference(
         image_data = f.read()
 
     if image_data:
-        return await azure_vision_inference(
-            httpx_client, image_data, model_config, keys
-        )
+        return await azure_vision_inference(httpx_client, image_data, model_config, keys)
 
     raise ValueError("No input image data to image_analysis_inference.")
