@@ -3,8 +3,7 @@ from typing import cast, List, Optional, Sequence, Tuple
 
 from langchain.docstore.document import Document
 
-# from langchain.embeddings.sentence_transformer import SentenceTransformerEmbeddings
-from langchain.embeddings.openai import OpenAIEmbeddings
+from langchain_community.embeddings import OpenAIEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_pinecone.vectorstores import PineconeVectorStore
 
