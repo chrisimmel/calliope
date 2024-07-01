@@ -1,4 +1,3 @@
-import re
 import sys
 import traceback
 from typing import Any, cast, Dict, List, Optional
