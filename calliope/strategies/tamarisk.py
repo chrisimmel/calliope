@@ -141,7 +141,12 @@ class TamariskStrategy(StoryStrategy):
 
             # Translate the story to English before
             # sending as an image prompt.
-            text_en = translate_text("en", text)
+            try:
+                text_en = translate_text("en", text)
+            except Exception as e:
+                traceback.print_exc(file=sys.stderr)
+                errors.append(str(e))
+                text_en = text
 
             image_prompt = output_image_style + " " + text_en
             print(f'Image prompt: "{image_prompt}"')
@@ -230,11 +235,14 @@ class TamariskStrategy(StoryStrategy):
         if not text:
             return text
 
-        prompt = f"""Take the following text and make light corrections to improve its
-punctuation and grammar, while preserving any qualities it may have of surrealism or
-nonsense. If you see text like this: "i a m b a d l y  f o r m a t t e d", remove the
-superfluous spaces and rewrite it like this: "iambadly formatted". Remove anything that
-resembles computer source code, filenames, or technical aspects of the Web.
+        prompt = f"""You are a fiction editor, given a text by a creative author prone
+to errors of punctuation and grammar. Correct these errors, while preserving any
+qualities the text may have of surrealism or even nonsense. If you see text like this:
+"i a m b a d l y  f o r m a t t e d", remove the superfluous spaces and rewrite it like
+this: "iambadly formatted". Remove anything that resembles computer source code,
+filenames, or technical aspects of the Web. Replace any mention of American presidential
+politics with something crazy and fanciful. If the text breaks off mid-sentence, finish
+the thought while preserving the author's intent and style, ending the sentence normally.
 
 Include nothing in your response but the corrected text.
 
