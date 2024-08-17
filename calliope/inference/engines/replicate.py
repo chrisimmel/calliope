@@ -121,10 +121,7 @@ async def replicate_text_to_text_inference(
     def make_replicate_request() -> Any:
         return replicate.run(
             "mistralai/mistral-7b-v0.1:3e8a0fb6d7812ce30701ba597e5080689bef8a013e5c6a724fafb108cc2426a0",
-            input={
-                "prompt": text,
-                **parameters
-            }
+            input={"prompt": text, **parameters},
         )
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -192,10 +189,9 @@ async def text_to_image_file_inference_replicate(
     def make_replicate_request() -> Any:
         return replicate.run(
             # "stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
-            model_name,
-            input={
-                **parameters
-            }
+            # model_name,
+            "black-forest-labs/flux-pro",
+            input={**parameters},
         )
 
     with concurrent.futures.ThreadPoolExecutor() as executor:

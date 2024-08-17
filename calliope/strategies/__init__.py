@@ -1,6 +1,7 @@
 from .base import StoryStrategy
 from .continuous_v0 import ContinuousStoryV0Strategy
 from .continuous_v1 import ContinuousStoryV1Strategy
+from .narcissus import NarcissusStrategy
 from .tamarisk import TamariskStrategy
 from .lavender import LavenderStrategy
 from .literal import LiteralStrategy
@@ -15,6 +16,7 @@ __all__ = [
     "TamariskStrategy",
     "LavenderStrategy",
     "LiteralStrategy",
+    "NarcissusStrategy",
     # "ShowThisFrameStrategy",
     "SimpleOneFrameStoryStrategy",
     "StoryStrategy",

@@ -4,7 +4,8 @@ import json
 import os
 from typing import Any, cast, Dict, Optional
 
-from langchain.llms import HuggingFaceHub
+from langchain_community.llms import HuggingFaceHub
+
 # from requests.models import Response
 
 from calliope.models import KeysModel
@@ -44,7 +45,6 @@ async def _hugging_face_request(
     response = await httpx_client.post(api_url, headers=headers, data=data)
     response.raise_for_status()
     return response
-
 
 
 async def _text_to_text_inference_hugging_face_http(
@@ -102,11 +102,13 @@ async def _text_to_text_inference_hugging_face_langchain(
     parameters = {
         **(
             cast(Dict[str, Any], model.model_parameters)
-            if model.model_parameters else {}
+            if model.model_parameters
+            else {}
         ),
         **(
             cast(Dict[str, Any], model_config.model_parameters)
-            if model_config.model_parameters else {}
+            if model_config.model_parameters
+            else {}
         ),
     }
 
@@ -189,10 +191,9 @@ async def text_to_image_file_inference_hugging_face(
         httpx_client, data, model.provider_model_name, keys
     )
 
-    if response.status == 200:
-        f = await aiofiles.open(output_image_filename, mode="wb")
-        await f.write(await response.read())
-        await f.close()
+    f = await aiofiles.open(output_image_filename, mode="wb")
+    await f.write(response.content)
+    await f.close()
 
     return output_image_filename
 

@@ -85,7 +85,6 @@ async def openai_vision_inference_ext(
     if not keys.openai_api_key:
         raise ValueError("Warning: Missing OpenAI authentication key. Aborting request.")
 
-    # prompt = "Tell me everything you see."
     prompt = """Tell me everything you see. Focus especially on these elements:
 * People. People you see will be cast in the story like actors in a play. Describe each of
 them carefully, so the casting director can make good casting decisions and recognize
@@ -170,6 +169,13 @@ Assemble your observations into the following JSON structure:
                 "as well as the physical attributes, attire, and emotions of people.",
             },
             {
+                "role": "system",
+                "content": "It is IMPORTANT that you only include things you really see. "
+                "Don't imagine or invent book titles, other text fragments, or people that "
+                "aren't actually there, for instance. Your job is to faithfully report what "
+                "you see, not to be imaginitive.",
+            },
+            {
                 "role": "user",
                 "content": [
                     {
@@ -183,12 +189,14 @@ Assemble your observations into the following JSON structure:
                 ],
             },
         ],
-        "max_tokens": 1000,
+        "max_tokens": 2000,
+        "temperature": 0,
     }
 
     response = await httpx_client.post(
         "https://api.openai.com/v1/chat/completions", headers=headers, json=payload
     )
+    # TODO: Use OpenAI SDK?
     response.raise_for_status()
 
     json_response = response.json()

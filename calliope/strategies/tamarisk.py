@@ -1,6 +1,6 @@
 import sys
 import traceback
-from typing import Any, Dict, List, Optional
+from typing import Any, cast, Dict, List, Optional
 
 import httpx
 
@@ -20,6 +20,7 @@ from calliope.strategies.registry import StoryStrategyRegistry
 from calliope.tables import (
     InferenceModel,
     ModelConfig,
+    PromptTemplate,
     SparrowState,
     Story,
     StrategyConfig,
@@ -60,11 +61,25 @@ class TamariskStrategy(StoryStrategy):
         debug_data = self._get_default_debug_data(parameters, strategy_config, situation)
         errors: List[str] = []
         caption = image_analysis.get("description") if image_analysis else None
+        # TODO: Because of tiny model context window, use a short, one-sentence
+        # summarized description. Make this a standard part of the enhanced image
+        # analysis.
         text: Optional[str] = None
         image = None
         input_text = ""
         frame_number = await story.get_num_frames()
         seed_prompt = await self.get_seed_prompt(strategy_config)
+
+        model_config = (
+            cast(ModelConfig, strategy_config.text_to_text_model_config)
+            if strategy_config
+            else None
+        )
+        prompt_template = (
+            cast(PromptTemplate, model_config.prompt_template) if model_config else None
+        )
+        target_language = prompt_template.target_language if prompt_template else "en"
+        print(f"{target_language=}")
 
         if parameters.input_text:
             if caption:
@@ -83,11 +98,20 @@ class TamariskStrategy(StoryStrategy):
 
         if last_text:
             last_text_tokens = last_text.split(" ")
-            last_text_tokens = last_text_tokens[-20:]
+            last_text_tokens = last_text_tokens[-40:]
             last_text = " ".join(last_text_tokens)
+            if last_text.endswith("..."):
+                last_text = last_text[:-3]
 
         in_text = f"{input_text} {last_text}"
         out_text = ""
+        if target_language != "en":
+            try:
+                in_text = translate_text("en", in_text)
+            except Exception as e:
+                traceback.print_exc(file=sys.stderr)
+                errors.append(str(e))
+                in_text = in_text
 
         # print(f'Text prompt: "{text}"')
         if in_text and not in_text.isspace():
@@ -133,8 +157,6 @@ class TamariskStrategy(StoryStrategy):
             httpx_client=httpx_client,
         )
 
-        last_text = text
-
         if text:
             # Generate an image for the frame, composing a prompt from
             # the frame's text...
@@ -169,6 +191,21 @@ class TamariskStrategy(StoryStrategy):
             except Exception as e:
                 traceback.print_exc(file=sys.stderr)
                 errors.append(str(e))
+
+            if target_language != "en":
+                try:
+                    text = translate_text(target_language, text)
+                    text = (
+                        text.replace("&#39;", "'")
+                        .replace("&quot;", '"')
+                        .replace(" . ", ".\n\n")
+                        .replace(". ", ".\n\n")
+                        .replace("? ", ".\n\n")
+                        .replace("! ", ".\n\n")
+                    )
+                except Exception as e:
+                    traceback.print_exc(file=sys.stderr)
+                    errors.append(str(e))
 
         # Append and persist the frame to the story.
         frame = await self._add_frame(
