@@ -57,6 +57,8 @@ class NarcissusStrategy(StoryStrategy):
         description = ""
         image = None
         frame_number = await story.get_num_frames()
+        if not story.title:
+            story.title = "This is You"
 
         if image_analysis:
             description = image_analysis.get("description") or ""
@@ -67,6 +69,8 @@ class NarcissusStrategy(StoryStrategy):
                 description = f"{description}. {parameters.input_text}"
             else:
                 description = parameters.input_text
+        if not description:
+            description = situation
 
         print(f"{description=} {strategy_config.text_to_text_model_config=}")
 

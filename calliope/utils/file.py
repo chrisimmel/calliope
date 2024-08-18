@@ -5,9 +5,9 @@ import os
 import json
 from typing import Type, TypeVar
 
-import cuid
 from pydantic import BaseModel
 
+from calliope.utils.id import create_cuid
 from calliope.utils.text import slugify
 
 
@@ -84,7 +84,7 @@ def create_unique_filename(directory: str, client_id: str, extension: str) -> st
     given client, using the given extension. The name is unique for the lifetime of the
     system, so can be used to avoid collisions in persistent storage.
     """
-    base_filename = cuid.cuid()
+    base_filename = create_cuid()
     return compose_full_filename(directory, client_id, f"{base_filename}.{extension}")
 
 
@@ -140,7 +140,7 @@ def encode_image_file_to_b64(image_path):
     Encodes the image in the given file to a b64-encoded string.
     """
     with open(image_path, "rb") as image_file:
-        return base64.b64encode(image_file.read()).decode('utf-8')
+        return base64.b64encode(image_file.read()).decode("utf-8")
 
 
 def decode_b64_to_file(data: str, filename: str) -> None:

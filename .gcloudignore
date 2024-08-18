@@ -39,6 +39,7 @@ media/
 state/
 data/
 keepers/
+tmp/
 
 # Unused for production:
 docs/

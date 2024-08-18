@@ -279,7 +279,8 @@ qualities the text may have of surrealism or even nonsense. If you see text like
 this: "iambadly formatted". Remove anything that resembles computer source code,
 filenames, or technical aspects of the Web. Replace any mention of American presidential
 politics with something crazy and fanciful. If the text breaks off mid-sentence, finish
-the thought while preserving the author's intent and style, ending the sentence normally.
+the thought while preserving the author's intent and style, ending the sentence with
+correct grammar and punctuation.
 
 Include nothing in your response but the corrected text.
 

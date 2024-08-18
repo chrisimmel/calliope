@@ -5,7 +5,6 @@ import traceback
 from typing import Any, Dict, List, Optional
 
 import httpx
-import cuid
 from fastapi import APIRouter, Depends, Request
 from fastapi.security.api_key import APIKey
 from pydantic import BaseModel
@@ -20,7 +19,6 @@ from calliope.models import (
     StoryFrameModel,
     StoryRequestParamsModel,
 )
-from calliope.settings import settings
 from calliope.storage.config_manager import (
     get_sparrow_story_parameters_and_keys,
     load_json_if_necessary,
@@ -34,6 +32,7 @@ from calliope.storage.state_manager import (
 )
 from calliope.strategies import StoryStrategyRegistry
 from calliope.tables import Image, ModelConfig, Story, StoryFrame
+from calliope.utils.authentication import get_api_key
 from calliope.utils.fastapi import get_base_url
 from calliope.utils.file import (
     create_sequential_filename,
@@ -45,7 +44,7 @@ from calliope.utils.google import (
     is_google_cloud_run_environment,
     put_media_file,
 )
-from calliope.utils.authentication import get_api_key
+from calliope.utils.id import create_cuid
 from calliope.utils.image import (
     convert_png_to_grayscale16,
     convert_png_to_rgb565,
@@ -217,7 +216,7 @@ Calliope sleeps. She will awake shortly, improved.
         story_frame_count=1,
         append_to_prior_frames=False,
         strategy=None,
-        request_id=cuid.cuid(),
+        request_id=create_cuid(),
         generation_date=str(datetime.utcnow()),
         debug_data={},
         errors=[],
@@ -380,7 +379,7 @@ async def handle_frames_request(
         story_frame_count=await story.get_num_frames(),
         append_to_prior_frames=story_frames_response.append_to_prior_frames,
         strategy=story.strategy_name,
-        request_id=cuid.cuid(),
+        request_id=create_cuid(),
         generation_date=str(datetime.utcnow()),
         debug_data=story_frames_response.debug_data if parameters.debug else {},
         errors=story_frames_response.errors + errors,
@@ -439,7 +438,7 @@ async def handle_existing_frames_request(
         story_id=story.cuid,
         story_frame_count=await story.get_num_frames(),
         append_to_prior_frames=False,
-        request_id=cuid.cuid(),
+        request_id=create_cuid(),
         strategy=story.strategy_name,
         generation_date=str(datetime.utcnow()),
         debug_data=debug_data if request_params.debug else {},
@@ -609,7 +608,7 @@ async def get_stories(
 
     response = StoriesResponseV1(
         stories=story_infos,
-        request_id=cuid.cuid(),
+        request_id=create_cuid(),
         generation_date=str(datetime.utcnow()),
     )
 
