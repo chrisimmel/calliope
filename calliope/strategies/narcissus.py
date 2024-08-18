@@ -3,6 +3,7 @@ import traceback
 from typing import Any, Dict, List, Optional
 
 import httpx
+from rich import print
 
 from calliope.inference import (
     text_to_text_inference,
@@ -48,6 +49,7 @@ class NarcissusStrategy(StoryStrategy):
     ) -> StoryFrameSequenceResponseModel:
         client_id = parameters.client_id
 
+        print(f"{parameters=}")
         output_image_style = (
             parameters.output_image_style or "A watercolor, paper texture."
         )
@@ -76,8 +78,8 @@ class NarcissusStrategy(StoryStrategy):
 
         text = description
         if text:
-            print(text)
             image_prompt = output_image_style + " " + text
+            print(f"Image prompt: {image_prompt}")
 
             try:
                 output_image_filename_png = create_sequential_filename(
