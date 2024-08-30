@@ -235,7 +235,9 @@ what the story is about as you write the pages, and maintain some continuity and
             }
         ]
         if image_analysis:
-            prompts.append(
+            prompts.append({
+                
+            }
                 f"""
 The 
             """

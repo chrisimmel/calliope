@@ -198,9 +198,14 @@ async def text_to_image_file_inference_replicate(
         future = executor.submit(make_replicate_request)
         image_urls = await loop.run_in_executor(None, future.result)
 
-    print(f"{image_urls=}")
-    if image_urls:
-        response = await httpx_client.get(image_urls[0])
+    if isinstance(image_urls, str):
+        image_url = image_urls
+    else:
+        image_url = image_urls[0]
+
+    print(f"{image_url=}")
+    if image_url:
+        response = await httpx_client.get(image_url)
         response.raise_for_status()
         f = await aiofiles.open(output_image_filename, mode="wb")
         await f.write(response.read())
