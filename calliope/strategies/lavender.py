@@ -234,19 +234,19 @@ class LavenderStrategy(StoryStrategy):
         if not last_text:
             last_text = ""
 
-        if image_analysis:
-            image_scene = image_analysis.get("all_captions") or ""
-            image_objects = ""  # image_analysis.get("all_tags_and_objects") or ""
-            image_text = image_analysis.get("text") or ""
-        else:
-            image_scene = ""
-            image_objects = ""
-            image_text = ""
+        # if image_analysis:
+        #     image_scene = image_analysis.get("all_captions") or ""
+        #     image_objects = ""  # image_analysis.get("all_tags_and_objects") or ""
+        #     image_text = image_analysis.get("text") or ""
+        # else:
+        #     image_scene = ""
+        #     image_objects = ""
+        #     image_text = ""
 
-        if input_text:
-            if image_text:
-                image_text += "\n\n"
-            image_text += input_text
+        # if input_text:
+        #     if image_text:
+        #         image_text += "\n\n"
+        #     image_text += input_text
 
         model_config = (
             cast(ModelConfig, strategy_config.text_to_text_model_config)
@@ -262,9 +262,9 @@ class LavenderStrategy(StoryStrategy):
             prompt = prompt_template.render(
                 {
                     "poem": last_text,
-                    "scene": image_scene,
-                    "text": image_text,
-                    "objects": image_objects,
+                    # "scene": image_scene,
+                    "text": input_text,  # image_text,
+                    # "objects": image_objects,
                     "situation": situation,
                 }
             )

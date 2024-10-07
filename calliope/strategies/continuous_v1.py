@@ -215,7 +215,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
             debug_data["applied_seed_prompt"] = last_text
 
         if image_analysis:
-            image_scene = image_analysis.get("all_captions") or ""
+            image_scene = image_analysis.get("description") or ""
             image_objects = image_analysis.get("all_tags_and_objects") or ""
             image_text = image_analysis.get("text") or ""
         else:

@@ -51,8 +51,9 @@ async def text_to_image_file_inference(
         the filename of the generated image.
     """
     model = model_config.model
+    last_exception: Optional[Exception] = None
 
-    for attempt in range(1, 3):
+    for attempt in range(1, 4):
         try:
             if model.provider == InferenceModelProvider.REPLICATE:
                 print(
@@ -120,12 +121,18 @@ async def text_to_image_file_inference(
             # This is simplistic. Assume that any error encountered may be due
             # to risqué content in the prompt. Censor it and try again.
             print(f"attempt {attempt} failed with error: {e}")
-            text = censor_text(
-                text,
-                keys,
-                httpx_client,
-            )
-            print(f"Retrying with censored text: {text}")
+            if attempt < 3:
+                errors = []
+                text = await censor_text(
+                    text,
+                    keys,
+                    errors,
+                    httpx_client,
+                )
+                print(f"Retrying with censored text: {text}")
+            last_exception = e
+
+    raise last_exception
 
 
 async def censor_text(

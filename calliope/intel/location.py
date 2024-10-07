@@ -1,17 +1,16 @@
 import httpx
 from ipaddress import ip_address
 from typing import Any, Dict, Optional
+import yaml
 
 from calliope.intel.time import get_local_datetime, get_season
 from calliope.intel.astronomy import (
-    get_active_meteor_showers, get_night_sky_objects, get_solar_eclipse_of_the_day
+    get_active_meteor_showers,
+    get_night_sky_objects,
+    get_solar_eclipse_of_the_day,
 )
 from calliope.intel.weather import get_weather_at_location
-from calliope.models import (
-    BasicLocationMetadataModel,
-    FullLocationMetadata,
-    Hemisphere
-)
+from calliope.models import BasicLocationMetadataModel, FullLocationMetadata, Hemisphere
 from calliope.utils.text import format_sequence
 
 
@@ -22,9 +21,7 @@ def is_ip_private(ip: str) -> bool:
     return ip_address(ip).is_private
 
 
-async def get_public_ip_address(
-    httpx_client: httpx.AsyncClient
-) -> Optional[str]:
+async def get_public_ip_address(httpx_client: httpx.AsyncClient) -> Optional[str]:
     """
     Gets the public IP address of the current runtime environment.
     """
@@ -45,8 +42,7 @@ def hemisphere_at_latitude(latitude: float) -> Hemisphere:
 
 
 async def get_location_from_ip(
-    httpx_client: httpx.AsyncClient,
-    ip: Optional[str]
+    httpx_client: httpx.AsyncClient, ip: Optional[str]
 ) -> BasicLocationMetadataModel:
     """
     Gets the estimated location of a given IP address.
@@ -85,8 +81,7 @@ async def get_location_from_ip(
 
 
 async def get_location_metadata_for_ip(
-    httpx_client: httpx.AsyncClient,
-    ip: Optional[str]
+    httpx_client: httpx.AsyncClient, ip: Optional[str]
 ) -> FullLocationMetadata:
     """
     Gets the full location metadata for a given IP address. This includes
@@ -105,11 +100,15 @@ async def get_location_metadata_for_ip(
             basic_metadata.latitude,
             basic_metadata.longitude,
         )
-        night_sky_objects = await get_night_sky_objects(
-            httpx_client,
-            basic_metadata.latitude,
-            basic_metadata.longitude,
-        ) if weather_metadata and not weather_metadata.is_day else []
+        night_sky_objects = (
+            await get_night_sky_objects(
+                httpx_client,
+                basic_metadata.latitude,
+                basic_metadata.longitude,
+            )
+            if weather_metadata and not weather_metadata.is_day
+            else []
+        )
 
         if basic_metadata.hemisphere and local_datetime:
             active_meteor_showers, peaking_meteor_showers = get_active_meteor_showers(
@@ -118,13 +117,17 @@ async def get_location_metadata_for_ip(
         else:
             active_meteor_showers = peaking_meteor_showers = []
 
-        solar_eclipse = await get_solar_eclipse_of_the_day(
-            httpx_client,
-            local_datetime,
-            basic_metadata.latitude,
-            basic_metadata.longitude,
-            weather_metadata.elevation if weather_metadata else 0,
-        ) if local_datetime else None
+        solar_eclipse = (
+            await get_solar_eclipse_of_the_day(
+                httpx_client,
+                local_datetime,
+                basic_metadata.latitude,
+                basic_metadata.longitude,
+                weather_metadata.elevation if weather_metadata else 0,
+            )
+            if local_datetime
+            else None
+        )
     else:
         weather_metadata = None
         night_sky_objects = []
@@ -192,15 +195,13 @@ def get_local_situation_text(
         )
 
     if image_analysis:
-        situation_text += (
-            "Scene:\n"
-            f"{image_analysis.get('all_captions')}\n\n"
-        )
-        situation_text += f"Keywords:\n{image_analysis.get('all_tags_and_objects')}.\n\n"
+        situation_text += "Scene:\n" + yaml.dump(image_analysis, indent=4) + "\n\n"
+        # situation_text += "Scene:\n" f"{image_analysis.get('all_captions')}\n\n"
+        # situation_text += f"Keywords:\n{image_analysis.get('all_tags_and_objects')}.\n\n"
 
-        text = image_analysis.get("text")
-        if text:
-            situation_text += f"Text:\n{text}\n\n"
+        # text = image_analysis.get("text")
+        # if text:
+        #     situation_text += f"Text:\n{text}\n\n"
 
     situation_text += "Situation:\n"
     if location_metadata.local_datetime:
@@ -209,18 +210,14 @@ def get_local_situation_text(
             f"{location_metadata.local_datetime.strftime('%A, %B %d, %Y')}.\n"
         )
         situation_text += (
-            "The time is "
-            f"{location_metadata.local_datetime.strftime('%H:%M')}.\n"
+            "The time is " f"{location_metadata.local_datetime.strftime('%H:%M')}.\n"
         )
     if location_metadata.weather:
         is_day = location_metadata.weather.is_day
-        situation_text += (
-            f"It is currently {'daytime' if is_day else 'nighttime'}.\n"
-        )
+        situation_text += f"It is currently {'daytime' if is_day else 'nighttime'}.\n"
     if location_metadata.local_datetime:
         situation_text += (
-            "The season is "
-            f"{get_season(location_metadata.local_datetime)}.\n"
+            "The season is " f"{get_season(location_metadata.local_datetime)}.\n"
         )
 
     if location_metadata.solar_eclipse:
@@ -248,39 +245,36 @@ def get_local_situation_text(
 
     if len(location_metadata.peaking_meteor_showers):
         for shower in location_metadata.peaking_meteor_showers:
-            situation_text += (
-                f"The {shower.name} meteor shower will peak tonight!\n"
-            )
+            situation_text += f"The {shower.name} meteor shower will peak tonight!\n"
     elif (
         len(location_metadata.active_meteor_showers)
         and location_metadata.weather
         and not location_metadata.weather.is_day
     ):
-        for shower in location_metadata.active_meteor_showers:
-            situation_text += (
-                f"The {shower.name} meteor shower is active tonight.\n"
-            )
+        # for shower in location_metadata.active_meteor_showers:
+        #     situation_text += f"The {shower.name} meteor shower is active tonight.\n"
+        situation_text += "There is an elevated chance to see a falling star tonight."
 
-    if len(location_metadata.night_sky_objects):
+    if len(location_metadata.night_sky_objects) and not location_metadata.weather.is_day:
         object_names = []
-        full_moon = False
 
         for sky_object in location_metadata.night_sky_objects:
             if sky_object.name == "The Moon" and sky_object.phase is not None:
                 if sky_object.phase > 49 and sky_object.phase < 51:
-                    full_moon = True
+                    situation_text += "The moon is full.\n"
+                elif sky_object.phase == 0 or sky_object.phase == 100:
+                    situation_text += "The moon is new.\n"
+                else:
+                    situation_text += "The moon is in the sky tonight.\n"
 
             if sky_object.naked_eye_object:
                 object_names.append(sky_object.name)
 
-        if len(object_names) > 1:
-            situation_text += (
-                f"{format_sequence(object_names)} are in the sky tonight.\n"
-            )
-        elif len(object_names) == 1:
-            situation_text += f"{object_names[0]} is in the sky tonight.\n"
-
-        if full_moon:
-            situation_text += "The moon is full.\n"
+        # if len(object_names) > 1:
+        #     situation_text += (
+        #         f"{format_sequence(object_names)} are in the sky tonight.\n"
+        #     )
+        # elif len(object_names) == 1:
+        #     situation_text += f"{object_names[0]} is in the sky tonight.\n"
 
     return situation_text

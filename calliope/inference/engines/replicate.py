@@ -162,9 +162,9 @@ async def text_to_image_file_inference_replicate(
         "negative_prompt": ",".join(
             [
                 "Signature",
-                "people",
-                "photorealism",
-                "cell phones",
+                # "people",
+                # "photorealism",
+                # "cell phones",
                 "weird faces or hands",
                 "artist name",
                 "artist logo.",
@@ -182,6 +182,10 @@ async def text_to_image_file_inference_replicate(
         ),
     }
 
+    if width is not None and height is not None:
+        parameters["width"] = width
+        parameters["height"] = height
+
     os.environ["REPLICATE_API_TOKEN"] = keys.replicate_api_key
 
     loop = asyncio.get_event_loop()
@@ -189,8 +193,8 @@ async def text_to_image_file_inference_replicate(
     def make_replicate_request() -> Any:
         return replicate.run(
             # "stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
-            # model_name,
-            "black-forest-labs/flux-pro",
+            model_name,
+            # "black-forest-labs/flux-pro",
             input={**parameters},
         )
 

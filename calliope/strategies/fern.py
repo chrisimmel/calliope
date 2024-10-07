@@ -1,10 +1,14 @@
+import json
 import sys
 import traceback
 from typing import Any, cast, Dict, List, Optional
 
 import httpx
+from openai.types.chat import ChatCompletionMessageParam
+from pydantic import BaseModel
 
 from calliope.inference import (
+    messages_to_object_inference,
     text_to_text_inference,
     text_to_image_file_inference,
 )
@@ -18,6 +22,7 @@ from calliope.models.frame_sequence_response import StoryFrameSequenceResponseMo
 from calliope.strategies.base import StoryStrategy
 from calliope.strategies.registry import StoryStrategyRegistry
 from calliope.tables import (
+    InferenceModel,
     ModelConfig,
     PromptTemplate,
     SparrowState,
@@ -29,10 +34,37 @@ from calliope.utils.image import get_image_attributes
 from calliope.utils.text import (
     balance_quotes,
     ends_with_punctuation,
-    load_llm_output_as_json,
     split_into_sentences,
     translate_text,
 )
+
+
+class CharacterModel(BaseModel):
+    name: str
+    description: str
+    goal: str
+    hair_color: str
+    gender: str
+    approximate_age: str
+    personality: str
+    typical_attire: str
+    other_attributes: dict[str, str]
+
+
+class StoryStateModel(BaseModel):
+    genre: str
+    conceit: str
+    cast: list[CharacterModel]
+    atmosphere: str
+    principal_setting: str
+    secondary_settings: list[str]
+    other_elements: dict[str, str]
+
+
+class ExtendStoryResponseModel(BaseModel):
+    continuation: str
+    illustration: str
+    story_state: StoryStateModel
 
 
 @StoryStrategyRegistry.register()
@@ -73,10 +105,18 @@ class FernStrategy(StoryStrategy):
         situation = get_local_situation_text(image_analysis, location_metadata)
         debug_data = self._get_default_debug_data(parameters, strategy_config, situation)
         errors: List[str] = []
-        prompt = None
         image = None
 
         frame_number = await story.get_num_frames()
+        if frame_number == 0:
+            await self._init_story(
+                parameters=parameters,
+                story=story,
+                situation=situation,
+                errors=errors,
+                keys=keys,
+                httpx_client=httpx_client,
+            )
 
         # Get some recent text.
         last_text = await story.get_text(-10)
@@ -86,67 +126,45 @@ class FernStrategy(StoryStrategy):
         last_text = (last_text.strip() + " ") if last_text else ""
         print(f"{last_text=}")
 
-        prompt = self._compose_prompt(
+        muse_text = await self._consult_muse(last_text, errors, keys, httpx_client)
+        print(f"{muse_text=}")
+
+        messages = self._compose_messages(
             parameters,
             story,
             last_text,
+            muse_text,
             situation,
-            image_analysis,
             strategy_config,
             debug_data,
         )
 
         # print(f'Text prompt: "{prompt}"')
         story_continuation: Optional[str] = await self._get_new_story_fragment(
-            prompt,
-            parameters,
+            messages,
             strategy_config,
             keys,
             errors,
-            story,
-            last_text,
             httpx_client,
         )
 
-        if not story_continuation or story_continuation.isspace():
-            # Allow one retry, augmenting the prompt with the seed prompt.
-            prompt += " " + await self.get_seed_prompt(strategy_config)
-
-            story_continuation = await self._get_new_story_fragment(
-                prompt,
-                parameters,
-                strategy_config,
-                keys,
-                errors,
-                story,
-                last_text,
-                httpx_client,
-            )
-
         image_description = None
-        state_props = {}
-        if story_continuation and not story_continuation.isspace():
+        story_state = None
+        if story_continuation:
             print(f"{story_continuation=}")
-            continuation_json = load_llm_output_as_json(story_continuation)
-            print(f"{continuation_json=}")
-            if continuation_json:
-                story_continuation = cast(
-                    Optional[str], continuation_json.get("continuation")
-                )
-                image_description = cast(
-                    Optional[str], continuation_json.get("illustration")
-                )
-                state_props = {
-                    key: val
-                    for key, val in continuation_json
-                    if key not in ("continuation", "illustration")
-                }
+            # continuation_json = load_llm_output_as_json(story_continuation)
+            # print(f"{continuation_json=}")
+            continuation_text = story_continuation.continuation
+            image_description = story_continuation.illustration
+            story_state = story_continuation.story_state
 
-        if not story_continuation or story_continuation.isspace():
-            story_continuation = situation + "\n"
+        if not continuation_text or continuation_text.isspace():
+            continuation_text = situation + "\n"
+
+        continuation_text = self._adjust_contninuation_text(continuation_text)
 
         if not image_description:
-            image_description = story_continuation
+            image_description = continuation_text
             if (
                 strategy_config.text_to_text_model_config
                 and strategy_config.text_to_text_model_config
@@ -193,11 +211,16 @@ class FernStrategy(StoryStrategy):
         frame = await self._add_frame(
             story,
             image,
-            story_continuation,
+            continuation_text,
             frame_number,
             debug_data,
             errors,
         )
+
+        if story_state:
+            print(f"Updating story state to: {story_state}")
+            story.state_props = story_state
+            await story.save()
 
         # Return the new frame.
         return StoryFrameSequenceResponseModel(
@@ -207,52 +230,188 @@ class FernStrategy(StoryStrategy):
             append_to_prior_frames=True,
         )
 
-    def _init_story(
+    async def _consult_muse(
+        self,
+        seed: str,
+        errors: List[str],
+        keys: KeysModel,
+        httpx_client: httpx.AsyncClient,
+    ) -> str:
+        """
+        Gets some chaotic text to use as story inspiration.
+        """
+        try:
+            model = (
+                await InferenceModel.objects()
+                .where(InferenceModel.slug == "huggingface-gpt-neo-2.7B")
+                .first()
+                .output(load_json=True)
+                .run()
+            )
+            if model:
+                model_config = ModelConfig(
+                    slug="chaos-and-creativity",
+                    description="",
+                    model_parameters={},
+                    model=model,
+                )
+            else:
+                raise ValueError("No gpt-neo-2.7B model found.")
+
+            text = await text_to_text_inference(httpx_client, seed, model_config, keys)
+            print(f"Raw output: '{text}'")
+            text = text[len(seed) :].strip()
+            print(f"Abbreviated output: '{text}'")
+        except Exception as e:
+            traceback.print_exc(file=sys.stderr)
+            errors.append(str(e))
+            text = ""
+
+        text = " ".join(text.split(" "))
+        text = text.replace("*", "")
+        text = text.replace("_", "")
+        text = text.replace("�", "'")
+        text = text.strip()
+        return text
+
+    async def _init_story(
         self,
         parameters: FramesRequestParamsModel,
         story: Story,
         situation: str,
-        image_analysis: Optional[Dict[str, Any]],
+        errors: List[str],
+        keys: KeysModel,
+        httpx_client: httpx.AsyncClient,
+        # image_analysis: Optional[Dict[str, Any]],
     ) -> Story:
         """
         Initializes the story with its genre, conceit, and initial cast of characters.
         """
-        chaos_text = get_chaos_text(situation, image_analysis)
-        prompts = [
+        story_seed = await self._consult_muse(situation, errors, keys, httpx_client)
+
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {keys.openai_api_key}",
+        }
+        messages = [
+            {
+                "role": "system",
+                "content": f"Situation: {situation}",
+            },
             {
                 "role": "system",
                 "content": """
 You are a storyteller. You are planning the creation of your next story, which you want to be
-thoroughly engaging, such that it holds the reader's interest as it is told one small page at
-a time. In later steps, you will build the story incrementally, a page at a time. For now,
-you only need to choose:
+thoroughly engaging, such that it holds the reader's interest throughout. In later steps, you
+will build the story incrementally, a page at a time. You will find below a Story Seed to use
+for inspiration. You can use this seed to help establish characters, mood, setting, genre, or
+anything else.
+
+For now, you only need to choose:
 * a genre.
 * an overall conceit or concept. Write enough about this that you will be able to understand
 what the story is about as you write the pages, and maintain some continuity and direction.
-* a small cast of initial characters (which you will be able to update as the story continues).
-* a setting, which may be inspired by the given <SITUATION>.
-            """,
-            }
-        ]
-        if image_analysis:
-            prompts.append({
-                
-            }
-                f"""
-The 
-            """
-            )
+* a small cast of initial characters. Keep this short for now because you can add more as
+the story continues.
+* a principal setting, real or imaginary.
+* potentially a few secondary settings, real or imaginary. Keep this list short, as you can
+always add more settings later.
+* any other elements you think are important to the story. This can include themes, objects,
+events, ideas for character or story development, or anything else you think is important.
 
-    def _compose_prompt(
+A muse is here to help you by introducing less linear or expected aspects to the story.
+You can find their contribution in the <MUSE_TEXT>. If you see lively, imaginative, or
+otherwise interesting elements in the <MUSE_TEXT>, find ways to use them as inspiration
+for any aspect of your story, characters, setting, etc. where they may fit.
+
+You do not need to write the story itself yet. That will come later, one page at a time.
+
+Any or all of the above may be inspired by the given <SITUATION> (location, season, weather,
+observed scene, etc.).""".strip(),
+            },
+            {
+                "role": "system",
+                "content": """
+Assemble your story scenario into the following JSON structure:
+{
+    "genre": "<THE STORY GENRE>",
+    "conceit": "<WHAT THE STORY IS ABOUT>",
+    "cast": [
+        {
+            "name": "THE NAME OF CHARACTER 1",
+            "description": "<OVERALL DESCRIPTION OF CHARACTER 1>",
+            "goal": "<WHAT DOES CHARACTER 1 WANT>",
+            "hair_color": "<HAIR COLOR OF CHARACTER 1>",
+            "gender": "<ESTIMATED BIOLOGICAL GENDER OF CHARACTER 1>",
+            "approximate_age": "<ONE OF: 'child', 'young_adult', 'adult', 'middle_aged', 'old_and_wise'>",
+            "personality": "<PERSONALITY OF CHARACTER 1>",
+            "typical_attire": "<WHAT KIND OF CLOTHES CHARACTER 1 USUALLY WEARS>"
+            "other_attributes": {
+                <ANYTHING NOTABLE ABOUT CHARACTER 1 THAT ISN'T OTHERWISE CAPTURED BY THIS SCHEMA>
+            }
+        },
+        {
+            <SAME FOR CHARACTER 2>
+        },
+        etc.
+    ],
+
+    "atmosphere": "<A DESCRIPTION OF THE STORY'S ATMOSPHERE, IF PERTINENT>",
+    "principal_setting": "<WHERE THE STORY MAINLY TAKES PLACE>",
+    "secondary_settings": [
+         "<ANOTHER STORY LOCATION>",
+         etc.
+    ],
+    "other_elements": {
+        <ANY OTHER PERTINENT STORY ELEMENTS>
+    }
+}
+            """.strip(),
+            },
+            {
+                "role": "user",
+                "content": f"""
+<MUSE_TEXT>
+{story_seed}
+</MUSE_TEXT>
+""".strip(),
+            },
+        ]
+        model = "gpt-4o"
+
+        if not keys.openai_api_key:
+            raise ValueError(
+                "Warning: Missing OpenAI authentication key. Aborting request."
+            )
+        payload = {
+            "model": model,
+            "response_format": {"type": "json_object"},
+            "messages": messages,
+        }
+        response = await httpx_client.post(
+            "https://api.openai.com/v1/chat/completions", headers=headers, json=payload
+        )
+        # TODO: Use OpenAI SDK?
+        response.raise_for_status()
+
+        json_response = response.json()
+        json_str = json_response["choices"][0]["message"]["content"]
+        json_response = json.loads(json_str)
+        print(json.dumps(json_response, indent=2))
+        story.state_props = json_response
+        await story.save()
+        return story
+
+    def _compose_messages(
         self,
         parameters: FramesRequestParamsModel,
         story: Story,
         last_text: Optional[str],
+        muse_text: Optional[str],
         situation: str,
-        image_analysis: Optional[Dict[str, Any]],
         strategy_config: StrategyConfig,
         debug_data: Dict[str, Any],
-    ) -> str:
+    ) -> list[ChatCompletionMessageParam]:
         input_text = parameters.input_text
 
         if last_text:
@@ -272,103 +431,159 @@ The
         if not last_text:
             last_text = ""
 
-        if image_analysis:
-            image_scene = image_analysis.get("all_captions") or ""
-            image_objects = ""  # image_analysis.get("all_tags_and_objects") or ""
-            image_text = image_analysis.get("text") or ""
-        else:
-            image_scene = ""
-            image_objects = ""
-            image_text = ""
-
-        if input_text:
-            if image_text:
-                image_text += "\n\n"
-            image_text += input_text
-
-        model_config = (
-            cast(ModelConfig, strategy_config.text_to_text_model_config)
-            if strategy_config
-            else None
-        )
-        prompt_template = (
-            cast(PromptTemplate, model_config.prompt_template) if model_config else None
+        story_state = (
+            json.dumps(story.state_props, indent=2) if story.state_props else ""
         )
 
-        if prompt_template:
-            debug_data["prompt_template"] = prompt_template.slug
-            prompt = prompt_template.render(
-                {
-                    "poem": last_text,
-                    "scene": image_scene,
-                    "text": image_text,
-                    "objects": image_objects,
-                    "situation": situation,
-                }
-            )
-        else:
-            debug_data["prompt_template"] = None
-            prompt = last_text + "\n" + situation
+        messages = [
+            {
+                "role": "system",
+                "content": f"Situation: {situation}",
+            },
+            {
+                "role": "system",
+                "content": """
+You are a storyteller.
 
-        return prompt
+Given: A story in progress, along with various attributes of its state (cast, setting, genre, etc.),
+a "situation" that may include things seen in an input image, current location, date, time, season,
+weather, etc...
+
+Your task is to:
+1. Continue the story with a few short sentences.
+2. Create a description of an illustration of this portion of the story (to be given an Illustrator).
+3. Update the story state with any new characters, settings, or other elements you introduce.
+
+In the story, incorporate some things, people, text, season, and atmosphere from the scene, location,
+and situation.
+
+Use a literary style that is spare but wistful, maybe sometimes with a surprise bit of surrealism or
+poetic reflection. Give the characters names. Don't end the story, because you will come back to
+continue it later.
+
+No syrupy or pulp romantic drama. No romance. This is not a love story. Use perfect grammar, except
+for maybe slang in dialog.
+
+When connecting to a setting, avoid tourist monuments and cultural clichés. E.g, when in Paris, no
+Eiffel Tower, baguettes, or berets. When in New York, no Statue of Liberty or Empire State Building.
+In Los Angeles, no Hollywood sign.
+
+Don't repeat things too often. If you just said in the previous page that it's raining or that there
+are cobblestone streets. You don't need to say it again now.
+
+A muse is here to help you by introducing less linear or expected aspects to the story.
+You can find their contribution in the <MUSE_TEXT>. If you see lively, imaginative, or
+otherwise interesting elements in the <MUSE_TEXT>, find ways to use them as inspiration
+for any aspect of your story, characters, setting, etc. where they may fit.
+
+Avoid letting the cast grow too large. If new characters appear in the situation, input image,
+or muse text, consider merging them with existing characters.""".strip(),
+            },
+            {
+                "role": "system",
+                "content": """
+Format the Continuation, Illustration, and updated Story State as a JSON object as in this example:
+<JSON_OUTPUT_EXAMPLE>
+{
+  "continuation": "As the morning grew cloudy, they rose and walked toward the house. A tree laden with ripe oranges caught Will's eye. Its branches hung low over an old white wall and there was a small fountain in front of it – its bowl filled with dirt and sprouting green plants. A little bird perched on the edge of the fountain as if to welcome them into this beautiful oasis. As they drew closer, Will saw a book: The Lord of the Rings. He breathed in the autumn air and thought of Frodo and his bold adventure beyond the Shire. Maybe Will and Abigail should set out on a new adventure of their own.",
+
+  "illustration": "A small tree with oranges stands next to a fountain with a bird perched on it. A book rests on a table next to the tree. It is a cloudy autumn day, casting a melancholy atmosphere on the scene."
+
+  "story_state": {
+    "genre": "Fantasy",
+    "conceit": "A young couple discovers a hidden garden.",
+    "cast": [
+      {
+        "name": "THE NAME OF CHARACTER 1",
+        "description": "<OVERALL DESCRIPTION OF CHARACTER 1>",
+        "goal": "<WHAT DOES CHARACTER 1 WANT>",
+        "hair_color": "<HAIR COLOR OF CHARACTER 1>",
+        "gender": "<ESTIMATED BIOLOGICAL GENDER OF CHARACTER 1>",
+        "approximate_age": "<ONE OF: 'child', 'young_adult', 'adult', 'middle_aged', 'old_and_wise'>",
+        "personality": "<PERSONALITY OF CHARACTER 1>",
+        "typical_attire": "<WHAT KIND OF CLOTHES CHARACTER 1 USUALLY WEARS>"
+        "other_attributes": {
+          <ANYTHING NOTABLE ABOUT CHARACTER 1 THAT ISN'T OTHERWISE CAPTURED BY THIS SCHEMA>
+        }
+      },
+      {
+        <SAME FOR CHARACTER 2>
+      },
+      etc.
+    ],
+    "atmosphere": "<A DESCRIPTION OF THE STORY'S ATMOSPHERE, IF PERTINENT>",
+    "principal_setting": "<WHERE THE STORY MAINLY TAKES PLACE>",
+    "secondary_settings": [
+         "<ANOTHER STORY LOCATION>",
+         etc.
+    ],
+    "other_elements": {
+        <ANY OTHER PERTINENT STORY ELEMENTS>
+    }
+  }
+}
+</JSON_OUTPUT_EXAMPLE>
+            """.strip(),
+            },
+            {
+                "role": "system",
+                "content": f"""
+<STORY_STATE>
+{story_state}
+</STORY_STATE>
+""".strip(),
+            },
+            {
+                "role": "system",
+                "content": f"""
+<SITUATION>
+{situation}
+</SITUATION>
+""".strip(),
+            },
+            {
+                "role": "system",
+                "content": f"""
+<MUSE_TEXT>
+{muse_text}
+</MUSE_TEXT>
+""".strip(),
+            },
+            {
+                "role": "user",
+                "content": f"""
+<STORY>
+{last_text}
+</STORY>
+""".strip(),
+            },
+        ]
+        return messages
 
     async def _get_new_story_fragment(
         self,
-        text: str,
-        parameters: FramesRequestParamsModel,
+        messages: list[ChatCompletionMessageParam],
         strategy_config: StrategyConfig,
         keys: KeysModel,
         errors: List[str],
-        story: Story,
-        last_text: Optional[str],
         httpx_client: httpx.AsyncClient,
-    ) -> str:
+    ) -> ExtendStoryResponseModel:
         """
         Gets a new story fragment to be used in building the frame's text.
         """
-        try:
-            print(f"Model input: '{text}'")
-            text = await text_to_text_inference(
-                httpx_client, text, strategy_config.text_to_text_model_config, keys
-            )
-            print(f"Raw output: '{text}'")
+        result = cast(
+            ExtendStoryResponseModel,
+            await messages_to_object_inference(
+                httpx_client,
+                messages,
+                strategy_config.text_to_text_model_config,
+                keys,
+                response_model=ExtendStoryResponseModel,
+            ),
+        )
+        print(f"Raw output: '{result}'")
 
-            if text:
-                LIMIT = 1024
-
-                if len(text) > LIMIT:
-                    text_parts = text.split()
-                    text = ""
-                    for part in text_parts:
-                        # if ends_with_punctuation(part):
-                        #    text += part + "\n"
-                        # else:
-                        text += part + " "
-
-                        if len(text) > LIMIT:
-                            break
-
-                lines = split_into_sentences(text)
-                if len(lines) > 3:
-                    # Discard the last line in order to subvert GPT-3's desire
-                    # to put an ending on every episode. Also avoids final
-                    # sentence fragments caused by token limit cutoff.
-                    print(f"Discarding last sentence: '{lines[-1]}'")
-                    lines = lines[0:-1]
-                    # Adding blank lines between sentences helps break up
-                    # dense text from especially GPT-4.
-                    text = "\n\n".join(lines)
-                    text = balance_quotes(text)
-                text = text.strip()
-                if not ends_with_punctuation(text):
-                    text += "."
-
-                text += "\n\n"
-
-        except Exception as e:
-            traceback.print_exc(file=sys.stderr)
-            errors.append(str(e))
-
+        """
         # Don't want to see fragments of the prompt in the story.
         prompt_words = ("Scene:", "Text:", "Objects:", "Continuation:")
         for prompt_word in prompt_words:
@@ -380,5 +595,41 @@ The
                 print(msg)
                 errors.append(msg)
                 text = ""
+        """
+
+        return result
+
+    def _adjust_contninuation_text(self, text: str) -> str:
+        if text:
+            LIMIT = 1024
+
+            if len(text) > LIMIT:
+                text_parts = text.split()
+                text = ""
+                for part in text_parts:
+                    # if ends_with_punctuation(part):
+                    #    text += part + "\n"
+                    # else:
+                    text += part + " "
+
+                    if len(text) > LIMIT:
+                        break
+
+            lines = split_into_sentences(text)
+            if len(lines) > 3:
+                # Discard the last line in order to subvert OpenAI models' desire
+                # to put an ending on every episode. Also avoids final
+                # sentence fragments caused by token limit cutoff.
+                print(f"Discarding last sentence: '{lines[-1]}'")
+                lines = lines[0:-1]
+                # Adding blank lines between sentences helps break up
+                # dense text from especially GPT-4-like models.
+                text = "\n\n".join(lines)
+                text = balance_quotes(text)
+            text = text.strip()
+            if not ends_with_punctuation(text):
+                text += "."
+
+            text += "\n\n"
 
         return text

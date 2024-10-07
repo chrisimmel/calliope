@@ -97,11 +97,12 @@ whether they have already been seen in an earlier image.
 * Text. If there is any text in the image, transcribe it and try to understand its
 context and significance. If text fragments are independent, describe them separately. If.
 for instance, there are multiple books with visible titles, describe each book separately.
-If there are multiple signs, describe each sign separately. Etc.
+If there are multiple signs, describe each sign separately. Etc. Only report text you
+actually see in the image.
 
 Assemble your observations into the following JSON structure:
 {
-    "overall_description": "<OVERALL DESCRIPTION OF THE SCENE>",
+    "description": "<OVERALL DESCRIPTION OF THE SCENE>",
     "people": [
         {
             "description": "<OVERALL DESCRIPTION OF PERSON 1>",
@@ -173,7 +174,7 @@ Assemble your observations into the following JSON structure:
                 "content": "It is IMPORTANT that you only include things you really see. "
                 "Don't imagine or invent book titles, other text fragments, or people that "
                 "aren't actually there, for instance. Your job is to faithfully report what "
-                "you see, not to be imaginitive.",
+                "you see, not to be imaginitive or creative.",
             },
             {
                 "role": "user",
@@ -216,7 +217,7 @@ async def openai_vision_inference(
 ) -> str:
     """
     Takes a stream of bytes representing an image. Returns text about the image.
-    Currently hardcoded to use the MiniGPT-4 model.
+    Currently hardcoded to use the gpt-4o model.
     """
     model = model_config.model
     # model = "gpt-4-vision-preview"

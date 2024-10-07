@@ -172,7 +172,7 @@ Am deprecating use of the Stability Python SDK in Calliope.
 
 It appears to be impossible to use aiohttp/httpx with the
 Stability Inference API. Per Stability staff, this is due to a
-fundamental limitation of their gRPC-based implementation, ad the
+fundamental limitation of their gRPC-based implementation, and the
 only way to get async support is through use of their REST API.
 https://github.com/Stability-AI/stability-sdk/issues/197#issuecomment-1496027391
 Hence the alternative REST version of this function above, now preferred.

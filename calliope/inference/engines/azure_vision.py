@@ -160,7 +160,7 @@ def interpret_azure_v4_metadata(raw_metadata: Dict[str, Any]) -> Dict[str, Any]:
         "captions": captions,
         "tags": tags,
         "objects": objects,
-        "all_captions": all_captions,
+        # "all_captions": all_captions,
         "all_tags_and_objects": all_tags_and_objects,
         "text": text,
         "description": description,
