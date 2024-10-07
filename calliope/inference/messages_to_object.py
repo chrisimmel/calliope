@@ -23,16 +23,19 @@ async def messages_to_object_inference(
     response_model: type[T],
 ) -> T:
     """
-    Performs a text->text inference using an LLM.
+    Performs a messages->object inference using an LLM. Currently only OpenAI
+    is supported.
 
     Args:
         httpx_client: the async HTTP session.
         text: the input text, to be sent as a prompt.
         model_config: the ModelConfig with model and parameters.
         keys: API keys, etc.
+        response_model: the Pydantic response model to use. The return value
+        will be an instance of this model.
 
     Returns:
-        the generated text.
+        the generated response object (an instance of response_model).
     """
     print(f"text_to_text_inference: {model_config.slug}, {model_config.model}")
     model = model_config.model

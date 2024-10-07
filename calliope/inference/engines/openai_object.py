@@ -25,18 +25,16 @@ async def openai_messages_to_object_inference(
     """
     Performs a messages->object inference using an OpenAI-provided LLM.
 
-    Note that model.provider_api_variant determines whether the
-    completion or chat completion API is used.
-
     Args:
         httpx_client: the async HTTP session.
         messages: the input messages.
         model_config: the ModelConfig with model and parameters.
         keys: API keys, etc.
-        response_model: the response model to use.
+        response_model: the Pydantic response model to use. The return value
+        will be an instance of this model.
 
     Returns:
-        the generated object (an instance of response_model).
+        the generated response object (an instance of response_model).
     """
     model = model_config.model
 
