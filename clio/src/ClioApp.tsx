@@ -236,8 +236,8 @@ export default function ClioApp() {
                     clearInterval(getFramesInterval);
                     getFramesInterval = null;
                 }
-    
-                let params: {client_id: string, client_type: string, input_image: string | null, input_audio: string | null, debug: boolean, strategy?: string} = {
+
+                let params: {client_id: string, client_type: string, input_image: string | null, input_audio: string | null, debug: boolean, strategy?: string, story_id?: string} = {
                     client_id: thisBrowserID,
                     client_type: "clio",
                     input_image: image,
@@ -247,6 +247,9 @@ export default function ClioApp() {
 
                 if (strategy) {
                     params.strategy = strategy;
+                }
+                if (storyId) {
+                    params.story_id = storyId;
                 }
                 const imagePrefix = image ? image.substring(0, 20) : "(none)";
                 console.log(`Calling Calliope with strategy ${strategy}, image ${imagePrefix}...`);
@@ -291,7 +294,7 @@ export default function ClioApp() {
             }
             setCaptureActive(false);
         },
-        [thisBrowserID, frames, setCaptureActive, isPlaying, strategy]
+        [thisBrowserID, frames, setCaptureActive, isPlaying, strategy, storyId]
     );
     stateRef.current.getFrames = getFrames;
 
@@ -490,7 +493,9 @@ export default function ClioApp() {
     );
     const sendPhoto = useCallback(
         (image: string | null) => {
-            setCaptureActive(false);
+            if (!isPlaying) {
+                setCaptureActive(false);
+            }
             const parts = image ? image.split(",") : null;
             image = (parts && parts.length > 1) ? parts[1] : null;
 
