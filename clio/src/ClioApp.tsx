@@ -526,6 +526,7 @@ export default function ClioApp() {
             console.log(`Starting new story with ${strategy} and media: ${media_type}.`);
             localStorage.setItem('strategy', strategy || "");
             setStrategy(strategy);
+            setStoryId(null);
             await resetStory();
 
             if (media_type == "photo") {
