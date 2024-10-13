@@ -9,6 +9,8 @@ WORKDIR $APP_HOME
 RUN apt update -y
 RUN apt upgrade -y
 RUN apt install libgl1-mesa-glx -y
+RUN apt install jq -y
+RUN apt install curl -y
 RUN apt remove ffmpeg -y
 RUN apt install 'libsm6'\
     'libxext6'\

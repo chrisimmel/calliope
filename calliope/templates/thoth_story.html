@@ -8,7 +8,19 @@
 </head>
 
 <body>
+    <div class="header">
+        <img src="/thoth/Eye_of_Horus_bw.svg.png" width="90" , height="69">
+        <div class="header-right">
+            <a href="/thoth/">
+                <h1 class="title">Thoth</h1>
+            </a>
+        </div>
+    </div>
+
     <div class="story-summary">
+        <div class="summary-line">
+            {{story.title}}
+        </div>
         <div class="summary-line">
             Made by strategy {{story.strategy_name}} on {{story.date_created}} for client
             {{story.created_for_sparrow_id}}.

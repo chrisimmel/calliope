@@ -55,7 +55,7 @@ async def text_to_image_file_inference_stability(
     headers = {
         "Content-Type": "application/json",
         "Accept": "application/json",
-        "Authorization": f"Bearer {keys.stability_api_key}"
+        "Authorization": f"Bearer {keys.stability_api_key}",
     }
 
     """
@@ -87,20 +87,24 @@ async def text_to_image_file_inference_stability(
     but we received 512x512
     """
     if (
-        engine_id not in (
-            'stable-diffusion-v1-6',
-            'stable-diffusion-512-v2-1',
-            'stable-diffusion-xl-beta-v2-2-2'
-        ) and width < 1024 and height < 1024
+        engine_id
+        not in (
+            "stable-diffusion-v1-6",
+            "stable-diffusion-512-v2-1",
+            "stable-diffusion-xl-beta-v2-2-2",
+        )
+        and width < 1024
+        and height < 1024
     ):
         # Small image sizes are rejected by big SD models.
         # Force a 1024x1024 image size.
         width = 1024
         height = 1024
 
-    if engine_id == 'stable-diffusion-v1-6':
+    print(f"Stable Diffusion engine: {engine_id}")
+    if engine_id in ("stable-diffusion-v1-6", "stable-diffusion-xl-1024-v1-0"):
         # Stable Diffusion 1.6 is limited to 2K input characters.
-        text = text[:2000]
+        text = text[:1999]
 
     # Stable Diffusion accepts only multiples of 64 for image dimensions. Can scale or
     # crop afterward to match requested size.
@@ -120,7 +124,7 @@ async def text_to_image_file_inference_stability(
             {
                 # Things we want (positive prompt):
                 "text": text,
-                "weight": 1
+                "weight": 1,
             },
             {
                 # Things we don't want (negative prompt):
@@ -132,18 +136,15 @@ async def text_to_image_file_inference_stability(
                         "weird faces or hands",
                         "artist name",
                         "artist logo",
-                        "Eiffel tower."
-                    ]),
-                "weight": -1
-            }
-        ]
+                        "Eiffel tower.",
+                    ]
+                ),
+                "weight": -1,
+            },
+        ],
     }
 
-    response = await httpx_client.post(
-        url,
-        headers=headers,
-        json=payload
-    )
+    response = await httpx_client.post(url, headers=headers, json=payload)
     if response.status_code != 200:
         print(f"{response.text=}")
         response.raise_for_status()
@@ -171,7 +172,7 @@ Am deprecating use of the Stability Python SDK in Calliope.
 
 It appears to be impossible to use aiohttp/httpx with the
 Stability Inference API. Per Stability staff, this is due to a
-fundamental limitation of their gRPC-based implementation, ad the
+fundamental limitation of their gRPC-based implementation, and the
 only way to get async support is through use of their REST API.
 https://github.com/Stability-AI/stability-sdk/issues/197#issuecomment-1496027391
 Hence the alternative REST version of this function above, now preferred.

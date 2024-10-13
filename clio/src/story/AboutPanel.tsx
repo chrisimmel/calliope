@@ -8,6 +8,7 @@ import Link from '@mui/material/Link';
 import { Frame, Story } from './storyTypes';
 import { IconButton } from '@mui/material';
 
+const appVersion = require('../../package.json').version;
 
 function Copyright() {
   return (
@@ -115,6 +116,9 @@ export default function AboutPanel({
             }
             <Box sx={{ my: 4 }}>
                 <Copyright />
+                <Typography variant="body2" color="text.secondary" align="center">
+                    {'Version: ' + appVersion}
+                </Typography>
             </Box>
             </Container>
         </Drawer>

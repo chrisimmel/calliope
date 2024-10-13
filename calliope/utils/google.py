@@ -3,17 +3,18 @@ from typing import Optional, Sequence
 
 from google.cloud import storage
 
+# from google.cloud import secretmanager  # Must be imported separately.
+import requests
+
 from calliope.settings import settings
 from calliope.utils.file import FileMetadata
 
-GOOGLE_CLOUD_MARKER_VARIABLE = "K_SERVICE"
-CLOUD_ENV_VARIABLE = "CLOUD_ENV"
 CLOUD_ENV_GCP_PROD = "gcp-prod"
 CLOUD_ENV_LOCAL = "local"
 
 
 def get_cloud_environment() -> str:
-    return os.environ.get(CLOUD_ENV_VARIABLE) or CLOUD_ENV_LOCAL
+    return settings.CLOUD_ENV
 
 
 def is_google_cloud_run_environment() -> bool:
@@ -73,7 +74,9 @@ def delete_google_file(google_folder: str, base_filename: str) -> None:
     blob.delete()
 
 
-def list_google_files_with_prefix(prefix: str, delimiter: Optional[str] = None) -> Sequence[str]:
+def list_google_files_with_prefix(
+    prefix: str, delimiter: Optional[str] = None
+) -> Sequence[str]:
     """
     Lists the filenames (the names of the blobs) in the bucket that begin
     with the prefix.
@@ -111,3 +114,47 @@ def list_google_files_with_prefix(prefix: str, delimiter: Optional[str] = None) 
 
     # Note: The call returns a response only when the iterator is consumed.
     return [blob.name for blob in blobs]
+
+
+def get_project_id():
+    """
+    Gets the Google Cloud project ID.
+    """
+    # The Google Metadata Server is at this fixed URL.
+    url = "http://169.254.169.254/computeMetadata/v1/project/project-id"
+    headers = {"Metadata-Flavor": "Google"}
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+
+    return response.text
+
+
+"""
+def get_google_secret(secret_name: str) -> str:
+    client = secretmanager.SecretManagerServiceClient()
+    project_id = get_project_id()
+    secret_version = "latest"
+
+    name = f"projects/{project_id}/secrets/{secret_name}/versions/{secret_version}"
+    response = client.access_secret_version(request={"name": name})
+    secret_value = response.payload.data.decode("UTF-8")
+
+    return secret_value
+
+
+def init_google_secrets() -> None:
+    # Transfers secrets from Google Secret Manager to settings and environment.
+    # This is needed when running in a Google Cloud Compute Engine VM, which has
+    # no automated secrets integration with environment variables.
+    # It is unnecessary under Google Cloud Run or non-Google Cloud environments.
+    if is_google_cloud_run_environment():
+
+        def transfer_to_settings(name: str) -> None:
+            settings.update(name, get_google_secret(name))
+
+        transfer_to_settings("POSTGRESQL_USERNAME")
+        transfer_to_settings("POSTGRESQL_PASSWORD")
+        transfer_to_settings("POSTGRESQL_HOSTNAME")
+        transfer_to_settings("PINECONE_API_KEY")
+        transfer_to_settings("OPENAI_API_KEY")
+"""

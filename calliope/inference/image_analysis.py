@@ -9,7 +9,10 @@ from calliope.inference.engines.azure_vision import (
     interpret_azure_v4_metadata,
 )
 from calliope.inference.engines.hugging_face import image_to_text_inference_hugging_face
-from calliope.inference.engines.openai_image import openai_vision_inference
+from calliope.inference.engines.openai_image import (
+    openai_vision_inference,
+    openai_vision_inference_ext,
+)
 from calliope.inference.engines.replicate import replicate_vision_inference
 from calliope.models import (
     InferenceModelProvider,
@@ -59,39 +62,37 @@ async def _image_analysis_inference(
         analysis adheres to the following schema:
 
             "captions": a list of captions describing the image.
-            "all_captions": the captions list, concatenated into a
-                string for humans or LLMs to read.
             "tags": a list of tags appropriate to the image.
             "objects": a list of objects detected in the image.
             "all_tags_and_objects": the tags and objects lists,
                 concatenated into a single string for humans
-                and LLMs. 
+                and LLMs.
             "text": any text seen in the image.
             "description": a text description, summarizing all the
                 above.
 
-        The description and all_captions fields are provided at a
+        The description field is provided at a
         minimum, regardless of the InferenceModelProvider.
     """
     model = model_config.model
     print(f"_image_analysis_inference: {provider=}")
 
     if provider == InferenceModelProvider.OPENAI:
-        description = await openai_vision_inference(
+        # description = await openai_vision_inference(
+        #     httpx_client, image_filename, b64_encoded_image, model_config, keys
+        # )
+        image_data = await openai_vision_inference_ext(
             httpx_client, image_filename, b64_encoded_image, model_config, keys
         )
+        description = image_data.get("description", "")
         print(f"GPT4 vision response: {description}")
-        return {
-            "all_captions": description,
-            "description": description,
-        }
+        return image_data
     elif provider == InferenceModelProvider.REPLICATE:
         description = await replicate_vision_inference(
             httpx_client, image_filename, model_config, keys
         )
         print(f"Replicate vision response: {description}")
         return {
-            "all_captions": description,
             "description": description,
         }
     elif provider == InferenceModelProvider.AZURE:
@@ -127,7 +128,6 @@ async def _image_analysis_inference(
             )
 
             return {
-                "all_captions": description,
                 "description": description,
             }
     else:
@@ -176,18 +176,16 @@ async def image_analysis_inference(
         analysis adheres to the following schema:
 
             "captions": a list of captions describing the image.
-            "all_captions": the captions list, concatenated into a
-                string for humans or LLMs to read.
             "tags": a list of tags appropriate to the image.
             "objects": a list of objects detected in the image.
             "all_tags_and_objects": the tags and objects lists,
                 concatenated into a single string for humans
-                and LLMs. 
+                and LLMs.
             "text": any text seen in the image.
             "description": a text description, summarizing all the
                 above.
 
-        The description and all_captions fields are provided at a
+        The description field is provided at a
         minimum, regardless of the InferenceModelProvider.
     """
 
@@ -244,14 +242,7 @@ async def image_analysis_inference(
     # Merge the Azure and LLM analyses.
     analysis = {
         **azure_analysis,
-        "description": (
-            f"{llm_analysis.get('description', '')} "
-            f"{azure_analysis.get('description', '')}"
-        ),
-        "all_captions": (
-            f"{llm_analysis.get('all_captions', '')} "
-            f"{azure_analysis.get('all_captions', '')}"
-        ),
+        **llm_analysis,
     }
 
     # Return the combined image analysis.
@@ -281,8 +272,6 @@ async def image_ocr_inference(
         image_data = f.read()
 
     if image_data:
-        return await azure_vision_inference(
-            httpx_client, image_data, model_config, keys
-        )
+        return await azure_vision_inference(httpx_client, image_data, model_config, keys)
 
     raise ValueError("No input image data to image_analysis_inference.")

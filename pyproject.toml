@@ -2,7 +2,6 @@
 line-length = 89
 target-version = ['py38']
 exclude = '''
-
 (
   /(
       \.git          # exclude a few common directories in the
@@ -35,3 +34,50 @@ requires = [
     "wheel"
 ]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "calliope"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "accelerate",
+    "aiofiles>=24.1.0",
+    "aiohttp>=3.10.9",
+    "cuid2>=2.0.1",
+    "fastapi>=0.115.0",
+    "google-api-core>=2.20.0",
+    "google-cloud-secret-manager>=2.20.2",
+    "google-cloud-storage>=2.18.2",
+    "google-cloud-translate>=3.16.0",
+    "google-resumable-media>=2.7.2",
+    "gunicorn>=23.0.0",
+    "huggingface-hub>=0.25.1",
+    "instructor>=1.5.1",
+    "ipython>=8.28.0",
+    "jinja2>=3.1.4",
+    "langchain-community>=0.3.1",
+    "langchain-pinecone>=0.0.1",
+    "langchain>=0.3.2",
+    "markupsafe>=2.1.5",
+    "memray>=1.14.0",
+    "modal>=0.64.178",
+    "openai>=1.51.0",
+    "openapi-schema-pydantic>=1.2.4",
+    "pinecone-client>=3.2.2",
+    "pinecone>=5.3.1",
+    "pydantic-core>=2.23.4",
+    "pydantic-settings>=2.5.2",
+    "pydantic>=2.9.2",
+    "python-dotenv>=1.0.1",
+    "starlette>=0.38.6",
+    "toml>=0.10.2",
+    "types-aiofiles>=24.1.0.20240626",
+    "types-certifi>=2021.10.8.3",
+    "types-pytz>=2024.2.0.20241003",
+    "types-requests>=2.32.0.20240914",
+    "types-toml>=0.10.8.20240310",
+    "types-tzlocal>=5.1.0.1",
+    "types-urllib3>=1.26.25.14",
+]

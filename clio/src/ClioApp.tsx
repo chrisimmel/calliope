@@ -227,6 +227,71 @@ export default function ClioApp() {
         }
     }, []);
 
+    const updateStoryWithFrames = useCallback(
+        (
+            story_id: string,
+            newFrames: Frame[],
+            story_frame_count: number,
+            generationDate: string,
+            strategy_name: string,
+        ) => {
+            console.log(`Updating story ${story_id} with ${frames.length} frames.`);
+            let storyFound = false;
+            const dateUpdated = generationDate.split(" ")[0];
+
+            let newStories = stories;
+
+            for (let i = 0; i < newStories.length; i++) {
+                const story = stories[i];
+                if (story.story_id == story_id) {
+                    storyFound = true;
+                    story.story_frame_count = story_frame_count;
+                    story.date_updated = dateUpdated;
+                    story.is_current = true;
+                } else {
+                    story.is_current = false;
+                }
+            }
+
+            if (!storyFound) {
+                const maxLength = 64;
+                let title = newFrames[0].text || story_id;
+                const lines = title.split("\n");
+                title = "";
+                for (let i = 0; i < lines.length; i++) {
+                    if (title.length) {
+                        title += " ";
+                    }
+                    title += lines[i];
+                    if (title.length > maxLength) {
+                        break;
+                    }
+                }
+                if (title.length > maxLength) {
+                    title = title.substring(0, maxLength) + "...";
+                }
+
+                const newStory: Story = {
+                    story_id: story_id,
+                    title: title,
+                    story_frame_count: story_frame_count,
+                    is_bookmarked: false,
+                    is_current: true,
+                    is_read_only: false,
+                    strategy_name: strategy_name,
+                    created_for_sparrow_id: thisBrowserID,
+                    thumbnail_image: newFrames[0].image || null,
+                    date_created: dateUpdated,
+                    date_updated: dateUpdated
+                }
+                console.log("(Adding new story.");
+                newStories = [...newStories, newStory];
+            }
+            setStories(newStories);
+        },
+        [stories]
+    );
+
     const getFrames = useCallback(
         async (image: string | null, audio: string | null) => {
             console.log(`Enter getFrames. isPlaying=${isPlaying}`)
@@ -236,8 +301,8 @@ export default function ClioApp() {
                     clearInterval(getFramesInterval);
                     getFramesInterval = null;
                 }
-    
-                let params: {client_id: string, client_type: string, input_image: string | null, input_audio: string | null, debug: boolean, strategy?: string} = {
+
+                let params: {client_id: string, client_type: string, input_image: string | null, input_audio: string | null, debug: boolean, strategy?: string, story_id?: string} = {
                     client_id: thisBrowserID,
                     client_type: "clio",
                     input_image: image,
@@ -247,6 +312,9 @@ export default function ClioApp() {
 
                 if (strategy) {
                     params.strategy = strategy;
+                }
+                if (storyId) {
+                    params.story_id = storyId;
                 }
                 const imagePrefix = image ? image.substring(0, 20) : "(none)";
                 console.log(`Calling Calliope with strategy ${strategy}, image ${imagePrefix}...`);
@@ -276,6 +344,15 @@ export default function ClioApp() {
                 if (newFrames) {
                     setFrames(frames => [...frames, ...newFrames]);
                     setStoryId(response.data?.story_id || null);
+                    if (response.data?.story_id) {
+                        updateStoryWithFrames(
+                            response.data.story_id,
+                            newFrames,
+                            response.data.story_frame_count,
+                            response.data.generation_date,
+                            response.data.strategy,
+                        )
+                    }
                 }
 
                 setError(null);
@@ -291,7 +368,16 @@ export default function ClioApp() {
             }
             setCaptureActive(false);
         },
-        [thisBrowserID, frames, setCaptureActive, isPlaying, strategy]
+        [
+            thisBrowserID,
+            frames, 
+            setCaptureActive, 
+            isPlaying,
+            strategy,
+            storyId,
+            updateStoryWithFrames,
+            setStoryId,
+        ]
     );
     stateRef.current.getFrames = getFrames;
 
@@ -352,7 +438,7 @@ export default function ClioApp() {
             // Get the default story and jump to its last frame.
             getStory(null, null);
         },
-        []
+        [getStory]
     );
 
     useEffect(
@@ -490,7 +576,9 @@ export default function ClioApp() {
     );
     const sendPhoto = useCallback(
         (image: string | null) => {
-            setCaptureActive(false);
+            if (!isPlaying) {
+                setCaptureActive(false);
+            }
             const parts = image ? image.split(",") : null;
             image = (parts && parts.length > 1) ? parts[1] : null;
 
@@ -521,6 +609,10 @@ export default function ClioApp() {
             console.log(`Starting new story with ${strategy} and media: ${media_type}.`);
             localStorage.setItem('strategy', strategy || "");
             setStrategy(strategy);
+            setStoryId(null);
+            setFrames([]);
+            setSelectedFrameNumber(-1);
+
             await resetStory();
 
             if (media_type == "photo") {
@@ -532,7 +624,7 @@ export default function ClioApp() {
                 getFramesInterval = setInterval(() => stateRef.current.getFrames(null, null), 10);
             }
         },
-        []
+        [resetStory, startCameraCapture, startAudioCapture]
     );
 
     const findNearestStrategy = useCallback(
@@ -599,7 +691,7 @@ export default function ClioApp() {
             // Get the selected story and jump to its first frame.
             getStory(story_id, 0);
         },
-        [stories, strategies]
+        [stories, strategies, getStory, findNearestStrategy]
     );
 
     const addNewFrame = useCallback(

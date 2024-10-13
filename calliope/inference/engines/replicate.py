@@ -121,10 +121,7 @@ async def replicate_text_to_text_inference(
     def make_replicate_request() -> Any:
         return replicate.run(
             "mistralai/mistral-7b-v0.1:3e8a0fb6d7812ce30701ba597e5080689bef8a013e5c6a724fafb108cc2426a0",
-            input={
-                "prompt": text,
-                **parameters
-            }
+            input={"prompt": text, **parameters},
         )
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -165,9 +162,9 @@ async def text_to_image_file_inference_replicate(
         "negative_prompt": ",".join(
             [
                 "Signature",
-                "people",
-                "photorealism",
-                "cell phones",
+                # "people",
+                # "photorealism",
+                # "cell phones",
                 "weird faces or hands",
                 "artist name",
                 "artist logo.",
@@ -185,6 +182,10 @@ async def text_to_image_file_inference_replicate(
         ),
     }
 
+    if width is not None and height is not None:
+        parameters["width"] = width
+        parameters["height"] = height
+
     os.environ["REPLICATE_API_TOKEN"] = keys.replicate_api_key
 
     loop = asyncio.get_event_loop()
@@ -193,18 +194,22 @@ async def text_to_image_file_inference_replicate(
         return replicate.run(
             # "stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
             model_name,
-            input={
-                **parameters
-            }
+            # "black-forest-labs/flux-pro",
+            input={**parameters},
         )
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
         future = executor.submit(make_replicate_request)
         image_urls = await loop.run_in_executor(None, future.result)
 
-    print(f"{image_urls=}")
-    if image_urls:
-        response = await httpx_client.get(image_urls[0])
+    if isinstance(image_urls, str):
+        image_url = image_urls
+    else:
+        image_url = image_urls[0]
+
+    print(f"{image_url=}")
+    if image_url:
+        response = await httpx_client.get(image_url)
         response.raise_for_status()
         f = await aiofiles.open(output_image_filename, mode="wb")
         await f.write(response.read())

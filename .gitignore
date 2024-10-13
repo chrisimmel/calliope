@@ -24,6 +24,7 @@ media/
 state/
 data/
 keepers/
+tmp/
 
 # C extensions
 *.so

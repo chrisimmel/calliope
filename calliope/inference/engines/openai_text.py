@@ -1,6 +1,6 @@
-import httpx
-from typing import Any, cast, Dict, Tuple
+from typing import Any, cast, Dict
 
+import httpx
 from openai import AsyncOpenAI
 
 from calliope.models import (
@@ -36,18 +36,17 @@ async def openai_text_to_text_inference(
     parameters = {
         **(
             cast(Dict[str, Any], model.model_parameters)
-            if model.model_parameters else {}
+            if model.model_parameters
+            else {}
         ),
         **(
             cast(Dict[str, Any], model_config.model_parameters)
-            if model_config.model_parameters else {}
+            if model_config.model_parameters
+            else {}
         ),
     }
 
-    client = AsyncOpenAI(
-        api_key=keys.openai_api_key,
-        http_client=httpx_client
-    )
+    client = AsyncOpenAI(api_key=keys.openai_api_key, http_client=httpx_client)
 
     if (
         model.provider_api_variant
@@ -77,11 +76,7 @@ async def openai_text_to_text_inference(
         )
 
         extended_text = completion.choices[0].text
-        extended_text = (
-            completion.choices[0].text
-            if completion.choices
-            else None
-        )
+        extended_text = completion.choices[0].text if completion.choices else None
         print(f"Completion response is: '{extended_text}'")
 
     return extended_text

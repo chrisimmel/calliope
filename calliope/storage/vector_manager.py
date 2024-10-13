@@ -1,14 +1,13 @@
-import os
 from typing import cast, List, Optional, Sequence, Tuple
 
 from langchain.docstore.document import Document
 
-# from langchain.embeddings.sentence_transformer import SentenceTransformerEmbeddings
-from langchain.embeddings.openai import OpenAIEmbeddings
+from langchain_community.embeddings import OpenAIEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_pinecone.vectorstores import PineconeVectorStore
 
 from calliope.models import KeysModel
+from calliope.settings import settings
 from calliope.tables.story import Story, StoryFrame
 from calliope.utils.google import get_cloud_environment
 
@@ -104,7 +103,7 @@ async def _send_story_to_pinecone(
     # pinecone.init(
     #    api_key=keys.pinecone_api_key, environment=os.environ.get("PINECONE_ENVIRONMENT")
     # )
-    index_name = os.environ.get("SEMANTIC_SEARCH_INDEX")
+    index_name = settings.SEMANTIC_SEARCH_INDEX
 
     pinecone_vector_store = await PineconeVectorStore.afrom_texts(
         [document.page_content for document in documents],
@@ -170,10 +169,10 @@ async def index_frames(
         keys = KeysModel()
 
     if not keys.pinecone_api_key:
-        keys.pinecone_api_key = os.environ.get("PINECONE_API_KEY")
+        keys.pinecone_api_key = settings.PINECONE_API_KEY
 
     if not keys.openai_api_key:
-        keys.openai_api_key = os.environ.get("OPENAI_API_KEY")
+        keys.openai_api_key = settings.OPENAI_API_KEY
 
     if force_reindex:
         # Clear the indexed_for_search field for all frames.
@@ -201,7 +200,7 @@ async def index_frames(
     # pinecone.init(
     #    api_key=keys.pinecone_api_key, environment=os.environ.get("PINECONE_ENVIRONMENT")
     # )
-    index_name = os.environ.get("SEMANTIC_SEARCH_INDEX")
+    index_name = settings.SEMANTIC_SEARCH_INDEX
 
     pinecone_vector_store = await PineconeVectorStore.afrom_texts(
         [document.page_content for document in documents],
@@ -227,10 +226,10 @@ async def send_all_stories_to_pinecone(keys: Optional[KeysModel] = None) -> None
         keys = KeysModel()
 
     if not keys.pinecone_api_key:
-        keys.pinecone_api_key = os.environ.get("PINECONE_API_KEY")
+        keys.pinecone_api_key = settings.PINECONE_API_KEY
 
     if not keys.openai_api_key:
-        keys.openai_api_key = os.environ.get("OPENAI_API_KEY")
+        keys.openai_api_key = settings.OPENAI_API_KEY
 
     stories = cast(
         Sequence[Story],
@@ -250,13 +249,13 @@ def semantic_search(
 ) -> Sequence[Tuple[Document, float]]:
     print(f"Semantic search for '{query}'...")
     if not pinecone_api_key:
-        pinecone_api_key = os.environ.get("PINECONE_API_KEY")
+        pinecone_api_key = settings.PINECONE_API_KEY
 
     if not openai_api_key:
-        openai_api_key = os.environ.get("OPENAI_API_KEY")
+        openai_api_key = settings.OPENAI_API_KEY
 
     print("Initialized Pinecone.")
-    index_name = os.environ.get("SEMANTIC_SEARCH_INDEX")
+    index_name = settings.SEMANTIC_SEARCH_INDEX
     if not index_name:
         raise ValueError("SEMANTIC_SEARCH_INDEX environment variable must be set.")
 

@@ -2,7 +2,6 @@ from datetime import datetime, timezone
 from typing import Optional
 from calliope.utils.file import FileMetadata
 
-import cuid
 from piccolo.table import Table
 from piccolo.columns import (
     ForeignKey,
@@ -67,7 +66,7 @@ class SparrowState(Table):
             )
         else:
             instance = SparrowState(
-                # id=cuid.cuid(),
+                # id=create_cuid(),
                 sparrow_id=sparrow_id,
                 date_created=date_created,
                 date_updated=date_updated,

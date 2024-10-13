@@ -1,6 +1,8 @@
 from enum import Enum
 from typing import Any, cast, Dict, List, Optional, Sequence, Tuple
 
+from rich import print
+
 from calliope.models import (
     FramesRequestParamsModel,
     KeysModel,
@@ -31,7 +33,7 @@ async def get_sparrow_config(sparrow_or_flock_id: str) -> Optional[SparrowConfig
         .where(SparrowConfig.client_id == sparrow_or_flock_id)
         .first()
         .output(load_json=True)
-        .run()
+        .run(),
     )
 
 
@@ -45,7 +47,7 @@ async def get_client_type_config(client_type_id: str) -> Optional[ClientTypeConf
         .where(ClientTypeConfig.client_id == client_type_id)
         .first()
         .output(load_json=True)
-        .run()
+        .run(),
     )
 
 
@@ -82,9 +84,7 @@ async def get_sparrow_story_parameters_and_keys(
             if sparrow_or_flock_config.parameters:
                 # Does the sparrow or flock have parameters?
                 sparrow_or_flock_params_dict = _get_non_default_parameters(
-                    load_json_if_necessary(
-                        sparrow_or_flock_config.parameters
-                    )
+                    load_json_if_necessary(sparrow_or_flock_config.parameters)
                 )
 
             """
@@ -110,9 +110,7 @@ async def get_sparrow_story_parameters_and_keys(
                 keys_dict = {**sparrow_or_flock_keys_dict, **keys_dict}
 
             # 4. Take the flock ID from the parent flock.
-            sparrow_or_flock_id = (
-                sparrow_or_flock_config.parent_flock_client_id
-            )
+            sparrow_or_flock_id = sparrow_or_flock_config.parent_flock_client_id
             if (
                 not sparrow_or_flock_id
                 and sparrow_or_flock_config.client_id != "default"
@@ -151,11 +149,18 @@ async def get_sparrow_story_parameters_and_keys(
             params_dict = {**client_type_config_dict, **params_dict}
 
     if not params_dict.get("strategy"):
-        params_dict["strategy"] = "continuous-v1"
+        params_dict["strategy"] = "lavender"
 
-    # TODO: Either reconcile parameters coming from the strategy_config with the rest
-    # of the params hierarchy, or remove them from the model.
     strategy_config = await get_strategy_config(params_dict["strategy"])
+    if strategy_config:
+        strategy_params = _get_non_default_parameters(
+            load_json_if_necessary(strategy_config.parameters)
+        )
+        params_dict = {**strategy_params, **params_dict}
+
+    print(
+        f"Merged parameters: {str({key: val for key, val in params_dict.items() if key != 'input_image'})}"
+    )
 
     return (
         FramesRequestParamsModel(**params_dict),
@@ -190,7 +195,7 @@ async def get_strategy_config(strategy_config_slug: str) -> StrategyConfig:
         .where(StrategyConfig.slug == strategy_config_slug)
         .first()
         .output(load_json=True)
-        .run()
+        .run(),
     )
 
     if not strategy_config:
@@ -212,7 +217,7 @@ async def get_strategy_config(strategy_config_slug: str) -> StrategyConfig:
             )
             .first()
             .output(load_json=True)
-            .run()
+            .run(),
         )
         print(f"Found {strategy_config.slug if strategy_config else None}.")
 

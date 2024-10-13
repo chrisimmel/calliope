@@ -2,7 +2,6 @@ from datetime import datetime, timezone
 import json
 from typing import cast, Optional, Sequence
 
-import cuid
 from piccolo.table import Table
 from piccolo.columns import (
     Boolean,
@@ -18,6 +17,7 @@ from calliope.models import StoryModel
 from calliope.models import StoryFrameModel
 from calliope.tables.image import Image
 from calliope.utils.file import FileMetadata
+from calliope.utils.id import create_cuid
 from calliope.utils.piccolo import load_json_if_necessary
 
 
@@ -156,9 +156,12 @@ class Story(Table):
     date_updated = Timestamptz(auto_update=datetime.now)
 
     async def get_frame_count(self) -> int:
-        return cast(int, await StoryFrame.count().where(
-            StoryFrame.story.id == self.id  # type: ignore[attr-defined]
-        ))
+        return cast(
+            int,
+            await StoryFrame.count().where(
+                StoryFrame.story.id == self.id  # type: ignore[attr-defined]
+            ),
+        )
 
     async def get_frames(
         self,
@@ -179,7 +182,9 @@ class Story(Table):
             StoryFrame.objects(StoryFrame.image, StoryFrame.source_image)
             if include_images
             else StoryFrame.objects()
-        ).where(StoryFrame.story.id == self.id)  # type: ignore[attr-defined]
+        ).where(
+            StoryFrame.story.id == self.id
+        )  # type: ignore[attr-defined]
 
         if not include_indexed_for_search:
             qs = qs.where(StoryFrame.indexed_for_search.eq(True))
@@ -244,9 +249,11 @@ class Story(Table):
         return "".join(fragments) if fragments else ""
 
     async def get_num_frames(self) -> int:
-        return int(await StoryFrame.count().where(
-            StoryFrame.story.id == self.id  # type: ignore[attr-defined]
-        ))
+        return int(
+            await StoryFrame.count().where(
+                StoryFrame.story.id == self.id  # type: ignore[attr-defined]
+            )
+        )
 
     async def compute_title(self) -> str:
         return await self.get_text(max_frames=1)
@@ -317,7 +324,7 @@ class Story(Table):
         created_for_sparrow_id: Optional[str] = None,
     ) -> "Story":
         return Story(
-            cuid=cuid.cuid(),
+            cuid=create_cuid(),
             strategy_name=strategy_name,
             created_for_sparrow_id=created_for_sparrow_id,
             date_created=datetime.now(timezone.utc),

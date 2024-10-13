@@ -77,7 +77,7 @@ class Image(Table):
         )
         if not instance:
             instance = Image(
-                # id=cuid.cuid(),
+                # id=create_cuid(),
                 date_created=date_created,
                 date_updated=date_updated,
                 width=width,
