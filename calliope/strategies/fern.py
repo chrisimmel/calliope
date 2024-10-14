@@ -226,7 +226,7 @@ class FernStrategy(StoryStrategy):
 
         if story_state:
             print(f"Updating story state to: {story_state}")
-            story.state_props = story_state
+            story.state_props = story_state.model_dump()
             await story.save()
 
         # Return the new frame.
