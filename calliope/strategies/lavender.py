@@ -79,7 +79,7 @@ class LavenderStrategy(StoryStrategy):
         frame_number = await story.get_num_frames()
 
         # Get some recent text.
-        last_text = await story.get_text(-10)
+        last_text = await story.get_text(-4)
         if not last_text or last_text.isspace():
             last_text = await self.get_seed_prompt(strategy_config)
 
