@@ -195,17 +195,18 @@ class TamariskStrategy(StoryStrategy):
             if target_language != "en":
                 try:
                     text = translate_text(target_language, text)
-                    text = (
-                        text.replace("&#39;", "'")
-                        .replace("&quot;", '"')
-                        .replace(" . ", ".\n\n")
-                        .replace(". ", ".\n\n")
-                        .replace("? ", ".\n\n")
-                        .replace("! ", ".\n\n")
-                    )
                 except Exception as e:
                     traceback.print_exc(file=sys.stderr)
                     errors.append(str(e))
+
+            text = (
+                text.replace("&#39;", "'")
+                .replace("&quot;", '"')
+                .replace(" . ", ".\n\n")
+                .replace(". ", ".\n\n")
+                .replace("? ", "?\n\n")
+                .replace("! ", "!\n\n")
+            )
 
         # Append and persist the frame to the story.
         frame = await self._add_frame(
