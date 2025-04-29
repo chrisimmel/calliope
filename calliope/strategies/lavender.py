@@ -69,7 +69,9 @@ class LavenderStrategy(StoryStrategy):
         )
 
         situation = get_local_situation_text(image_analysis, location_metadata)
-        debug_data = self._get_default_debug_data(parameters, strategy_config, situation)
+        debug_data = self._get_default_debug_data(
+            parameters, strategy_config, situation
+        )
         errors: List[str] = []
         prompt = None
         image = None
@@ -77,7 +79,7 @@ class LavenderStrategy(StoryStrategy):
         frame_number = await story.get_num_frames()
 
         # Get some recent text.
-        last_text = await story.get_text(-10)
+        last_text = await story.get_text(-4)
         if not last_text or last_text.isspace():
             last_text = await self.get_seed_prompt(strategy_config)
 
@@ -217,11 +219,11 @@ class LavenderStrategy(StoryStrategy):
     ) -> str:
         input_text = parameters.input_text
 
-        if last_text:
-            last_text_lines = last_text.split("\n")
-            last_text_lines = last_text_lines[-8:]
-            last_text = "\n".join(last_text_lines)
-        else:
+        if not last_text:
+            # last_text_lines = last_text.split("\n")
+            # last_text_lines = last_text_lines[-8:]
+            # last_text = "\n".join(last_text_lines)
+            # else:
             # If there is no text from the existing story,
             # fall back to either the input_text parameter
             # or the seed prompt, in that order of preference.

@@ -27,7 +27,7 @@ from calliope.tables import (
 )
 from calliope.utils.file import create_sequential_filename
 from calliope.utils.image import get_image_attributes
-from calliope.utils.text import translate_text
+from calliope.utils.text import split_into_sentences, translate_text
 
 
 @StoryStrategyRegistry.register()
@@ -96,12 +96,14 @@ class TamariskStrategy(StoryStrategy):
             else:
                 last_text = ""
 
+        last_text_was_unterminated = False
         if last_text:
             last_text_tokens = last_text.split(" ")
             last_text_tokens = last_text_tokens[-40:]
             last_text = " ".join(last_text_tokens)
             if last_text.endswith("..."):
                 last_text = last_text[:-3]
+                last_text_was_unterminated = True
 
         in_text = f"{input_text} {last_text}"
         out_text = ""
@@ -152,6 +154,7 @@ class TamariskStrategy(StoryStrategy):
 
         text = await self._clean_up_text(
             text=text,
+            last_text_was_unterminated=last_text_was_unterminated,
             keys=keys,
             errors=errors,
             httpx_client=httpx_client,
@@ -195,17 +198,25 @@ class TamariskStrategy(StoryStrategy):
             if target_language != "en":
                 try:
                     text = translate_text(target_language, text)
-                    text = (
-                        text.replace("&#39;", "'")
-                        .replace("&quot;", '"')
-                        .replace(" . ", ".\n\n")
-                        .replace(". ", ".\n\n")
-                        .replace("? ", ".\n\n")
-                        .replace("! ", ".\n\n")
-                    )
                 except Exception as e:
                     traceback.print_exc(file=sys.stderr)
                     errors.append(str(e))
+
+            text = (
+                text.replace("&#39;", "'")
+                .replace("&quot;", '"')
+                .replace(" . ", ". ")
+                .replace(" ? ", "? ")
+                .replace(" ! ", "! ")
+                # .replace(". ", ".\n\n")
+                # .replace("? ", "?\n\n")
+                # .replace("! ", "!\n\n")
+            )
+            sentences = split_into_sentences(text)
+            text = "\n\n".join(sentences)
+
+        if text and last_text_was_unterminated:
+            text = "..." + text.strip()
 
         # Append and persist the frame to the story.
         frame = await self._add_frame(
@@ -261,6 +272,7 @@ class TamariskStrategy(StoryStrategy):
     async def _clean_up_text(
         self,
         text: str,
+        last_text_was_unterminated: bool,
         keys: KeysModel,
         errors: list[str],
         httpx_client: httpx.AsyncClient,
@@ -272,16 +284,27 @@ class TamariskStrategy(StoryStrategy):
         if not text:
             return text
 
+        first_sentence_exception = ""
+        if last_text_was_unterminated:
+            first_sentence_exception = """
+
+An exception to the rules is that the first sentence may appear to be a fragment
+because it is a completion of prior text. It can be left as a fragment, and its
+first word should not be capitalized unless it is a proper noun.
+
+"""
+
         prompt = f"""You are a fiction editor, given a text by a creative author prone
 to errors of punctuation and grammar. Correct these errors, while preserving any
 qualities the text may have of surrealism or even nonsense. If you see text like this:
 "i a m b a d l y  f o r m a t t e d", remove the superfluous spaces and rewrite it like
 this: "iambadly formatted". Remove anything that resembles computer source code,
-filenames, or technical aspects of the Web. Replace any mention of American presidential
-politics with something crazy and fanciful. If the text breaks off mid-sentence, finish
-the thought while preserving the author's intent and style, ending the sentence with
-correct grammar and punctuation.
-
+filenames, technical aspects of the Web, or discussion of computer software. Remove
+any mention of American presidential politics. If the final sentence does not end with
+a punctuation mark, add the appropriate punctuation. If it is a sentence fragment, use
+an ellipsis as the final punctuation. If it ends mid-word, replace the partial word with
+an ellipsis.
+{first_sentence_exception}
 Include nothing in your response but the corrected text.
 
 Here is the text to correct:

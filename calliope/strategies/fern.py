@@ -58,6 +58,11 @@ class StoryStateModel(BaseModel):
     atmosphere: str
     principal_setting: str
     secondary_settings: list[str]
+    sources_of_conflict: list[str]
+    past_story_developments: list[str]
+    current_story_development: str
+    possible_future_story_developments: list[str]
+    story_summary: str
     other_elements: dict[str, str]
 
 
@@ -103,7 +108,9 @@ class FernStrategy(StoryStrategy):
         )
 
         situation = get_local_situation_text(image_analysis, location_metadata)
-        debug_data = self._get_default_debug_data(parameters, strategy_config, situation)
+        debug_data = self._get_default_debug_data(
+            parameters, strategy_config, situation
+        )
         errors: List[str] = []
         image = None
 
@@ -219,7 +226,7 @@ class FernStrategy(StoryStrategy):
 
         if story_state:
             print(f"Updating story state to: {story_state}")
-            story.state_props = story_state
+            story.state_props = story_state.model_dump()
             await story.save()
 
         # Return the new frame.
@@ -318,6 +325,10 @@ the story continues.
 always add more settings later.
 * any other elements you think are important to the story. This can include themes, objects,
 events, ideas for character or story development, or anything else you think is important.
+* sources_of_conflict - any conflict or tension you think the story might have.
+* past_story_developments - this will be empty for now (unless there is backstory).
+* current_story_development - what will be the initial thing happening in the story.
+* possible_future_story_developments - ideas for future story development.
 
 A muse is here to help you by introducing less linear or expected aspects to the story.
 You can find their contribution in the <MUSE_TEXT>. If you see lively, imaginative, or
@@ -362,6 +373,15 @@ Assemble your story scenario into the following JSON structure:
          "<ANOTHER STORY LOCATION>",
          etc.
     ],
+    "sources_of_conflict": [
+        "<ANY CONFLICTS OR TENSIONS IN THE STORY>"
+    ],
+    "past_story_developments: [
+        "<ANY PAST STORY DEVELOPMENTS>"
+    ],
+    "current_story_development: "<WHAT IS HAPPENING NOW IN THE STORY>",
+    "possible_future_story_developments: "<IDEAS FOR FUTURE STORY DEVELOPMENTS>",
+    "story_summary": "<SUMMARY OF THE STORY (initially empty)>",
     "other_elements": {
         <ANY OTHER PERTINENT STORY ELEMENTS>
     }
@@ -414,11 +434,11 @@ Assemble your story scenario into the following JSON structure:
     ) -> list[ChatCompletionMessageParam]:
         input_text = parameters.input_text
 
-        if last_text:
-            last_text_lines = last_text.split("\n")
-            last_text_lines = last_text_lines[-8:]
-            last_text = "\n".join(last_text_lines)
-        else:
+        if not last_text:
+            #     last_text_lines = last_text.split("\n")
+            #     last_text_lines = last_text_lines[-8:]
+            #     last_text = "\n".join(last_text_lines)
+            # else:
             # If there is no text from the existing story,
             # fall back to either the input_text parameter
             # or the seed prompt, in that order of preference.
@@ -474,7 +494,18 @@ are cobblestone streets. You don't need to say it again now.
 A muse is here to help you by introducing less linear or expected aspects to the story.
 You can find their contribution in the <MUSE_TEXT>. If you see lively, imaginative, or
 otherwise interesting elements in the <MUSE_TEXT>, find ways to use them as inspiration
-for any aspect of your story, characters, setting, etc. where they may fit.
+for any aspect of your story, characters, setting, etc. where they may fit. You may even
+quote literally from the <MUSE_TEXT>.
+
+Similarly, there may sometimes be overheard <SPOKEN_TEXT> that you can treat either as
+something overheard within the story, or possibly as commentary on the story itself.
+Use it if you can.
+
+Don't let too much time go by without something new happening, or a change of direction.
+You can keep track of possible_future_story_developments in the story state, and move
+them to the current_story_development when they are ready (or delete them if they
+beceome irrelevant). When a current_story_development is no longer in progress, move
+it to past_story_developments.
 
 Avoid letting the cast grow too large. If new characters appear in the situation, input image,
 or muse text, consider merging them with existing characters.""".strip(),
@@ -517,6 +548,15 @@ Format the Continuation, Illustration, and updated Story State as a JSON object 
          "<ANOTHER STORY LOCATION>",
          etc.
     ],
+    "sources_of_conflict": [
+        "<ANY CONFLICTS OR TENSIONS>"
+    ],
+    "past_story_developments: [
+        "<ANY PAST STORY DEVELOPMENTS>"
+    ],
+    "current_story_development: "<WHAT IS HAPPENING NOW (move to past_story_developments when events are over)>",
+    "possible_future_story_developments: "<IDEAS FOR FUTURE STORY DEVELOPMENTS>",
+    "story_summary": "<SUMMARY OF THE STORY (condense and extend as new things happen)>",
     "other_elements": {
         <ANY OTHER PERTINENT STORY ELEMENTS>
     }
@@ -547,6 +587,14 @@ Format the Continuation, Illustration, and updated Story State as a JSON object 
 <MUSE_TEXT>
 {muse_text}
 </MUSE_TEXT>
+""".strip(),
+            },
+            {
+                "role": "system",
+                "content": f"""
+<SPOKEN_TEXT>
+{input_text}
+</SPOKEN_TEXT>
 """.strip(),
             },
             {
