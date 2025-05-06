@@ -6,7 +6,7 @@
 
 In Greek mythology, Calliope (/kəˈlaɪ.əpi/ kə-LY-ə-pee; Ancient Greek: Καλλιόπη, romanized: Kalliópē, lit. 'beautiful-voiced') is the Muse who presides over eloquence and epic poetry; so called from the ecstatic harmony of her voice. Hesiod and Ovid called her the "Chief of all Muses".
 
-Calliope is an experimental framework that brings modern AI tools like generative AI (large language models and image generation models), computer vision, and vector databases into the service of the creation of interactive art works. The core system is a flexible framework, service, and API that enables an artist to build repeatable interaction strategies. The API can accept inputs such as images, text, and voice, then process these through an artist-defined pipeline of AI models to generate text and image output.
+Calliope is an experimental agentic framework that brings modern AI tools like generative AI (large language models and image generation models), computer vision, and vector databases into the service of the creation of interactive art works. The core system is a flexible framework, service, and API that enables an artist to build repeatable interaction strategies. The API can accept inputs such as images, text, and voice, then process these through an artist-defined pipeline of AI models to generate text and image output.
 
 The focus is on enabling the creation of works that are "aware" of the environment in which they are installed or running, in the sense that they can see, hear, and react to things or people in that environment. This is currently limited to image input, such as from a Webcam, but the hope is to extend that to cover audio input as well, including speech recognition.
 
@@ -17,6 +17,8 @@ The focus is on enabling the creation of works that are "aware" of the environme
 * Images are interpreted by a combination of a multimodal LLM (GPT-4o, Claude, Gemini) and the Azure computer vision API to generate a rich text description, lists of recognized objects and text, and metadata that can be passed to other components as input.
 
 * Large language model prompts are stored, manipulated, and applied along with the other processing modules in graphs (prompt chaining) that can be pre-programmed or dynamically created at runtime.  LLMs are driven via LangChain (although this isn't central to the framework).
+
+* Work is under way to add video to Calliope and Clio. Stories will be illustrated with video as well as images, generated initially by the Runway API, with others added as needed.
 
 * A semantic search facility is provided using the Pinecone vector database, with a scheduled ETL pipeline to index generated media.
 
