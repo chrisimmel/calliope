@@ -77,6 +77,12 @@ async def replicate_vision_inference(
 
     return "".join(list(output))
 
+MODEL_IDS_BY_NAME = {
+    "mistralai/mistral-7b": "mistralai/mistral-7b-v0.1:3e8a0fb6d7812ce30701ba597e5080689bef8a013e5c6a724fafb108cc2426a0",
+    # "mistralai/mixtral-8x7b-instruct-v0.1": "mistralai/mixtral-8x7b-instruct-v0.1",
+    "replicate/gpt-j-6b": "replicate/gpt-j-6b:b3546aeec6c9891f0dd9929c2d3bedbf013c12e02e7dd0346af09c37e008c827",
+}
+
 
 async def replicate_text_to_text_inference(
     httpx_client: httpx.AsyncClient,
@@ -106,29 +112,36 @@ async def replicate_text_to_text_inference(
         ),
     }
 
-    parameters = {
-        "debug": False,
-        "top_k": 50,
-        "top_p": 0.9,
-        "temperature": 0.7,
-        "max_new_tokens": 600,
-        "min_new_tokens": -1,
-        # **parameters
-    }
+    # parameters = {
+    #     "debug": False,
+    #     "top_k": 50,
+    #     "top_p": 0.9,
+    #     "temperature": 0.7,
+    #     "max_new_tokens": 600,
+    #     "min_new_tokens": -1,
+    #     # **parameters
+    # }
 
     loop = asyncio.get_event_loop()
 
+    model_id = MODEL_IDS_BY_NAME.get(model.provider_model_name)
+    if not model_id:
+        raise ValueError(f"Unknown provider_model_name: {model.provider_model_name}")
+
+    print(f"make_replicate_request {model_id=}, {text=}, {parameters=}")
     def make_replicate_request() -> Any:
         return replicate.run(
-            "mistralai/mistral-7b-v0.1:3e8a0fb6d7812ce30701ba597e5080689bef8a013e5c6a724fafb108cc2426a0",
+            model_id,
             input={"prompt": text, **parameters},
         )
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
         future = executor.submit(make_replicate_request)
         output = await loop.run_in_executor(None, future.result)
+    output_text = "".join(list(output))
+    print(f"output: {output_text=}")
 
-    return "".join(list(output))
+    return output_text
 
 
 async def text_to_image_file_inference_replicate(
