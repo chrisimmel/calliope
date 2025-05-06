@@ -4,10 +4,11 @@ from typing import Any, Optional
 import httpx
 import aiofiles
 import openai
+from openai import AsyncOpenAI
 
 from calliope.models import KeysModel
 from calliope.tables import ModelConfig
-from calliope.utils.file import encode_image_file_to_b64
+from calliope.utils.file import decode_b64_to_file, encode_image_file_to_b64
 
 
 async def text_to_image_file_inference_openai(
@@ -20,8 +21,7 @@ async def text_to_image_file_inference_openai(
     height: Optional[int] = None,
 ) -> str:
     """
-    Uses DALL-E 2 via the OpenAI API to interpret a piece of text as
-    an image.
+    Generate an image from a prompt using an OpenAI model (gpt-image-1, DALL-E 3, DALL-E 2).
 
     Args:
         httpx_client: the async HTTP session.
@@ -36,12 +36,13 @@ async def text_to_image_file_inference_openai(
     Returns:
         the filename of the generated image.
     """
+    model_name = model_config.model.provider_model_name
+
     params = {
         "prompt": text,
         "n": 1,
     }
-
-    if width and height:
+    if width and height and "DALL-E" in model_name:
         # DALL-E supports images of size 256x256, 512x512, or 1024x1024.
         # The resulting image will be scaled and padded downstream to fit the
         # client's requested dimensions.
@@ -52,19 +53,21 @@ async def text_to_image_file_inference_openai(
         else:
             width = height = 256
         params["size"] = f"{width}x{height}"
-    # If width and height aren't given, we let them default in the API/model.
+    else:
+        # Hardcode to a square image for gpt-image-1.
+        # (fastest, and fits our standard usecase)
+        params["size"] = "1024x1024"
 
-    openai.api_key = keys.openai_api_key
-    openai.aiosession.set(httpx_client)
-    openai_response = await openai.Image.acreate(**params)
+    client = AsyncOpenAI(api_key=keys.openai_api_key, http_client=httpx_client)
 
-    image_url = openai_response["data"][0]["url"]
-    response = await httpx_client.get(image_url)
-    response.raise_for_status()
-    f = await aiofiles.open(output_image_filename, mode="wb")
-    await f.write(response.read())
-    await f.close()
+    # openai_response = await openai.Image.acreate(**params)
+    response = await client.images.generate(
+        model=model_name,
+        prompt=text,
+    )
 
+    image_base64 = response.data[0].b64_json
+    decode_b64_to_file(image_base64, output_image_filename)
     return output_image_filename
 
 
