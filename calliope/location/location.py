@@ -3,15 +3,14 @@ from ipaddress import ip_address
 from typing import Any, Dict, Optional
 import yaml
 
-from calliope.intel.time import get_local_datetime, get_season
-from calliope.intel.astronomy import (
+from calliope.location.time import get_local_datetime, get_season
+from calliope.location.astronomy import (
     get_active_meteor_showers,
     get_night_sky_objects,
     get_solar_eclipse_of_the_day,
 )
-from calliope.intel.weather import get_weather_at_location
+from calliope.location.weather import get_weather_at_location
 from calliope.models import BasicLocationMetadataModel, FullLocationMetadata, Hemisphere
-from calliope.utils.text import format_sequence
 
 
 def is_ip_private(ip: str) -> bool:

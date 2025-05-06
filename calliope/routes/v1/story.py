@@ -11,7 +11,7 @@ from pydantic import BaseModel
 
 from calliope.inference import image_analysis_inference
 from calliope.inference.audio_to_text import audio_to_text_inference
-from calliope.intel.location import get_location_metadata_for_ip
+from calliope.location.location import get_location_metadata_for_ip
 from calliope.models import (
     FramesRequestParamsModel,
     ImageModel,
@@ -480,7 +480,6 @@ async def prepare_input_files(
             request_params.input_audio_filename = input_audio_filename_wav
         else:
             print(f"Warning: ffmpeg failed with return code {retval}")
-            # raise RuntimeError(f"ffmpeg command failed with return code {retval}")
             # Whisper claims to understand webm, so let it try.
             request_params.input_audio_filename = input_audio_filename_webm
 

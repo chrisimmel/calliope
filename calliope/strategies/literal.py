@@ -7,7 +7,7 @@ import httpx
 from calliope.inference import (
     text_to_image_file_inference,
 )
-from calliope.intel.location import get_local_situation_text
+from calliope.location.location import get_local_situation_text
 from calliope.models import (
     FramesRequestParamsModel,
     FullLocationMetadata,

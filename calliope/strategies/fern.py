@@ -1,18 +1,18 @@
 import json
 import sys
 import traceback
-from typing import Any, cast, Dict, List, Optional
+from typing import Any, Literal, cast, Dict, List, Optional
 
 import httpx
 from openai.types.chat import ChatCompletionMessageParam
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from calliope.inference import (
     messages_to_object_inference,
     text_to_text_inference,
     text_to_image_file_inference,
 )
-from calliope.intel.location import get_local_situation_text
+from calliope.location.location import get_local_situation_text
 from calliope.models import (
     FramesRequestParamsModel,
     FullLocationMetadata,
@@ -22,6 +22,7 @@ from calliope.models.frame_sequence_response import StoryFrameSequenceResponseMo
 from calliope.strategies.base import StoryStrategy
 from calliope.strategies.registry import StoryStrategyRegistry
 from calliope.tables import (
+    Image,
     InferenceModel,
     ModelConfig,
     PromptTemplate,
@@ -29,7 +30,7 @@ from calliope.tables import (
     Story,
     StrategyConfig,
 )
-from calliope.utils.file import create_sequential_filename
+from calliope.utils.file import create_character_filename, create_sequential_filename
 from calliope.utils.image import get_image_attributes
 from calliope.utils.text import (
     balance_quotes,
@@ -40,36 +41,36 @@ from calliope.utils.text import (
 
 
 class CharacterModel(BaseModel):
-    name: str
-    description: str
-    goal: str
-    hair_color: str
-    gender: str
-    approximate_age: str
-    personality: str
-    typical_attire: str
-    other_attributes: dict[str, str]
+    name: str = Field(description="The character's name.")
+    description: str = Field(description="Overall description of the character.")
+    goal: str = Field(description="What do they want?")
+    hair_color: str = Field(description="Their hair color.")
+    gender: str = Field(description="Their estimated biological gender.")
+    approximate_age: Literal["child", "young_adult", "adult", "middle_aged", "old_and_wise"] = Field(description="Their approximate age.")
+    personality: str = Field(description="Their personality.")
+    typical_attire: str = Field(description="What kind of clothes do they usually wear?")
+    other_attributes: dict[str, str] = Field(description="Any other notable attributes of the character not otherwise captured by this schema.")
 
 
 class StoryStateModel(BaseModel):
-    genre: str
-    conceit: str
-    cast: list[CharacterModel]
-    atmosphere: str
-    principal_setting: str
-    secondary_settings: list[str]
-    sources_of_conflict: list[str]
-    past_story_developments: list[str]
-    current_story_development: str
-    possible_future_story_developments: list[str]
-    story_summary: str
-    other_elements: dict[str, str]
+    genre: str = Field(description="The story's genre.", examples=["Science Fiction", "Mystery", "Adventure"])
+    conceit: str = Field(description="The overall conceit or concept of the story.")
+    cast: list[CharacterModel] = Field(description="A list of characters in the story.")
+    atmosphere: str = Field(description="A description of the story's atmosphere, if pertinent.")
+    principal_setting: str = Field(description="Where the story mainly takes place.")
+    secondary_settings: list[str] = Field(description="A list of secondary settings in the story.")
+    sources_of_conflict: list[str] = Field(description="A list of sources of conflict or tension in the story.")
+    past_story_developments: list[str] = Field(description="Any past story developments.")
+    current_story_development: str = Field(description="What is happening now in the story.")
+    possible_future_story_developments: list[str] = Field(description="A list of ideas for future story developments.")
+    story_summary: str = Field(description="A summary of the story.")
+    other_elements: dict[str, str] = Field(description="Any other pertinent story elements.")
 
 
 class ExtendStoryResponseModel(BaseModel):
-    continuation: str
-    illustration: str
-    story_state: StoryStateModel
+    continuation: str = Field(description="The continuation of the story. This is the actual text the reader will read.")
+    illustration: str = Field(description="A detailed description of a visual illustration of this portion of the story. This will be used to generate an image.")
+    story_state: StoryStateModel = Field(description="The updated story state, including the genre, conceit, cast of characters, atmosphere, settings, sources of conflict, past and current story developments, possible future story developments, and any other elements.")
 
 
 @StoryStrategyRegistry.register()
@@ -135,6 +136,7 @@ class FernStrategy(StoryStrategy):
 
         muse_text = await self._consult_muse(last_text, errors, keys, httpx_client)
         print(f"{muse_text=}")
+        muse_text = None
 
         messages = self._compose_messages(
             parameters,
@@ -512,61 +514,6 @@ or muse text, consider merging them with existing characters.""".strip(),
             },
             {
                 "role": "system",
-                "content": """
-Format the Continuation, Illustration, and updated Story State as a JSON object as in this example:
-<JSON_OUTPUT_EXAMPLE>
-{
-  "continuation": "As the morning grew cloudy, they rose and walked toward the house. A tree laden with ripe oranges caught Will's eye. Its branches hung low over an old white wall and there was a small fountain in front of it – its bowl filled with dirt and sprouting green plants. A little bird perched on the edge of the fountain as if to welcome them into this beautiful oasis. As they drew closer, Will saw a book: The Lord of the Rings. He breathed in the autumn air and thought of Frodo and his bold adventure beyond the Shire. Maybe Will and Abigail should set out on a new adventure of their own.",
-
-  "illustration": "A small tree with oranges stands next to a fountain with a bird perched on it. A book rests on a table next to the tree. It is a cloudy autumn day, casting a melancholy atmosphere on the scene."
-
-  "story_state": {
-    "genre": "Fantasy",
-    "conceit": "A young couple discovers a hidden garden.",
-    "cast": [
-      {
-        "name": "THE NAME OF CHARACTER 1",
-        "description": "<OVERALL DESCRIPTION OF CHARACTER 1>",
-        "goal": "<WHAT DOES CHARACTER 1 WANT>",
-        "hair_color": "<HAIR COLOR OF CHARACTER 1>",
-        "gender": "<ESTIMATED BIOLOGICAL GENDER OF CHARACTER 1>",
-        "approximate_age": "<ONE OF: 'child', 'young_adult', 'adult', 'middle_aged', 'old_and_wise'>",
-        "personality": "<PERSONALITY OF CHARACTER 1>",
-        "typical_attire": "<WHAT KIND OF CLOTHES CHARACTER 1 USUALLY WEARS>"
-        "other_attributes": {
-          <ANYTHING NOTABLE ABOUT CHARACTER 1 THAT ISN'T OTHERWISE CAPTURED BY THIS SCHEMA>
-        }
-      },
-      {
-        <SAME FOR CHARACTER 2>
-      },
-      etc.
-    ],
-    "atmosphere": "<A DESCRIPTION OF THE STORY'S ATMOSPHERE, IF PERTINENT>",
-    "principal_setting": "<WHERE THE STORY MAINLY TAKES PLACE>",
-    "secondary_settings": [
-         "<ANOTHER STORY LOCATION>",
-         etc.
-    ],
-    "sources_of_conflict": [
-        "<ANY CONFLICTS OR TENSIONS>"
-    ],
-    "past_story_developments: [
-        "<ANY PAST STORY DEVELOPMENTS>"
-    ],
-    "current_story_development: "<WHAT IS HAPPENING NOW (move to past_story_developments when events are over)>",
-    "possible_future_story_developments: "<IDEAS FOR FUTURE STORY DEVELOPMENTS>",
-    "story_summary": "<SUMMARY OF THE STORY (condense and extend as new things happen)>",
-    "other_elements": {
-        <ANY OTHER PERTINENT STORY ELEMENTS>
-    }
-  }
-}
-</JSON_OUTPUT_EXAMPLE>
-            """.strip(),
-            },
-            {
-                "role": "system",
                 "content": f"""
 <STORY_STATE>
 {story_state}
@@ -581,14 +528,14 @@ Format the Continuation, Illustration, and updated Story State as a JSON object 
 </SITUATION>
 """.strip(),
             },
-            {
-                "role": "system",
-                "content": f"""
-<MUSE_TEXT>
-{muse_text}
-</MUSE_TEXT>
-""".strip(),
-            },
+#             {
+#                 "role": "system",
+#                 "content": f"""
+# <MUSE_TEXT>
+# {muse_text}
+# </MUSE_TEXT>
+# """.strip(),
+#             },
             {
                 "role": "system",
                 "content": f"""
@@ -681,3 +628,57 @@ Format the Continuation, Illustration, and updated Story State as a JSON object 
             text += "\n\n"
 
         return text
+
+    async def _create_character_image(
+        self,
+        httpx_client: httpx.AsyncClient,
+        client_id: str,
+        story: Story,
+        strategy_config: StrategyConfig,
+        keys: KeysModel,
+        character: CharacterModel,
+    ) -> Image:
+        """
+        Creates a reference image based on a character's attributes.
+        """
+
+        prompt = f"""Generate a photographic image showing the following character in two different poses.
+The face must be clearly visible, as well as the basic overall look, costume, and aspects of the
+personality of the character. One pose must show the face from a direct frontal angle. The other must
+show a profile. We will use this image as a reference when generating further images
+of the character in other situations.
+
+name: {character.name}
+description: {character.description}
+goal: {character.goal}
+hair_color: {character.hair_color}
+gender: {character.gender}
+approximate_age: {character.approximate_age}
+personality: {character.personality}
+typical_attire: {character.typical_attire}
+other_attributes: {character.other_attributes}
+        """
+
+        print(f'Image prompt: "{prompt}"')
+
+        try:
+            output_image_filename_png = create_character_filename(
+                "media", client_id, story.cuid, create_character_filename, "png"
+            )
+            await text_to_image_file_inference(
+                httpx_client,
+                prompt,
+                output_image_filename_png,
+                strategy_config.text_to_image_model_config,
+                keys,
+                512,
+                512,
+            )
+            output_image_filename = output_image_filename_png
+            print(f"Wrote image to file {output_image_filename}.")
+            image = get_image_attributes(output_image_filename)
+            print(f"Image: {image}.")
+            return image
+        except Exception as e:
+            traceback.print_exc(file=sys.stderr)
+            print(f"Error generating character image: {e}")

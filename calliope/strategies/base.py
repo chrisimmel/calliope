@@ -192,7 +192,7 @@ class StoryStrategy(object, metaclass=ABCMeta):
                 strategy_config.seed_prompt_template = await strategy_config.get_related(
                     StrategyConfig.seed_prompt_template
                 )
-            print(f"Seed prompt template: {strategy_config.seed_prompt_template.text}")
+            # print(f"Seed prompt template: {strategy_config.seed_prompt_template.text}")
             return cast(str, strategy_config.seed_prompt_template.text or "")
 
         return ""
