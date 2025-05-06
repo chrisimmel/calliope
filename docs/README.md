@@ -18,6 +18,8 @@ The focus is on enabling the creation of works that are "aware" of the environme
 
 * Large language model prompts are stored, manipulated, and applied along with the other processing modules in graphs (prompt chaining) that can be pre-programmed or dynamically created at runtime.  LLMs are driven via LangChain (although this isn't central to the framework).
 
+* Work is under way to add video to Calliope and Clio. Stories will be illustrated with video as well as images, generated initially by the Runway API, with others added as needed.
+
 * A semantic search facility is provided using the Pinecone vector database, with a scheduled ETL pipeline to index generated media.
 
 There is a strong emphasis on narrative structure. Calliope invents and recites stories. This can be through any client of
