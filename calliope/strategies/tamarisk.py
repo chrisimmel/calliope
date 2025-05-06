@@ -8,7 +8,7 @@ from calliope.inference import (
     text_to_text_inference,
     text_to_image_file_inference,
 )
-from calliope.intel.location import get_local_situation_text
+from calliope.location.location import get_local_situation_text
 from calliope.models import (
     FramesRequestParamsModel,
     FullLocationMetadata,
@@ -136,7 +136,7 @@ class TamariskStrategy(StoryStrategy):
                         if len(out_text):
                             out_text += " "
                         out_text += text_n
-                        if len(out_text) > 500:
+                        if len(out_text) > 300:
                             break
                     else:
                         # Things seem to be broken.
@@ -250,7 +250,6 @@ class TamariskStrategy(StoryStrategy):
         """
         Gets a new story fragment to be used in building the frame's text.
         """
-        fragment_len = len(text)
         print(f'_get_new_story_fragment: "{text=}"')
 
         try:
@@ -261,7 +260,6 @@ class TamariskStrategy(StoryStrategy):
             traceback.print_exc(file=sys.stderr)
             errors.append(str(e))
 
-        text = text[fragment_len:]
         text = " ".join(text.split(" "))
         text = text.replace("*", "")
         text = text.replace("_", "")
