@@ -13,7 +13,8 @@ from calliope.tables import ModelConfig
 
 
 def _hugging_face_model_to_api_url(model_name: str) -> str:
-    return f"https://api-inference.huggingface.co/models/{model_name}"
+    # A HuggingFace model name may instead be a direct URL to an inference endpoint.
+    return model_name if model_name.startswith("https") else f"https://api-inference.huggingface.co/models/{model_name}"
 
 
 async def _hugging_face_request(
@@ -42,7 +43,9 @@ async def _hugging_face_request(
     if content_type:
         headers["Content-Type"] = content_type
 
+    print(f"_hugging_face_request: {api_url=}, {headers=}, {data=}")
     response = await httpx_client.post(api_url, headers=headers, data=data)
+    print(f"{response=}")
     response.raise_for_status()
     return response
 
@@ -67,14 +70,20 @@ async def _text_to_text_inference_hugging_face_http(
     """
     model = model_config.model
     text = text.replace(":", "")
-    payload = {"inputs": text, "return_full_text": False, "max_new_tokens": 250}
+    text = text[-100:]
+    payload = {"inputs": text, "max_new_tokens": 150}
     data = json.dumps(payload)
     response = await _hugging_face_request(
         httpx_client, data, model.provider_model_name, keys, "application/json"
     )
     predictions = response.json()
-    return predictions[0]["generated_text"] or ""
+    out_text = predictions[0]["generated_text"] or ""
 
+    if "neo" in model.slug:
+        # Hack to remove input text from the output of gpt-neo output.
+        out_text = out_text[len(text):]
+
+    return out_text
 
 async def _text_to_text_inference_hugging_face_langchain(
     httpx_client: httpx.AsyncClient,
