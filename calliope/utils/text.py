@@ -36,23 +36,36 @@ acronyms = "([A-Z][.][A-Z][.](?:[A-Z][.])?)"
 websites = "[.](com|net|org|io|gov|edu|me)"
 digits = "([0-9])"
 multiple_dots = r"\.{2,}"
+abbreviations = [
+    "etc.", "i.e.", "e.g.", "vs.", "Mr.", "Mrs.", "Ms.", "Dr.", "Prof.",
+    "Inc.", "Ltd.", "Co.", "Jr.", "Sr.", "St.", "Ave.", "Blvd.", "Rd.",
+    "Ph.D.", "M.D.", "B.A.", "M.A.", "U.S.", "U.K.", "U.N."
+]
 
 
 def split_into_sentences(text: str) -> List[str]:
     """
     Splits text into a list of sentences.
-    Courtesy: https://stackoverflow.com/questions/4576077/how-can-i-split-a-text-into-sentences
+    Improved from: https://stackoverflow.com/questions/4576077/how-can-i-split-a-text-into-sentences
     """  # noqa: E501
+
     text = " " + text + "  "
     text = text.replace("\n", " ")
+
+    # Handle all abbreviations
+    for abbr in abbreviations:
+        if abbr in text:
+            # Replace period in abbreviation with placeholder
+            abbr_no_period = abbr.replace(".", "<prd>")
+            text = text.replace(abbr, abbr_no_period)
+
     text = re.sub(prefixes, "\\1<prd>", text)
     text = re.sub(websites, "<prd>\\1", text)
     text = re.sub(digits + "[.]" + digits, "\\1<prd>\\2", text)
     text = re.sub(
         multiple_dots, lambda match: "<prd>" * len(match.group(0)) + "<stop>", text
     )
-    if "Ph.D" in text:
-        text = text.replace("Ph.D.", "Ph<prd>D<prd>")
+
     text = re.sub("\s" + alphabets + "[.] ", " \\1<prd> ", text)
     text = re.sub(acronyms + " " + starters, "\\1<stop> \\2", text)
     text = re.sub(
@@ -65,10 +78,10 @@ def split_into_sentences(text: str) -> List[str]:
     text = re.sub(" " + suffixes + "[.]", " \\1<prd>", text)
     text = re.sub(" " + alphabets + "[.]", " \\1<prd>", text)
 
-    text = text.replace("”", '"')
-    text = text.replace("“", '"')
-    text = text.replace("‘", "'")
-    text = text.replace("’", "'")
+    text = text.replace(""", '"')
+    text = text.replace(""", '"')
+    text = text.replace("'", "'")
+    text = text.replace("'", "'")
 
     text = text.replace('."', '".')
     text = text.replace('!"', '"!')

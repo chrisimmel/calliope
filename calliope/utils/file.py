@@ -108,6 +108,21 @@ def create_sequential_filename(
     )
 
 
+def create_character_filename(
+    directory: str,
+    client_id: str,
+    story_cuid: str,
+    character_name: str,
+    extension: str,
+) -> str:
+    return compose_full_filename(
+        directory,
+        client_id,
+        f"{story_cuid}.{slugify(character_name)}.{extension}",
+    )
+
+
+
 T = TypeVar("T")
 
 

@@ -159,7 +159,7 @@ async def get_sparrow_story_parameters_and_keys(
         params_dict = {**strategy_params, **params_dict}
 
     print(
-        f"Merged parameters: {str({key: val for key, val in params_dict.items() if key != 'input_image'})}"
+        f"Merged parameters: {str({key: val for key, val in params_dict.items() if key not in ('input_image', 'input_audio')})}"
     )
 
     return (
