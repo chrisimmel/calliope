@@ -1,5 +1,5 @@
 # Clio
-Clio is a Calliope client that runs as a JavaScript app in a Web browser. Today, Clio
+Clio is a Calliope client that runs as a TypeScript app in a Web browser. Today, Clio
 can be found online at [https://calliope.chrisimmel.com/clio/](https://calliope.chrisimmel.com/clio/).
 
 In Greek mythology, Clio (traditionally /ˈklaɪoʊ/, but now more frequently
@@ -8,6 +8,11 @@ the muse of lyre playing.
 
 Clio is mostly used for testing Calliope, although it may someday be used as a way
 to deploy certain Calliope applications in non-Sparrow settings.
+
+In Clio, you can:
+* Browse, create, and extend stories.
+* Send a photo or spoken text fragment to influence a story in progress.
+* Review all the pages/frames of a story.
 
 ## Examples
 

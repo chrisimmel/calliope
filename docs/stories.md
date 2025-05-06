@@ -8,12 +8,25 @@ which it should be shown.
 
 ## Story Strategies
 
-Calliope constructs a story using a story _strategy_. A strategy is a program that
-embodies a way of generating frames of a story. As we experiment with different ways
-to create stories, we do so by creating new strategies. As such, the list of available
+Calliope constructs a story using a story _strategy_. (These are presented to the user as "storytellers" in Clio. We will likely adopt this name internally as well.) A strategy is a program that embodies a way of generating frames of a story. As we experiment with different ways to create stories, we do so by creating new strategies. As such, the list of available
 strategies is likely to remain highly dynamic as experimentation continues.
 
 ## Current Story Strategies
+
+### fern
+The most sophisticated strategy. Creates and maintains a story based on a genre, concept, a cast of characters, settings, sources of conflict, and a series of story developments. Work is
+underway to add support for maintaining consistent character appearance by initially generating character images, then using these as references when illustrating the story.
+
+### lavender
+Similar to the "continuous" strategy series, but takes into account situational context from where the viewer is located: geolocation, local time, season, weather, astronomical events, etc.
+
+### narcissus
+A distorting mirror. Creates an image directly from the description of the input text.
+
+### tamarisk
+An evolution of the continuous-v0 strategy, specifically based on the Lichen variant,
+tuned to use EleutherAI/gpt-neo-2.7B as a source of creative but roughly hewn story material,
+then applying gpt-4o to tidy up the results.
 
 ### literal
 Takes the `input_text` as the prompt to generate an image in a single frame. Echoes back
