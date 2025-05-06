@@ -94,21 +94,28 @@ async def get_location_metadata_for_ip(
         get_local_datetime(basic_metadata.timezone) if basic_metadata.timezone else None
     )
 
-    if basic_metadata.latitude and basic_metadata.longitude:
-        weather_metadata = await get_weather_at_location(
-            httpx_client,
-            basic_metadata.latitude,
-            basic_metadata.longitude,
-        )
-        night_sky_objects = (
-            await get_night_sky_objects(
+    weather_metadata = None
+    night_sky_objects = []
+    active_meteor_showers = []
+    peaking_meteor_showers = []
+    solar_eclipse = None
+
+    try:
+        if basic_metadata.latitude and basic_metadata.longitude:
+            weather_metadata = await get_weather_at_location(
                 httpx_client,
                 basic_metadata.latitude,
                 basic_metadata.longitude,
             )
-            if weather_metadata and not weather_metadata.is_day
-            else []
-        )
+            night_sky_objects = (
+                await get_night_sky_objects(
+                    httpx_client,
+                    basic_metadata.latitude,
+                    basic_metadata.longitude,
+                )
+                if weather_metadata and not weather_metadata.is_day
+                else []
+            )
 
         if basic_metadata.hemisphere and local_datetime:
             active_meteor_showers, peaking_meteor_showers = get_active_meteor_showers(
@@ -128,12 +135,8 @@ async def get_location_metadata_for_ip(
             if local_datetime
             else None
         )
-    else:
-        weather_metadata = None
-        night_sky_objects = []
-        active_meteor_showers = []
-        peaking_meteor_showers = []
-        solar_eclipse = None
+    except Exception as e:
+        print(f"Error getting location metadata: {e}")
 
     print(f"{basic_metadata=}, {solar_eclipse=}, {weather_metadata=}")
 
