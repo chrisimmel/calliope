@@ -68,7 +68,8 @@ export default function Toolbar({
     const allowAddFrame = !isPlaying && !isLoading && !drawerIsOpen;
     return <>
         <div className="nav">
-            {
+            {/* Disable auto-play for now.
+             {
                 isPlaying && !drawerIsOpen &&
                 <button
                     className="navButton"
@@ -78,7 +79,7 @@ export default function Toolbar({
                 >
                     <IconPause/>
                 </button>
-            }
+            } */}
             {
                 isFullScreen && !drawerIsOpen &&
                 <button
@@ -134,25 +135,27 @@ export default function Toolbar({
                     <IconMenu/>
                 </button>
             }
-            <MainDrawer
-                drawerIsOpen={drawerIsOpen}
-                setDrawerIsOpen={setDrawerIsOpen}
-                stories={stories}
-
-                toggleIsPlaying={toggleIsPlaying}
-                isPlaying={isPlaying}
-                toggleFullScreen={toggleFullScreen}
-                allowExperimental={allowExperimental}
-                strategies={strategies}
-                strategy={strategy}
-                startNewStory={startNewStory}
-                frames={frames}
-                story_id={story_id}
-                setStory={setStory}
-                jumpToBeginning={jumpToBeginning}
-                jumpToEnd={jumpToEnd}
-                selectedFrameNumber={selectedFrameNumber}
+            {
+                !isLoading &&
+                <MainDrawer
+                    drawerIsOpen={drawerIsOpen}
+                    setDrawerIsOpen={setDrawerIsOpen}
+                    stories={stories}
+                    toggleIsPlaying={toggleIsPlaying}
+                    isPlaying={isPlaying}
+                    toggleFullScreen={toggleFullScreen}
+                    allowExperimental={allowExperimental}
+                    strategies={strategies}
+                    strategy={strategy}
+                    startNewStory={startNewStory}
+                    frames={frames}
+                    story_id={story_id}
+                    setStory={setStory}
+                    jumpToBeginning={jumpToBeginning}
+                    jumpToEnd={jumpToEnd}
+                    selectedFrameNumber={selectedFrameNumber}
                 />
+            }
         </div>
     </>;
 }

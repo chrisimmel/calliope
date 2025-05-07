@@ -197,7 +197,8 @@ export default function MainDrawer({
                                         <ListItemText primary="Fullscreen" />
                                     </ListItemButton>
                                 </ListItem>
-                                <ListItem disablePadding>
+                                {/* Disable auto-play option.
+                                 <ListItem disablePadding>
                                     <ListItemButton
                                         onClick={(e) => {
                                             setDrawerIsOpen(false);
@@ -211,6 +212,7 @@ export default function MainDrawer({
                                         <ListItemText primary={isPlaying ? "Stop Auto-Play" : "Auto-Play"} />
                                     </ListItemButton>
                                 </ListItem>
+                                */}
                             </List>
                         </ListItem>
                     </List>

@@ -186,7 +186,6 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         """
         Gets a new story fragment to be used in building the frame's text.
         """
-        fragment_len = len(text)
         print(f'_get_new_story_fragment: "{text=}"')
 
         try:
@@ -197,7 +196,6 @@ class ContinuousStoryV0Strategy(StoryStrategy):
             traceback.print_exc(file=sys.stderr)
             errors.append(str(e))
 
-        text = text[fragment_len:]
         stripped_text = text.strip()
 
         # Filter out some basic nonsense we don't like to see in stories...

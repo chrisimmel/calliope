@@ -94,7 +94,10 @@ export default function ClioApp() {
     const stateRef = useRef<ClioState>({handleFullScreen: () => null, getFrames: () => null});
     const [frames, setFrames] = useState<Frame[]>([]);
     const [selectedFrameNumber, setSelectedFrameNumber] = useState<number>(-1);
-    const [loading, setLoading] = useState<boolean>(true);
+    const [loadingFrames, setLoadingFrames] = useState<boolean>(false);
+    const [loadingStrategies, setLoadingStrategies] = useState<boolean>(true);
+    const [loadingStory, setLoadingStory] = useState<boolean>(true);
+    const [loadingStories, setLoadingStories] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
     const [captureActive, setCaptureActive] = useState<boolean>(false);
     const [captureAudioActive, setCaptureAudioActive] = useState<boolean>(false);
@@ -295,7 +298,7 @@ export default function ClioApp() {
     const getFrames = useCallback(
         async (image: string | null, audio: string | null) => {
             console.log(`Enter getFrames. isPlaying=${isPlaying}`)
-            setLoading(true)
+            setLoadingFrames(true)
             try {
                 if (getFramesInterval) {
                     clearInterval(getFramesInterval);
@@ -364,7 +367,7 @@ export default function ClioApp() {
             } catch (err: any) {
                 setError(err.message);
             } finally {
-                setLoading(false);
+                setLoadingFrames(false);
             }
             setCaptureActive(false);
         },
@@ -383,7 +386,7 @@ export default function ClioApp() {
 
     const getStory = useCallback(
         async (story_id: string | null, frame_num: number | null) => {
-            setLoading(true)
+            setLoadingStory(true)
             if (!story_id) {
                 const [defaultStoryId, defaultFrameNum] = getDefaultStoryAndFrame();
                 story_id = defaultStoryId; // storyId;
@@ -409,7 +412,8 @@ export default function ClioApp() {
                 console.log(`Got ${response.data?.frames?.length} frames.`);
                 const newFrames = response.data?.frames || [];
                 setFrames(newFrames);
-                setStrategy(response.data?.strategy || defaultStrategy);
+                //setStrategy(response.data?.strategy || defaultStrategy);
+                setStrategy(defaultStrategy);
                 setStoryId(response.data?.story_id || null);
                 const maxFrameNum = newFrames ? newFrames.length - 1 : 0;
                 if (frame_num != null) {
@@ -419,15 +423,17 @@ export default function ClioApp() {
                 }
                 setSelectedFrameNumber(frame_num);
 
+                console.log(`Got story.`);
+                console.log(`${newFrames.length}, ${getFramesInterval}`);
+
                 if (!newFrames.length && !getFramesInterval) {
-                    // If the story is empty, get a new frame.
-                    console.log("Scheduling a request for an initial frame.");
-                    getFramesInterval = setInterval(() => stateRef.current.getFrames(null, null), 500);
+                    // If the story is empty, display the menu.
+                    setDrawerIsOpen(true);
                 }
             } catch (err: any) {
                 setError(err.message);
             } finally {
-                setLoading(false);
+                setLoadingStory(false);
             }
         },
         []
@@ -444,7 +450,7 @@ export default function ClioApp() {
     useEffect(
         () => {
             const getStories = async () => {
-                setLoading(true)
+                setLoadingStories(true)
                 try {
                     const params = {
                         client_id: thisBrowserID,
@@ -466,7 +472,7 @@ export default function ClioApp() {
                 } catch (err: any) {
                     setError(err.message);
                 } finally {
-                    setLoading(false);
+                    setLoadingStories(false);
                 }
             };
 
@@ -523,6 +529,7 @@ export default function ClioApp() {
     useEffect(
         () => {
             const getStrategies = async () => {
+                setLoadingStrategies(true);
                 try {
                     const params = {
                         client_id: thisBrowserID,
@@ -542,6 +549,9 @@ export default function ClioApp() {
                     setStrategies(newStrategies);
                 } catch (err: any) {
                     setError(err.message);
+                }
+                finally {
+                    setLoadingStrategies(false);
                 }
             };
 
@@ -640,8 +650,8 @@ export default function ClioApp() {
                 let closestStrategyName: string | null = null;
                 let longestPrefixLength = 0;
                 if (strategy_name.startsWith("continuous-v0")) {
-                    console.log(`Story created by deprecated ${strategy_name}. Resetting to lichen.`);
-                    closestStrategyName = "lichen";
+                    console.log(`Story created by deprecated ${strategy_name}. Resetting to tamarisk.`);
+                    closestStrategyName = "tamarisk";
                     longestPrefixLength = 5;
                 }
                 else {
@@ -660,11 +670,11 @@ export default function ClioApp() {
                 }
                 else {
                     console.log(`No match found for strategy ${strategy_name}. Using default strategy: ${defaultStrategy}`);
-                    strategy_name = defaultStrategy || "lichen";
+                    strategy_name = defaultStrategy || "tamarisk";
                 }
             }
             if (!strategy_name) {
-                strategy_name = defaultStrategy || "lichen";
+                strategy_name = defaultStrategy || "tamarisk";
             }
 
             return strategy_name;
@@ -702,6 +712,7 @@ export default function ClioApp() {
         },
         [selectedFrameNumber, selectFrameNumber, frames]
     )
+    const loading = loadingStories || loadingStory || loadingStrategies || loadingFrames;
 
     /*
     One panel for each frame, including an empty rightmost panel whose selection
@@ -731,6 +742,12 @@ export default function ClioApp() {
                     sendPhoto={sendPhoto}
                     closePhotoCapture={closePhotoCapture}
                 />
+            }
+            {
+                (!captureActive && !frames.length) &&
+                <div className="empty-story">
+                    Start by creating a story...
+                </div>
             }
         </div>
         <Carousel
