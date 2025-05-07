@@ -149,7 +149,7 @@ async def get_sparrow_story_parameters_and_keys(
             params_dict = {**client_type_config_dict, **params_dict}
 
     if not params_dict.get("strategy"):
-        params_dict["strategy"] = "lavender"
+        params_dict["strategy"] = "fern"
 
     strategy_config = await get_strategy_config(params_dict["strategy"])
     if strategy_config:

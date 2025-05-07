@@ -5,6 +5,7 @@ import os
 from typing import Any, cast, Dict, Optional
 
 from langchain_community.llms import HuggingFaceHub
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 # from requests.models import Response
 
@@ -17,6 +18,7 @@ def _hugging_face_model_to_api_url(model_name: str) -> str:
     return model_name if model_name.startswith("https") else f"https://api-inference.huggingface.co/models/{model_name}"
 
 
+@retry(stop=stop_after_attempt(5), wait=wait_exponential(multiplier=1, min=1))
 async def _hugging_face_request(
     httpx_client: httpx.AsyncClient,
     data: Any,
@@ -80,8 +82,13 @@ async def _text_to_text_inference_hugging_face_http(
     out_text = predictions[0]["generated_text"] or ""
 
     if "neo" in model.slug:
-        # Hack to remove input text from the output of gpt-neo output.
-        out_text = out_text[len(text):]
+        # Hack to remove input text from the output of gpt-neo output if there is any overlap.
+        prefix = text
+        while len(prefix):
+            if out_text.startswith(prefix):
+                out_text = out_text[len(prefix):]
+                break
+            prefix = prefix[1:]
 
     return out_text
 
