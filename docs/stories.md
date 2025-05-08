@@ -56,9 +56,10 @@ text fragments.
 Returns a single frame per request.
 
 Is very good at maintaining a relatively coherent stream of consciousness, but
-has an unfortunate tendency to wander into nerdy programmery jargon for long
-spans of time.
+sometimes wanders into legalese, politics, programming, or other topics that
+may bore or even offend. EleutherAI/gpt-neo-2.7B isn't trained for political
+correctness.
 
 ### continuous-v1
 Builds on `continuous-v0`, but is meant to be used with larger text prompts
-and the GPT-3, GPT-4, etc. models (e.g., `text_to_text_model_config = "openai_curie"`).
+and the GPT-4 and later models.
