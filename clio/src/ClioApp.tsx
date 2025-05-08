@@ -12,6 +12,8 @@ import Loader from "./components/Loader";
 import PhotoCapture from "./photo/PhotoCapture";
 import Toolbar from "./components/Toolbar";
 
+const FRAMES_TIMEOUT = 180_000;
+const DEFAULT_TIMEOUT = 30_000;
 
 const audioConstraints = {
     suppressLocalAudioPlayback: true,
@@ -80,6 +82,7 @@ const resetStory = async () => {
                 "X-Api-Key": "xyzzy",
             },
             params: params,
+            timeout: DEFAULT_TIMEOUT,
         },
     );
 };
@@ -330,6 +333,7 @@ export default function ClioApp() {
                         headers: {
                             "X-Api-Key": "xyzzy",
                         },
+                        timeout: FRAMES_TIMEOUT,
                     },
                 );
                 setSelectedFrameNumber(frames ? frames.length: 0);
@@ -407,6 +411,7 @@ export default function ClioApp() {
                             "X-Api-Key": "xyzzy",
                         },
                         params: params,
+                        timeout: DEFAULT_TIMEOUT,
                     },
                 );
                 console.log(`Got ${response.data?.frames?.length} frames.`);
@@ -464,6 +469,7 @@ export default function ClioApp() {
                                 "X-Api-Key": "xyzzy",
                             },
                             params: params,
+                            timeout: DEFAULT_TIMEOUT,
                         },
                     );
                     console.log(`Got ${response.data?.stories?.length} frames.`);
@@ -542,6 +548,7 @@ export default function ClioApp() {
                                 "X-Api-Key": "xyzzy",
                             },
                             params: params,
+                            timeout: DEFAULT_TIMEOUT,
                         },
                     );
                     const newStrategies = response.data || [];
@@ -744,7 +751,7 @@ export default function ClioApp() {
                 />
             }
             {
-                (!captureActive && !frames.length) &&
+                !loading && !captureActive && !frames.length &&
                 <div className="empty-story">
                     Start by creating a story...
                 </div>
