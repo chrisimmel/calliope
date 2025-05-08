@@ -15,5 +15,6 @@ class KeysModel(BaseModel):
     openai_api_key: Optional[str] = None
     pinecone_api_key: Optional[str] = None
     replicate_api_key: Optional[str] = None
+    runway_api_key: Optional[str] = None
     stability_api_host: Optional[str] = None
     stability_api_key: Optional[str] = None
