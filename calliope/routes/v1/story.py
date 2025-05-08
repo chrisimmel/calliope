@@ -233,6 +233,9 @@ async def handle_frames_request(
     client_id = request_params.client_id
     sparrow_state = await get_sparrow_state(client_id)
     story_id = request_params.story_id
+    story = await get_story(story_id) if story_id else None
+    if story:
+        request_params.strategy = story.strategy_name
 
     (
         parameters,
@@ -248,9 +251,7 @@ async def handle_frames_request(
     )
     strategy_class = StoryStrategyRegistry.get_strategy_class(strategy_name)
 
-    if story_id:
-        story = await get_story(story_id)
-    else:
+    if not story:
         story = sparrow_state.current_story
         if story and story.strategy_name != parameters.strategy:
             # The story in progress was created by a different strategy. Start a new one.
