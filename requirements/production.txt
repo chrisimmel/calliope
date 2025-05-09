@@ -131,6 +131,7 @@ replicate==0.34.2
 requests==2.31.0
 rich==13.9.2
 rsa==4.9
+runwayml==3.0.4
 safetensors==0.3.1
 sentencepiece==0.1.99
 setuptools==67.8.0
