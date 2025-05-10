@@ -185,7 +185,7 @@ class Story(Table):
             If zero (the default), takes all.
         """
         qs = (
-            StoryFrame.objects(StoryFrame.image, StoryFrame.source_image)
+            StoryFrame.objects(StoryFrame.image, StoryFrame.source_image, StoryFrame.video)
             if include_images
             else StoryFrame.objects()
         ).where(

@@ -49,11 +49,24 @@ let hideOverlaysInterval: ReturnType<typeof setTimeout> | null = null;
 
 const renderFrame = (frame: Frame, index: number) => {
     const image_url = (frame.image && frame.image.url) ? `/${frame.image.url}` : '';
+    const video_url = (frame.video && frame.video.url) ? `/${frame.video.url}` : '';
 
     return <CarouselItem key={index}>
         <div className="clio_app">
             <div className="image">
-                {image_url && <img src={image_url} />}
+                {video_url ? (
+                    <video 
+                        src={video_url} 
+                        autoPlay 
+                        loop 
+                        muted 
+                        playsInline
+                        controls={false} 
+                        style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                    />
+                ) : (
+                    image_url && <img src={image_url} />
+                )}
             </div>
             <div className="textFrame">
                 <div className="textContainer">
@@ -286,7 +299,7 @@ export default function ClioApp() {
                     is_read_only: false,
                     strategy_name: strategy_name,
                     created_for_sparrow_id: thisBrowserID,
-                    thumbnail_image: newFrames[0].image || null,
+                    thumbnail_image: newFrames[0].image || null, // We'll use the image for thumbnails even for video frames
                     date_created: dateUpdated,
                     date_updated: dateUpdated
                 }

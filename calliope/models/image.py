@@ -10,6 +10,7 @@ class ImageFormat(str, Enum):
     # Unofficial media types for the RGB565 and Grayscale-16 formats we use...
     GRAYSCALE16 = "image/grayscale16"
     RGB565 = "image/rgb565"
+    MP4 = "video/mp4"
 
     def fromMediaFormat(mediaFormat: Optional[str]) -> Optional["ImageFormat"]:
         if mediaFormat is None:

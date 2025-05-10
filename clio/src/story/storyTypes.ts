@@ -2,12 +2,23 @@
 type Image = {
     url: string
 }
+
+type Video = {
+    url: string,
+    width?: number,
+    height?: number,
+    duration_seconds?: number,
+    frame_rate?: number
+}
+
 interface FrameMetadata {
     situation: string;
     [key: string]: any;
 }
+
 type Frame = {
     image?: Image,
+    video?: Video,
     text?: string,
     metadata?: FrameMetadata,
 }
@@ -44,4 +55,4 @@ type Story = {
 type FrameSeedMediaType = "photo" | "audio" | "none";
 
 
-export {DEVICE_ID_DEFAULT, DEVICE_ID_NONE, Frame, Image, Story, Strategy, MediaDevice, FrameSeedMediaType};
+export {DEVICE_ID_DEFAULT, DEVICE_ID_NONE, Frame, Image, Video, Story, Strategy, MediaDevice, FrameSeedMediaType};
