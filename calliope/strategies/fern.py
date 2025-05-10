@@ -112,9 +112,7 @@ class FernStrategy(StoryStrategy):
             "No signature. Don't sign the painting."
         )
 
-        # Internal variable to control whether to generate video instead of image
-        # TODO: This should eventually be configurable through parameters or config
-        generate_video = True  # Set to True to generate videos, False for images
+        generate_video = parameters.generate_video
 
         situation = get_local_situation_text(image_analysis, location_metadata)
         debug_data = self._get_default_debug_data(

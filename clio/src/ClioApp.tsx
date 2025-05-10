@@ -321,12 +321,13 @@ export default function ClioApp() {
                     getFramesInterval = null;
                 }
 
-                let params: {client_id: string, client_type: string, input_image: string | null, input_audio: string | null, debug: boolean, strategy?: string, story_id?: string} = {
+                let params: {client_id: string, client_type: string, input_image: string | null, input_audio: string | null, debug: boolean, strategy?: string, story_id?: string, generate_video: boolean} = {
                     client_id: thisBrowserID,
                     client_type: "clio",
                     input_image: image,
                     input_audio: audio,
                     debug: true,
+                    generate_video: false,
                 };
 
                 if (strategy) {
@@ -334,6 +335,9 @@ export default function ClioApp() {
                 }
                 if (storyId) {
                     params.story_id = storyId;
+                }
+                if (allowExperimental) {
+                    params.generate_video = true;
                 }
                 const imagePrefix = image ? image.substring(0, 20) : "(none)";
                 console.log(`Calling Calliope with strategy ${strategy}, image ${imagePrefix}...`);
