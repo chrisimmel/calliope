@@ -16,6 +16,7 @@ from piccolo.columns import (
 from calliope.models import StoryModel
 from calliope.models import StoryFrameModel
 from calliope.tables.image import Image
+from calliope.tables.video import Video
 from calliope.utils.file import FileMetadata
 from calliope.utils.id import create_cuid
 from calliope.utils.piccolo import load_json_if_necessary
@@ -39,6 +40,9 @@ class StoryFrame(Table):
 
     # An image illustrating the story.
     image = ForeignKey(references=Image, null=True)
+
+    # A video illustrating the story.
+    video = ForeignKey(references=Video, null=True)
 
     # The original image, before possible format conversion for the client.
     source_image = ForeignKey(references=Image, null=True)
@@ -71,6 +75,7 @@ class StoryFrame(Table):
             min_duration_seconds=self.min_duration_seconds,
             trigger_condition=None,  # TODO: Fix! self.trigger_condition,
             image=self.image.to_pydantic() if self.image else None,
+            video=self.video.to_pydantic() if self.video else None,
             source_image=self.source_image.to_pydantic() if self.source_image else None,
             metadata=load_json_if_necessary(self.metadata),
         )
@@ -96,6 +101,7 @@ class StoryFrame(Table):
         # story
         # image
         # source_image
+        # video
 
         date_created = file_metadata.date_created or datetime.now(timezone.utc)
         date_updated = file_metadata.date_updated or date_created

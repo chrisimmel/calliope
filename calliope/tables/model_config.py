@@ -170,8 +170,14 @@ class StrategyConfig(Table, tablename="strategy_config"):
         references=ModelConfig,
         null=True,
     )
-    # THe default text -> image inference model config.
+    # The default text -> image inference model config.
     text_to_image_model_config = ForeignKey(
+        references=ModelConfig,
+        null=True,
+    )
+
+    # The default text/image -> video inference model config.
+    text_to_video_model_config = ForeignKey(
         references=ModelConfig,
         null=True,
     )

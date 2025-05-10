@@ -40,6 +40,7 @@ from calliope.tables import (
     StoryFrame,
     StoryFrameBookmark,
     StrategyConfig,
+    Video,
 )
 
 
@@ -71,6 +72,7 @@ PICCOLO_TABLES = [
     StoryFrame,
     StoryFrameBookmark,
     StrategyConfig,
+    Video,
 ]
 
 

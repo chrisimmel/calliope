@@ -27,7 +27,7 @@ async def runway_image_and_text_to_video_inference(
 ) -> str:
     """
     Generates a video from a text prompt using Runway's models.
-    
+
     Args:
         httpx_client: the async HTTP session (not used with the RunwayML client).
         promp_text: the input text prompt.
@@ -68,7 +68,7 @@ async def runway_image_and_text_to_video_inference(
 
     # Get the model name from the configuration, default to gen4_turbo if not specified
     model_name = model.provider_model_name if model.provider_model_name else "gen4_turbo"
-    
+
     # Create a RunwayML client
     client = RunwayML()
 
@@ -78,7 +78,7 @@ async def runway_image_and_text_to_video_inference(
     parameters["duration"] = duration
 
     print(f"Generating video with Runway model {model_name}")
-    print(f"Text prompt: {prompt_text}")
+    print(f"Video prompt: {prompt_text}")
 
     try:
         # Create a new text-to-video task using the specified model
@@ -92,14 +92,16 @@ async def runway_image_and_text_to_video_inference(
         # Poll the task until it's complete
         max_attempts = 30  # 5 minutes max (10 seconds per attempt)
         attempt = 0
-        
+        start_time = asyncio.get_event_loop().time()
+
         while attempt < max_attempts:
             await asyncio.sleep(10)  # Wait before polling
             attempt += 1
-            
+            elapsed_time = asyncio.get_event_loop().time() - start_time
+
             task = client.tasks.retrieve(task_id)
             status = task.status
-            print(f"Task {task_id} status: {status}, attempt {attempt}/{max_attempts}")
+            print(f"Task {task_id} status: {status}, elapsed time: {elapsed_time:.1f}s")
             print(f"Task: {task}")
 
             if status == 'SUCCEEDED':
@@ -113,21 +115,21 @@ async def runway_image_and_text_to_video_inference(
                         async with aiofiles.open(output_video_filename, "wb") as f:
                             async for chunk in response.aiter_bytes():
                                 await f.write(chunk)
-                                
+      
                     print(f"Video saved to {output_video_filename}")
                     return output_video_filename
                 else:
                     raise ValueError("No video recovered.")
-                
+
             elif status == 'FAILED':
-                error = task.error or "Unknown error"
+                error = f"Failure: {task.failure}, Failure code: {task.failure_code}"
                 raise ValueError(f"Runway video generation failed: {error}")
-                
+
             # Continue polling if still processing
-        
+
         # If we get here, the generation is taking too long
         raise TimeoutError(f"Runway video generation timed out after {max_attempts * 10} seconds")
-        
+
     except Exception as e:
         print(f"Error in Runway video generation: {str(e)}")
         raise
