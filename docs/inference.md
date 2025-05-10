@@ -8,6 +8,7 @@ The inference module abstracts away the complexity of working with different AI 
 
 - **Text-to-Text**: Generate text from text input using LLMs
 - **Text-to-Image**: Generate images from text descriptions
+- **Image-and-Text-to-Video**: Generate video from input images and text
 - **Image Analysis**: Extract descriptions, objects, and text from images
 - **Audio-to-Text**: Transcribe spoken audio to text
 - **Messages-to-Object**: Convert structured LLM interactions into Pydantic objects
@@ -30,6 +31,7 @@ The inference module is organized as follows:
   - `engines/hugging_face.py`: Hugging Face models integration
   - `engines/openai_*.py`: OpenAI API integrations for various tasks
   - `engines/replicate.py`: Replicate.com API integration
+  - `engines/runway.py`: Runway API integration for generating video
   - `engines/stability_image.py`: Stability AI (Stable Diffusion) integration
   - `engines/runway.py`: Runway API integration
 
@@ -40,6 +42,7 @@ The module integrates with several AI service providers:
 - **OpenAI**: GPT models for text generation, DALL-E for image generation, Whisper for audio transcription
 - **Anthropic**: (Coming soon) Claude models for text generation and multimodal capabilities
 - **Azure**: Computer Vision APIs for image analysis and OCR
+- **Runway**: API access to Runway models for video generation
 - **Stability AI**: Stable Diffusion models for image generation
 - **Hugging Face**: Access to open source models for various tasks
 - **Replicate**: Hosted inference for open-source AI models
@@ -75,6 +78,21 @@ async def text_to_image_file_inference(
 ```
 
 Converts text descriptions into images using various image generation models. Supports Stability AI (Stable Diffusion), OpenAI (DALL-E), Replicate, and Hugging Face models. Includes automatic content filtering to ensure appropriate image generation.
+
+### Image-and-Text-to-Video Inference
+
+```python
+async def image_and_text_to_video_file_inference(
+    httpx_client: httpx.AsyncClient,
+    prompt_image_file: str,
+    prompt_text: str,
+    output_video_filename: str,
+    model_config: ModelConfig,
+    keys: KeysModel,
+) -> Optional[str]:
+```
+
+Converts an image and text prompt into a video clip. Currently supports only Runway as a model provider. 
 
 ### Image Analysis
 

@@ -14,6 +14,10 @@ In Clio, you can:
 * Send a photo or spoken text fragment to influence a story in progress.
 * Review all the pages/frames of a story.
 
+## Experimental Features
+
+Certain experimental features can be activated in Clio by adding the `?x=1` parameter to the URL. Currently, this makes available a longer list of storytelling strategies, as well as the video generation feature.
+
 ## Examples
 
 ![image](https://github.com/chrisimmel/calliope/assets/17924059/051135f3-d1a3-40ae-8899-576765fef375)
