@@ -10,6 +10,7 @@ class InferenceModelProvider(str, Enum):
     OPENAI = "openai"
     AZURE = "azure"
     REPLICATE = "replicate"
+    RUNWAY = "runway"
 
 
 class InferenceModelProviderVariant(str, Enum):

@@ -109,6 +109,7 @@ class StoryParamsModel(ClientTypeParamsModel):
     strategy: Optional[str] = None
     debug: Optional[bool] = False
     extra_fields: Optional[Dict[str, Any]] = None
+    generate_video: Optional[bool] = False
 
     @root_validator(pre=True)
     def build_extra_fields(cls, values: Dict[str, Any]) -> Dict[str, Any]:

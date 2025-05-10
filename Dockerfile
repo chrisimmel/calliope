@@ -1,4 +1,4 @@
-FROM python:3.11-buster
+FROM python:3.11-bookworm
 ENV APP_HOME /app
 RUN mkdir $APP_HOME
 RUN mkdir $APP_HOME/config
@@ -11,7 +11,8 @@ RUN apt upgrade -y
 RUN apt install libgl1-mesa-glx -y
 RUN apt install jq -y
 RUN apt install curl -y
-RUN apt remove ffmpeg -y
+RUN apt install ffmpeg -y
+# RUN apt remove ffmpeg -y
 RUN apt install 'libsm6'\
     'libxext6'\
     'tzdata'  -y
@@ -20,7 +21,7 @@ RUN pip install -r requirements/development.txt
 COPY . $APP_HOME
 # Use a custom update script to install ffmpeg, because Debian is two major
 # versions behind (4.x instead of the needed 6.x).
-RUN bash $APP_HOME/scripts/update_ffmpeg.sh
+# RUN bash $APP_HOME/scripts/update_ffmpeg.sh
 ENV CLOUD_ENV $CLOUD_ENV
 ENV OPENAI_API_KEY $OPENAI_API_KEY
 ENV PINECONE_API_KEY $PINECONE_API_KEY

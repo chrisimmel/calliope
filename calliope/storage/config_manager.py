@@ -191,6 +191,7 @@ async def get_strategy_config(strategy_config_slug: str) -> StrategyConfig:
         await StrategyConfig.objects(
             StrategyConfig.text_to_image_model_config.all_related(),
             StrategyConfig.text_to_text_model_config.all_related(),
+            StrategyConfig.text_to_video_model_config.all_related(),
         )
         .where(StrategyConfig.slug == strategy_config_slug)
         .first()

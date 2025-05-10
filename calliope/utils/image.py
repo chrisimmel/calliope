@@ -23,6 +23,8 @@ def guess_image_format_from_filename(filename: str) -> ImageFormat:
         return ImageFormat.JPEG
     elif extension == "png":
         return ImageFormat.PNG
+    elif extension == "mp4":
+        return ImageFormat.MP4
     else:
         raise ValueError(f"Unrecognized image format for {filename}")
 

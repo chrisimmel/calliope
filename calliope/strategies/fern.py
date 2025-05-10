@@ -11,6 +11,7 @@ from calliope.inference import (
     messages_to_object_inference,
     text_to_text_inference,
     text_to_image_file_inference,
+    image_and_text_to_video_file_inference,
 )
 from calliope.location.location import get_local_situation_text
 from calliope.models import (
@@ -23,6 +24,7 @@ from calliope.strategies.base import StoryStrategy
 from calliope.strategies.registry import StoryStrategyRegistry
 from calliope.tables import (
     Image,
+    Video,
     InferenceModel,
     ModelConfig,
     PromptTemplate,
@@ -32,6 +34,7 @@ from calliope.tables import (
 )
 from calliope.utils.file import create_character_filename, create_sequential_filename
 from calliope.utils.image import get_image_attributes
+from calliope.utils.video import get_video_attributes
 from calliope.utils.text import (
     balance_quotes,
     ends_with_punctuation,
@@ -70,6 +73,7 @@ class StoryStateModel(BaseModel):
 class ExtendStoryResponseModel(BaseModel):
     continuation: str = Field(description="The continuation of the story. This is the actual text the reader will read.")
     illustration: str = Field(description="A detailed description of a visual illustration of this portion of the story. This will be used to generate an image.")
+    video_scene: str = Field(description="A detailed description of a short animated scene that begins from the illustration. It should capture some of the feeling and action in this part of the story. Describe any action, camera movement, or other motion that should happen.")
     story_state: StoryStateModel = Field(description="The updated story state, including the genre, conceit, cast of characters, atmosphere, settings, sources of conflict, past and current story developments, possible future story developments, and any other elements.")
 
 
@@ -108,12 +112,15 @@ class FernStrategy(StoryStrategy):
             "No signature. Don't sign the painting."
         )
 
+        generate_video = parameters.generate_video
+
         situation = get_local_situation_text(image_analysis, location_metadata)
         debug_data = self._get_default_debug_data(
             parameters, strategy_config, situation
         )
         errors: List[str] = []
         image = None
+        video = None
 
         frame_number = await story.get_num_frames()
         if frame_number == 0:
@@ -165,6 +172,7 @@ class FernStrategy(StoryStrategy):
             # print(f"{continuation_json=}")
             continuation_text = story_continuation.continuation
             image_description = story_continuation.illustration
+            video_description = story_continuation.video_scene
             story_state = story_continuation.story_state
 
         if not continuation_text or continuation_text.isspace():
@@ -182,15 +190,13 @@ class FernStrategy(StoryStrategy):
                 != "en"
             ):
                 # Translate the story to English before
-                # sending as an image prompt.
+                # sending as an image/video prompt.
                 image_description = translate_text("en", image_description)
 
         if image_description:
-            # Generate an image for the frame, composing a prompt from
-            # the frame's text...
-
-            image_prompt = output_image_style + " " + image_description
-            print(f'Image prompt: "{image_prompt}"')
+            # Generate media for the frame, composing a prompt from the frame's text
+            media_prompt = output_image_style + " " + image_description
+            print(f'Media prompt: "{media_prompt}"')
 
             for _ in range(2):
                 # Allow a retry.
@@ -200,7 +206,7 @@ class FernStrategy(StoryStrategy):
                     )
                     await text_to_image_file_inference(
                         httpx_client,
-                        image_prompt,
+                        media_prompt,
                         output_image_filename_png,
                         strategy_config.text_to_image_model_config,
                         keys,
@@ -211,6 +217,25 @@ class FernStrategy(StoryStrategy):
                     print(f"Wrote image to file {output_image_filename}.")
                     image = get_image_attributes(output_image_filename)
                     print(f"Image: {image}.")
+
+                    if generate_video and strategy_config.text_to_video_model_config:
+                        # Generate the video using the image and text
+                        output_video_filename = create_sequential_filename(
+                            "media", client_id, "out", "mp4", story.cuid, frame_number
+                        )
+
+                        # Generate the video
+                        await image_and_text_to_video_file_inference(
+                            httpx_client,
+                            output_image_filename,
+                            video_description,
+                            output_video_filename,
+                            strategy_config.text_to_video_model_config,
+                            keys,
+                        )
+                        print(f"Wrote video to file {output_video_filename}.")
+                        video = get_video_attributes(output_video_filename)
+                        print(f"Video: {video}.")
                     break
                 except Exception as e:
                     traceback.print_exc(file=sys.stderr)
@@ -224,6 +249,7 @@ class FernStrategy(StoryStrategy):
             frame_number,
             debug_data,
             errors,
+            video,  # Pass the video to _add_frame
         )
 
         if story_state:
@@ -474,7 +500,8 @@ weather, etc...
 Your task is to:
 1. Continue the story with a few short sentences.
 2. Create a description of an illustration of this portion of the story (to be given an Illustrator).
-3. Update the story state with any new characters, settings, or other elements you introduce.
+3. Describe a short video scene to illustrate this scene, beginning from the image illustration.
+4. Update the story state with any new characters, settings, or other elements you introduce.
 
 In the story, incorporate some things, people, text, season, and atmosphere from the scene, location,
 and situation.

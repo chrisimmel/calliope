@@ -4,6 +4,7 @@ from typing import Any, Dict, Optional
 from pydantic import BaseModel
 
 from calliope.models.image import ImageModel
+from calliope.models.video import VideoModel
 from calliope.models.trigger_condition import TriggerConditionModel
 
 
@@ -17,6 +18,9 @@ class StoryFrameModel(BaseModel):
 
     # An image illustrating the story.
     image: Optional[ImageModel] = None
+
+    # A video illustrating the story.
+    video: Optional[VideoModel] = None
 
     # The minimum duration of this frame, in seconds.
     min_duration_seconds: Optional[int]

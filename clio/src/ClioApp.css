@@ -39,7 +39,8 @@ div#root {
     display: grid;
 }
 
-.image img {
+.image img,
+.image video {
     align-self: center;
     justify-self: center;
     object-fit: contain;
@@ -81,11 +82,13 @@ div#root {
         max-height: calc(var(--vp-height) - var(--toolbar-height));
         min-width: calc(50vw - var(--toolbar-height));
     }
-    .image img {
+    .image img,
+    .image video {
         height: calc(var(--vp-height) - var(--toolbar-height));
         width: calc(50vw - var(--toolbar-height));
     }
-    .fullscreen .image img {
+    .fullscreen .image img,
+    .fullscreen .image video {
         height: var(--vp-height);
     }
 }
@@ -100,7 +103,8 @@ div#root {
         height: 100vw;
         width: 100vw;
     }
-    .image img {
+    .image img,
+    .image video {
         height: 100vw;
         width: 100vw;
     }

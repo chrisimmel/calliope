@@ -21,6 +21,7 @@ from calliope.routes import meta as meta_routes
 from calliope.routes import thoth as thoth_routes
 from calliope.routes.v1 import story as story_routes
 from calliope.routes.v1 import config as config_routes
+from calliope.routes.v1 import test as test_routes
 from calliope.utils.authentication import get_api_key
 from calliope.utils.google import is_google_cloud_run_environment
 from calliope.settings import settings
@@ -39,6 +40,7 @@ from calliope.tables import (
     StoryFrame,
     StoryFrameBookmark,
     StrategyConfig,
+    Video,
 )
 
 
@@ -49,6 +51,7 @@ def register_views(app: FastAPI) -> None:
     app.include_router(config_routes.router)
     app.include_router(media_routes.router)
     app.include_router(thoth_routes.router)
+    app.include_router(test_routes.router)
 
 
 def get_db_uri(user: str, passwd: str, host: str, db: str) -> str:
@@ -69,6 +72,7 @@ PICCOLO_TABLES = [
     StoryFrame,
     StoryFrameBookmark,
     StrategyConfig,
+    Video,
 ]
 
 

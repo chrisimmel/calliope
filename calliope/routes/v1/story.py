@@ -275,7 +275,7 @@ async def handle_frames_request(
     parameters = await prepare_input_files(parameters, story)
     image_analysis = None
 
-    timeout = httpx.Timeout(60.0)
+    timeout = httpx.Timeout(180.0)
     async with httpx.AsyncClient(timeout=timeout) as httpx_client:
         forwarded_header = request.headers.get("X-Forwarded-For")
         if forwarded_header:

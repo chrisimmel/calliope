@@ -8,6 +8,7 @@ from .config import (
     SparrowConfig,
 )
 from .image import Image
+from .video import Video
 from .model_config import (
     InferenceModel,
     ModelConfig,
@@ -32,4 +33,5 @@ __all__ = [
     "StoryFrame",
     "StoryFrameBookmark",
     "StrategyConfig",
+    "Video",
 ]

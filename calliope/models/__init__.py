@@ -1,4 +1,5 @@
 from .image import ImageFormat, ImageModel
+from .video import VideoFormat, VideoModel
 from .keys import KeysModel
 from .inference_model_config import (
     InferenceModelConfigModel,
@@ -84,5 +85,7 @@ __all__ = [
     "StrategyConfigDescriptortModel",
     "TriggerConditionModel",
     "TriggerType",
+    "VideoFormat",
+    "VideoModel",
     "WMO_WEATHER_DESCRIPTIONS_BY_CODE",
 ]

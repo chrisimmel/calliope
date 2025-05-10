@@ -14,6 +14,7 @@ from calliope.models.frame_sequence_response import StoryFrameSequenceResponseMo
 from calliope.storage.state_manager import put_story
 from calliope.tables import (
     Image,
+    Video,
     ModelConfig,
     PromptTemplate,
     SparrowState,
@@ -74,6 +75,7 @@ class StoryStrategy(object, metaclass=ABCMeta):
         frame_number: int,
         debug_data: Dict[str, Any],
         errors: Sequence[str],
+        video: Optional[Video] = None,
     ) -> StoryFrame:
         """
         Adds a new frame to a story and persists everything.
@@ -85,6 +87,7 @@ class StoryStrategy(object, metaclass=ABCMeta):
             frame_number: the sequence number of this frame.
             debug_data: any debug data to be logged with the frame.
             errors: any non-fatal errors that occurred while generating the frame.
+            video: the video for this frame, if any.
 
         Returns:
             the new frame.
@@ -92,11 +95,17 @@ class StoryStrategy(object, metaclass=ABCMeta):
         if image:
             image.date_updated = datetime.now(timezone.utc)
             await image.save().run()
+
+        if video:
+            video.date_updated = datetime.now(timezone.utc)
+            await video.save().run()
+
         frame = StoryFrame(
             story=story.id,  # type: ignore[attr-defined]
             number=frame_number,
             image=image,
             source_image=image,
+            video=video,
             text=text,
             min_duration_seconds=DEFAULT_MIN_DURATION_SECONDS,
             metadata={
@@ -153,6 +162,9 @@ class StoryStrategy(object, metaclass=ABCMeta):
         text_to_image_model_config = cast(
             ModelConfig, strategy_config.text_to_image_model_config
         )
+        text_to_video_model_config = cast(
+            ModelConfig, strategy_config.text_to_video_model_config
+        )
         prompt_template = (
             cast(PromptTemplate, text_to_text_model_config.prompt_template)
             if text_to_text_model_config
@@ -182,6 +194,9 @@ class StoryStrategy(object, metaclass=ABCMeta):
             ),
             "text_to_image_model_config": (
                 text_to_image_model_config.slug if text_to_image_model_config else None
+            ),
+            "text_to_video_model_config": (
+                text_to_video_model_config.slug if text_to_video_model_config else None
             ),
             "prompt_template": prompt_template.slug if prompt_template else None,
         }
