@@ -1,10 +1,8 @@
 # Stories
 
 Calliope's central purpose is to tell stories. A story is told something like a graphic
-novel, as a sequence of _frames_, where each frame consists of an image and/or a piece
-of text. In addition, a frame may have a _trigger condition_, that determines when it
-can be shown, and a _minimum duration_, which determines a minimum time span during
-which it should be shown.
+novel, as a sequence of pages (known internally as _frames_), where each page consists of an
+image or video, usually paired with text.
 
 ## Story Strategies
 
@@ -14,8 +12,9 @@ strategies is likely to remain highly dynamic as experimentation continues.
 ## Current Story Strategies
 
 ### fern
-The most sophisticated strategy. Creates and maintains a story based on a genre, concept, a cast of characters, settings, sources of conflict, and a series of story developments. Work is
-underway to add support for maintaining consistent character appearance by initially generating character images, then using these as references when illustrating the story.
+The most sophisticated strategy. Creates and maintains a story based on a genre, concept, a cast of characters, settings, sources of conflict, and a series of story developments. Work is underway to add support for maintaining consistent character appearance by initially generating character images, then using these as references when illustrating the story.
+
+Fern is also currently the only strategy capable of generating video.
 
 ### lavender
 Similar to the "continuous" strategy series, but takes into account situational context from where the viewer is located: geolocation, local time, season, weather, astronomical events, etc.
