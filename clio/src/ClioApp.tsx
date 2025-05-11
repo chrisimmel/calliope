@@ -61,6 +61,7 @@ const renderFrame = (frame: Frame, index: number) => {
                         muted 
                         playsInline
                         controls={false} 
+                        poster={image_url}
                         style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                     >
                         <source src={video_url} type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"' />
