@@ -24,7 +24,7 @@ The focus is on enabling the creation of works that are "aware" of the environme
 
 There is a strong emphasis on narrative structure. Calliope invents and recites stories. This can be through any client of its `story` API. The two existing clients are:
 * An [ESP32-Sparrow](https://github.com/mikalhart/ESP32-Sparrow) -- one of a family of bespoke hardware devices with a screen and optional input sensors such as camera and microphone.
-* [Clio](https://github.com/chrisimmel/calliope/tree/main/docs/Clio.md) -- a small TypeScript client included in this repo, runnable in any browser on desktop or mobile devices. Clio accepts image input from any accessible webcam and passes this with its request for a story continuation. Calliope uses this input to condition its continuation of the story.
+* [Clio](https://github.com/chrisimmel/calliope/tree/main/docs/Clio.md) -- a small TypeScript client included in this repo, runnable in any browser on desktop or mobile devices. Clio optionally takes image input from any accessible webcam, or audio input, and passes this with its request for a story continuation. Calliope uses this input to condition its continuation of the story.
 
 
 ## Try it Out!
