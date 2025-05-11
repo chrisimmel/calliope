@@ -550,6 +550,12 @@ async def prepare_frame_images(
                     await frame.save().run()
                 if is_google_cloud:
                     put_media_file(image.url)
+        video = frame.video
+        if video:
+            if save:
+                await video.save().run()
+            if is_google_cloud:
+                put_media_file(video.url)
 
 
 def shorten_title(title: Optional[str], max_length: int = 64) -> str:

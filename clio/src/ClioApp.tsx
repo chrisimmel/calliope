@@ -56,14 +56,16 @@ const renderFrame = (frame: Frame, index: number) => {
             <div className="image">
                 {video_url ? (
                     <video 
-                        src={video_url} 
                         autoPlay 
                         loop 
                         muted 
                         playsInline
                         controls={false} 
                         style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                    />
+                    >
+                        <source src={video_url} type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"' />
+                        {image_url && <img src={image_url} />}
+                    </video>
                 ) : (
                     image_url && <img src={image_url} />
                 )}
