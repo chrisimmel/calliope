@@ -22,6 +22,7 @@ from calliope.routes import thoth as thoth_routes
 from calliope.routes.v1 import story as story_routes
 from calliope.routes.v1 import config as config_routes
 from calliope.routes.v1 import test as test_routes
+from calliope.routes.v1 import bookmark as bookmark_routes
 from calliope.utils.authentication import get_api_key
 from calliope.utils.google import is_google_cloud_run_environment
 from calliope.settings import settings
@@ -52,6 +53,7 @@ def register_views(app: FastAPI) -> None:
     app.include_router(media_routes.router)
     app.include_router(thoth_routes.router)
     app.include_router(test_routes.router)
+    app.include_router(bookmark_routes.router)
 
 
 def get_db_uri(user: str, passwd: str, host: str, db: str) -> str:
