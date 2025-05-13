@@ -54,5 +54,21 @@ type Story = {
 
 type FrameSeedMediaType = "photo" | "audio" | "none";
 
+type Bookmark = {
+    id: number;
+    story_id: string;
+    frame_number: number;
+    frame_id: number;
+    sparrow_id: string;
+    comments?: string;
+    date_created: string;
+    date_updated: string;
+}
 
-export {DEVICE_ID_DEFAULT, DEVICE_ID_NONE, Frame, Image, Video, Story, Strategy, MediaDevice, FrameSeedMediaType};
+type BookmarksResponse = {
+    bookmarks: Bookmark[];
+    request_id: string;
+    generation_date: string;
+}
+
+export {DEVICE_ID_DEFAULT, DEVICE_ID_NONE, Frame, Image, Video, Story, Strategy, MediaDevice, FrameSeedMediaType, Bookmark, BookmarksResponse};

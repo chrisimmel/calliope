@@ -6,8 +6,10 @@ import IconCamera from '../icons/IconCamera';
 import IconPlus from "../icons/IconPlus";
 import IconMenu from '../icons/IconMenu';
 import IconMicrophone from '../icons/IconMicrophone';
+import IconBookmark from '../icons/IconBookmark';
+import IconBookmarkAdd from '../icons/IconBookmarkAdd';
 import MainDrawer from '../components/MainDrawer';
-import { Frame, FrameSeedMediaType, Story, Strategy } from '../story/storyTypes';
+import { Bookmark, Frame, FrameSeedMediaType, Story, Strategy } from '../story/storyTypes';
 
 
 type ToolbarProps = {
@@ -34,6 +36,12 @@ type ToolbarProps = {
     startAudioCapture: () => void,
     startCameraCapture: () => void,
     addNewFrame: () => void,
+    
+    toggleBookmark: () => void,
+    isCurrentFrameBookmarked: boolean,
+    bookmarks: Bookmark[],
+    showBookmarksList: boolean,
+    setShowBookmarksList: (show: boolean) => void,
 }
 
 export default function Toolbar({
@@ -60,6 +68,12 @@ export default function Toolbar({
     startAudioCapture,
     startCameraCapture,
     addNewFrame,
+    
+    toggleBookmark,
+    isCurrentFrameBookmarked,
+    bookmarks,
+    showBookmarksList,
+    setShowBookmarksList,
 }: ToolbarProps) {
     /*
     Enable camera capture for now only if not playing.
@@ -125,6 +139,15 @@ export default function Toolbar({
                 </button>
             }
             {
+                story_id && selectedFrameNumber >= 0 && selectedFrameNumber < frames.length &&
+                <button
+                    className="navButton"
+                    onClick={toggleBookmark}
+                >
+                    {isCurrentFrameBookmarked ? <IconBookmark/> : <IconBookmarkAdd/>}
+                </button>
+            }
+            {
                 !drawerIsOpen &&
                 <button
                     className="navButton menuButton"
@@ -154,6 +177,9 @@ export default function Toolbar({
                     jumpToBeginning={jumpToBeginning}
                     jumpToEnd={jumpToEnd}
                     selectedFrameNumber={selectedFrameNumber}
+                    bookmarks={bookmarks}
+                    showBookmarksList={showBookmarksList}
+                    setShowBookmarksList={setShowBookmarksList}
                 />
             }
         </div>

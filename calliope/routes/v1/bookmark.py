@@ -27,7 +27,6 @@ class StoryFrameBookmarkResponse(BaseModel):
     story_id: str
     frame_number: int
     frame_id: int
-    sparrow_id: str
     comments: Optional[str]
     date_created: str
     date_updated: str
@@ -47,33 +46,33 @@ async def create_frame_bookmark(
     client_id: str = Query(..., description="The client ID"),
 ) -> StoryFrameBookmarkResponse:
     """Create a bookmark for a specific story frame."""
-    
+
     # Get the sparrow state
     sparrow_state = await get_sparrow_state(client_id)
-    
+
     # Find the story
     story = await Story.objects().where(
         Story.cuid == bookmark_request.story_id
     ).first().run()
-    
+
     if not story:
         raise HTTPException(status_code=404, detail="Story not found")
-    
+
     # Find the frame
     frame = await StoryFrame.objects().where(
         StoryFrame.story.id == story.id,
         StoryFrame.number == bookmark_request.frame_number
     ).first().run()
-    
+
     if not frame:
         raise HTTPException(status_code=404, detail="Frame not found")
-    
+
     # Check if bookmark already exists
     existing_bookmark = await StoryFrameBookmark.objects().where(
         StoryFrameBookmark.frame.id == frame.id,
         StoryFrameBookmark.sparrow.id == sparrow_state.id
     ).first().run()
-    
+
     if existing_bookmark:
         # Update existing bookmark
         existing_bookmark.comments = bookmark_request.comments
@@ -90,14 +89,14 @@ async def create_frame_bookmark(
             date_updated=datetime.now()
         )
         await bookmark.save().run()
-    
+
     # Return the bookmark
     return StoryFrameBookmarkResponse(
         id=bookmark.id,
         story_id=story.cuid,
         frame_number=frame.number,
         frame_id=frame.id,
-        sparrow_id=sparrow_state.id,
+        client_id=sparrow_state.id,
         comments=bookmark.comments,
         date_created=str(bookmark.date_created),
         date_updated=str(bookmark.date_updated)
@@ -111,19 +110,19 @@ async def delete_frame_bookmark(
     client_id: str = Query(..., description="The client ID"),
 ) -> None:
     """Delete a frame bookmark."""
-    
+
     # Get the sparrow state
     sparrow_state = await get_sparrow_state(client_id)
-    
+
     # Find the bookmark
     bookmark = await StoryFrameBookmark.objects().where(
         StoryFrameBookmark.id == bookmark_id,
         StoryFrameBookmark.sparrow.id == sparrow_state.id
     ).first().run()
-    
+
     if not bookmark:
         raise HTTPException(status_code=404, detail="Bookmark not found")
-    
+
     # Delete the bookmark
     await bookmark.delete().run()
 
@@ -135,10 +134,10 @@ async def list_frame_bookmarks(
     story_id: Optional[str] = Query(None, description="Optional story ID to filter by"),
 ) -> StoryFrameBookmarksResponse:
     """List all frame bookmarks for the client."""
-    
+
     # Get the sparrow state
     sparrow_state = await get_sparrow_state(client_id)
-    
+
     # Build the query
     query = StoryFrameBookmark.objects(
         StoryFrameBookmark.frame,
@@ -146,25 +145,25 @@ async def list_frame_bookmarks(
     ).where(
         StoryFrameBookmark.sparrow.id == sparrow_state.id
     )
-    
+
     # Add story filter if provided
     if story_id:
         story = await Story.objects().where(
             Story.cuid == story_id
         ).first().run()
-        
+
         if not story:
             raise HTTPException(status_code=404, detail="Story not found")
-        
+
         query = query.where(
             StoryFrameBookmark.frame.story.id == story.id
         )
-    
+
     # Get the bookmarks
     bookmarks = await query.order_by(
         StoryFrameBookmark.date_created, ascending=False
     ).run()
-    
+
     # Build the response
     bookmark_responses = []
     for bookmark in bookmarks:
@@ -172,25 +171,24 @@ async def list_frame_bookmarks(
         frame = await StoryFrame.objects().where(
             StoryFrame.id == bookmark.frame.id
         ).first().run()
-        
+
         # Get the story info
         story = await Story.objects().where(
-            Story.id == frame.story.id
+            Story.id == frame.story
         ).first().run()
-        
+
         bookmark_responses.append(
             StoryFrameBookmarkResponse(
                 id=bookmark.id,
                 story_id=story.cuid,
                 frame_number=frame.number,
                 frame_id=frame.id,
-                sparrow_id=sparrow_state.id,
                 comments=bookmark.comments,
                 date_created=str(bookmark.date_created),
                 date_updated=str(bookmark.date_updated)
             )
         )
-    
+
     return StoryFrameBookmarksResponse(
         bookmarks=bookmark_responses,
         request_id=create_cuid(),

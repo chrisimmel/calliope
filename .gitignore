@@ -154,3 +154,6 @@ dmypy.json
 
 # Elm stuff
 clio-elm/elm-stuff/
+
+# AI
+CLAUDE.md

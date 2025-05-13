@@ -5,7 +5,7 @@ import browserID from "browser-id";
 import './ClioApp.css';
 import AudioCapture from "./audio/AudioCapture";
 import Carousel, { CarouselItem } from "./components/Carousel";
-import { Frame, FrameSeedMediaType, Story, Strategy } from './story/storyTypes'; 
+import { Bookmark, BookmarksResponse, Frame, FrameSeedMediaType, Story, Strategy } from './story/storyTypes'; 
 import IconChevronLeft from "./icons/IconChevronLeft";
 import IconChevronRight from "./icons/IconChevronRight";
 import Loader from "./components/Loader";
@@ -130,6 +130,9 @@ export default function ClioApp() {
     const [storyId, setStoryId] = useState<string | null>(null);
     const [drawerIsOpen, setDrawerIsOpen] = useState<boolean>(false);
     const [showOverlays, setShowOverlays] = useState<boolean>(false);
+    const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
+    const [loadingBookmarks, setLoadingBookmarks] = useState<boolean>(false);
+    const [showBookmarksList, setShowBookmarksList] = useState<boolean>(false);
   
     function handleResize() {
         const root: HTMLElement | null = document.querySelector(':root');
@@ -710,8 +713,8 @@ export default function ClioApp() {
     );
 
     const updateStory = useCallback(
-        (story_id: string | null) => {
-            console.log(`Setting story to ${story_id}.`);
+        (story_id: string | null, frame_number: number = 0) => {
+            console.log(`Setting story to ${story_id}, frame ${frame_number}.`);
             setStoryId(story_id);
 
             // Set the strategy to match the selected story.
@@ -725,8 +728,8 @@ export default function ClioApp() {
                 }
             }
 
-            // Get the selected story and jump to its first frame.
-            getStory(story_id, 0);
+            // Get the selected story and jump to the specified frame.
+            getStory(story_id, frame_number);
         },
         [stories, strategies, getStory, findNearestStrategy]
     );
@@ -738,8 +741,129 @@ export default function ClioApp() {
             getFramesInterval = setInterval(() => stateRef.current.getFrames(null, null), 10);
         },
         [selectedFrameNumber, selectFrameNumber, frames]
-    )
-    const loading = loadingStories || loadingStory || loadingStrategies || loadingFrames;
+    );
+
+    const fetchBookmarks = useCallback(
+        async (specific_story_id: string | null = null) => {
+            setLoadingBookmarks(true);
+            try {
+                const params: {client_id: string, story_id?: string} = {
+                    client_id: thisBrowserID,
+                };
+                
+                if (specific_story_id) {
+                    params.story_id = specific_story_id;
+                }
+
+                console.log("Getting bookmarks...");
+                const response = await axios.get<BookmarksResponse>(
+                    "/v1/bookmarks/frame/",
+                    {
+                        headers: {
+                            "X-Api-Key": "xyzzy",
+                        },
+                        params: params,
+                        timeout: DEFAULT_TIMEOUT,
+                    },
+                );
+                
+                console.log(`Got ${response.data?.bookmarks?.length} bookmarks.`);
+                setBookmarks(response.data?.bookmarks || []);
+            } catch (err: any) {
+                setError(err.message);
+                console.error("Error fetching bookmarks:", err);
+            } finally {
+                setLoadingBookmarks(false);
+            }
+        },
+        []
+    );
+
+    const toggleBookmark = useCallback(
+        async () => {
+            if (!storyId || selectedFrameNumber < 0 || selectedFrameNumber >= frames.length) {
+                console.error("Cannot bookmark: invalid story or frame");
+                return;
+            }
+
+            try {
+                // Check if this frame is already bookmarked
+                const existingBookmark = bookmarks.find(
+                    b => b.story_id === storyId && b.frame_number === selectedFrameNumber
+                );
+
+                if (existingBookmark) {
+                    // Delete the bookmark
+                    await axios.delete(
+                        `/v1/bookmarks/frame/${existingBookmark.id}`,
+                        {
+                            headers: {
+                                "X-Api-Key": "xyzzy",
+                            },
+                            params: {
+                                client_id: thisBrowserID,
+                            },
+                            timeout: DEFAULT_TIMEOUT,
+                        },
+                    );
+                    console.log(`Deleted bookmark for frame ${selectedFrameNumber}`);
+                    
+                    // Update local state
+                    setBookmarks(bookmarks.filter(b => b.id !== existingBookmark.id));
+                } else {
+                    // Create a new bookmark
+                    const response = await axios.post(
+                        "/v1/bookmarks/frame",
+                        {
+                            story_id: storyId,
+                            frame_number: selectedFrameNumber,
+                            comments: null, // Optional comments could be added in the future
+                        },
+                        {
+                            headers: {
+                                "X-Api-Key": "xyzzy",
+                            },
+                            params: {
+                                client_id: thisBrowserID,
+                            },
+                            timeout: DEFAULT_TIMEOUT,
+                        },
+                    );
+                    
+                    console.log(`Created bookmark for frame ${selectedFrameNumber}`);
+                    
+                    // Update local state
+                    if (response.data) {
+                        setBookmarks([...bookmarks, response.data]);
+                    }
+                }
+            } catch (err: any) {
+                setError(err.message);
+                console.error("Error toggling bookmark:", err);
+            }
+        },
+        [storyId, selectedFrameNumber, frames, bookmarks]
+    );
+
+    const isCurrentFrameBookmarked = useCallback(
+        () => {
+            if (!storyId || selectedFrameNumber < 0 || selectedFrameNumber >= frames.length) {
+                return false;
+            }
+            
+            return bookmarks.some(
+                b => b.story_id === storyId && b.frame_number === selectedFrameNumber
+            );
+        },
+        [storyId, selectedFrameNumber, frames, bookmarks]
+    );
+
+    // Load bookmarks when the component mounts
+    useEffect(() => {
+        fetchBookmarks();
+    }, [fetchBookmarks]);
+
+    const loading = loadingStories || loadingStory || loadingStrategies || loadingFrames || loadingBookmarks;
 
     /*
     One panel for each frame, including an empty rightmost panel whose selection
@@ -820,6 +944,11 @@ export default function ClioApp() {
                 frames={frames}
                 drawerIsOpen={drawerIsOpen}
                 setDrawerIsOpen={setDrawerIsOpen}
+                toggleBookmark={toggleBookmark}
+                isCurrentFrameBookmarked={isCurrentFrameBookmarked()}
+                bookmarks={bookmarks}
+                showBookmarksList={showBookmarksList}
+                setShowBookmarksList={setShowBookmarksList}
             />
         }
         {
