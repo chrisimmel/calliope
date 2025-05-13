@@ -114,17 +114,10 @@ async def delete_frame_bookmark(
     # Get the sparrow state
     sparrow_state = await get_sparrow_state(client_id)
 
-    # Find the bookmark
-    bookmark = await StoryFrameBookmark.objects().where(
+    await StoryFrameBookmark.delete().where(
         StoryFrameBookmark.id == bookmark_id,
-        StoryFrameBookmark.sparrow.id == sparrow_state.id
-    ).first().run()
-
-    if not bookmark:
-        raise HTTPException(status_code=404, detail="Bookmark not found")
-
-    # Delete the bookmark
-    await bookmark.delete().run()
+        StoryFrameBookmark.sparrow == sparrow_state.id
+    )
 
 
 @router.get("/frame", response_model=StoryFrameBookmarksResponse)
