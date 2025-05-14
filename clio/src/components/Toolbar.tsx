@@ -6,8 +6,8 @@ import IconCamera from '../icons/IconCamera';
 import IconPlus from "../icons/IconPlus";
 import IconMenu from '../icons/IconMenu';
 import IconMicrophone from '../icons/IconMicrophone';
-import IconBookmark from '../icons/IconBookmark';
-import IconBookmarkAdd from '../icons/IconBookmarkAdd';
+import IconHeartFull from '../icons/IconHeartFull';
+import IconHeartEmpty from '../icons/IconHeartEmpty';
 import MainDrawer from '../components/MainDrawer';
 import { Bookmark, Frame, FrameSeedMediaType, Story, Strategy } from '../story/storyTypes';
 
@@ -144,7 +144,7 @@ export default function Toolbar({
                     className="navButton"
                     onClick={toggleBookmark}
                 >
-                    {isCurrentFrameBookmarked ? <IconBookmark/> : <IconBookmarkAdd/>}
+                    {isCurrentFrameBookmarked ? <IconHeartFull/> : <IconHeartEmpty/>}
                 </button>
             }
             {

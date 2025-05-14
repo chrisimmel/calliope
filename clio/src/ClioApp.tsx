@@ -44,6 +44,23 @@ const getAllowExperimental: () => boolean = () => {
     return xParam != null && xParam == '1';
 };
 
+// Utility function to preserve query parameters during navigation
+const preserveQueryParams = (url: string): string => {
+    const currentParams = new URLSearchParams(window.location.search);
+    
+    // If there are no query parameters, return the original URL
+    if (!currentParams.toString()) {
+        return url;
+    }
+    
+    // Check if the URL already has query parameters
+    const hasQuery = url.includes('?');
+    const separator = hasQuery ? '&' : '?';
+    
+    // Append the current query parameters to the URL
+    return `${url}${separator}${currentParams.toString()}`;
+};
+
 let getFramesInterval: ReturnType<typeof setTimeout> | null = null;
 let hideOverlaysInterval: ReturnType<typeof setTimeout> | null = null;
 
@@ -462,7 +479,12 @@ export default function ClioApp() {
                 if (response.data?.story_id && newFrames.length) {
                     // Navigate to the proper URL for the current story and frame
                     const frameForUrl = frame_num + 1; // Convert to 1-based for URL
-                    navigate(`/clio/story/${storySlug}/${frameForUrl}`, { replace: true });
+                    const baseUrl = `/clio/story/${storySlug}/${frameForUrl}`;
+                    
+                    // Preserve query parameters
+                    const urlWithParams = preserveQueryParams(baseUrl);
+                    
+                    navigate(urlWithParams, { replace: true });
                 }
 
                 if (!newFrames.length && !getFramesInterval) {
@@ -599,8 +621,14 @@ export default function ClioApp() {
                     // Use the 1-based frame number in the URL (newSelectedFrameNumber is 0-based)
                     const frameForUrl = newSelectedFrameNumber + 1;
                     
+                    // Create base URL
+                    const baseUrl = `/clio/story/${storySlugState}/${frameForUrl}`;
+                    
+                    // Preserve query parameters
+                    const urlWithParams = preserveQueryParams(baseUrl);
+                    
                     // Update URL without causing a full page reload
-                    navigate(`/clio/story/${storySlugState}/${frameForUrl}`, { replace: true });
+                    navigate(urlWithParams, { replace: true });
                 }
                 
                 /*
@@ -815,7 +843,12 @@ export default function ClioApp() {
                 // Update URL to reflect the new story and frame
                 // Use 1-based frame number in URL
                 const frameForUrl = frame_number + 1;
-                navigate(`/clio/story/${storySlug}/${frameForUrl}`, { replace: true });
+                const baseUrl = `/clio/story/${storySlug}/${frameForUrl}`;
+                
+                // Preserve query parameters
+                const urlWithParams = preserveQueryParams(baseUrl);
+                
+                navigate(urlWithParams, { replace: true });
             }
 
             // Get the selected story and jump to the specified frame.

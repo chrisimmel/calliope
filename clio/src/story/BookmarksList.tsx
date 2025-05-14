@@ -78,6 +78,23 @@ export default function BookmarksList({
 
     const navigate = useNavigate();
     
+    // Utility function to preserve query parameters
+    const preserveQueryParams = (url: string): string => {
+        const currentParams = new URLSearchParams(window.location.search);
+        
+        // If there are no query parameters, return the original URL
+        if (!currentParams.toString()) {
+            return url;
+        }
+        
+        // Check if the URL already has query parameters
+        const hasQuery = url.includes('?');
+        const separator = hasQuery ? '&' : '?';
+        
+        // Append the current query parameters to the URL
+        return `${url}${separator}${currentParams.toString()}`;
+    };
+    
     const handleBookmarkClick = (storyId: string, frameNumber: number) => {
         setBookmarksListIsOpen(false);
         
@@ -87,8 +104,14 @@ export default function BookmarksList({
             // Frame numbers in URL are 1-based
             const frameForUrl = frameNumber + 1;
             
+            // Create base URL
+            const baseUrl = `/clio/story/${story.slug}/${frameForUrl}`;
+            
+            // Preserve query parameters
+            const urlWithParams = preserveQueryParams(baseUrl);
+            
             // Navigate to the story/frame using the new URL pattern
-            navigate(`/clio/story/${story.slug}/${frameForUrl}`);
+            navigate(urlWithParams);
         } else {
             // Fallback to the setStory function if we can't find a slug
             setStory(storyId, frameNumber);

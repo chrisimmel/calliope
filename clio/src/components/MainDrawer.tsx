@@ -18,7 +18,7 @@ import IconFullscreen from '../icons/IconFullscreen';
 import IconPause from '../icons/IconPause';
 import IconPlay from '../icons/IconPlay';
 import IconRewind from '../icons/IconRewind';
-import IconBookmarkList from '../icons/IconBookmarkList';
+import IconHeartEmpty from '../icons/IconHeartEmpty';
 import StoryBrowser from '../story/StoryBrowser';
 import BookmarksList from '../story/BookmarksList';
 
@@ -195,7 +195,7 @@ export default function MainDrawer({
                                     }
                                     >
                                         <ListItemIcon>
-                                            <IconBookmarkList />
+                                            <IconHeartEmpty />
                                         </ListItemIcon>
                                         <ListItemText primary="Bookmarks" />
                                     </ListItemButton>

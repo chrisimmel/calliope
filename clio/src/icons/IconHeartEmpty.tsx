@@ -1,7 +1,7 @@
-// Add, bookmark, outline icon | Zondicons icon pack | https://www.iconfinder.com/iconsets/zondicons
+// Heart icon | Feather Icons | https://www.iconfinder.com/iconsets/feather-5
 import * as React from "react";
 
-export default function IconBookmarkAdd(props: any) {
+export default function IconHeartEmpty(props: any) {
   return (
     <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -14,7 +14,7 @@ export default function IconBookmarkAdd(props: any) {
         stroke-linecap="round"
         stroke-linejoin="round"
     >
-        <path d="M2 2c0-1.1.9-2 2-2h12a2 2 0 0 1 2 2v18l-8-4-8 4V2zm2 0v15l6-3 6 3V2H4zm5 5V5h2v2h2v2h-2v2H9V9H7V7h2z"/>
+        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
     </svg>
   )
 }
