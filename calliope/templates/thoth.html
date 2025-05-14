@@ -52,6 +52,9 @@
                 {{ story.title }}
             </div>
         </a>
+        <div class="story-links">
+            <a href="/clio/story/{{story.slug if story.slug else story.cuid}}" class="clio-link" target="_blank">View in Clio</a>
+        </div>
     </div>
     {% endfor %}
 </body>

@@ -77,6 +77,7 @@ async def thoth_story(
         frames = await story.get_frames(
             offset=pagination.offset,
             include_images=True,
+            include_videos=True,
             max_frames=pagination.page_size
         )
     else:
@@ -109,7 +110,7 @@ async def thoth_search(
         frame_id = int(result[0].metadata.get("frame_id", 0))
         frame: Optional[StoryFrame] = (
             await StoryFrame.objects(
-                StoryFrame.image, StoryFrame.source_image, StoryFrame.story
+                StoryFrame.image, StoryFrame.source_image, StoryFrame.video, StoryFrame.story
             )
             .where(StoryFrame.id == frame_id)  # type: ignore[attr-defined]
             .first()
@@ -121,6 +122,8 @@ async def thoth_search(
                 frame.image = None
             if frame.source_image and not frame.source_image.id:
                 frame.source_image = None
+            if frame.video and not frame.video.id:
+                frame.video = None
 
             frame.text = Markup(
                 frame.text.replace(

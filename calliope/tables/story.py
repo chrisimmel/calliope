@@ -179,6 +179,7 @@ class Story(Table):
         max_frames: int = 0,
         include_images: bool = False,
         include_indexed_for_search: bool = True,
+        include_videos: bool = False,  # Added video support
     ) -> Sequence[StoryFrame]:
         """
         Gets the story's frames.
@@ -187,6 +188,9 @@ class Story(Table):
             max_frames: the maximum number of frames to include.
             If negative, takes the last N frames.
             If zero (the default), takes all.
+            include_images: Whether to include image references.
+            include_indexed_for_search: Whether to include frames indexed for search.
+            include_videos: Whether to include video references.
         """
         qs = (
             StoryFrame.objects(StoryFrame.image, StoryFrame.source_image, StoryFrame.video)
@@ -218,6 +222,8 @@ class Story(Table):
                     frame.image = None
                 if frame.source_image and not frame.source_image.id:
                     frame.source_image = None
+                if frame.video and not frame.video.id:
+                    frame.video = None
 
         if max_frames < 0:
             # Rows are sorted in reverse frame order, so reverse them.
