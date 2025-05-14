@@ -8,8 +8,12 @@ import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
 import ListItemText from '@mui/material/ListItemText';
 import Collapse from '@mui/material/Collapse';
+import Typography from '@mui/material/Typography';
 
 import IconClose from '../icons/IconClose';
+import IconHeartFull from '../icons/IconHeartFull';
+import IconChevronDown from '../icons/IconChevronDown';
+import IconChevronRight from '../icons/IconChevronRight';
 import { Bookmark, Story } from './storyTypes';
 
 type BookmarksListProps = {
@@ -124,27 +128,88 @@ export default function BookmarksList({
                 anchor={drawerAnchor}
                 open={bookmarksListIsOpen}
                 onClose={() => setBookmarksListIsOpen(false)}
+                PaperProps={{
+                    sx: {
+                        width: {
+                            xs: '100%',
+                            sm: '400px',
+                            md: '450px'
+                        }
+                    }
+                }}
             >
-                <Box sx={{ my: 6 }}>
-                    <List>
-                        <ListItem>
-                            <ListItemText primary="Bookmarks" sx={{ fontWeight: 'bold' }} />
+                <Box sx={{ my: 2 }}>
+                    <List dense sx={{ padding: 0 }}>
+                        <ListItem 
+                            sx={{ 
+                                backgroundColor: '#f5f5f5', 
+                                borderRadius: '4px',
+                                marginBottom: '4px',
+                                padding: '6px 12px'
+                            }}
+                            dense
+                        >
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                <IconHeartFull style={{ color: '#ff4081', width: '20px', height: '20px' }} />
+                                <Typography variant="subtitle1" fontWeight="bold" style={{ marginLeft: '10px'}}>Bookmarks</Typography>
+                            </Box>
                         </ListItem>
-                        
+
                         {Object.keys(bookmarksByStory).length === 0 && (
-                            <ListItem>
-                                <ListItemText primary="No bookmarks yet" />
+                            <ListItem dense sx={{ py: 0 }}>
+                                <Typography variant="body2">No bookmarks yet</Typography>
                             </ListItem>
                         )}
 
                         {Object.keys(bookmarksByStory).map(storyId => (
                             <div key={storyId}>
                                 <ListItem disablePadding>
-                                    <ListItemButton onClick={() => toggleStoryExpanded(storyId)}>
-                                        <ListItemText 
-                                            primary={getStoryTitle(storyId)} 
-                                            secondary={`${bookmarksByStory[storyId].length} bookmarks`}
-                                        />
+                                    <ListItemButton 
+                                        onClick={() => toggleStoryExpanded(storyId)}
+                                        sx={{ 
+                                            backgroundColor: '#f9f9f9', 
+                                            '&:hover': { 
+                                                backgroundColor: '#f0f0f0',
+                                                '& svg': { color: '#444' },
+                                                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                                            },
+                                            marginY: '2px',
+                                            borderRadius: '4px',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s ease',
+                                            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                                            padding: '4px 8px'
+                                        }}
+                                    >
+                                        <Box sx={{ 
+                                            display: 'flex', 
+                                            width: '100%', 
+                                            alignItems: 'center' 
+                                        }}>
+                                            <ListItemText 
+                                                primary={getStoryTitle(storyId)}
+                                                secondary={`${bookmarksByStory[storyId].length} bookmarks`}
+                                                primaryTypographyProps={{
+                                                    fontWeight: 'medium',
+                                                    color: '#333',
+                                                    variant: 'body1'
+                                                }}
+                                                secondaryTypographyProps={{
+                                                    variant: 'caption',
+                                                    color: '#666'
+                                                }}
+                                                sx={{ flex: 1, margin: 0 }}
+                                            />
+                                            <Box
+                                                sx={{
+                                                    display: 'flex',
+                                                    transition: 'transform 0.3s ease',
+                                                    transform: expandedStories[storyId] ? 'rotate(0deg)' : 'rotate(-90deg)'
+                                                }}
+                                            >
+                                                <IconChevronDown style={{ color: '#666', width: '24px', height: '24px' }} />
+                                            </Box>
+                                        </Box>
                                     </ListItemButton>
                                 </ListItem>
 
@@ -153,13 +218,76 @@ export default function BookmarksList({
                                         {bookmarksByStory[storyId].map(bookmark => (
                                             <ListItem key={bookmark.id} disablePadding>
                                                 <ListItemButton 
-                                                    sx={{ pl: 4 }}
+                                                    sx={{ 
+                                                        pl: 4,
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        '&:hover': { 
+                                                            backgroundColor: 'rgba(0,0,0,0.04)',
+                                                            borderRadius: '4px'
+                                                        },
+                                                        margin: '1px 0',
+                                                        padding: '2px 8px'
+                                                    }}
                                                     onClick={() => handleBookmarkClick(bookmark.story_id, bookmark.frame_number)}
                                                 >
-                                                    <ListItemText 
-                                                        primary={`Frame ${bookmark.frame_number + 1}`} 
-                                                        secondary={bookmark.comments || 'No comments'}
-                                                    />
+                                                    <Box sx={{ 
+                                                        display: 'flex', 
+                                                        width: '100%',
+                                                        alignItems: 'center',
+                                                        margin: '0 14px'
+                                                    }}>
+                                                        {bookmark.frame_image_url && (
+                                                            <Box sx={{ 
+                                                                mr: 2,
+                                                                width: '48px',
+                                                                height: '48px',
+                                                                overflow: 'hidden',
+                                                                borderRadius: '4px',
+                                                                flexShrink: 0,
+                                                                display: 'flex',
+                                                                justifyContent: 'center',
+                                                                alignItems: 'center'
+                                                            }}>
+                                                                <img 
+                                                                    src={bookmark.frame_image_url} 
+                                                                    alt={`Frame ${bookmark.frame_number + 1}`}
+                                                                    style={{ 
+                                                                        width: '100%',
+                                                                        height: '100%',
+                                                                        objectFit: 'cover'
+                                                                    }}
+                                                                />
+                                                            </Box>
+                                                        )}
+                                                        <Box sx={{ flexGrow: 1, margin: 0}}>
+                                                            <Box sx={{ display: 'flex', margin: 0 }}>
+                                                                <Typography 
+                                                                    component="span" 
+                                                                    variant="body2" 
+                                                                    color="#333"
+                                                                    sx={{ mr: 0.5, flexShrink: 0 }}
+                                                                >
+                                                                    {bookmark.frame_number + 1}:
+                                                                </Typography>
+                                                                <Typography 
+                                                                    variant="caption"
+                                                                    color="#666"
+                                                                    sx={{
+                                                                        fontStyle: 'italic',
+                                                                        maxHeight: '3.6em', // approximately 3 lines
+                                                                        overflow: 'hidden',
+                                                                        textOverflow: 'ellipsis',
+                                                                        display: '-webkit-box',
+                                                                        WebkitLineClamp: 2,
+                                                                        WebkitBoxOrient: 'vertical',
+                                                                    }}
+                                                                >
+                                                                    {bookmark.frame_text || '(No text)'}
+                                                                </Typography>
+                                                            </Box>
+                                                        </Box>
+                                                    </Box>
                                                 </ListItemButton>
                                             </ListItem>
                                         ))}

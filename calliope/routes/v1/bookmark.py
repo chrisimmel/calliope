@@ -30,6 +30,8 @@ class StoryFrameBookmarkResponse(BaseModel):
     comments: Optional[str]
     date_created: str
     date_updated: str
+    frame_text: Optional[str] = None
+    frame_image_url: Optional[str] = None
 
 
 class StoryFrameBookmarksResponse(BaseModel):
@@ -90,6 +92,11 @@ async def create_frame_bookmark(
         )
         await bookmark.save().run()
 
+    # Get frame image URL if available
+    frame_image_url = None
+    if frame.image and hasattr(frame.image, 'url') and frame.image.url:
+        frame_image_url = f"/{frame.image.url}"
+
     # Return the bookmark
     return StoryFrameBookmarkResponse(
         id=bookmark.id,
@@ -99,7 +106,9 @@ async def create_frame_bookmark(
         client_id=sparrow_state.id,
         comments=bookmark.comments,
         date_created=str(bookmark.date_created),
-        date_updated=str(bookmark.date_updated)
+        date_updated=str(bookmark.date_updated),
+        frame_text=frame.text,
+        frame_image_url=frame_image_url
     )
 
 
@@ -161,7 +170,7 @@ async def list_frame_bookmarks(
     bookmark_responses = []
     for bookmark in bookmarks:
         # Get the frame info
-        frame = await StoryFrame.objects().where(
+        frame = await StoryFrame.objects(StoryFrame.image).where(
             StoryFrame.id == bookmark.frame.id
         ).first().run()
 
@@ -169,6 +178,11 @@ async def list_frame_bookmarks(
         story = await Story.objects().where(
             Story.id == frame.story
         ).first().run()
+
+        # Get frame image URL if available
+        frame_image_url = None
+        if frame.image and hasattr(frame.image, 'url') and frame.image.url:
+            frame_image_url = f"/{frame.image.url}"
 
         bookmark_responses.append(
             StoryFrameBookmarkResponse(
@@ -178,7 +192,9 @@ async def list_frame_bookmarks(
                 frame_id=frame.id,
                 comments=bookmark.comments,
                 date_created=str(bookmark.date_created),
-                date_updated=str(bookmark.date_updated)
+                date_updated=str(bookmark.date_updated),
+                frame_text=frame.text,
+                frame_image_url=frame_image_url
             )
         )
 
@@ -227,6 +243,11 @@ async def get_frame_bookmark(
     if not bookmark:
         raise HTTPException(status_code=404, detail="Bookmark not found")
     
+    # Get frame image URL if available
+    frame_image_url = None
+    if frame.image and hasattr(frame.image, 'url') and frame.image.url:
+        frame_image_url = f"/{frame.image.url}"
+
     # Return the bookmark
     return StoryFrameBookmarkResponse(
         id=bookmark.id,
@@ -236,5 +257,7 @@ async def get_frame_bookmark(
         sparrow_id=sparrow_state.id,
         comments=bookmark.comments,
         date_created=str(bookmark.date_created),
-        date_updated=str(bookmark.date_updated)
+        date_updated=str(bookmark.date_updated),
+        frame_text=frame.text,
+        frame_image_url=frame_image_url
     )

@@ -64,6 +64,8 @@ type Bookmark = {
     comments?: string;
     date_created: string;
     date_updated: string;
+    frame_text?: string;
+    frame_image_url?: string;
 }
 
 type BookmarksResponse = {
