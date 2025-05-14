@@ -36,6 +36,7 @@ type MainDrawerProps = {
     toggleFullScreen: () => void,
     stories: Story[],
     story_id: string | null,
+    currentStory: Story | null, // Add currentStory prop
     setStory: (story_id: string | null, frame_number?: number) => void,
     jumpToBeginning: () => void,
     jumpToEnd: () => void,
@@ -58,6 +59,7 @@ export default function MainDrawer({
     toggleFullScreen,
     stories,
     story_id,
+    currentStory,
     setStory,
     jumpToBeginning,
     jumpToEnd,
@@ -72,7 +74,6 @@ export default function MainDrawer({
     const [storyBrowserIsOpen, setStoryBrowserIsOpen] = useState<boolean>(false);
     const [aboutPanelIsOpen, setAboutPanelIsOpen] = useState<boolean>(false);
     const [creatStoryDialogIsOpen, setCreatStoryDialogIsOpen] = useState<boolean>(false);
-    const currentStory = stories.find(story => story.story_id === story_id) || null;
     strategies ||= [];
     strategies = strategies.filter((strat) => allowExperimental || !strat.is_experimental);
     strategy ||= (strategies.find(strategy => strategy.is_default_for_client) || {slug: null}).slug;

@@ -2,7 +2,7 @@ from datetime import datetime
 import os
 import sys
 import traceback
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 import httpx
 from fastapi import APIRouter, Depends, Request
@@ -75,6 +75,11 @@ class StoryResponseV1(BaseModel):
     append_to_prior_frames: bool = False
 
     strategy: Optional[str]
+
+    is_read_only: bool
+    created_for_sparrow_id: str
+    date_created: str
+    date_updated: str
 
     request_id: str
     generation_date: str
@@ -157,6 +162,10 @@ async def get_story_by_slug(
             story_frame_count=0,
             append_to_prior_frames=False,
             strategy=None,
+            is_read_only=False,
+            created_for_sparrow_id=client_id,
+            date_created=cast(datetime, datetime.now(datetime.timezone.utc).date()),
+            date_updated=cast(datetime, datetime.now(datetime.timezone.utc).date()),
             request_id=create_cuid(),
             generation_date=str(datetime.utcnow()),
             debug_data={},
@@ -258,6 +267,10 @@ Calliope sleeps. She will awake shortly, improved.
         story_frame_count=1,
         append_to_prior_frames=False,
         strategy=None,
+        is_read_only=True,
+        created_for_sparrow_id="me",
+        date_created=str(datetime.now(datetime.timezone.utc).date()),
+        date_updated=str(datetime.now(datetime.timezone.utc).date()),
         request_id=create_cuid(),
         generation_date=str(datetime.utcnow()),
         debug_data={},
@@ -422,6 +435,10 @@ async def handle_frames_request(
         story_frame_count=await story.get_num_frames(),
         append_to_prior_frames=story_frames_response.append_to_prior_frames,
         strategy=story.strategy_name,
+        is_read_only=story.created_for_sparrow_id != client_id,
+        created_for_sparrow_id=story.created_for_sparrow_id,
+        date_created=str(story.date_created.date()),
+        date_updated=str(story.date_updated.date()),
         request_id=create_cuid(),
         generation_date=str(datetime.utcnow()),
         debug_data=story_frames_response.debug_data if parameters.debug else {},
@@ -476,6 +493,7 @@ async def handle_existing_frames_request(
     # await prepare_frame_images(request_params, frames)
     frame_models = [frame.to_pydantic() for frame in frames]
 
+    print(f"{story.created_for_sparrow_id=} {client_id=}")
     response = StoryResponseV1(
         frames=frame_models,
         story_id=story.cuid,
@@ -484,6 +502,10 @@ async def handle_existing_frames_request(
         append_to_prior_frames=False,
         request_id=create_cuid(),
         strategy=story.strategy_name,
+        is_read_only=story.created_for_sparrow_id != client_id,
+        created_for_sparrow_id=story.created_for_sparrow_id,
+        date_created=str(story.date_created.date()),
+        date_updated=str(story.date_updated.date()),
         generation_date=str(datetime.utcnow()),
         debug_data=debug_data if request_params.debug else {},
         errors=errors,
@@ -644,7 +666,7 @@ async def get_stories(
             story_frame_count=1,  # await story.get_num_frames(),
             is_bookmarked=False,
             is_current=story.cuid == current_story is not None and current_story.cuid,
-            is_read_only=False,
+            is_read_only=client_id != story.created_for_sparrow_id,
             strategy_name=story.strategy_name,
             created_for_sparrow_id=story.created_for_sparrow_id,
             thumbnail_image=(

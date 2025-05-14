@@ -151,11 +151,14 @@ export default function ClioApp() {
     const [stories, setStories] = useState<Story[]>([]);
     const [storyId, setStoryId] = useState<string | null>(null);
     const [storySlugState, setStorySlugState] = useState<string | null>(null);
+    const [currentStory, setCurrentStory] = useState<Story | null>(null);
     const [drawerIsOpen, setDrawerIsOpen] = useState<boolean>(false);
     const [showOverlays, setShowOverlays] = useState<boolean>(false);
     const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
     const [loadingBookmarks, setLoadingBookmarks] = useState<boolean>(false);
     const [showBookmarksList, setShowBookmarksList] = useState<boolean>(false);
+    const [showShareNotification, setShowShareNotification] = useState<boolean>(false);
+    const [isReadOnly, setIsReadOnly] = useState<boolean>(false);
 
     function handleResize() {
         const root: HTMLElement | null = document.querySelector(':root');
@@ -288,6 +291,7 @@ export default function ClioApp() {
             const dateUpdated = generationDate.split(" ")[0];
 
             let newStories = stories;
+            let updatedStory: Story | null = null;
 
             for (let i = 0; i < newStories.length; i++) {
                 const story = stories[i];
@@ -296,6 +300,7 @@ export default function ClioApp() {
                     story.story_frame_count = story_frame_count;
                     story.date_updated = dateUpdated;
                     story.is_current = true;
+                    updatedStory = story;
                 } else {
                     story.is_current = false;
                 }
@@ -330,11 +335,19 @@ export default function ClioApp() {
                     created_for_sparrow_id: thisBrowserID,
                     thumbnail_image: newFrames[0].image || null, // We'll use the image for thumbnails even for video frames
                     date_created: dateUpdated,
-                    date_updated: dateUpdated
+                    date_updated: dateUpdated,
+                    slug: null // We don't have the slug yet, it will be populated on the next fetch
                 }
-                console.log("(Adding new story.");
+                console.log("Adding new story.");
                 newStories = [...newStories, newStory];
+                updatedStory = newStory;
             }
+            
+            // Update the current story state
+            if (updatedStory) {
+                setCurrentStory(updatedStory);
+            }
+            
             setStories(newStories);
         },
         [stories]
@@ -472,9 +485,31 @@ export default function ClioApp() {
                     frame_num = maxFrameNum;
                 }
                 setSelectedFrameNumber(frame_num);
+                setIsReadOnly(response.data?.is_read_only || false);
                 const storySlug = response.data?.slug || null;
-
+                
+                // Create a complete Story object from the API response
+                if (response.data?.story_id) {
+                    const apiStory: Story = {
+                        story_id: response.data.story_id,
+                        title: response.data.title || '',
+                        slug: response.data.slug || null,
+                        story_frame_count: response.data.frames?.length || 0,
+                        is_bookmarked: response.data.is_bookmarked || false,
+                        is_current: true,
+                        is_read_only: response.data.is_read_only || false,
+                        strategy_name: response.data.strategy || '',
+                        created_for_sparrow_id: response.data.created_for_sparrow_id || '',
+                        thumbnail_image: newFrames[0]?.image || null,
+                        date_created: response.data.date_created || '',
+                        date_updated: response.data.date_updated || '',
+                    };
+                    
+                    // Set the current story
+                    setCurrentStory(apiStory);
+                }
                 console.log(`Got story ${storySlug} (${newFrames.length} frames).`);
+                console.log(`Story is ${response.data?.is_read_only ? "" : " not"} read only.`);
 
                 if (response.data?.story_id && newFrames.length) {
                     // Navigate to the proper URL for the current story and frame
@@ -497,7 +532,7 @@ export default function ClioApp() {
                 setLoadingStory(false);
             }
         },
-        []
+        [stories, navigate]
     );
 
     const getStoryBySlug = useCallback(
@@ -519,13 +554,38 @@ export default function ClioApp() {
                         timeout: DEFAULT_TIMEOUT,
                     },
                 );
-                console.log(`Got ${response.data?.frames?.length} frames.`);
                 const newFrames = response.data?.frames || [];
                 setFrames(newFrames);
                 setStrategy(response.data?.strategy || defaultStrategy);
                 setStoryId(response.data?.story_id || null);
                 setStorySlugState(response.data?.slug || null);
-                
+
+                setIsReadOnly(response.data?.is_read_only || false);
+                const storySlug = response.data?.slug || null;
+                console.log(`Got story ${storySlug} (${newFrames.length} frames).`);
+                console.log(`Story is ${response.data?.is_read_only ? "" : " not"} read only.`);
+
+                // Create a complete Story object from the API response
+                if (response.data?.story_id) {
+                    const apiStory: Story = {
+                        story_id: response.data.story_id,
+                        title: response.data.title || '',
+                        slug: response.data.slug || null,
+                        story_frame_count: response.data.frames?.length || 0,
+                        is_bookmarked: response.data.is_bookmarked || false,
+                        is_current: true,
+                        is_read_only: response.data.is_read_only || false,
+                        strategy_name: response.data.strategy || '',
+                        created_for_sparrow_id: response.data.created_for_sparrow_id || '',
+                        thumbnail_image: newFrames[0]?.image || null,
+                        date_created: response.data.date_created || null,
+                        date_updated: response.data.date_updated || null,
+                    };
+                    
+                    // Set the current story
+                    setCurrentStory(apiStory);
+                }
+
                 // Calculate frame number
                 let frameNumber;
                 if (desiredFrameNum !== undefined) {
@@ -536,9 +596,9 @@ export default function ClioApp() {
                 } else {
                     frameNumber = 0; // Default to first frame
                 }
-                
+
                 setSelectedFrameNumber(frameNumber);
-                
+
                 if (!newFrames.length && !getFramesInterval) {
                     // If the story is empty, display the menu.
                     setDrawerIsOpen(true);
@@ -550,7 +610,7 @@ export default function ClioApp() {
                 setLoadingStory(false);
             }
         },
-        [defaultStrategy]
+        [defaultStrategy, stories]
     );
 
     useEffect(
@@ -587,8 +647,21 @@ export default function ClioApp() {
                             timeout: DEFAULT_TIMEOUT,
                         },
                     );
-                    console.log(`Got ${response.data?.stories?.length} frames.`);
-                    const newStories = response.data?.stories || [];
+                    console.log(`Got ${response.data?.stories?.length} stories.`);
+                    const newStories: [Story] = response.data?.stories || [];
+
+                    // Find the current story if any
+                    const currentStoryFromList = newStories.find(story => story.is_current);
+                    if (currentStoryFromList) {
+                        // Ensure date fields are preserved
+                        const updatedStory = {
+                            ...currentStoryFromList,
+                            date_updated: currentStoryFromList.date_updated || '',
+                            date_created: currentStoryFromList.date_created || ''
+                        };
+                        setCurrentStory(updatedStory);
+                    }
+
                     setStories(newStories);
                 } catch (err: any) {
                     setError(err.message);
@@ -826,15 +899,31 @@ export default function ClioApp() {
 
             // Set the strategy to match the selected story.
             let storySlug = null;
+            let selectedStory = null;
+            
             for (let i = 0; i < stories.length; i++) {
                 const story = stories[i];
                 if (story.story_id == story_id) {
+                    selectedStory = story;
                     const strategy_name = findNearestStrategy(story.strategy_name);
                     console.log(`Setting strategy to ${strategy_name}.`);
                     setStrategy(strategy_name);
                     storySlug = story.slug;
                     break;
                 }
+            }
+            
+            // If we found the story in the stories array, update currentStory
+            if (selectedStory) {
+                // Mark this story as current, make sure others are not
+                // Ensure date_updated is preserved
+                const updatedStory = {
+                    ...selectedStory, 
+                    is_current: true,
+                    date_updated: selectedStory.date_updated || '',
+                    date_created: selectedStory.date_created || ''
+                };
+                setCurrentStory(updatedStory);
             }
 
             if (storySlug) {
@@ -980,6 +1069,24 @@ export default function ClioApp() {
         },
         [storyId, selectedFrameNumber, frames, bookmarks]
     );
+    
+    // Function to share the current URL
+    const shareCurrentUrl = useCallback(() => {
+        try {
+            // Copy the current URL to clipboard
+            navigator.clipboard.writeText(window.location.href);
+            
+            // Show notification
+            setShowShareNotification(true);
+            
+            // Hide notification after 2 seconds
+            setTimeout(() => {
+                setShowShareNotification(false);
+            }, 2000);
+        } catch (err) {
+            console.error('Failed to copy URL to clipboard:', err);
+        }
+    }, []);
 
     // Load bookmarks when the component mounts
     useEffect(() => {
@@ -1060,6 +1167,8 @@ export default function ClioApp() {
                 startNewStory={startNewStory}
                 stories={stories}
                 story_id={storyId}
+                currentStory={currentStory}
+                isReadOnly={isReadOnly}
                 setStory={updateStory}
                 jumpToBeginning={toStart}
                 jumpToEnd={toEnd}
@@ -1072,6 +1181,7 @@ export default function ClioApp() {
                 bookmarks={bookmarks}
                 showBookmarksList={showBookmarksList}
                 setShowBookmarksList={setShowBookmarksList}
+                shareCurrentUrl={shareCurrentUrl}
             />
         }
         {
@@ -1086,6 +1196,10 @@ export default function ClioApp() {
             <div className="spinnerFrame">
                 <Loader/>
             </div>
+        }
+        {
+            showShareNotification &&
+            <div className="share-notification">URL copied to clipboard!</div>
         }
     </>;
 }
