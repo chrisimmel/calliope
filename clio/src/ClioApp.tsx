@@ -114,7 +114,7 @@ export default function ClioApp() {
     // Get URL parameters
     const { storySlug, frameNum } = useParams<{ storySlug?: string; frameNum?: string }>();
     const navigate = useNavigate();
-    
+
     const stateRef = useRef<ClioState>({handleFullScreen: () => null, getFrames: () => null});
     const [frames, setFrames] = useState<Frame[]>([]);
     const [selectedFrameNumber, setSelectedFrameNumber] = useState<number>(-1);
@@ -139,7 +139,7 @@ export default function ClioApp() {
     const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
     const [loadingBookmarks, setLoadingBookmarks] = useState<boolean>(false);
     const [showBookmarksList, setShowBookmarksList] = useState<boolean>(false);
-  
+
     function handleResize() {
         const root: HTMLElement | null = document.querySelector(':root');
         if (root) {
@@ -216,7 +216,7 @@ export default function ClioApp() {
         },
         [isFullScreen]
     );
-    
+
     const startCameraCapture = useCallback(
         () => {
             setCaptureActive(true);
@@ -579,7 +579,6 @@ export default function ClioApp() {
         },
         []
     );
-
  
     const selectFrameNumber = useCallback(
         async (newSelectedFrameNumber: number) => {
@@ -809,7 +808,7 @@ export default function ClioApp() {
                     break;
                 }
             }
-            
+
             if (storySlug) {
                 setStorySlugState(storySlug);
                 
@@ -857,7 +856,7 @@ export default function ClioApp() {
                         timeout: DEFAULT_TIMEOUT,
                     },
                 );
-                
+
                 console.log(`Got ${response.data?.bookmarks?.length} bookmarks.`);
                 setBookmarks(response.data?.bookmarks || []);
             } catch (err: any) {
@@ -898,7 +897,7 @@ export default function ClioApp() {
                         },
                     );
                     console.log(`Deleted bookmark for frame ${selectedFrameNumber}`);
-                    
+
                     // Update local state
                     setBookmarks(bookmarks.filter(b => b.id !== existingBookmark.id));
                 } else {
@@ -920,9 +919,9 @@ export default function ClioApp() {
                             timeout: DEFAULT_TIMEOUT,
                         },
                     );
-                    
+
                     console.log(`Created bookmark for frame ${selectedFrameNumber}`);
-                    
+
                     // Update local state
                     if (response.data) {
                         setBookmarks([...bookmarks, response.data]);
@@ -941,7 +940,7 @@ export default function ClioApp() {
             if (!storyId || selectedFrameNumber < 0 || selectedFrameNumber >= frames.length) {
                 return false;
             }
-            
+
             return bookmarks.some(
                 b => b.story_id === storyId && b.frame_number === selectedFrameNumber
             );
