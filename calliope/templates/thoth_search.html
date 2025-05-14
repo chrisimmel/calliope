@@ -20,11 +20,19 @@
         <div class="summary-line">
             Made by strategy {{frame.story.strategy_name}} on {{frame.date_created}}.
         </div>
+        <div class="summary-links">
+            <a href="/clio/story/{{frame.story.slug if frame.story.slug else frame.story.cuid}}/{{frame.number + 1}}" class="clio-link" target="_blank">View in Clio</a>
+        </div>
     </div>
     <div class="story-frame">
-        <div class="frame-image">
-            {%- if frame.source_image -%}
-            <img src="/{{frame.source_image.url}}" />
+        <div class="frame-media">
+            {%- if frame.video -%}
+            <video controls width="{{frame.video.width if frame.video.width <= 512 else 512}}">
+                <source src="/{{frame.video.url}}" type="{{frame.video.format}}">
+                Your browser does not support the video tag.
+            </video>
+            {%- elif frame.source_image -%}
+            <img src="/{{frame.source_image.url}}" alt="Frame {{frame.number}}" />
             {%- endif %}
         </div>
         <div class="frame-text">
