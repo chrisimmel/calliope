@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState, useEffect } from "react";
 import axios from "axios"
 import browserID from "browser-id";
+import { useParams, useNavigate } from "react-router-dom";
 
 import './ClioApp.css';
 import AudioCapture from "./audio/AudioCapture";
@@ -110,6 +111,10 @@ export default function ClioApp() {
         getFrames: (image: string | null, audio: string | null) => void,
     }
 
+    // Get URL parameters
+    const { storySlug, frameNum } = useParams<{ storySlug?: string; frameNum?: string }>();
+    const navigate = useNavigate();
+    
     const stateRef = useRef<ClioState>({handleFullScreen: () => null, getFrames: () => null});
     const [frames, setFrames] = useState<Frame[]>([]);
     const [selectedFrameNumber, setSelectedFrameNumber] = useState<number>(-1);
@@ -128,6 +133,7 @@ export default function ClioApp() {
     const [isFullScreen, setIsFullScreen] = useState<boolean>(false);
     const [stories, setStories] = useState<Story[]>([]);
     const [storyId, setStoryId] = useState<string | null>(null);
+    const [storySlugState, setStorySlugState] = useState<string | null>(null);
     const [drawerIsOpen, setDrawerIsOpen] = useState<boolean>(false);
     const [showOverlays, setShowOverlays] = useState<boolean>(false);
     const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
@@ -437,7 +443,6 @@ export default function ClioApp() {
                         timeout: DEFAULT_TIMEOUT,
                     },
                 );
-                console.log(`Got ${response.data?.frames?.length} frames.`);
                 const newFrames = response.data?.frames || [];
                 setFrames(newFrames);
                 //setStrategy(response.data?.strategy || defaultStrategy);
@@ -450,9 +455,15 @@ export default function ClioApp() {
                     frame_num = maxFrameNum;
                 }
                 setSelectedFrameNumber(frame_num);
+                const storySlug = response.data?.slug || null;
 
-                console.log(`Got story.`);
-                console.log(`${newFrames.length}, ${getFramesInterval}`);
+                console.log(`Got story ${storySlug} (${newFrames.length} frames).`);
+
+                if (response.data?.story_id && newFrames.length) {
+                    // Navigate to the proper URL for the current story and frame
+                    const frameForUrl = frame_num + 1; // Convert to 1-based for URL
+                    navigate(`/clio/story/${storySlug}/${frameForUrl}`, { replace: true });
+                }
 
                 if (!newFrames.length && !getFramesInterval) {
                     // If the story is empty, display the menu.
@@ -467,12 +478,71 @@ export default function ClioApp() {
         []
     );
 
+    const getStoryBySlug = useCallback(
+        async (slug: string, desiredFrameNum?: number) => {
+            setLoadingStory(true);
+            try {
+                const params = {
+                    client_id: thisBrowserID,
+                    debug: true,
+                };
+                console.log(`Getting story by slug ${slug}...`);
+                const response = await axios.get(
+                    `/v1/story/slug/${slug}`,
+                    {
+                        headers: {
+                            "X-Api-Key": "xyzzy",
+                        },
+                        params: params,
+                        timeout: DEFAULT_TIMEOUT,
+                    },
+                );
+                console.log(`Got ${response.data?.frames?.length} frames.`);
+                const newFrames = response.data?.frames || [];
+                setFrames(newFrames);
+                setStrategy(response.data?.strategy || defaultStrategy);
+                setStoryId(response.data?.story_id || null);
+                setStorySlugState(response.data?.slug || null);
+                
+                // Calculate frame number
+                let frameNumber;
+                if (desiredFrameNum !== undefined) {
+                    // Convert from 1-based (URL) to 0-based (internal)
+                    const zeroBasedFrameNum = Math.max(0, desiredFrameNum - 1);
+                    const maxFrameNum = newFrames ? newFrames.length - 1 : 0;
+                    frameNumber = Math.min(zeroBasedFrameNum, maxFrameNum);
+                } else {
+                    frameNumber = 0; // Default to first frame
+                }
+                
+                setSelectedFrameNumber(frameNumber);
+                
+                if (!newFrames.length && !getFramesInterval) {
+                    // If the story is empty, display the menu.
+                    setDrawerIsOpen(true);
+                }
+            } catch (err: any) {
+                setError(err.message);
+                console.error("Error fetching story by slug:", err);
+            } finally {
+                setLoadingStory(false);
+            }
+        },
+        [defaultStrategy]
+    );
+
     useEffect(
         () => {
-            // Get the default story and jump to its last frame.
-            getStory(null, null);
+            // Check if we have URL parameters for story slug and frame
+            if (storySlug) {
+                const frameNumInt = frameNum ? parseInt(frameNum, 10) : undefined;
+                getStoryBySlug(storySlug, frameNumInt);
+            } else {
+                // No URL parameters, use the default behavior
+                getStory(null, null);
+            }
         },
-        [getStory]
+        [getStory, getStoryBySlug, storySlug, frameNum]
     );
 
     useEffect(
@@ -524,6 +594,16 @@ export default function ClioApp() {
                 setSelectedFrameNumber(newSelectedFrameNumber);
 
                 console.log(`New index is ${newSelectedFrameNumber}, total frames: ${frameCount}.`);
+                
+                // Update URL to reflect the current story and frame (1-based for URL)
+                if (storyId && storySlugState) {
+                    // Use the 1-based frame number in the URL (newSelectedFrameNumber is 0-based)
+                    const frameForUrl = newSelectedFrameNumber + 1;
+                    
+                    // Update URL without causing a full page reload
+                    navigate(`/clio/story/${storySlugState}/${frameForUrl}`, { replace: true });
+                }
+                
                 /*
                 No more getFrames on navigation!
                 if (newSelectedFrameNumber >= frames.length && !getFramesInterval) {
@@ -533,7 +613,7 @@ export default function ClioApp() {
                 */
             }
         },
-        [frames, getFrames, selectedFrameNumber, setCaptureActive, setSelectedFrameNumber]
+        [frames, getFrames, selectedFrameNumber, setCaptureActive, setSelectedFrameNumber, storyId, storySlugState, navigate]
     );
 
     const toggleIsPlaying = useCallback(
@@ -718,20 +798,31 @@ export default function ClioApp() {
             setStoryId(story_id);
 
             // Set the strategy to match the selected story.
+            let storySlug = null;
             for (let i = 0; i < stories.length; i++) {
                 const story = stories[i];
                 if (story.story_id == story_id) {
                     const strategy_name = findNearestStrategy(story.strategy_name);
                     console.log(`Setting strategy to ${strategy_name}.`);
                     setStrategy(strategy_name);
+                    storySlug = story.slug;
                     break;
                 }
+            }
+            
+            if (storySlug) {
+                setStorySlugState(storySlug);
+                
+                // Update URL to reflect the new story and frame
+                // Use 1-based frame number in URL
+                const frameForUrl = frame_number + 1;
+                navigate(`/clio/story/${storySlug}/${frameForUrl}`, { replace: true });
             }
 
             // Get the selected story and jump to the specified frame.
             getStory(story_id, frame_number);
         },
-        [stories, strategies, getStory, findNearestStrategy]
+        [stories, strategies, getStory, findNearestStrategy, navigate]
     );
 
     const addNewFrame = useCallback(

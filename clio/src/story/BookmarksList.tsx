@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import Drawer from '@mui/material/Drawer';
 import Box from '@mui/material/Box';
@@ -75,16 +76,23 @@ export default function BookmarksList({
         });
     };
 
+    const navigate = useNavigate();
+    
     const handleBookmarkClick = (storyId: string, frameNumber: number) => {
         setBookmarksListIsOpen(false);
         
-        // Update URL to reflect the current story and frame (for bookmarking/sharing)
-        const url = new URL(window.location.href);
-        url.searchParams.set('story', `${storyId}:${frameNumber}`);
-        window.history.pushState({}, '', url.toString());
-        
-        // Use the setStory function to navigate directly to the bookmarked frame
-        setStory(storyId, frameNumber);
+        // Find the story slug from the story ID
+        const story = stories.find(s => s.story_id === storyId);
+        if (story && story.slug) {
+            // Frame numbers in URL are 1-based
+            const frameForUrl = frameNumber + 1;
+            
+            // Navigate to the story/frame using the new URL pattern
+            navigate(`/clio/story/${story.slug}/${frameForUrl}`);
+        } else {
+            // Fallback to the setStory function if we can't find a slug
+            setStory(storyId, frameNumber);
+        }
     };
 
     return (

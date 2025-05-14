@@ -63,6 +63,9 @@ class StoryResponseV1(BaseModel):
 
     # The story ID.
     story_id: Optional[str]
+    
+    # The story slug (URL-friendly identifier)
+    slug: Optional[str] = None
 
     # The number of frames so far in the entire story.
     story_frame_count: int
@@ -82,6 +85,7 @@ class StoryResponseV1(BaseModel):
 class StoryInfo(BaseModel):
     story_id: str
     title: str
+    slug: Optional[str] = None
     story_frame_count: int
     is_bookmarked: bool
     is_current: bool
@@ -128,6 +132,44 @@ async def get_story_request(
     """
     base_url = get_base_url(request)
 
+    return await handle_existing_frames_request(request_params, base_url)
+
+
+@router.get("/story/slug/{story_slug}", response_model=StoryResponseV1)
+async def get_story_by_slug(
+    story_slug: str,
+    request: Request,
+    client_id: str,
+    api_key: APIKey = Depends(get_api_key),
+) -> StoryResponseV1:
+    """
+    Get a story by its slug.
+    """
+    base_url = get_base_url(request)
+    
+    # Find story by slug
+    story = await Story.objects().where(Story.slug == story_slug).first().run()
+    
+    if not story:
+        return StoryResponseV1(
+            frames=[],
+            story_id=None,
+            story_frame_count=0,
+            append_to_prior_frames=False,
+            strategy=None,
+            request_id=create_cuid(),
+            generation_date=str(datetime.utcnow()),
+            debug_data={},
+            errors=["Story not found"],
+        )
+    
+    # Create params with found story ID
+    request_params = StoryRequestParamsModel(
+        client_id=client_id,
+        story_id=story.cuid,
+        debug=True,
+    )
+    
     return await handle_existing_frames_request(request_params, base_url)
 
 
@@ -367,8 +409,7 @@ async def handle_frames_request(
         i_hear = parameters.input_text
         story_frames_response.debug_data["i_hear"] = i_hear
 
-    await prepare_frame_images(parameters, story_frames_response.frames)
-
+    await prepare_frame_images(parameters, story_frames_response.frames)    
     await put_story(story)
     await put_sparrow_state(sparrow_state)
 
@@ -377,6 +418,7 @@ async def handle_frames_request(
     response = StoryResponseV1(
         frames=frame_models,
         story_id=story.cuid,
+        slug=story.slug,
         story_frame_count=await story.get_num_frames(),
         append_to_prior_frames=story_frames_response.append_to_prior_frames,
         strategy=story.strategy_name,
@@ -437,6 +479,7 @@ async def handle_existing_frames_request(
     response = StoryResponseV1(
         frames=frame_models,
         story_id=story.cuid,
+        slug=story.slug,
         story_frame_count=await story.get_num_frames(),
         append_to_prior_frames=False,
         request_id=create_cuid(),
@@ -597,6 +640,7 @@ async def get_stories(
         StoryInfo(
             story_id=story.cuid,
             title=shorten_title(story.title),
+            slug=story.slug,
             story_frame_count=1,  # await story.get_num_frames(),
             is_bookmarked=False,
             is_current=story.cuid == current_story is not None and current_story.cuid,

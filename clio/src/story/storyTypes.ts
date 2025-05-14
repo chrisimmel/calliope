@@ -39,6 +39,7 @@ type Strategy = {
 type Story = {
     story_id: string
     title: string
+    slug?: string | null
     story_frame_count: number
     is_bookmarked: boolean
     is_current: boolean

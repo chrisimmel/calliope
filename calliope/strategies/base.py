@@ -121,6 +121,9 @@ class StoryStrategy(object, metaclass=ABCMeta):
             story.title = await story.compute_title()
             print(f"Computed story title: '{story.title}'")
             story_updated = True
+        if not story.slug:
+            story.slug = await story.generate_unique_slug()
+            print(f"Computed story slug: '{story.slug}'")
 
         if not story.thumbnail_image:
             thumbnail_image = await story.compute_thumbnail()
