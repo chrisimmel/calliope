@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 import json
+import re
 from typing import cast, Optional, Sequence
 
 from piccolo.table import Table
@@ -143,6 +144,9 @@ class Story(Table):
 
     # The story's title.
     title = Text()
+
+    # A URL-friendly slug for the story (unique).
+    slug = Varchar(length=100, index=True, null=True)
 
     # The name of the strategy from which the story issues.
     strategy_name = Varchar(length=50, null=True)
@@ -323,12 +327,78 @@ class Story(Table):
 
         return instance
 
+    @staticmethod
+    def generate_slug_base(title: str) -> str:
+        """
+        Generate a base URL-friendly slug from a title.
+        Converts to lowercase, removes non-alphanumeric characters, 
+        and replaces spaces with hyphens.
+
+        This is a base slug that might need to be modified to ensure uniqueness.
+        """
+        # Convert to lowercase.
+        slug = title.lower()
+
+        # Replace non-alphanumeric characters with spaces.
+        slug = re.sub(r'[^a-z0-9\s]', ' ', slug)
+
+        # Replace multiple spaces with a single space.
+        slug = re.sub(r'\s+', ' ', slug).strip()
+
+        # Replace spaces with hyphens.
+        slug = slug.replace(' ', '-')
+
+        # Limit to first few words (up to 40 chars).
+        slug_parts = slug.split('-')
+        slug = '-'.join(slug_parts[:5])[:40]
+
+        # Ensure slug is not empty.
+        if not slug:
+            slug = "story"
+
+        return slug
+
+    async def generate_unique_slug(self) -> str:
+        """
+        Generate a unique slug based on the story's title.
+        The slug is only generated when we have at least one frame with text.
+        """
+        if not self.title:
+            return None
+
+        # Generate base slug.
+        base_slug = Story.generate_slug_base(self.title)
+
+        # Check if the slug already exists.
+        query = Story.objects().where(Story.slug == base_slug, Story.id != self.id)
+        existing = await query.first().run()
+
+        if not existing:
+            return base_slug
+
+        # Slug exists, so append a number.
+        counter = 1
+        while True:
+            new_slug = f"{base_slug}-{counter}"
+
+            query = Story.objects().where(Story.slug == new_slug, Story.id != self.id)
+            existing = await query.first().run()
+
+            if not existing:
+                return new_slug
+
+            counter += 1
+
     @classmethod
     def create_new(
         cls,
         strategy_name: Optional[str] = None,
         created_for_sparrow_id: Optional[str] = None,
     ) -> "Story":
+        """
+        Create a new story. Slug is initially NULL and will be set 
+        when the story gets frames with text.
+        """
         return Story(
             cuid=create_cuid(),
             strategy_name=strategy_name,

@@ -11,14 +11,16 @@ import ListItemText from '@mui/material/ListItemText';
 
 import AboutPanel from '../story/AboutPanel';
 import CreateStoryPanel from '../story/CreateStoryPanel';
-import { Frame, FrameSeedMediaType, Story, Strategy } from '../story/storyTypes';
+import { Bookmark, Frame, FrameSeedMediaType, Story, Strategy } from '../story/storyTypes';
 import IconClose from '../icons/IconClose';
 import IconFastForward from '../icons/IconFastForward';
 import IconFullscreen from '../icons/IconFullscreen';
 import IconPause from '../icons/IconPause';
 import IconPlay from '../icons/IconPlay';
 import IconRewind from '../icons/IconRewind';
+import IconHeartEmpty from '../icons/IconHeartEmpty';
 import StoryBrowser from '../story/StoryBrowser';
+import BookmarksList from '../story/BookmarksList';
 
 
 type MainDrawerProps = {
@@ -34,11 +36,16 @@ type MainDrawerProps = {
     toggleFullScreen: () => void,
     stories: Story[],
     story_id: string | null,
-    setStory: (story_id: string | null) => void,
+    currentStory: Story | null, // Add currentStory prop
+    setStory: (story_id: string | null, frame_number?: number) => void,
     jumpToBeginning: () => void,
     jumpToEnd: () => void,
     selectedFrameNumber: number,
     frames: Frame[],
+    
+    bookmarks: Bookmark[],
+    showBookmarksList: boolean,
+    setShowBookmarksList: (show: boolean) => void,
 }
 
 
@@ -52,6 +59,7 @@ export default function MainDrawer({
     toggleFullScreen,
     stories,
     story_id,
+    currentStory,
     setStory,
     jumpToBeginning,
     jumpToEnd,
@@ -59,11 +67,13 @@ export default function MainDrawer({
     frames,
     drawerIsOpen,
     setDrawerIsOpen,
+    bookmarks,
+    showBookmarksList,
+    setShowBookmarksList,
 }: MainDrawerProps) {
     const [storyBrowserIsOpen, setStoryBrowserIsOpen] = useState<boolean>(false);
     const [aboutPanelIsOpen, setAboutPanelIsOpen] = useState<boolean>(false);
     const [creatStoryDialogIsOpen, setCreatStoryDialogIsOpen] = useState<boolean>(false);
-    const currentStory = stories.find(story => story.story_id === story_id) || null;
     strategies ||= [];
     strategies = strategies.filter((strat) => allowExperimental || !strat.is_experimental);
     strategy ||= (strategies.find(strategy => strategy.is_default_for_client) || {slug: null}).slug;
@@ -177,6 +187,20 @@ export default function MainDrawer({
                                         <ListItemText primary="Create New" />
                                     </ListItemButton>
                                 </ListItem>
+                                <ListItem disablePadding>
+                                    <ListItemButton
+                                        onClick={(e) => {
+                                            setDrawerIsOpen(false);
+                                            setShowBookmarksList(true)
+                                        }
+                                    }
+                                    >
+                                        <ListItemIcon>
+                                            <IconHeartEmpty />
+                                        </ListItemIcon>
+                                        <ListItemText primary="Bookmarks" />
+                                    </ListItemButton>
+                                </ListItem>
                             </List>
                         </ListItem>
                         <ListItem disablePadding>
@@ -252,6 +276,15 @@ export default function MainDrawer({
                 strategies={strategies}
                 strategy={strategy}
                 startNewStory={startNewStory}
+            />
+            <BookmarksList
+                bookmarksListIsOpen={showBookmarksList}
+                setBookmarksListIsOpen={setShowBookmarksList}
+                drawerAnchor={drawerAnchor}
+                stories={stories}
+                story_id={story_id}
+                setStory={setStory}
+                bookmarks={bookmarks}
             />
         </>
     );

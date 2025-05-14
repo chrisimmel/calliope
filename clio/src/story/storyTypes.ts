@@ -39,6 +39,7 @@ type Strategy = {
 type Story = {
     story_id: string
     title: string
+    slug?: string | null
     story_frame_count: number
     is_bookmarked: boolean
     is_current: boolean
@@ -54,5 +55,23 @@ type Story = {
 
 type FrameSeedMediaType = "photo" | "audio" | "none";
 
+type Bookmark = {
+    id: number;
+    story_id: string;
+    frame_number: number;
+    frame_id: number;
+    sparrow_id: string;
+    comments?: string;
+    date_created: string;
+    date_updated: string;
+    frame_text?: string;
+    frame_image_url?: string;
+}
 
-export {DEVICE_ID_DEFAULT, DEVICE_ID_NONE, Frame, Image, Video, Story, Strategy, MediaDevice, FrameSeedMediaType};
+type BookmarksResponse = {
+    bookmarks: Bookmark[];
+    request_id: string;
+    generation_date: string;
+}
+
+export {DEVICE_ID_DEFAULT, DEVICE_ID_NONE, Frame, Image, Video, Story, Strategy, MediaDevice, FrameSeedMediaType, Bookmark, BookmarksResponse};

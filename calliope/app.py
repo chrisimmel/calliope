@@ -22,6 +22,7 @@ from calliope.routes import thoth as thoth_routes
 from calliope.routes.v1 import story as story_routes
 from calliope.routes.v1 import config as config_routes
 from calliope.routes.v1 import test as test_routes
+from calliope.routes.v1 import bookmark as bookmark_routes
 from calliope.utils.authentication import get_api_key
 from calliope.utils.google import is_google_cloud_run_environment
 from calliope.settings import settings
@@ -52,6 +53,7 @@ def register_views(app: FastAPI) -> None:
     app.include_router(media_routes.router)
     app.include_router(thoth_routes.router)
     app.include_router(test_routes.router)
+    app.include_router(bookmark_routes.router)
 
 
 def get_db_uri(user: str, passwd: str, host: str, db: str) -> str:
@@ -201,5 +203,45 @@ async def get_open_api_endpoint(api_key: APIKey = Depends(get_api_key)) -> JSONR
 
 
 # Mount the static HTML front ends.
-app.mount("/clio/", StaticFiles(directory="static/clio", html=True), name="static")
-app.mount("/thoth/", StaticFiles(directory="static/thoth", html=True), name="static")
+# Add routes to support client-side routing in Clio
+from starlette.responses import FileResponse
+from starlette.staticfiles import StaticFiles
+import os
+
+# Revert to a simpler and more direct approach
+from starlette.responses import RedirectResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
+
+# Mount Thoth static files
+app.mount("/thoth/", StaticFiles(directory="static/thoth", html=True), name="thoth_static")
+
+# Root redirect
+@app.get("/clio", include_in_schema=False)
+async def clio_root_redirect():
+    return RedirectResponse("/clio/")
+
+# Root Clio route
+@app.get("/clio/", include_in_schema=False)
+async def serve_clio_root():
+    return FileResponse("static/clio/index.html")
+
+# Define Clio routes more explicitly
+@app.get("/clio/main.js", include_in_schema=False)
+async def serve_js_file():
+    # Find the main.js file with any query parameters
+    import glob
+    js_files = glob.glob("static/clio/main.js*")
+    if js_files:
+        return FileResponse(js_files[0])
+    return FileResponse("static/clio/main.js")
+
+# All other Clio routes (for client-side routing)
+@app.get("/clio/{path:path}", include_in_schema=False)
+async def serve_clio(path: str = ""):
+    # First, try to serve static files
+    static_path = f"static/clio/{path}"
+    if os.path.isfile(static_path):
+        return FileResponse(static_path)
+
+    # For all other routes, serve index.html for client-side routing
+    return FileResponse("static/clio/index.html")

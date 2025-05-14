@@ -10,6 +10,16 @@
     background: transparent;
 }
 
+.toolbar-divider {
+    width: 30px;
+    height: 24px;
+    background-color: rgba(0, 0, 0, 0);
+}
+
+.toolbar-spacer {
+    width: 20px;
+}
+
 .szh-menu__item {
     font-family: arial, sans-serif;
     background-color: white;

@@ -50,6 +50,7 @@
     "react": "^18.2.0",
     "react-audio-visualize": "^1.2.0",
     "react-dom": "^18.2.0",
+    "react-router-dom": "^7.6.0",
     "react-swipeable": "^7.0.1",
     "react-webcam": "^7.0.1",
     "style-loader": "^3.3.4",

@@ -6,8 +6,11 @@ import IconCamera from '../icons/IconCamera';
 import IconPlus from "../icons/IconPlus";
 import IconMenu from '../icons/IconMenu';
 import IconMicrophone from '../icons/IconMicrophone';
+import IconHeartFull from '../icons/IconHeartFull';
+import IconHeartEmpty from '../icons/IconHeartEmpty';
+import IconShare from '../icons/IconShare';
 import MainDrawer from '../components/MainDrawer';
-import { Frame, FrameSeedMediaType, Story, Strategy } from '../story/storyTypes';
+import { Bookmark, Frame, FrameSeedMediaType, Story, Strategy } from '../story/storyTypes';
 
 
 type ToolbarProps = {
@@ -25,6 +28,8 @@ type ToolbarProps = {
     toggleFullScreen: () => void,
     stories: Story[],
     story_id: string | null,
+    currentStory: Story | null, // Add currentStory prop
+    isReadOnly: boolean,
     setStory: (story_id: string | null) => void,
     jumpToBeginning: () => void,
     jumpToEnd: () => void,
@@ -34,6 +39,13 @@ type ToolbarProps = {
     startAudioCapture: () => void,
     startCameraCapture: () => void,
     addNewFrame: () => void,
+    
+    toggleBookmark: () => void,
+    isCurrentFrameBookmarked: boolean,
+    bookmarks: Bookmark[],
+    showBookmarksList: boolean,
+    setShowBookmarksList: (show: boolean) => void,
+    shareCurrentUrl: () => void,
 }
 
 export default function Toolbar({
@@ -51,6 +63,8 @@ export default function Toolbar({
     toggleFullScreen,
     stories,
     story_id,
+    currentStory,
+    isReadOnly,
     setStory,
     jumpToBeginning,
     jumpToEnd,
@@ -60,12 +74,20 @@ export default function Toolbar({
     startAudioCapture,
     startCameraCapture,
     addNewFrame,
+    
+    toggleBookmark,
+    isCurrentFrameBookmarked,
+    bookmarks,
+    showBookmarksList,
+    setShowBookmarksList,
+    shareCurrentUrl,
 }: ToolbarProps) {
     /*
     Enable camera capture for now only if not playing.
     This avoids a concurrency bug.
         */
-    const allowAddFrame = !isPlaying && !isLoading && !drawerIsOpen;
+    // Only allow adding frames if not in read-only mode and not playing
+    const allowAddFrame = !isPlaying && !isLoading && !drawerIsOpen && !isReadOnly;
     return <>
         <div className="nav">
             {/* Disable auto-play for now.
@@ -124,6 +146,31 @@ export default function Toolbar({
                     <IconCamera/>
                 </button>
             }
+            
+            {/* Divider between add frame and social buttons */}
+            {(allowAddFrame && (story_id && selectedFrameNumber >= 0 && selectedFrameNumber < frames.length)) && 
+                <div className="toolbar-divider"></div>
+            }
+            
+            {
+                story_id && selectedFrameNumber >= 0 && selectedFrameNumber < frames.length &&
+                <button
+                    className="navButton"
+                    onClick={toggleBookmark}
+                >
+                    {isCurrentFrameBookmarked ? <IconHeartFull/> : <IconHeartEmpty/>}
+                </button>
+            }
+            {
+                story_id && selectedFrameNumber >= 0 && selectedFrameNumber < frames.length &&
+                <button
+                    className="navButton"
+                    onClick={shareCurrentUrl}
+                    title="Share URL"
+                >
+                    <IconShare/>
+                </button>
+            }
             {
                 !drawerIsOpen &&
                 <button
@@ -150,10 +197,14 @@ export default function Toolbar({
                     startNewStory={startNewStory}
                     frames={frames}
                     story_id={story_id}
+                    currentStory={currentStory}
                     setStory={setStory}
                     jumpToBeginning={jumpToBeginning}
                     jumpToEnd={jumpToEnd}
                     selectedFrameNumber={selectedFrameNumber}
+                    bookmarks={bookmarks}
+                    showBookmarksList={showBookmarksList}
+                    setShowBookmarksList={setShowBookmarksList}
                 />
             }
         </div>

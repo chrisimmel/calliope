@@ -7,6 +7,7 @@ module.exports = {
     output: {
         filename: `main.js?${cuid2.createId()}`,
         path: path.resolve(__dirname, "build"),
+        publicPath: "/clio/", // Set the public URL path for all assets
     },
     plugins: [
         new HtmlWebpackPlugin({

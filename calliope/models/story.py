@@ -28,6 +28,9 @@ class StoryModel(BaseModel):
     # The accumulated text.
     text: Optional[StrictStr] = ""
 
+    # The URL-friendly slug for the story
+    slug: Optional[StrictStr] = None
+
     # The frames that are part of this story.
     frames: List[StoryFrameModel] = []
 
