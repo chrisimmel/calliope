@@ -84,18 +84,10 @@ const renderFrame = (frame: Frame, index: number, currentIndex: number) => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        minHeight: '512px', // Ensure consistent height regardless of content
     };
 
     // When loading placeholder is displayed, ensure there's a consistent background
     const placeholderStyle = {
-        position: 'absolute' as const,
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        minHeight: '512px',
-        backgroundColor: 'black',
         display: (!video_url && !image_url) ? 'block' : 'none'
     };
 
@@ -112,8 +104,8 @@ const renderFrame = (frame: Frame, index: number, currentIndex: number) => {
         <div className="clio_app">
             <div className="image" style={imageContainerStyle}>
                 {/* Empty placeholder div to maintain height when no media is present */}
-                <div style={placeholderStyle}></div>
-                
+                <div className="media_placeholder" style={placeholderStyle}></div>
+
                 {/* Only render media if this frame is visible (current or directly adjacent) */}
                 {isVisible && (
                     <>
