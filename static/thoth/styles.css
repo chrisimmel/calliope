@@ -77,7 +77,7 @@ form#search {
     margin-top: 5px;
 }
 
-.clio-link {
+.clio-link, .admin-link {
     display: inline-block;
     background-color: #f8f8f8;
     border: 1px solid #ddd;
@@ -89,7 +89,7 @@ form#search {
     transition: background-color 0.2s;
 }
 
-.clio-link:hover {
+.clio-link:hover, .admin-link:hover {
     background-color: #e8e8e8;
     color: #000;
 }

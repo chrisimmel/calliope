@@ -21,14 +21,15 @@
             <form action="/thoth/search/" method="get" id="search">
                 <a href="javascript: submit()">
                     <img src="/thoth/search_icon.png" width="32" , height="32">
-                 </a>
-                <input type="search" name="query" class="search-query" placeholder="(search for a phrase, idea, or mood)">
+                </a>
+                <input type="search" name="query" class="search-query"
+                    placeholder="(search for a phrase, idea, or mood)">
                 {% if show_metadata %}
-                    <input type="hidden" name="meta" value="true"/>
+                <input type="hidden" name="meta" value="true" />
                 {% endif %}
             </form>
             <script>
-                function submit(){
+                function submit() {
                     form.submit();
                     alert("Searching...");
                 }
@@ -53,7 +54,11 @@
             </div>
         </a>
         <div class="story-links">
-            <a href="/clio/story/{{story.slug if story.slug else story.cuid}}" class="clio-link" target="_blank">View in Clio</a>
+            <a href="/clio/story/{{story.slug if story.slug else story.cuid}}" class="clio-link" target="_blank">View in
+                Clio</a>
+            {% if show_metadata %}
+            <a href="/admin/#/story/{{story.id}}/" class="admin-link" target="_blank">View in Admin</a>
+            {% endif %}
         </div>
     </div>
     {% endfor %}
