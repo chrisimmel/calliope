@@ -9,7 +9,6 @@ import Carousel, { CarouselItem } from "./components/Carousel";
 import { Bookmark, BookmarksResponse, Frame, FrameSeedMediaType, Story, Strategy } from './story/storyTypes'; 
 import IconChevronLeft from "./icons/IconChevronLeft";
 import IconChevronRight from "./icons/IconChevronRight";
-import LazyMedia from "./components/LazyMedia";
 import Loader from "./components/Loader";
 import PhotoCapture from "./photo/PhotoCapture";
 import Toolbar from "./components/Toolbar";
@@ -67,25 +66,95 @@ let hideOverlaysInterval: ReturnType<typeof setTimeout> | null = null;
 
 
 const renderFrame = (frame: Frame, index: number, currentIndex: number) => {
-    const image_url = (frame.image && frame.image.url) ? `/${frame.image.url}` : '';
-    const video_url = (frame.video && frame.video.url) ? `/${frame.video.url}` : '';
-
     // Calculate if this frame is visible (current or adjacent)
     const isVisible = Math.abs(index - currentIndex) <= 1;
     // Only the current frame is priority loaded
     const isPriority = index === currentIndex;
 
+    // Only process media URLs if the frame is visible or the current frame
+    // This prevents unnecessary downloads of images for frames far from current view
+    const image_url = isVisible && (frame.image && frame.image.url) ? `/${frame.image.url}` : '';
+    const video_url = isVisible && (frame.video && frame.video.url) ? `/${frame.video.url}` : '';
+
+    // Create a fixed-height wrapper to prevent text shifting
+    const imageContainerStyle = {
+        position: 'relative' as const,
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '512px', // Ensure consistent height regardless of content
+    };
+
+    // When loading placeholder is displayed, ensure there's a consistent background
+    const placeholderStyle = {
+        position: 'absolute' as const,
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        minHeight: '512px',
+        backgroundColor: 'black',
+        display: (!video_url && !image_url) ? 'block' : 'none'
+    };
+
+    // Added loading state handling for images with fade-in transition
+    const mediaStyles = {
+        width: '100%',
+        height: '100%',
+        objectFit: 'contain' as const,
+        opacity: 0, // Start invisible for fade-in effect
+        transition: 'opacity 0.3s ease-in-out' // Smooth fade-in transition
+    };
+
     return <CarouselItem key={index}>
         <div className="clio_app">
-            <div className="image">
-                <LazyMedia
-                    imageUrl={image_url}
-                    videoUrl={video_url}
-                    alt={`Frame ${index + 1}`}
-                    isVisible={isVisible}
-                    isPriority={isPriority}
-                />
+            <div className="image" style={imageContainerStyle}>
+                {/* Empty placeholder div to maintain height when no media is present */}
+                <div style={placeholderStyle}></div>
+                
+                {/* Only render media if this frame is visible (current or directly adjacent) */}
+                {isVisible && (
+                    <>
+                        {/* Conditionally render media with proper loading strategy */}
+                        {video_url ? (
+                            <video 
+                                autoPlay 
+                                loop 
+                                muted 
+                                playsInline
+                                controls={false} 
+                                poster={image_url}
+                                style={mediaStyles}
+                                preload={isPriority ? "auto" : "metadata"}
+                                onLoadedData={(e) => {
+                                    // When video is loaded, fade it in
+                                    e.currentTarget.style.opacity = '1';
+                                }}
+                            >
+                                <source src={video_url} type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"' />
+                                {image_url && <img src={image_url} />}
+                            </video>
+                        ) : (
+                            // Display image with preloaded dimensions
+                            image_url && <img 
+                                src={image_url} 
+                                alt={`Frame ${index + 1}`}
+                                style={mediaStyles}
+                                loading={isPriority ? "eager" : "lazy"}
+                                onLoad={(e) => {
+                                    // When image is loaded, fade it in
+                                    e.currentTarget.style.opacity = '1';
+                                }}
+                                // fetchPriority is not recognized by TypeScript definitions
+                                // but we can still use loading="eager" for high priority
+                            />
+                        )}
+                    </>
+                )}
             </div>
+            {/* Text container with immediate rendering - text is always shown for all frames */}
             <div className="textFrame">
                 <div className="textContainer">
                     <div className="textInner">
@@ -156,7 +225,8 @@ export default function ClioApp() {
     const [showBookmarksList, setShowBookmarksList] = useState<boolean>(false);
     const [showShareNotification, setShowShareNotification] = useState<boolean>(false);
     const [isReadOnly, setIsReadOnly] = useState<boolean>(false);
-    const [skipAnimation, setSkipAnimation] = useState<boolean>(true); // Skip animation on initial load
+    // True when we should skip transition animations (initial load or direct jumps)
+    const [skipAnimation, setSkipAnimation] = useState<boolean>(true);
 
     function handleResize() {
         const root: HTMLElement | null = document.querySelector(':root');
@@ -447,7 +517,10 @@ export default function ClioApp() {
 
     const getStory = useCallback(
         async (story_id: string | null, frame_num: number | null) => {
+            // When loading a new story, disable animations
+            setSkipAnimation(true);
             setLoadingStory(true)
+
             if (!story_id) {
                 const [defaultStoryId, defaultFrameNum] = getDefaultStoryAndFrame();
                 story_id = defaultStoryId; // storyId;
@@ -485,7 +558,7 @@ export default function ClioApp() {
                 setSelectedFrameNumber(frame_num);
                 setIsReadOnly(response.data?.is_read_only || false);
                 const storySlug = response.data?.slug || null;
-                
+
                 // Create a complete Story object from the API response
                 if (response.data?.story_id) {
                     const apiStory: Story = {
@@ -502,12 +575,12 @@ export default function ClioApp() {
                         date_created: response.data.date_created || '',
                         date_updated: response.data.date_updated || '',
                     };
-                    
+
                     // Set the current story
                     setCurrentStory(apiStory);
                 }
                 console.log(`Got story ${storySlug} (${newFrames.length} frames).`);
-                console.log(`Story is ${response.data?.is_read_only ? "" : " not"} read only.`);
+                console.log(`Story is ${response.data?.is_read_only ? "" : "not"} read only.`);
 
                 if (response.data?.story_id && newFrames.length) {
                     // Navigate to the proper URL for the current story and frame
@@ -524,18 +597,27 @@ export default function ClioApp() {
                     // If the story is empty, display the menu.
                     setDrawerIsOpen(true);
                 }
+
+                // After loading is done, enable animations for subsequent navigation within this story
+                // setTimeout(() => {
+                //     setSkipAnimation(false);
+                // }, 100);
+
             } catch (err: any) {
                 setError(err.message);
             } finally {
                 setLoadingStory(false);
             }
         },
-        [stories, navigate]
+        [stories, navigate, setSkipAnimation]
     );
 
     const getStoryBySlug = useCallback(
         async (slug: string, desiredFrameNum?: number) => {
+            // When loading a new story by slug, disable animations
+            setSkipAnimation(true);
             setLoadingStory(true);
+
             try {
                 const params = {
                     client_id: thisBrowserID,
@@ -561,7 +643,7 @@ export default function ClioApp() {
                 setIsReadOnly(response.data?.is_read_only || false);
                 const storySlug = response.data?.slug || null;
                 console.log(`Got story ${storySlug} (${newFrames.length} frames).`);
-                console.log(`Story is ${response.data?.is_read_only ? "" : " not"} read only.`);
+                console.log(`Story is ${response.data?.is_read_only ? "" : "not"} read only.`);
 
                 // Create a complete Story object from the API response
                 if (response.data?.story_id) {
@@ -601,6 +683,12 @@ export default function ClioApp() {
                     // If the story is empty, display the menu.
                     setDrawerIsOpen(true);
                 }
+
+                // After loading is done, enable animations for subsequent navigation within this story
+                setTimeout(() => {
+                    setSkipAnimation(false);
+                }, 100);
+
             } catch (err: any) {
                 setError(err.message);
                 console.error("Error fetching story by slug:", err);
@@ -608,21 +696,50 @@ export default function ClioApp() {
                 setLoadingStory(false);
             }
         },
-        [defaultStrategy, stories]
+        [defaultStrategy, stories, setSkipAnimation, skipAnimation]
     );
+
+    // Track the last loaded story slug to avoid unnecessary reloads
+    const lastLoadedStorySlugRef = useRef<string | null>(null);
 
     useEffect(
         () => {
             // Check if we have URL parameters for story slug and frame
             if (storySlug) {
                 const frameNumInt = frameNum ? parseInt(frameNum, 10) : undefined;
-                getStoryBySlug(storySlug, frameNumInt);
+                
+                // Only load from the server if it's a different story
+                // or if we're on the initial load
+                if (storySlug !== lastLoadedStorySlugRef.current) {
+                    console.log(`Loading new story: ${storySlug} (was: ${lastLoadedStorySlugRef.current})`);
+                    lastLoadedStorySlugRef.current = storySlug;
+
+                    // Always disable animations when changing stories
+                    setSkipAnimation(true);
+
+                    // Load the story from the server
+                    getStoryBySlug(storySlug, frameNumInt);
+                } else {
+                    // Same story, just a different frame - use local navigation
+                    console.log(`Same story, different frame: ${frameNumInt}`);
+
+                    // Enable animations for navigation within the same story
+                    //setSkipAnimation(false); // skipAnimation is managed elsewhere.
+
+                    // Just update the selected frame number locally - don't reload from server
+                    if (frameNumInt !== undefined) {
+                        // Convert from 1-based (URL) to 0-based (internal)
+                        const frameIndex = Math.max(0, frameNumInt - 1);
+                        setSelectedFrameNumber(frameIndex);
+                    }
+                }
             } else {
                 // No URL parameters, use the default behavior
+                lastLoadedStorySlugRef.current = null;
                 getStory(null, null);
             }
         },
-        [getStory, getStoryBySlug, storySlug, frameNum]
+        [getStory, getStoryBySlug, storySlug, frameNum, setSkipAnimation]
     );
 
     useEffect(
@@ -683,30 +800,30 @@ export default function ClioApp() {
             }
 
             if (newSelectedFrameNumber != selectedFrameNumber) {
+                // When navigating within the same story, we always want animations
+                // Animation state is controlled by the navigation methods (aheadOne, backOne, etc.)
+                // So we don't modify skipAnimation here
+
+                console.log(`New index is ${newSelectedFrameNumber}, total frames: ${frameCount}, skipAnimation=${skipAnimation}`);
+                
                 setSelectedFrameNumber(newSelectedFrameNumber);
 
-                // After the first frame change, we want to enable animations for subsequent changes
-                if (skipAnimation) {
-                    setSkipAnimation(false);
-                }
-
-                console.log(`New index is ${newSelectedFrameNumber}, total frames: ${frameCount}.`);
-                
                 // Update URL to reflect the current story and frame (1-based for URL)
                 if (storyId && storySlugState) {
                     // Use the 1-based frame number in the URL (newSelectedFrameNumber is 0-based)
                     const frameForUrl = newSelectedFrameNumber + 1;
-                    
+
                     // Create base URL
                     const baseUrl = `/clio/story/${storySlugState}/${frameForUrl}`;
-                    
+
                     // Preserve query parameters
                     const urlWithParams = preserveQueryParams(baseUrl);
-                    
-                    // Update URL without causing a full page reload
+
+                    // Update URL without causing a full page reload - this won't trigger a server fetch
+                    // due to our useEffect logic that checks the story slug
                     navigate(urlWithParams, { replace: true });
                 }
-                
+
                 /*
                 No more getFrames on navigation!
                 if (newSelectedFrameNumber >= frames.length && !getFramesInterval) {
@@ -716,7 +833,7 @@ export default function ClioApp() {
                 */
             }
         },
-        [frames, selectedFrameNumber, setSelectedFrameNumber, skipAnimation, storyId, storySlugState, navigate]
+        [frames, selectedFrameNumber, setSelectedFrameNumber, storyId, storySlugState, navigate, skipAnimation]
     );
 
     const toggleIsPlaying = useCallback(
@@ -775,27 +892,35 @@ export default function ClioApp() {
 
     const aheadOne = useCallback(
         () => {
+            // Always animate for normal navigation within a story
+            setSkipAnimation(false); 
             selectFrameNumber(selectedFrameNumber + 1);
         },
-        [selectedFrameNumber, selectFrameNumber]
+        [selectedFrameNumber, selectFrameNumber, setSkipAnimation]
     );
     const backOne = useCallback(
         () => {
+            // Always animate for normal navigation within a story
+            setSkipAnimation(false);
             selectFrameNumber(selectedFrameNumber - 1);
         },
-        [selectedFrameNumber, selectFrameNumber]
+        [selectedFrameNumber, selectFrameNumber, setSkipAnimation]
     );
     const toStart = useCallback(
         () => {
+            // Always animate for navigation within a story, even for jumps
+            setSkipAnimation(false);
             selectFrameNumber(0);
         },
-        [selectedFrameNumber, selectFrameNumber]
+        [setSkipAnimation, selectFrameNumber]
     );
     const toEnd = useCallback(
         () => {
+            // Always animate for navigation within a story, even for jumps
+            setSkipAnimation(false);
             selectFrameNumber(frames.length - 1);
         },
-        [selectedFrameNumber, selectFrameNumber, frames]
+        [frames, setSkipAnimation, selectFrameNumber]
     );
     const sendPhoto = useCallback(
         (image: string | null) => {
@@ -846,8 +971,13 @@ export default function ClioApp() {
                 console.log("Scheduling frames request.");
                 getFramesInterval = setInterval(() => stateRef.current.getFrames(null, null), 10);
             }
+            
+            // After a short delay, enable animations for subsequent navigation within this story
+            setTimeout(() => {
+                setSkipAnimation(false);
+            }, 100);
         },
-        [resetStory, startCameraCapture, startAudioCapture]
+        [resetStory, startCameraCapture, startAudioCapture, setSkipAnimation]
     );
 
     const findNearestStrategy = useCallback(
@@ -898,6 +1028,9 @@ export default function ClioApp() {
     const updateStory = useCallback(
         (story_id: string | null, frame_number: number = 0) => {
             console.log(`Setting story to ${story_id}, frame ${frame_number}.`);
+            
+            // Disable animations when changing stories
+            setSkipAnimation(true);
             setStoryId(story_id);
 
             // Set the strategy to match the selected story.
@@ -945,8 +1078,10 @@ export default function ClioApp() {
 
             // Get the selected story and jump to the specified frame.
             getStory(story_id, frame_number);
+            
+            // After the story is loaded, getStory will re-enable animations
         },
-        [stories, strategies, getStory, findNearestStrategy, navigate]
+        [stories, strategies, getStory, findNearestStrategy, navigate, setSkipAnimation]
     );
 
     const addNewFrame = useCallback(
@@ -1106,6 +1241,9 @@ export default function ClioApp() {
     It is also always possible to scroll back through all prior frames of the
     story.
     */
+    // Get the current frame index for the carousel
+    const currentCarouselIndex = Math.max(0, Math.min(selectedFrameNumber, frames.length - 1));
+    
     return <>
         {
             (selectedFrameNumber > 0) &&
@@ -1120,7 +1258,7 @@ export default function ClioApp() {
                 </button>
             </div>
         }
-        <div className="clio_app">
+        <div className="clio_app_overlay">
             { captureActive &&
                 <PhotoCapture
                     sendPhoto={sendPhoto}
@@ -1135,12 +1273,15 @@ export default function ClioApp() {
             }
         </div>
         <Carousel
-            selectedIndex={Math.max(0, Math.min(selectedFrameNumber, frames.length - 1))}
+            selectedIndex={currentCarouselIndex}
             incrementSelectedIndex={aheadOne}
             decrementSelectedIndex={backOne}
             skipAnimation={skipAnimation}
         >
-            {frames.map((frame, index) => renderFrame(frame, index, Math.max(0, Math.min(selectedFrameNumber, frames.length - 1))))}
+            {/* Render all frames but only load media for visible ones */}
+            {frames.map((frame, index) => 
+                renderFrame(frame, index, currentCarouselIndex)
+            )}
         </Carousel>
         {
             (selectedFrameNumber < frames.length - 1) &&

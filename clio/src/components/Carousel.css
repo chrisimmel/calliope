@@ -6,6 +6,7 @@
 .inner {
     white-space: nowrap;
     /* Transition is now handled in the component with a style prop */
+    transition: transform 0.3s;
 }
 
 .carousel-item {

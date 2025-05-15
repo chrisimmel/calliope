@@ -11,7 +11,7 @@ type CarouselItemProps = {
 
 export const CarouselItem = ({ children, width }: CarouselItemProps) => {
     return (
-        <div className="carousel-item" style={{ width: width }}>
+        <div className="carousel-item" style={{ width: width || '100%' }}>
             {children}
         </div>
     );
@@ -35,8 +35,7 @@ const Carousel = ({ children, selectedIndex, incrementSelectedIndex, decrementSe
         //preventScrollOnSwipe: true,
         touchEventOptions: { passive: false },
     });
-
-    // Add a style with or without transition based on skipAnimation
+    // Add a style with or without transition based on skipAnimation.
     const innerStyle = {
         transform: `translateX(-${selectedIndex * 100}%)`,
         transition: skipAnimation ? 'none' : 'transform 0.3s'

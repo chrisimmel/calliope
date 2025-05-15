@@ -32,11 +32,28 @@ div#root {
 .clio_app {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: minmax(512px, auto);
+    width: 100%;
+    height: 100%;
+    position: relative;
+    /* Explicitly name grid areas for clearer positioning */
+    grid-template-areas: "image text";
+    /* Avoid layout shifts during loading */
+    contain: layout size;
+}
+.clio_app_overlay {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
     grid-template-rows: auto;
 }
 
 .image {
-    display: grid;
+    display: flex;
+    position: relative;
+    grid-area: image; /* Use named grid area */
+    align-items: center;
+    justify-content: center;
+    min-height: 512px; /* Ensure consistent height for content */
 }
 
 .image img,
@@ -44,6 +61,9 @@ div#root {
     align-self: center;
     justify-self: center;
     object-fit: contain;
+    position: relative;
+    /* Add default transition for smoother loading across all media */
+    transition: opacity 0.3s ease-in-out;
 }
 .szh-menu {
     height: var(--vp-height);
@@ -76,11 +96,27 @@ div#root {
     .clio_app {
         padding-left: var(--toolbar-height);
         grid-template-columns: repeat(2, 1fr);
+        grid-template-rows: 1fr;
+        height: calc(var(--vp-height) - var(--toolbar-height));
+        max-height: calc(var(--vp-height) - var(--toolbar-height));
+    }
+    .clio_app_overlay {
+        padding-left: var(--toolbar-height);
+        grid-template-columns: repeat(2, 1fr);
         grid-template-rows: auto;
     }
     .image {
         max-height: calc(var(--vp-height) - var(--toolbar-height));
         min-width: calc(50vw - var(--toolbar-height));
+        max-width: calc(50vw - var(--toolbar-height));
+        grid-column: 1;
+        grid-row: 1;
+        height: 100%;
+    }
+    .textFrame {
+        grid-column: 2;
+        grid-row: 1;
+        height: 100%;
     }
     .image img,
     .image video {
@@ -95,13 +131,23 @@ div#root {
 
 @media (orientation: portrait) {
     .clio_app {
-        /*grid-template-rows: repeat(2, 1fr);*/
+        grid-template-rows: auto auto;
+        grid-template-columns: 1fr;
+        height: calc(var(--vp-height) - var(--toolbar-height));
+    }
+    .clio_app_overlay {
         grid-template-columns: auto;
     }
     .image {
         min-width: 100vw;
         height: 100vw;
         width: 100vw;
+        grid-row: 1;
+        grid-column: 1;
+    }
+    .textFrame {
+        grid-row: 2;
+        grid-column: 1;
     }
     .image img,
     .image video {
@@ -111,18 +157,31 @@ div#root {
 }
 
 .textFrame {
+    position: relative;
+    grid-area: text; /* Use named grid area */
+    align-self: flex-start; /* Align to top of grid cell */
+    z-index: 5; /* Keep text on top */
+    top: 0; /* Anchor to top */
+    opacity: 1; /* Ensure visibility */
 }
 
 .textContainer {
     display: flex;
     flex-direction: column;
     padding-right: 30px;
+    position: relative;
+    height: auto; /* Allow height to be determined by content */
+    top: 0; /* Lock to top position */
+    transform: translateY(0); /* Prevent any transform movement */
+    opacity: 1; /* Ensure visibility */
+    will-change: transform; /* Optimize for animations */
 }
 
 .textInner {
     max-height: var(--vp-height);
     display: flex;
     flex-direction: column;
+    position: relative;
 }
 
 @media (orientation: landscape) {
@@ -131,6 +190,8 @@ div#root {
         height: calc(50vw - (var(--toolbar-height) - 6px));
         max-height: var(--vp-height);
         padding-right: 48px;
+        /* Ensure text is always visible */
+        opacity: 1;
     }
     .textInner {
         height: calc(50vw - (var(--toolbar-height)));
@@ -150,6 +211,9 @@ div#root {
         padding-top: 14px;
         margin-left:  var(--toolbar-height);
         margin-right:  var(--toolbar-height);
+        /* Prevent layout shifts during loading */
+        backface-visibility: hidden;
+        will-change: transform;
     }
     .fullscreen .textFrame {
         height: calc(var(--vp-height) - (100vw + 88px));
@@ -157,6 +221,8 @@ div#root {
     .textContainer {
         height: calc(var(--vp-height) - (100vw + 10px + var(--toolbar-height)));
         padding: 0;
+        /* Ensure text is always visible */
+        opacity: 1;
     }
     .fullscreen .textContainer {
         height: calc(var(--vp-height) - (100vw + 88px));
