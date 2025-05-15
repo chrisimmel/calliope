@@ -9,7 +9,6 @@ import Carousel, { CarouselItem } from "./components/Carousel";
 import { Bookmark, BookmarksResponse, Frame, FrameSeedMediaType, Story, Strategy } from './story/storyTypes'; 
 import IconChevronLeft from "./icons/IconChevronLeft";
 import IconChevronRight from "./icons/IconChevronRight";
-import LazyMedia from "./components/LazyMedia";
 import Loader from "./components/Loader";
 import PhotoCapture from "./photo/PhotoCapture";
 import Toolbar from "./components/Toolbar";
@@ -75,17 +74,68 @@ const renderFrame = (frame: Frame, index: number, currentIndex: number) => {
     // Only the current frame is priority loaded
     const isPriority = index === currentIndex;
 
+    // Create a fixed-height wrapper to prevent text shifting
+    const imageContainerStyle = {
+        position: 'relative' as const,
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '512px', // Ensure consistent height regardless of content
+    };
+
+    // When loading placeholder is displayed, ensure there's a consistent background
+    const placeholderStyle = {
+        position: 'absolute' as const,
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        minHeight: '512px',
+        backgroundColor: 'black',
+        display: (!video_url && !image_url) ? 'block' : 'none'
+    };
+
+    // Added loading state handling for images
+    const mediaStyles = {
+        width: '100%',
+        height: '100%',
+        objectFit: 'contain' as const,
+        opacity: 1
+    };
+
     return <CarouselItem key={index}>
         <div className="clio_app">
-            <div className="image">
-                <LazyMedia
-                    imageUrl={image_url}
-                    videoUrl={video_url}
-                    alt={`Frame ${index + 1}`}
-                    isVisible={isVisible}
-                    isPriority={isPriority}
-                />
+            <div className="image" style={imageContainerStyle}>
+                {/* Empty placeholder div to maintain height when no media is present */}
+                <div style={placeholderStyle}></div>
+                
+                {/* Conditionally render media with proper loading strategy */}
+                {video_url ? (
+                    <video 
+                        autoPlay 
+                        loop 
+                        muted 
+                        playsInline
+                        controls={false} 
+                        poster={image_url}
+                        style={mediaStyles}
+                    >
+                        <source src={video_url} type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"' />
+                        {image_url && <img src={image_url} />}
+                    </video>
+                ) : (
+                    // Display image with preloaded dimensions
+                    image_url && <img 
+                        src={image_url} 
+                        alt={`Frame ${index + 1}`}
+                        style={mediaStyles}
+                        loading={isPriority ? "eager" : "lazy"}
+                    />
+                )}
             </div>
+            {/* Text container with immediate rendering */}
             <div className="textFrame">
                 <div className="textContainer">
                     <div className="textInner">
@@ -1120,7 +1170,7 @@ export default function ClioApp() {
                 </button>
             </div>
         }
-        <div className="clio_app">
+        <div className="clio_app_overlay">
             { captureActive &&
                 <PhotoCapture
                     sendPhoto={sendPhoto}

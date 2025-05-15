@@ -37,12 +37,23 @@ const LazyMedia: React.FC<LazyMediaProps> = ({
   };
 
   if (!imageUrl && !videoUrl) {
-    return null;
+    // Return an empty placeholder with fixed dimensions to maintain layout
+    return <div className="media-container empty-media-container"></div>;
   }
+
+  // Common container styles to maintain consistent dimensions
+  const containerStyle = {
+    position: 'relative' as const,
+    width: '100%',
+    height: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  };
 
   if (videoUrl) {
     return (
-      <>
+      <div className="media-container" style={containerStyle}>
         {loadStarted && (
           <video
             ref={mediaRef as React.RefObject<HTMLVideoElement>}
@@ -53,6 +64,7 @@ const LazyMedia: React.FC<LazyMediaProps> = ({
             controls={false}
             poster={imageUrl}
             style={{ 
+              position: 'absolute',
               width: '100%', 
               height: '100%', 
               objectFit: 'contain',
@@ -65,35 +77,49 @@ const LazyMedia: React.FC<LazyMediaProps> = ({
             {imageUrl && <img src={imageUrl} alt={alt} />}
           </video>
         )}
-        {!loaded && (
-          <div className="media-placeholder">
-            {isPriority ? 'Loading...' : ''}
-          </div>
-        )}
-      </>
+        {/* Placeholder remains in DOM for consistent layout until loaded */}
+        <div 
+          className="media-placeholder"
+          style={{ 
+            opacity: loaded ? 0 : 0.6,
+            position: loaded ? 'absolute' : 'relative'
+          }}
+        >
+          {isPriority ? 'Loading...' : ''}
+        </div>
+      </div>
     );
   }
 
   return (
-    <>
+    <div className="media-container" style={containerStyle}>
       {loadStarted && (
         <img
           ref={mediaRef as React.RefObject<HTMLImageElement>}
           src={imageUrl}
           alt={alt}
           style={{ 
+            position: 'absolute',
+            width: '100%',
+            height: '100%',
+            objectFit: 'contain',
             opacity: loaded ? 1 : 0,
             transition: 'opacity 0.3s ease-in'
           }}
           onLoad={handleLoad}
         />
       )}
-      {!loaded && (
-        <div className="media-placeholder">
-          {isPriority ? 'Loading...' : ''}
-        </div>
-      )}
-    </>
+      {/* Placeholder remains in DOM for consistent layout until loaded */}
+      <div 
+        className="media-placeholder"
+        style={{ 
+          opacity: loaded ? 0 : 0.6,
+          position: loaded ? 'absolute' : 'relative'
+        }}
+      >
+        {isPriority ? 'Loading...' : ''}
+      </div>
+    </div>
   );
 };
 

@@ -11,7 +11,7 @@ type CarouselItemProps = {
 
 export const CarouselItem = ({ children, width }: CarouselItemProps) => {
     return (
-        <div className="carousel-item" style={{ width: width }}>
+        <div className="carousel-item" style={{ width: width || '100%' }}>
             {children}
         </div>
     );
