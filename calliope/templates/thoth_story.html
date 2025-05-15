@@ -55,6 +55,9 @@
         <div class="frame-links">
             <a href="/clio/story/{{story.slug if story.slug else story.cuid}}/{{frame.number + 1}}" class="clio-link"
                 target="_blank">View in Clio</a>
+            {% if show_metadata %}
+            <a href="/admin/#/story_frame/{{frame.id}}/" class="admin-link" target="_blank">View in Admin</a>
+            {% endif %}
         </div>
     </div>
     {% endfor %}
