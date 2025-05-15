@@ -44,9 +44,7 @@
             <img src="/{{frame.source_image.url}}" alt="Frame {{frame.number}}" />
             {%- endif %}
         </div>
-        <div class="frame-text">
-            {{frame.text}}
-        </div>
+        <div class="frame-text">{{frame.text}}</div>
         {% if show_metadata %}
         <div class="frame-metadata">
             {{frame.pretty_metadata}}

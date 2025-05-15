@@ -9,6 +9,7 @@ import Carousel, { CarouselItem } from "./components/Carousel";
 import { Bookmark, BookmarksResponse, Frame, FrameSeedMediaType, Story, Strategy } from './story/storyTypes'; 
 import IconChevronLeft from "./icons/IconChevronLeft";
 import IconChevronRight from "./icons/IconChevronRight";
+import LazyMedia from "./components/LazyMedia";
 import Loader from "./components/Loader";
 import PhotoCapture from "./photo/PhotoCapture";
 import Toolbar from "./components/Toolbar";
@@ -65,29 +66,25 @@ let getFramesInterval: ReturnType<typeof setTimeout> | null = null;
 let hideOverlaysInterval: ReturnType<typeof setTimeout> | null = null;
 
 
-const renderFrame = (frame: Frame, index: number) => {
+const renderFrame = (frame: Frame, index: number, currentIndex: number) => {
     const image_url = (frame.image && frame.image.url) ? `/${frame.image.url}` : '';
     const video_url = (frame.video && frame.video.url) ? `/${frame.video.url}` : '';
+
+    // Calculate if this frame is visible (current or adjacent)
+    const isVisible = Math.abs(index - currentIndex) <= 1;
+    // Only the current frame is priority loaded
+    const isPriority = index === currentIndex;
 
     return <CarouselItem key={index}>
         <div className="clio_app">
             <div className="image">
-                {video_url ? (
-                    <video 
-                        autoPlay 
-                        loop 
-                        muted 
-                        playsInline
-                        controls={false} 
-                        poster={image_url}
-                        style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                    >
-                        <source src={video_url} type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"' />
-                        {image_url && <img src={image_url} />}
-                    </video>
-                ) : (
-                    image_url && <img src={image_url} />
-                )}
+                <LazyMedia
+                    imageUrl={image_url}
+                    videoUrl={video_url}
+                    alt={`Frame ${index + 1}`}
+                    isVisible={isVisible}
+                    isPriority={isPriority}
+                />
             </div>
             <div className="textFrame">
                 <div className="textContainer">
@@ -159,6 +156,7 @@ export default function ClioApp() {
     const [showBookmarksList, setShowBookmarksList] = useState<boolean>(false);
     const [showShareNotification, setShowShareNotification] = useState<boolean>(false);
     const [isReadOnly, setIsReadOnly] = useState<boolean>(false);
+    const [skipAnimation, setSkipAnimation] = useState<boolean>(true); // Skip animation on initial load
 
     function handleResize() {
         const root: HTMLElement | null = document.querySelector(':root');
@@ -687,6 +685,11 @@ export default function ClioApp() {
             if (newSelectedFrameNumber != selectedFrameNumber) {
                 setSelectedFrameNumber(newSelectedFrameNumber);
 
+                // After the first frame change, we want to enable animations for subsequent changes
+                if (skipAnimation) {
+                    setSkipAnimation(false);
+                }
+
                 console.log(`New index is ${newSelectedFrameNumber}, total frames: ${frameCount}.`);
                 
                 // Update URL to reflect the current story and frame (1-based for URL)
@@ -713,7 +716,7 @@ export default function ClioApp() {
                 */
             }
         },
-        [frames, getFrames, selectedFrameNumber, setCaptureActive, setSelectedFrameNumber, storyId, storySlugState, navigate]
+        [frames, selectedFrameNumber, setSelectedFrameNumber, skipAnimation, storyId, storySlugState, navigate]
     );
 
     const toggleIsPlaying = useCallback(
@@ -1135,8 +1138,9 @@ export default function ClioApp() {
             selectedIndex={Math.max(0, Math.min(selectedFrameNumber, frames.length - 1))}
             incrementSelectedIndex={aheadOne}
             decrementSelectedIndex={backOne}
+            skipAnimation={skipAnimation}
         >
-            {frames.map(renderFrame)}
+            {frames.map((frame, index) => renderFrame(frame, index, Math.max(0, Math.min(selectedFrameNumber, frames.length - 1))))}
         </Carousel>
         {
             (selectedFrameNumber < frames.length - 1) &&

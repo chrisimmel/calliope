@@ -23,9 +23,10 @@ type CarouselProps = {
     selectedIndex: number,
     incrementSelectedIndex: () => void,
     decrementSelectedIndex: () => void,
+    skipAnimation?: boolean,
 }
 
-const Carousel = ({ children, selectedIndex, incrementSelectedIndex, decrementSelectedIndex }: CarouselProps) => {
+const Carousel = ({ children, selectedIndex, incrementSelectedIndex, decrementSelectedIndex, skipAnimation = false }: CarouselProps) => {
     const handlers = useSwipeable({
         onSwipedLeft: () => incrementSelectedIndex(),
         onSwipedRight: () => decrementSelectedIndex(),
@@ -35,11 +36,17 @@ const Carousel = ({ children, selectedIndex, incrementSelectedIndex, decrementSe
         touchEventOptions: { passive: false },
     });
 
+    // Add a style with or without transition based on skipAnimation
+    const innerStyle = {
+        transform: `translateX(-${selectedIndex * 100}%)`,
+        transition: skipAnimation ? 'none' : 'transform 0.3s'
+    };
+
     return (
         <div
             {...handlers}
             className="carousel">
-            <div className="inner" style={{ transform: `translateX(-${selectedIndex * 100}%)`}}>
+            <div className="inner" style={innerStyle}>
                 {children}
             </div>
         </div>

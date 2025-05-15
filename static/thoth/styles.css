@@ -125,6 +125,7 @@ form#search {
 .frame-text {
     margin-left: 20px;
     margin-right: 80px;
+    white-space: pre-wrap;
 }
 
 .frame-links {
