@@ -62,6 +62,8 @@ div#root {
     justify-self: center;
     object-fit: contain;
     position: relative;
+    /* Add default transition for smoother loading across all media */
+    transition: opacity 0.3s ease-in-out;
 }
 .szh-menu {
     height: var(--vp-height);

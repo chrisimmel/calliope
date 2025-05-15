@@ -97,12 +97,13 @@ const renderFrame = (frame: Frame, index: number, currentIndex: number) => {
         display: (!video_url && !image_url) ? 'block' : 'none'
     };
 
-    // Added loading state handling for images
+    // Added loading state handling for images with fade-in transition
     const mediaStyles = {
         width: '100%',
         height: '100%',
         objectFit: 'contain' as const,
-        opacity: 1
+        opacity: 0, // Start invisible for fade-in effect
+        transition: 'opacity 0.3s ease-in-out' // Smooth fade-in transition
     };
 
     return <CarouselItem key={index}>
@@ -121,6 +122,10 @@ const renderFrame = (frame: Frame, index: number, currentIndex: number) => {
                         controls={false} 
                         poster={image_url}
                         style={mediaStyles}
+                        onLoadedData={(e) => {
+                            // When video is loaded, fade it in
+                            e.currentTarget.style.opacity = '1';
+                        }}
                     >
                         <source src={video_url} type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"' />
                         {image_url && <img src={image_url} />}
@@ -132,6 +137,10 @@ const renderFrame = (frame: Frame, index: number, currentIndex: number) => {
                         alt={`Frame ${index + 1}`}
                         style={mediaStyles}
                         loading={isPriority ? "eager" : "lazy"}
+                        onLoad={(e) => {
+                            // When image is loaded, fade it in
+                            e.currentTarget.style.opacity = '1';
+                        }}
                     />
                 )}
             </div>
