@@ -35,8 +35,7 @@ const Carousel = ({ children, selectedIndex, incrementSelectedIndex, decrementSe
         //preventScrollOnSwipe: true,
         touchEventOptions: { passive: false },
     });
-
-    // Add a style with or without transition based on skipAnimation
+    // Add a style with or without transition based on skipAnimation.
     const innerStyle = {
         transform: `translateX(-${selectedIndex * 100}%)`,
         transition: skipAnimation ? 'none' : 'transform 0.3s'
