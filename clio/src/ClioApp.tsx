@@ -12,6 +12,7 @@ import IconChevronRight from "./icons/IconChevronRight";
 import Loader from "./components/Loader";
 import PhotoCapture from "./photo/PhotoCapture";
 import Toolbar from "./components/Toolbar";
+import VideoLoop from "./components/VideoLoop";
 
 const FRAMES_TIMEOUT = 180_000;
 const DEFAULT_TIMEOUT = 30_000;
@@ -71,10 +72,11 @@ const renderFrame = (frame: Frame, index: number, currentIndex: number) => {
     // Only the current frame is priority loaded
     const isPriority = index === currentIndex;
 
-    // Only process media URLs if the frame is visible or the current frame
-    // This prevents unnecessary downloads of images for frames far from current view
-    const image_url = isVisible && (frame.image && frame.image.url) ? `/${frame.image.url}` : '';
-    const video_url = isVisible && (frame.video && frame.video.url) ? `/${frame.video.url}` : '';
+    // Only process media URLs if the frame is visible
+    // This prevents unnecessary downloads of images/videos for frames far from current view
+    const image_url = (frame.image && frame.image.url) ? `/${frame.image.url}` : '';
+    const video_url = (frame.video && frame.video.url) ? `/${frame.video.url}` : '';
+    const hasVideo = Boolean(frame.video && frame.video.url);
 
     // Create a fixed-height wrapper to prevent text shifting
     const imageContainerStyle = {
@@ -88,7 +90,7 @@ const renderFrame = (frame: Frame, index: number, currentIndex: number) => {
 
     // When loading placeholder is displayed, ensure there's a consistent background
     const placeholderStyle = {
-        display: (!video_url && !image_url) ? 'block' : 'none'
+        display: (!isVisible || (!image_url && !video_url)) ? 'block' : 'none'
     };
 
     // Added loading state handling for images with fade-in transition
@@ -106,28 +108,19 @@ const renderFrame = (frame: Frame, index: number, currentIndex: number) => {
                 {/* Empty placeholder div to maintain height when no media is present */}
                 <div className="media_placeholder" style={placeholderStyle}></div>
 
-                {/* Only render media if this frame is visible (current or directly adjacent) */}
+                {/* Only render media if this frame is visible */}
                 {isVisible && (
                     <>
                         {/* Conditionally render media with proper loading strategy */}
-                        {video_url ? (
-                            <video 
-                                autoPlay 
-                                loop 
-                                muted 
-                                playsInline
-                                controls={false} 
-                                poster={image_url}
-                                style={mediaStyles}
-                                preload={isPriority ? "auto" : "metadata"}
-                                onLoadedData={(e) => {
-                                    // When video is loaded, fade it in
-                                    e.currentTarget.style.opacity = '1';
-                                }}
-                            >
-                                <source src={video_url} type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"' />
-                                {image_url && <img src={image_url} />}
-                            </video>
+                        {hasVideo ? (
+                            // Only actually create VideoLoop component when in view
+                            <VideoLoop
+                                videoSrc={video_url}
+                                imageUrl={image_url}
+                                fadeDuration={2000}
+                                fadeEarlyBy={2}
+                                isVisible={isPriority} // Only play video when it's the current frame
+                            />
                         ) : (
                             // Display image with preloaded dimensions
                             image_url && <img 
@@ -139,8 +132,6 @@ const renderFrame = (frame: Frame, index: number, currentIndex: number) => {
                                     // When image is loaded, fade it in
                                     e.currentTarget.style.opacity = '1';
                                 }}
-                                // fetchPriority is not recognized by TypeScript definitions
-                                // but we can still use loading="eager" for high priority
                             />
                         )}
                     </>

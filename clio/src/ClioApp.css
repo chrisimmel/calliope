@@ -65,6 +65,22 @@ div#root {
     /* Add default transition for smoother loading across all media */
     transition: opacity 0.3s ease-in-out;
 }
+
+/* Video container with better performance */
+.video-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    /* Improve rendering performance */
+    contain: content;
+}
+
+.video-element {
+    object-fit: contain;
+    /* Enable hardware acceleration */
+    transform: translateZ(0);
+    will-change: opacity;
+}
 .szh-menu {
     height: var(--vp-height);
 }
