@@ -3,19 +3,26 @@ import React, { useEffect, useRef, useState } from 'react';
 interface VideoLoopProps {
   videoSrc: string;
   imageUrl: string;
-  fadeDuration?: number;
-  fadeEarlyBy?: number;
+  fadeDurationMs?: number;
   isVisible?: boolean;
 }
 
+/**
+ * VideoLoop component that uses two video elements in order to fade from the end of the
+ * video clip to the beginning when looping.
+ * @param {string} videoSrc - The source URL of the video to be played.
+ * @param {string} imageUrl - The poster image URL for the video.
+ * @param {number} [fadeDurationMs=1000] - Duration of the fade effect in milliseconds.
+ * @param {boolean} [isVisible=true] - Whether the component is visible or not.
+ */
 const VideoLoop: React.FC<VideoLoopProps> = ({
   videoSrc,
   imageUrl,
-  fadeDuration = 1000,
-  fadeEarlyBy = 1,
+  fadeDurationMs = 1000,
   isVisible = true
 }) => {
   const autoPlay = true;
+  const fadeDurationS = fadeDurationMs / 1000;
   const video1Ref = useRef<HTMLVideoElement>(null);
   const video2Ref = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(autoPlay && isVisible);
@@ -35,12 +42,6 @@ const VideoLoop: React.FC<VideoLoopProps> = ({
   const switchVideos = () => {
     // Toggle active video index
     setActiveVideoIndex(prevIndex => (prevIndex === 1 ? 2 : 1));
-
-    const inactiveVideo = getInactiveVideo();
-    if (inactiveVideo) {
-      // Reset inactive video
-      // inactiveVideo.style.opacity = '0';
-    }
   };
 
   // Start fading out the current video near the end
@@ -52,22 +53,22 @@ const VideoLoop: React.FC<VideoLoopProps> = ({
 
     const timeLeft = activeVideo.duration - activeVideo.currentTime;
 
-    if (timeLeft < fadeEarlyBy && activeVideo.style.opacity !== '0') {
+    if (timeLeft < fadeDurationS && activeVideo.style.opacity !== '0') {
       // Start fade out animation
       activeVideo.style.opacity = '0';
-      activeVideo.style.transition = `opacity ${fadeDuration / 1000}s ease`;
+      activeVideo.style.transition = `opacity ${fadeDurationMs / 1000}s ease`;
 
       // Start fade in animation for inactive video
       inactiveVideo.currentTime = 0;
       inactiveVideo.style.opacity = '1';
-      inactiveVideo.style.transition = `opacity ${fadeDuration / 1000}s ease`;
+      inactiveVideo.style.transition = `opacity ${fadeDurationMs / 1000}s ease`;
 
       if (isPlaying) {
         inactiveVideo.play().catch(err => console.warn('Play error:', err));
       }
 
       // After fade completes, switch videos officially
-      setTimeout(switchVideos, fadeDuration);
+      setTimeout(switchVideos, fadeDurationMs);
     }
   };
 

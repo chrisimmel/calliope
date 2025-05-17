@@ -117,8 +117,7 @@ const renderFrame = (frame: Frame, index: number, currentIndex: number) => {
                             <VideoLoop
                                 videoSrc={video_url}
                                 imageUrl={image_url}
-                                fadeDuration={2000}
-                                fadeEarlyBy={2}
+                                fadeDurationMs={2000}
                                 isVisible={isPriority} // Only play video when it's the current frame
                             />
                         ) : (
