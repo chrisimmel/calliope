@@ -60,7 +60,7 @@ class ShowThisFrameStrategy(StoryStrategy):
 
         text = parameters.input_text or ""
 
-        frames = await story.get_frames(max_frames=-1, include_images=True)
+        frames = await story.get_frames(max_frames=-1, include_media=True)
         last_frame = frames[0] if frames and len(frames) else None
         if not last_frame or last_frame.image != image or last_frame.text != text:
             # Create a new frame only if it differs from the story's last frame.

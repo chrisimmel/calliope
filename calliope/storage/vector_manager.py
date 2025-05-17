@@ -49,7 +49,7 @@ async def _get_story_frames(
         raise Exception(f"Unknown story: {story_cuid}")
 
     frames = await story.get_frames(
-        include_images=False, include_indexed_for_search=include_indexed_for_search
+        include_media=False, include_indexed_for_search=include_indexed_for_search
     )
     if frames:
         print(f"Need to index {len(frames)} frames of story {story.title}.")
