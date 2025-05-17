@@ -15,6 +15,9 @@ from calliope.tables import ModelConfig
 from calliope.utils.piccolo import load_json_if_necessary
 
 
+MAX_VIDEO_PROMPT_LENGTH = 1000
+
+
 async def runway_image_and_text_to_video_inference(
     httpx_client: httpx.AsyncClient,
     prompt_image_file: str,
@@ -23,7 +26,6 @@ async def runway_image_and_text_to_video_inference(
     model: InferenceModel,
     model_config: ModelConfig,
     keys: KeysModel,
-    duration: Literal[5, 10] = 5
 ) -> str:
     """
     Generates a video from a text prompt using Runway's models.
@@ -35,10 +37,6 @@ async def runway_image_and_text_to_video_inference(
         output_video_filename: where to save the generated video.
         model_config: model configuration with parameters.
         keys: API keys, including runway_api_key.
-        width: optional width override.
-        height: optional height override.
-        num_frames: optional number of frames override.
-        fps: optional frames per second override.
         
     Returns:
         The path to the generated video file.
@@ -47,6 +45,14 @@ async def runway_image_and_text_to_video_inference(
         raise ValueError(
             "Missing Runway authentication key. Aborting request."
         )
+    if not prompt_text or not prompt_text.strip():
+        raise ValueError("Missing prompt text. Aborting request.")
+    if not prompt_image_file or not os.path.exists(prompt_image_file):
+        raise ValueError(
+            f"Missing or invalid prompt image file: {prompt_image_file}. Aborting request."
+        )
+
+    prompt_text = truncate_prompt_text_if_needed(prompt_text.strip())
 
     # Set the API key for the Runway client
     os.environ["RUNWAYML_API_SECRET"] = keys.runway_api_key
@@ -75,7 +81,7 @@ async def runway_image_and_text_to_video_inference(
     parameters["prompt_image"] = f"data:image/png;base64,{prompt_image}"
     parameters["prompt_text"] = prompt_text
     parameters["ratio"] = "960:960"
-    parameters["duration"] = duration
+    parameters["duration"] = int(parameters.get("duration", 5))
 
     print(f"Generating video with Runway model {model_name}")
     print(f"Video prompt: {prompt_text}")
@@ -186,3 +192,33 @@ async def runway_retrieve_video(
     except Exception as e:
         print(f"Error in Runway video generation: {str(e)}")
         raise
+
+
+
+def truncate_prompt_text_if_needed(prompt_text: str) -> str:
+    """
+    Truncates the prompt text to a specified maximum length.
+
+    Args:
+        prompt_text: The input text to be truncated.
+        max_length: The maximum length for the prompt text.
+
+    Returns:
+        The truncated prompt text.
+    """
+    short_prompt_text = prompt_text
+    while len(short_prompt_text) > MAX_VIDEO_PROMPT_LENGTH:
+        parts = short_prompt_text.split(".")
+        short_prompt_text = ".".join(parts[:-1])
+
+    if not len(short_prompt_text):
+        # Truncating on sentence boundaries didn't work, so just truncate to the max length.
+        short_prompt_text = prompt_text[:MAX_VIDEO_PROMPT_LENGTH]
+
+    if short_prompt_text != prompt_text:
+        print(
+            f"Warning: Truncated video prompt to {MAX_VIDEO_PROMPT_LENGTH} characters."
+        )
+        print(f"Original prompt: {prompt_text}")
+        print(f"Truncated prompt: {short_prompt_text}")
+    return short_prompt_text

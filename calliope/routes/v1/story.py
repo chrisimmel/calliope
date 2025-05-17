@@ -489,8 +489,8 @@ async def handle_existing_frames_request(
         "thoth_link": f"{base_url}thoth/story/{story.cuid}",
     }
 
-    frames = await story.get_frames(include_images=True)
-    # await prepare_frame_images(request_params, frames)
+    frames = await story.get_frames(include_media=True)
+    prepare_existing_frame_images(frames)
     frame_models = [frame.to_pydantic() for frame in frames]
 
     print(f"{story.created_for_sparrow_id=} {client_id=}")
@@ -622,6 +622,13 @@ async def prepare_frame_images(
             if is_google_cloud:
                 put_media_file(video.url)
 
+
+def prepare_existing_frame_images(
+    frames: List[StoryFrame],
+) -> None:
+    # Always return images in the original size and format.
+    for frame in frames:
+        frame.image = frame.source_image
 
 def shorten_title(title: Optional[str], max_length: int = 64) -> str:
     if not title:

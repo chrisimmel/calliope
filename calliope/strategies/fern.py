@@ -85,8 +85,7 @@ class FernStrategy(StoryStrategy):
     * Use gpt-neo as a "chaos and creativity engine".
     * Initialize the story with a conceipt and a cast of characters.
     * Stabilize character names and casting relations to people seen in input images.
-
-
+    * Optionally generate video.
     """
 
     strategy_name = "fern"
@@ -519,6 +518,12 @@ In Los Angeles, no Hollywood sign.
 
 Don't repeat things too often. If you just said in the previous page that it's raining or that there
 are cobblestone streets. You don't need to say it again now.
+
+Be specific about any and all movement in the video scene, including both character and camera
+movement. The scene will be a single take, so don't include any cuts or transitions. The video
+scene must begin with the illustration as its first frame, so start from there. Don't call for
+music or sound, as the video will be silent. Be detailed, but keep the scene description under
+1000 characters.
 
 A muse is here to help you by introducing less linear or expected aspects to the story.
 You can find their contribution in the <MUSE_TEXT>. If you see lively, imaginative, or

@@ -76,8 +76,7 @@ async def thoth_story(
     if pagination.offset < num_frames:
         frames = await story.get_frames(
             offset=pagination.offset,
-            include_images=True,
-            include_videos=True,
+            include_media=True,
             max_frames=pagination.page_size
         )
     else:

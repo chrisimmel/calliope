@@ -177,9 +177,8 @@ class Story(Table):
         self,
         offset: int = 0,
         max_frames: int = 0,
-        include_images: bool = False,
+        include_media: bool = False,
         include_indexed_for_search: bool = True,
-        include_videos: bool = False,  # Added video support
     ) -> Sequence[StoryFrame]:
         """
         Gets the story's frames.
@@ -194,7 +193,7 @@ class Story(Table):
         """
         qs = (
             StoryFrame.objects(StoryFrame.image, StoryFrame.source_image, StoryFrame.video)
-            if include_images
+            if include_media
             else StoryFrame.objects()
         ).where(
             StoryFrame.story.id == self.id
@@ -215,7 +214,7 @@ class Story(Table):
             qs = qs.order_by(StoryFrame.number)
 
         frames = await qs.output(load_json=True).offset(offset).run()
-        if include_images:
+        if include_media:
             for frame in frames:
                 # This seems like a hack necessitated by a Piccolo quirk.
                 if frame.image and not frame.image.id:
