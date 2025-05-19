@@ -419,8 +419,6 @@ div#root {
 }
 
 svg {
-    /*width: 38px;
-    height: 38px;*/
     width: 32px;
     height: 32px;
 }
@@ -434,13 +432,6 @@ svg {
     padding: 14px;
     width: 26px;
 }
-/*
-@media (orientation: portrait) {
-    .spinnerFrame {
-        top: 100vw;
-    }
-}
-*/
 @keyframes rotate {
     from {
         transform: rotate(0deg);
