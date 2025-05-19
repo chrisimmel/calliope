@@ -538,7 +538,7 @@ async def prepare_input_files(
         )
         decode_b64_to_file(request_params.input_audio, input_audio_filename_webm)
         input_audio_filename_wav = input_audio_filename_webm + ".wav"
-        command = f"/usr/local/bin/ffmpeg -y -i {input_audio_filename_webm} -vn {input_audio_filename_wav}"
+        command = f"/usr/bin/ffmpeg -y -i {input_audio_filename_webm} -vn {input_audio_filename_wav}"
 
         print(f"Executing '{command}'")
         retval = os.system(command)
