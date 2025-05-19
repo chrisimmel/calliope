@@ -44,6 +44,33 @@ const VideoLoop: React.FC<VideoLoopProps> = ({
     setActiveVideoIndex(prevIndex => (prevIndex === 1 ? 2 : 1));
   };
 
+  // State to track video duration once loaded
+  const [videoDuration, setVideoDuration] = useState<number | null>(null);
+
+  // Calculate actual fade duration based on video length
+  const [actualFadeDurationMs, setActualFadeDurationMs] = useState<number>(fadeDurationMs);
+  const actualFadeDurationS = actualFadeDurationMs / 1000;
+
+  // Update fade duration when video duration is known
+  useEffect(() => {
+    if (videoDuration) {
+      // Use shorter fade duration for videos under 10 seconds
+      if (videoDuration < 10) {
+        setActualFadeDurationMs(1500); // Use 1.5 second fade for short videos
+      } else {
+        setActualFadeDurationMs(fadeDurationMs); // Use provided fade duration
+      }
+    }
+  }, [videoDuration, fadeDurationMs]);
+
+  // Handle video metadata loaded to get duration
+  const handleMetadataLoaded = (e: React.SyntheticEvent<HTMLVideoElement>) => {
+    const video = e.currentTarget;
+    if (video.duration && video.duration !== Infinity) {
+      setVideoDuration(video.duration);
+    }
+  };
+
   // Start fading out the current video near the end
   const checkForFadeOut = () => {
     const activeVideo = getActiveVideo();
@@ -53,22 +80,27 @@ const VideoLoop: React.FC<VideoLoopProps> = ({
 
     const timeLeft = activeVideo.duration - activeVideo.currentTime;
 
-    if (timeLeft < fadeDurationS && activeVideo.style.opacity !== '0') {
+    // If video is very short, ensure we don't start fading too early
+    const fadeThreshold = Math.min(actualFadeDurationS, activeVideo.duration * 0.15);
+
+    if (timeLeft < fadeThreshold && activeVideo.style.opacity !== '0') {
+      console.log(`Starting fade with ${timeLeft}s left, using ${actualFadeDurationMs}ms fade`);
+
       // Start fade out animation
       activeVideo.style.opacity = '0';
-      activeVideo.style.transition = `opacity ${fadeDurationMs / 1000}s ease`;
+      activeVideo.style.transition = `opacity ${actualFadeDurationS}s ease`;
 
       // Start fade in animation for inactive video
       inactiveVideo.currentTime = 0;
       inactiveVideo.style.opacity = '1';
-      inactiveVideo.style.transition = `opacity ${fadeDurationMs / 1000}s ease`;
+      inactiveVideo.style.transition = `opacity ${actualFadeDurationS}s ease`;
 
       if (isPlaying) {
         inactiveVideo.play().catch(err => console.warn('Play error:', err));
       }
 
       // After fade completes, switch videos officially
-      setTimeout(switchVideos, fadeDurationMs);
+      setTimeout(switchVideos, actualFadeDurationMs);
     }
   };
 
@@ -115,7 +147,7 @@ const VideoLoop: React.FC<VideoLoopProps> = ({
         clearInterval(fadeCheckIntervalRef.current);
       }
     };
-  }, [isPlaying, activeVideoIndex, isVisible]);
+  }, [isPlaying, activeVideoIndex, isVisible, actualFadeDurationMs]);
 
   // Handle initial play/pause based on autoPlay prop and visibility
   useEffect(() => {
@@ -161,6 +193,7 @@ const VideoLoop: React.FC<VideoLoopProps> = ({
         muted
         playsInline
         controls={false}
+        onLoadedMetadata={handleMetadataLoaded}
         style={{
           position: 'absolute',
           top: 0,
@@ -184,6 +217,7 @@ const VideoLoop: React.FC<VideoLoopProps> = ({
         muted
         playsInline
         controls={false}
+        onLoadedMetadata={handleMetadataLoaded}
         style={{
           position: 'absolute',
           top: 0,

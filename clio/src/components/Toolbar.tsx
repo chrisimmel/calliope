@@ -88,6 +88,7 @@ export default function Toolbar({
         */
     // Only allow adding frames if not in read-only mode and not playing
     const allowAddFrame = !isPlaying && !isLoading && !drawerIsOpen && !isReadOnly;
+    const allowSocial = !isLoading && !drawerIsOpen && !!story_id && selectedFrameNumber >= 0 && selectedFrameNumber < frames.length;
     return <>
         <div className="nav">
             {/* Disable auto-play for now.
@@ -153,7 +154,7 @@ export default function Toolbar({
             }
             
             {
-                story_id && selectedFrameNumber >= 0 && selectedFrameNumber < frames.length &&
+                allowSocial &&
                 <button
                     className="navButton"
                     onClick={toggleBookmark}
@@ -162,7 +163,7 @@ export default function Toolbar({
                 </button>
             }
             {
-                story_id && selectedFrameNumber >= 0 && selectedFrameNumber < frames.length &&
+                allowSocial &&
                 <button
                     className="navButton"
                     onClick={shareCurrentUrl}

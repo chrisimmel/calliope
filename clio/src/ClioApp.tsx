@@ -48,16 +48,16 @@ const getAllowExperimental: () => boolean = () => {
 // Utility function to preserve query parameters during navigation
 const preserveQueryParams = (url: string): string => {
     const currentParams = new URLSearchParams(window.location.search);
-    
+
     // If there are no query parameters, return the original URL
     if (!currentParams.toString()) {
         return url;
     }
-    
+
     // Check if the URL already has query parameters
     const hasQuery = url.includes('?');
     const separator = hasQuery ? '&' : '?';
-    
+
     // Append the current query parameters to the URL
     return `${url}${separator}${currentParams.toString()}`;
 };
@@ -117,7 +117,7 @@ const renderFrame = (frame: Frame, index: number, currentIndex: number) => {
                             <VideoLoop
                                 videoSrc={video_url}
                                 imageUrl={image_url}
-                                fadeDurationMs={2000}
+                                fadeDurationMs={2000} // Use shorter duration for videos under 10 seconds (handled in component)
                                 isVisible={isPriority} // Only play video when it's the current frame
                             />
                         ) : (
@@ -217,6 +217,17 @@ export default function ClioApp() {
             root.style.setProperty('--vp-height', vp_height);
             console.log(`Set --vp-height to ${vp_height}`)
         }
+    };
+
+    function navigateToFrame(storySlug: string, frameNumber: number) {
+        // Navigate to the proper URL for the current story and frame
+        const frameForUrl = frameNumber + 1; // Convert to 1-based for URL
+        const baseUrl = `/clio/story/${storySlug}/${frameForUrl}`;
+        
+        // Preserve query parameters
+        const urlWithParams = preserveQueryParams(baseUrl);
+        
+        navigate(urlWithParams, { replace: true });
     };
 
     useEffect(() => {
@@ -445,7 +456,12 @@ export default function ClioApp() {
                         timeout: FRAMES_TIMEOUT,
                     },
                 );
-                setSelectedFrameNumber(frames ? frames.length: 0);
+                const newSelectedFrameNumber = frames ? frames.length: 0
+                setSelectedFrameNumber(newSelectedFrameNumber);
+                if (storySlugState) {
+                    navigateToFrame(storySlugState, newSelectedFrameNumber);
+                }
+
                 console.log(response.data);
                 const caption = response.data?.debug_data?.i_see;
                 if (caption) {
@@ -565,14 +581,7 @@ export default function ClioApp() {
                 console.log(`Story is ${response.data?.is_read_only ? "" : "not"} read only.`);
 
                 if (response.data?.story_id && newFrames.length) {
-                    // Navigate to the proper URL for the current story and frame
-                    const frameForUrl = frame_num + 1; // Convert to 1-based for URL
-                    const baseUrl = `/clio/story/${storySlug}/${frameForUrl}`;
-                    
-                    // Preserve query parameters
-                    const urlWithParams = preserveQueryParams(baseUrl);
-                    
-                    navigate(urlWithParams, { replace: true });
+                    navigateToFrame(storySlug, frame_num);
                 }
 
                 if (!newFrames.length && !getFramesInterval) {
@@ -792,18 +801,7 @@ export default function ClioApp() {
 
                 // Update URL to reflect the current story and frame (1-based for URL)
                 if (storyId && storySlugState) {
-                    // Use the 1-based frame number in the URL (newSelectedFrameNumber is 0-based)
-                    const frameForUrl = newSelectedFrameNumber + 1;
-
-                    // Create base URL
-                    const baseUrl = `/clio/story/${storySlugState}/${frameForUrl}`;
-
-                    // Preserve query parameters
-                    const urlWithParams = preserveQueryParams(baseUrl);
-
-                    // Update URL without causing a full page reload - this won't trigger a server fetch
-                    // due to our useEffect logic that checks the story slug
-                    navigate(urlWithParams, { replace: true });
+                    navigateToFrame(storySlugState, newSelectedFrameNumber);
                 }
 
                 /*
@@ -1046,16 +1044,8 @@ export default function ClioApp() {
 
             if (storySlug) {
                 setStorySlugState(storySlug);
-                
-                // Update URL to reflect the new story and frame
-                // Use 1-based frame number in URL
-                const frameForUrl = frame_number + 1;
-                const baseUrl = `/clio/story/${storySlug}/${frameForUrl}`;
-                
-                // Preserve query parameters
-                const urlWithParams = preserveQueryParams(baseUrl);
-                
-                navigate(urlWithParams, { replace: true });
+
+                navigateToFrame(storySlug, frame_number);
             }
 
             // Get the selected story and jump to the specified frame.
