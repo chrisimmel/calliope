@@ -201,7 +201,8 @@ const VideoLoop: React.FC<VideoLoopProps> = ({
           width: '100%',
           height: '100%',
           zIndex: activeVideoIndex === 1 ? 2 : 1,
-          opacity: activeVideoIndex === 1 ? 1 : 0
+          opacity: activeVideoIndex === 1 ? 1 : 0,
+          objectFit: 'contain' // Ensure video fits within container properly
         }}
       >
         <source src={videoSrc} type="video/mp4" />
@@ -225,7 +226,8 @@ const VideoLoop: React.FC<VideoLoopProps> = ({
           width: '100%',
           height: '100%',
           zIndex: activeVideoIndex === 2 ? 2 : 1,
-          opacity: activeVideoIndex === 2 ? 1 : 0
+          opacity: activeVideoIndex === 2 ? 1 : 0,
+          objectFit: 'contain' // Ensure video fits within container properly
         }}
       >
         <source src={videoSrc} type="video/mp4" />

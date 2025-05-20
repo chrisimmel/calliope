@@ -49,11 +49,16 @@ export default function CreateStoryPanel({
     strategy,
     startNewStory,
 }: CreateStoryPanelProps) {
-  strategies ||= [];
-  strategies = strategies.filter((strat) => allowExperimental || !strat.is_experimental);
-  strategy ||= (strategies.find(strategy => strategy.is_default_for_client) || {slug: null}).slug;
-  strategy ||= null;
-  const [newStrategy, setNewStrategy] = useState(strategy);
+  // Ensure strategies is always a valid array
+  const validStrategies = Array.isArray(strategies) ? strategies : [];
+  
+  // Safe filtering of strategies
+  const filteredStrategies = validStrategies.filter((strat) => allowExperimental || !strat.is_experimental);
+  
+  // Safely determine initial strategy
+  const defaultStrategy = filteredStrategies.find(s => s.is_default_for_client);
+  const safeStrategy = strategy || (defaultStrategy ? defaultStrategy.slug : null) || null;
+  const [newStrategy, setNewStrategy] = useState(safeStrategy);
   const [media, setMedia] = useState<FrameSeedMediaType>("photo");
 
   const handleClose = () => {
@@ -106,9 +111,9 @@ export default function CreateStoryPanel({
               onChange={handleChangeStrategy}
             >
               {
-                strategies.map(
+                filteredStrategies.map(
                   (strat, index) => {
-                      return <MenuItem value={strat.slug}>{strat.slug}</MenuItem>
+                      return <MenuItem key={strat.slug} value={strat.slug}>{strat.slug}</MenuItem>
                   }
                 )
               }

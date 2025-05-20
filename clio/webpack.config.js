@@ -1,13 +1,30 @@
 const cuid2 = require("@paralleldrive/cuid2");
 const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
+const fs = require('fs');
+
+// Determine if we're building for mobile or web by checking for a special file
+// that we'll create in the npm scripts
+let isMobileBuild = false;
+const mobileMarkerPath = path.join(__dirname, '.mobile-build');
+
+try {
+  if (process.env.MOBILE === '1' || fs.existsSync(mobileMarkerPath)) {
+    isMobileBuild = true;
+  }
+} catch (e) {
+  console.error('Error checking for mobile build:', e);
+}
+
+console.log(`Building for ${isMobileBuild ? 'MOBILE' : 'WEB'}`);
 
 module.exports = {
     entry: "./src/index.tsx",
     output: {
         filename: `main.js?${cuid2.createId()}`,
         path: path.resolve(__dirname, "build"),
-        publicPath: "/clio/", // Set the public URL path for all assets
+        // Use root path for mobile builds, /clio/ for web builds
+        publicPath: isMobileBuild ? "/" : "/clio/",
     },
     plugins: [
         new HtmlWebpackPlugin({

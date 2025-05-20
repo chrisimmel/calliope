@@ -1,3 +1,5 @@
+/*! Capacitor: https://capacitorjs.com/ - MIT License */
+
 /**
  * @license React
  * react-dom.production.min.js

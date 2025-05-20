@@ -1,18 +1,24 @@
 import { useCallback, useRef, useState, useEffect } from "react";
-import axios from "axios"
 import browserID from "browser-id";
 import { useParams, useNavigate } from "react-router-dom";
+import apiService from "./services/ApiService";
+import { resolveMediaUrl, logMediaUrl } from "./utils/media";
 
 import './ClioApp.css';
-import AudioCapture from "./audio/AudioCapture";
+import './mobile.css'; // Import mobile-specific CSS
+// import NetworkTest from './components/NetworkTest';
+// Import adapters instead of direct components
+import { AudioCaptureAdapter, PhotoCaptureAdapter, initCapacitor, isPlatform } from "./capacitor";
 import Carousel, { CarouselItem } from "./components/Carousel";
 import { Bookmark, BookmarksResponse, Frame, FrameSeedMediaType, Story, Strategy } from './story/storyTypes'; 
 import IconChevronLeft from "./icons/IconChevronLeft";
 import IconChevronRight from "./icons/IconChevronRight";
 import Loader from "./components/Loader";
-import PhotoCapture from "./photo/PhotoCapture";
 import Toolbar from "./components/Toolbar";
 import VideoLoop from "./components/VideoLoop";
+
+// Initialize Capacitor features
+initCapacitor();
 
 const FRAMES_TIMEOUT = 180_000;
 const DEFAULT_TIMEOUT = 30_000;
@@ -74,9 +80,14 @@ const renderFrame = (frame: Frame, index: number, currentIndex: number) => {
 
     // Only process media URLs if the frame is visible
     // This prevents unnecessary downloads of images/videos for frames far from current view
-    const image_url = (frame.image && frame.image.url) ? `/${frame.image.url}` : '';
-    const video_url = (frame.video && frame.video.url) ? `/${frame.video.url}` : '';
+    const image_url = frame.image?.url ? resolveMediaUrl(frame.image.url) : '';
+    const video_url = frame.video?.url ? resolveMediaUrl(frame.video.url) : '';
     const hasVideo = Boolean(frame.video && frame.video.url);
+    
+    // Debug image URL only for the current frame to avoid console spam
+    if (image_url && isPlatform.capacitor() && index === currentIndex) {
+        logMediaUrl(frame.image?.url, `Frame ${index}`);
+    }
 
     // Create a fixed-height wrapper to prevent text shifting
     const imageContainerStyle = {
@@ -130,6 +141,23 @@ const renderFrame = (frame: Frame, index: number, currentIndex: number) => {
                                 onLoad={(e) => {
                                     // When image is loaded, fade it in
                                     e.currentTarget.style.opacity = '1';
+                                    console.log(`Image loaded successfully: ${image_url}`);
+                                }}
+                                onError={(e) => {
+                                    console.error(`Error loading image: ${image_url}`, e);
+                                    
+                                    // Try to load the image again with a direct URL as fallback
+                                    if (isPlatform.capacitor() && frame.image?.url) {
+                                        // Only retry once to avoid infinite loops
+                                        if (!(e.target as HTMLImageElement).dataset.retried) {
+                                            console.log("Retrying with different URL format...");
+                                            (e.target as HTMLImageElement).dataset.retried = "true";
+                                            
+                                            // Try with a different URL format
+                                            const directUrl = apiService.getAxiosInstance().defaults.baseURL + "/" + frame.image.url;
+                                            (e.target as HTMLImageElement).src = directUrl;
+                                        }
+                                    }
                                 }}
                             />
                         )}
@@ -156,7 +184,7 @@ const resetStory = async () => {
         client_id: thisBrowserID,
     };
 
-    await axios.put(
+    await apiService.getAxiosInstance().put(
         "/v1/story/reset/",
         null,
         {
@@ -215,18 +243,36 @@ export default function ClioApp() {
         if (root) {
             const vp_height = `${document.documentElement.clientHeight}px`;
             root.style.setProperty('--vp-height', vp_height);
-            console.log(`Set --vp-height to ${vp_height}`)
+            
+            // Also set viewport width for responsive layouts
+            const vp_width = `${document.documentElement.clientWidth}px`;
+            root.style.setProperty('--vp-width', vp_width);
+            
+            // For mobile, detect orientation
+            if (window.innerWidth < window.innerHeight) {
+                // Portrait orientation
+                root.setAttribute('data-orientation', 'portrait');
+            } else {
+                // Landscape orientation
+                root.setAttribute('data-orientation', 'landscape');
+            }
+            
+            console.log(`Set --vp-height to ${vp_height}, --vp-width to ${vp_width}`);
         }
     };
 
     function navigateToFrame(storySlug: string, frameNumber: number) {
         // Navigate to the proper URL for the current story and frame
         const frameForUrl = frameNumber + 1; // Convert to 1-based for URL
-        const baseUrl = `/clio/story/${storySlug}/${frameForUrl}`;
+        
+        // Get correct base path depending on platform (empty for mobile, /clio for web)
+        const basePath = isPlatform.capacitor() ? '' : '/clio';
+        const baseUrl = `${basePath}/story/${storySlug}/${frameForUrl}`;
         
         // Preserve query parameters
         const urlWithParams = preserveQueryParams(baseUrl);
         
+        console.log(`Navigating to: ${urlWithParams} (platform: ${isPlatform.capacitor() ? 'mobile' : 'web'})`);
         navigate(urlWithParams, { replace: true });
     };
 
@@ -261,9 +307,13 @@ export default function ClioApp() {
     );
 
     useEffect(() => {
+        // Initial resize
         handleResize();
 
-        window.addEventListener('resize', handleResize)
+        // Setup event listeners for screen size/orientation changes
+        window.addEventListener('resize', handleResize);
+        
+        // Modern orientation change API
         if (window.screen && window.screen.orientation) {
             try {
                 window.addEventListener('orientationchange', handleResize);
@@ -272,15 +322,31 @@ export default function ClioApp() {
             catch (e) {
                 console.error(e);
             }
+        } else {
+            // Fallback for older devices
+            window.addEventListener('orientationchange', handleResize);
         }
+        
+        // Capacitor-specific handling
+        import('@capacitor/device').then(({ Device }) => {
+            if (Device) {
+                // Subscribe to screen orientation changes
+                // This is properly handled by the other listeners, but this is just a precaution for Capacitor
+                setTimeout(handleResize, 100);
+            }
+        }).catch((err) => {
+            // Device not available - likely running in a browser
+            console.log("Capacitor Device plugin not available", err);
+        });
+        
         return () => {
-            window.removeEventListener('resize', handleResize)
+            // Cleanup event listeners
+            window.removeEventListener('resize', handleResize);
             window.removeEventListener('orientationchange', handleResize);
             if (window.screen && window.screen.orientation) {
                 window.screen.orientation.onchange = null;
             }
         }
-
     }, []);
 
     const toggleFullScreen = useCallback(
@@ -446,7 +512,7 @@ export default function ClioApp() {
                 console.log(`Calling Calliope with strategy ${strategy}, image ${imagePrefix}...`);
                 setCaptureActive(false);
                 //setSelectedFrameNumber(frames ? frames.length: 0);
-                const response = await axios.post(
+                const response = await apiService.getAxiosInstance().post(
                     "/v1/frames/",
                     params,
                     {
@@ -532,7 +598,7 @@ export default function ClioApp() {
                     story_id: story_id,
                 };
                 console.log("Getting story...");
-                const response = await axios.get(
+                const response = await apiService.getAxiosInstance().get(
                     "/v1/story/",
                     {
                         headers: {
@@ -615,7 +681,7 @@ export default function ClioApp() {
                     debug: true,
                 };
                 console.log(`Getting story by slug ${slug}...`);
-                const response = await axios.get(
+                const response = await apiService.getAxiosInstance().get(
                     `/v1/story/slug/${slug}`,
                     {
                         headers: {
@@ -743,7 +809,7 @@ export default function ClioApp() {
                         debug: true,
                     };
                     console.log("Getting stories...");
-                    const response = await axios.get(
+                    const response = await apiService.getAxiosInstance().get(
                         "/v1/stories/",
                         {
                             headers: {
@@ -844,7 +910,7 @@ export default function ClioApp() {
                         client_id: thisBrowserID,
                     };
                     console.log("Getting strategies...");
-                    const response = await axios.get(
+                    const response = await apiService.getAxiosInstance().get(
                         "/v1/config/strategy/",
                         {
                             headers: {
@@ -854,8 +920,10 @@ export default function ClioApp() {
                             timeout: DEFAULT_TIMEOUT,
                         },
                     );
-                    const newStrategies = response.data || [];
-                    console.log(`Got ${response.data?.length} strategies.`);
+                    // Ensure strategies is always an array
+                    const responseData = response.data;
+                    const newStrategies = Array.isArray(responseData) ? responseData : [];
+                    console.log(`Got ${newStrategies.length} strategies. Is Array: ${Array.isArray(newStrategies)}`);
                     setStrategies(newStrategies);
                 } catch (err: any) {
                     setError(err.message);
@@ -1078,7 +1146,7 @@ export default function ClioApp() {
                 }
 
                 console.log("Getting bookmarks...");
-                const response = await axios.get<BookmarksResponse>(
+                const response = await apiService.getAxiosInstance().get<BookmarksResponse>(
                     "/v1/bookmarks/frame/",
                     {
                         headers: {
@@ -1116,7 +1184,7 @@ export default function ClioApp() {
 
                 if (existingBookmark) {
                     // Delete the bookmark
-                    await axios.delete(
+                    await apiService.getAxiosInstance().delete(
                         `/v1/bookmarks/frame/${existingBookmark.id}`,
                         {
                             headers: {
@@ -1134,7 +1202,7 @@ export default function ClioApp() {
                     setBookmarks(bookmarks.filter(b => b.id !== existingBookmark.id));
                 } else {
                     // Create a new bookmark
-                    const response = await axios.post(
+                    const response = await apiService.getAxiosInstance().post(
                         "/v1/bookmarks/frame",
                         {
                             story_id: storyId,
@@ -1206,17 +1274,30 @@ export default function ClioApp() {
     const loading = loadingStories || loadingStory || loadingStrategies || loadingFrames || loadingBookmarks;
 
     /*
-    One panel for each frame, including an empty rightmost panel whose selection
-    triggers a request for a new frame. When the new rightmost panel contents
-    arrive, a _new_ rightmost panel is made available for the same purpose.
-
-    It is also always possible to scroll back through all prior frames of the
-    story.
+    One panel for each frame, with the possibility to swipe or scroll between the frames.
     */
     // Get the current frame index for the carousel
     const currentCarouselIndex = Math.max(0, Math.min(selectedFrameNumber, frames.length - 1));
     
-    return <>
+    // Determine if we're running in a Capacitor environment and get orientation
+    const isCapacitor = isPlatform.capacitor();
+    const isWeb = isPlatform.web();
+    const orientation = window.innerWidth < window.innerHeight ? 'portrait' : 'landscape';
+    
+    // For debugging - log the platform detection
+    console.log(`Runtime environment - Capacitor: ${isCapacitor}, Web: ${isWeb}, Window properties:`, 
+                { 
+                  hasCapacitorProperty: !!(window as any).Capacitor,
+                  capacitorPropertyType: typeof (window as any).Capacitor,
+                  platform: (window as any)?.Capacitor?.platform
+                });
+    
+    // Apply capacitor and orientation classes when running in a mobile app
+    const capacitorClass = isCapacitor ? `capacitor-device ${orientation}` : '';
+
+    // {isPlatform.capacitor() && <NetworkTest />}
+
+    return <div className={capacitorClass}>
         {
             (selectedFrameNumber > 0) &&
             <div className="navLeft">
@@ -1232,7 +1313,7 @@ export default function ClioApp() {
         }
         <div className="clio_app_overlay">
             { captureActive &&
-                <PhotoCapture
+                <PhotoCaptureAdapter
                     sendPhoto={sendPhoto}
                     closePhotoCapture={closePhotoCapture}
                 />
@@ -1279,10 +1360,10 @@ export default function ClioApp() {
                 startCameraCapture={startCameraCapture}
                 addNewFrame={addNewFrame}
                 allowExperimental={allowExperimental}
-                strategies={strategies}
+                strategies={Array.isArray(strategies) ? strategies : []}
                 strategy={strategy}
                 startNewStory={startNewStory}
-                stories={stories}
+                stories={Array.isArray(stories) ? stories : []}
                 story_id={storyId}
                 currentStory={currentStory}
                 isReadOnly={isReadOnly}
@@ -1290,12 +1371,12 @@ export default function ClioApp() {
                 jumpToBeginning={toStart}
                 jumpToEnd={toEnd}
                 selectedFrameNumber={selectedFrameNumber}
-                frames={frames}
+                frames={Array.isArray(frames) ? frames : []}
                 drawerIsOpen={drawerIsOpen}
                 setDrawerIsOpen={setDrawerIsOpen}
                 toggleBookmark={toggleBookmark}
                 isCurrentFrameBookmarked={isCurrentFrameBookmarked()}
-                bookmarks={bookmarks}
+                bookmarks={Array.isArray(bookmarks) ? bookmarks : []}
                 showBookmarksList={showBookmarksList}
                 setShowBookmarksList={setShowBookmarksList}
                 shareCurrentUrl={shareCurrentUrl}
@@ -1303,7 +1384,7 @@ export default function ClioApp() {
         }
         {
             captureAudioActive &&
-            <AudioCapture
+            <AudioCaptureAdapter
               setIsOpen={setCaptureAudioActive}
               sendAudio={sendAudio}
             />
@@ -1318,5 +1399,5 @@ export default function ClioApp() {
             showShareNotification &&
             <div className="share-notification">URL copied to clipboard!</div>
         }
-    </>;
+    </div>;
 }
