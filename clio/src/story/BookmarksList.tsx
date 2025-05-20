@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 
 import Drawer from '@mui/material/Drawer';
 import Box from '@mui/material/Box';
+import CloseIcon from '@mui/icons-material/Close';
+import { IconButton } from '@mui/material';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
@@ -138,6 +140,21 @@ export default function BookmarksList({
                     }
                 }}
             >
+                <IconButton
+                    aria-label="close"
+                    onClick={() => {
+                        setBookmarksListIsOpen(false);
+                    }}
+                    sx={{
+                        position: 'absolute',
+                        zIndex: 1000,
+                        top: 30,
+                        right: 20,
+                        color: "#aaa",
+                    }}
+                >
+                    <CloseIcon />
+                </IconButton>
                 <Box sx={{ my: 2 }}>
                     <List dense sx={{ padding: 0 }}>
                         <ListItem 
