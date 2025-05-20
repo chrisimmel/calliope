@@ -4,6 +4,8 @@
 
 (A Calliope self-portrait)
 
+For Calliope examples, see: [https://chrisimmel.com/collection/calliope](https://chrisimmel.com/collection/calliope)
+
 _See also Calliope's DeepWiki documentation: [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/chrisimmel/calliope)_
 
 In Greek mythology, Calliope (/kəˈlaɪ.əpi/ kə-LY-ə-pee; Ancient Greek: Καλλιόπη, romanized: Kalliópē, lit. 'beautiful-voiced') is the Muse who presides over eloquence and epic poetry; so called from the ecstatic harmony of her voice. Hesiod and Ovid called her the "Chief of all Muses".
@@ -27,7 +29,6 @@ There is a strong emphasis on narrative structure. Calliope invents and recites 
 * An [ESP32-Sparrow](https://github.com/mikalhart/ESP32-Sparrow) -- one of a family of bespoke hardware devices with a screen and optional input sensors such as camera and microphone.
 
 * [Clio](https://github.com/chrisimmel/calliope/tree/main/docs/Clio.md) -- a small TypeScript client included in this repo, runnable in any browser on desktop or mobile devices. Clio optionally takes image input from any accessible webcam, or audio input, and passes this with its request for a story continuation. Calliope uses this input to condition its continuation of the story.
-
 
 ## Try it Out!
 You can try Calliope and Clio at [https://calliope.chrisimmel.com/clio/](https://calliope.chrisimmel.com/clio/).
