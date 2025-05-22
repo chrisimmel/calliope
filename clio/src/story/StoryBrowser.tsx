@@ -7,6 +7,7 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 
 import IconClose from '../icons/IconClose';
+import { resolveMediaUrl } from "../utils/media";
 import { Story } from './storyTypes';
 
 
@@ -62,9 +63,11 @@ export default function StoryBrowser({
                                 return null;
                             }
 
-                            const image_url = (story.thumbnail_image && story.thumbnail_image.url) ? `/${story.thumbnail_image.url}` : '';
+                            const image_url = resolveMediaUrl(
+                                (story.thumbnail_image && story.thumbnail_image.url) ? `/${story.thumbnail_image.url}` : ''
+                            );
 
-                            return <ListItem disablePadding>
+                            return <ListItem disablePadding key={story.story_id}>
                                 <ListItemButton
                                     onClick={(e) => {
                                         setStoryBrowserIsOpen(false);

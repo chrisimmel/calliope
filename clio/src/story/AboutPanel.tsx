@@ -2,11 +2,12 @@ import Box from '@mui/material/Box';
 import CloseIcon from '@mui/icons-material/Close';
 import Container from '@mui/material/Container';
 import Drawer from '@mui/material/Drawer';
-import Typography from '@mui/material/Typography';
+import { IconButton } from '@mui/material';
 import Link from '@mui/material/Link';
+import Typography from '@mui/material/Typography';
 
 import { Frame, Story } from './storyTypes';
-import { IconButton } from '@mui/material';
+import { resolveMediaUrl } from "../utils/media";
 
 const appVersion = require('../../package.json').version;
 
@@ -54,7 +55,7 @@ export default function AboutPanel({
         setAboutPanelIsOpen(open);
       };
 
-    const image_url = (story && story.thumbnail_image && story.thumbnail_image.url) ? `/${story.thumbnail_image.url}` : '';
+    const image_url = resolveMediaUrl((story && story.thumbnail_image && story.thumbnail_image.url) ? `/${story.thumbnail_image.url}` : '');
     const situation = (frames && frames[0]) ? (frames[0].metadata?.situation || "") : "";
     const locationAndTail = situation.startsWith("Location\n") ? situation.slice("Location\n".length) : null;
     const endLocationIndex = locationAndTail?.indexOf("\n\n") || locationAndTail?.length;

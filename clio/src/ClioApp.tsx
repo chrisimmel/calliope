@@ -82,7 +82,7 @@ const renderFrame = (frame: Frame, index: number, currentIndex: number) => {
     const image_url = frame.image?.url ? resolveMediaUrl(frame.image.url) : '';
     const video_url = frame.video?.url ? resolveMediaUrl(frame.video.url) : '';
     const hasVideo = Boolean(frame.video && frame.video.url);
-    
+
     // Debug image URL only for the current frame to avoid console spam
     if (image_url && isPlatform.capacitor() && index === currentIndex) {
         logMediaUrl(frame.image?.url, `Frame ${index}`);
