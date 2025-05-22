@@ -8,6 +8,8 @@ For Calliope examples, see: [https://chrisimmel.com/collection/calliope](https:/
 
 _See also Calliope's DeepWiki documentation: [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/chrisimmel/calliope)_
 
+_Or, listen to [the podcast](https://notebooklm.google.com/notebook/abca34e6-e0da-4ad4-901b-98c0cf5e160a/audio)_ (courtesy [NotebookLM](https://notebooklm.google.com/)).
+
 In Greek mythology, Calliope (/kəˈlaɪ.əpi/ kə-LY-ə-pee; Ancient Greek: Καλλιόπη, romanized: Kalliópē, lit. 'beautiful-voiced') is the Muse who presides over eloquence and epic poetry; so called from the ecstatic harmony of her voice. Hesiod and Ovid called her the "Chief of all Muses".
 
 Calliope is an experimental agentic framework that brings modern AI tools like generative AI (large language models and image generation models), computer vision, and vector databases to bear in the creation of interactive art works that dynamically produce images, video, text, and sound. The core system is a flexible framework, service, and API that enables an artist to build repeatable interaction strategies. The API accepts inputs such as images, text, and voice, then processes these through an artist-defined pipeline of AI models to generate its multimdia output.
