@@ -10,7 +10,8 @@ const config: CapacitorConfig = {
     // Clear default hostname to load from local assets
     hostname: 'app',
     // Set cleartext for Android
-    androidScheme: 'http'
+    androidScheme: 'http',
+    cleartext: true,
   },
   android: {
     // Ensure webview shows debugging logs

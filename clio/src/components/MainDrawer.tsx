@@ -26,6 +26,7 @@ import ServerSelector from './ServerSelector';
 import { ServerConfig } from '../utils/serverConfig';
 import apiService from '../services/ApiService';
 import { isPlatform } from '../utils/platform';
+import { isDevelopment } from '../utils/environment';
 
 
 type MainDrawerProps = {
@@ -235,8 +236,8 @@ export default function MainDrawer({
                                         <ListItemText primary="Fullscreen" />
                                     </ListItemButton>
                                 </ListItem>
-                                {/* Only show server selector in mobile app */}
-                                {isPlatform.capacitor() && (
+                                {/* Show server selector only in development environment */}
+                                {isDevelopment() && (
                                     <ListItem sx={{ flexDirection: 'column', alignItems: 'flex-start' }}>
                                         <ListItemText 
                                             primary="Server" 

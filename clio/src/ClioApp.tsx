@@ -6,7 +6,6 @@ import { resolveMediaUrl, logMediaUrl } from "./utils/media";
 
 import './ClioApp.css';
 import './mobile.css'; // Import mobile-specific CSS
-// import NetworkTest from './components/NetworkTest';
 // Import adapters instead of direct components
 import { AudioCaptureAdapter, PhotoCaptureAdapter, initCapacitor, isPlatform } from "./capacitor";
 import Carousel, { CarouselItem } from "./components/Carousel";
@@ -1278,24 +1277,30 @@ export default function ClioApp() {
     */
     // Get the current frame index for the carousel
     const currentCarouselIndex = Math.max(0, Math.min(selectedFrameNumber, frames.length - 1));
-    
+
     // Determine if we're running in a Capacitor environment and get orientation
     const isCapacitor = isPlatform.capacitor();
     const isWeb = isPlatform.web();
+    const isSimulator = isPlatform.simulator();
     const orientation = window.innerWidth < window.innerHeight ? 'portrait' : 'landscape';
-    
-    // For debugging - log the platform detection
-    console.log(`Runtime environment - Capacitor: ${isCapacitor}, Web: ${isWeb}, Window properties:`, 
-                { 
-                  hasCapacitorProperty: !!(window as any).Capacitor,
-                  capacitorPropertyType: typeof (window as any).Capacitor,
-                  platform: (window as any)?.Capacitor?.platform
-                });
-    
-    // Apply capacitor and orientation classes when running in a mobile app
-    const capacitorClass = isCapacitor ? `capacitor-device ${orientation}` : '';
 
-    // {isPlatform.capacitor() && <NetworkTest />}
+    // For debugging - log the platform detection with more details
+    console.log(`Runtime environment details:`, { 
+      isCapacitor,
+      isWeb,
+      isSimulator,
+      isIOS: isPlatform.ios(),
+      isAndroid: isPlatform.android(),
+      orientation,
+      hasCapacitorProperty: !!(window as any).Capacitor,
+      capacitorPropertyType: typeof (window as any).Capacitor,
+      platform: (window as any)?.Capacitor?.platform,
+      userAgent: navigator.userAgent
+    });
+
+    // Apply capacitor and orientation classes when running in a mobile app or simulator
+    // This ensures the mobile styles are applied in both real devices and simulators
+    const capacitorClass = (isCapacitor || isSimulator) ? `capacitor-device ${orientation}` : '';
 
     return <div className={capacitorClass}>
         {

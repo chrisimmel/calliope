@@ -23,18 +23,35 @@ export { LocationService } from "../services/LocationService";
  * This should be called once at app startup
  */
 export function initCapacitor() {
-  // Check the window object for Capacitor and log platform information
+  // Detect Capacitor presence and platform
+  const capacitorObj = (window as any)?.Capacitor;
+  const capacitorExists = !!capacitorObj && typeof capacitorObj === 'object';
+  const platform = capacitorExists ? capacitorObj.platform : 'none';
+  const isNative = capacitorExists && (
+    platform === 'ios' || 
+    platform === 'android' || 
+    capacitorObj.isNative === true
+  );
+  
+  // Log detailed information for debugging
   console.log('Initialization - Window Capacitor object:', {
-    exists: !!(window as any).Capacitor,
-    type: typeof (window as any).Capacitor,
-    platform: (window as any)?.Capacitor?.platform || 'none',
-    isObject: typeof (window as any).Capacitor === 'object',
+    exists: capacitorExists,
+    type: typeof capacitorObj,
+    platform: platform,
+    isObject: typeof capacitorObj === 'object',
     isWeb: isPlatform.web(),
-    isCapacitor: isPlatform.capacitor()
+    isCapacitor: isPlatform.capacitor(),
+    isNative: isNative
   });
 
+  // Force web mode if we detect we're in a browser with Capacitor.js included
+  if (capacitorExists && platform === 'web') {
+    console.log("Detected web browser with Capacitor.js included - forcing web mode");
+    return;
+  }
+
   // Only initialize Capacitor features when running in a native app
-  if (isPlatform.capacitor()) {
+  if (isPlatform.capacitor() && isNative) {
     console.log("Initializing Capacitor features for native app");
     // Add any initialization code for Capacitor plugins here
     

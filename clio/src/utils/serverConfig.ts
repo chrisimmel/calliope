@@ -3,6 +3,7 @@
  * Supports multiple server environments for different deployment scenarios
  */
 import { isPlatform } from './platform';
+import { isIpadSimulator } from './deviceDetection';
 
 // Known server configurations
 export interface ServerConfig {
@@ -82,15 +83,28 @@ export function getSelectedServerConfig(): ServerConfig {
   const isCapacitor = isPlatform.capacitor();
   const isIOS = isPlatform.ios();
   const isAndroid = isPlatform.android();
+  const isSimulator = isPlatform.simulator();
+  
+  // Log detailed environment information for debugging purposes
+  console.log('Platform environment for server selection:', {
+    isCapacitor,
+    isIOS,
+    isAndroid,
+    isSimulator,
+    userAgent: navigator.userAgent,
+    storedServerId
+  });
   
   // Handle special cases for native apps vs simulator/emulator
   let targetServerId = storedServerId;
-  
-  if (isCapacitor) {
-    // Check the platform and user agent to determine if we're in a simulator/emulator
-    const userAgent = navigator.userAgent.toLowerCase();
-    const isSimulator = userAgent.includes('simulator') || userAgent.includes('emulator');
-    
+
+  // Force iPad simulator to use the iOS simulator server config
+  if (isIpadSimulator()) {
+    console.log('Detected iPad simulator, forcing iOS simulator server config');
+    targetServerId = 'ios-simulator';
+  }
+  // Handle other simulators
+  else if (isCapacitor || isSimulator) {
     if (isIOS && isSimulator) {
       console.log('Running in iOS simulator, using iOS simulator server config');
       targetServerId = 'ios-simulator';

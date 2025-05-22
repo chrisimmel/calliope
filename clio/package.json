@@ -4,12 +4,15 @@
   "description": "Simple step by step walkthrough of setting up a React app with Webpack",
   "main": "index.js",
   "scripts": {
-    "build": "rm -f .mobile-build && webpack --mode production && cp build/* ../static/clio",
-    "build-dev": "rm -f .mobile-build && webpack --mode development && cp build/* ../static/clio",
-    "start": "rm -f .mobile-build && webpack serve --mode development",
-    "build-mobile": "touch .mobile-build && webpack --mode production && npx cap sync",
+    "build": "rm -f .mobile-build && NODE_ENV=production webpack --mode production && cp build/* ../static/clio",
+    "build-dev": "rm -f .mobile-build && NODE_ENV=development webpack --mode development && cp build/* ../static/clio",
+    "start": "rm -f .mobile-build && NODE_ENV=development webpack serve --mode development",
+    "build-mobile": "touch .mobile-build && NODE_ENV=production MOBILE=1 webpack --mode production && npx cap sync",
+    "build-mobile-dev": "touch .mobile-build && NODE_ENV=development MOBILE=1 webpack --mode development && npx cap sync",
     "ios": "npm run build-mobile && npx cap open ios",
-    "android": "npm run build-mobile && npx cap open android"
+    "ios-dev": "npm run build-mobile-dev && npx cap open ios",
+    "android": "npm run build-mobile && npx cap open android",
+    "android-dev": "npm run build-mobile-dev && npx cap open android"
   },
   "repository": {
     "type": "git",

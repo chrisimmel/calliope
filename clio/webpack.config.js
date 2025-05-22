@@ -2,11 +2,15 @@ const cuid2 = require("@paralleldrive/cuid2");
 const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const fs = require('fs');
+const webpack = require('webpack');
 
 // Determine if we're building for mobile or web by checking for a special file
 // that we'll create in the npm scripts
 let isMobileBuild = false;
 const mobileMarkerPath = path.join(__dirname, '.mobile-build');
+
+// Determine environment (production vs development)
+const isProduction = process.env.NODE_ENV === 'production';
 
 try {
   if (process.env.MOBILE === '1' || fs.existsSync(mobileMarkerPath)) {
@@ -16,7 +20,7 @@ try {
   console.error('Error checking for mobile build:', e);
 }
 
-console.log(`Building for ${isMobileBuild ? 'MOBILE' : 'WEB'}`);
+console.log(`Building for ${isMobileBuild ? 'MOBILE' : 'WEB'} in ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'} mode`);
 
 module.exports = {
     entry: "./src/index.tsx",
@@ -29,6 +33,12 @@ module.exports = {
     plugins: [
         new HtmlWebpackPlugin({
             template: path.join(__dirname, "public", "index.html"),
+        }),
+        // Define environment variables for client-side code
+        new webpack.DefinePlugin({
+            'process.env.NODE_ENV': JSON.stringify(isProduction ? 'production' : 'development'),
+            'process.env.REACT_APP_ENV': JSON.stringify(isProduction ? 'production' : 'development'),
+            'process.env.IS_MOBILE_BUILD': JSON.stringify(isMobileBuild)
         }),
     ],
     devServer: {
