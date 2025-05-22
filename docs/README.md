@@ -8,7 +8,7 @@ For Calliope examples, see: [https://chrisimmel.com/collection/calliope](https:/
 
 _See also Calliope's DeepWiki documentation: [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/chrisimmel/calliope)_
 
-_Or, listen to [the podcast](https://notebooklm.google.com/notebook/abca34e6-e0da-4ad4-901b-98c0cf5e160a/audio)_ (courtesy [NotebookLM](https://notebooklm.google.com/)).
+Or, listen to [the podcast](https://notebooklm.google.com/notebook/abca34e6-e0da-4ad4-901b-98c0cf5e160a/audio) (courtesy [NotebookLM](https://notebooklm.google.com/)).
 
 In Greek mythology, Calliope (/kəˈlaɪ.əpi/ kə-LY-ə-pee; Ancient Greek: Καλλιόπη, romanized: Kalliópē, lit. 'beautiful-voiced') is the Muse who presides over eloquence and epic poetry; so called from the ecstatic harmony of her voice. Hesiod and Ovid called her the "Chief of all Muses".
 
