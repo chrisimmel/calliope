@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
@@ -108,8 +108,35 @@ export default function MainDrawer({
         setDrawerIsOpen(open);
       };
 
-    //const drawerAnchor = document.documentElement.clientHeight > document.documentElement.clientWidth ? "bottom" : "right";
     const drawerAnchor = "right";
+    /*
+    // Set up state for dynamic drawer position
+    const [drawerAnchor, setDrawerAnchor] = useState<"right" | "bottom">("right");
+
+    // Determine the best anchor position based on screen orientation and platform
+    const updateDrawerAnchor = () => {
+        const isPortrait = window.innerHeight > window.innerWidth;
+        const isMobile = isPlatform.capacitor();
+        // Use bottom drawer in portrait orientation on mobile, right drawer otherwise
+        setDrawerAnchor((isMobile && isPortrait) ? "bottom" : "right");
+    };
+
+    // Initialize anchor position and update on resize
+    useEffect(() => {
+        // Set initial anchor position
+        updateDrawerAnchor();
+
+        // Update on window resize or orientation change
+        window.addEventListener('resize', updateDrawerAnchor);
+        window.addEventListener('orientationchange', updateDrawerAnchor);
+
+        return () => {
+            // Clean up event listeners
+            window.removeEventListener('resize', updateDrawerAnchor);
+            window.removeEventListener('orientationchange', updateDrawerAnchor);
+        };
+    }, []);
+    */
     return (
         <>
             <Drawer

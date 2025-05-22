@@ -168,7 +168,7 @@ export default function BookmarksList({
                         >
                             <Box sx={{ display: 'flex', alignItems: 'center' }}>
                                 <IconHeartFull style={{ color: '#ff4081', width: '20px', height: '20px' }} />
-                                <Typography variant="subtitle1" fontWeight="bold" style={{ marginLeft: '10px'}}>Bookmarks</Typography>
+                                <Typography variant="subtitle1" style={{ marginLeft: '10px'}}>Bookmarks</Typography>
                             </Box>
                         </ListItem>
 

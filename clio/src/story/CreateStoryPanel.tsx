@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { useState } from 'react';
 
+import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import CloseIcon from '@mui/icons-material/Close';
 import Dialog from '@mui/material/Dialog';
@@ -17,6 +18,7 @@ import MenuItem from '@mui/material/MenuItem';
 import Radio from '@mui/material/Radio';
 import RadioGroup from '@mui/material/RadioGroup';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
+import Typography from '@mui/material/Typography';
 import { styled } from '@mui/material/styles';
 
 import { FrameSeedMediaType, Strategy } from './storyTypes';
@@ -88,17 +90,28 @@ export default function CreateStoryPanel({
              },
           }}
       >
-        <DialogTitle>Create a New Story</DialogTitle>
+        <Box sx={{ 
+              display: 'flex',
+              alignItems: 'center',
+              bgcolor: '#f5f5f5', 
+              borderRadius: '4px',
+              padding: '6px 12px',
+              marginBottom: '10px',
+          }}>
+            <Typography variant="subtitle1" style={{fontSize: "1.2rem"}}>Create a New Story</Typography>
+        </Box>
         <IconButton
-          aria-label="close"
-          onClick={handleClose}
-          sx={{
-            position: 'absolute',
-            right: 8,
-            top: 8,
-          }}
+            aria-label="close"
+            onClick={handleClose}
+            sx={{
+                position: 'absolute',
+                zIndex: 1000,
+                top: 16,
+                right: 12,
+                color: "#aaa",
+            }}
         >
-          <CloseIcon />
+            <CloseIcon />
         </IconButton>
         <DialogContent dividers>
           <FormControl fullWidth>
@@ -124,7 +137,7 @@ export default function CreateStoryPanel({
           </FormGroup>
           */}
         <FormControl>
-          <FormLabel id="demo-radio-buttons-group-label">Begin Story From</FormLabel>
+          <FormLabel id="demo-radio-buttons-group-label" style={{marginTop: "16px"}}>Begin Story From</FormLabel>
           <RadioGroup
             aria-labelledby="demo-radio-buttons-group-label"
             value={media}

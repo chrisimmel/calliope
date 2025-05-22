@@ -524,11 +524,18 @@ svg {
 }
 
 
-.MuiDrawer-paperAnchorBottom.css-fy2uxz, .MuiDrawer-paperAnchorRight.css-1ab2xsx, .MuiDrawer-paperAnchorRight.css-1jcl2ys {
+.MuiDrawer-paperAnchorBottom.css-fy2uxz, .MuiDrawer-paperAnchorRight.css-1ab2xsx, .MuiDrawer-paperAnchorRight.css-1jcl2ys, .css-1160xiw-MuiPaper-root-MuiDrawer-paper {
     max-width: 350px;
     inset: auto 0 60px auto;
-    height: auto;
+    height: auto !important;
     max-height: 100%;
+    top: auto !important;
+}
+.css-16tc0qi-MuiPaper-root-MuiDrawer-paper {
+    height: auto !important;
+    max-height: 100%;
+    top: auto !important;
+    bottom: 60px;
 }
 .css-62igne {
     margin-top: 0 !important;
