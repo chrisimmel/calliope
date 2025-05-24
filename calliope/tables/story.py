@@ -399,6 +399,7 @@ class Story(Table):
         cls,
         strategy_name: Optional[str] = None,
         created_for_sparrow_id: Optional[str] = None,
+        title: Optional[str] = None,
     ) -> "Story":
         """
         Create a new story. Slug is initially NULL and will be set 
@@ -408,5 +409,6 @@ class Story(Table):
             cuid=create_cuid(),
             strategy_name=strategy_name,
             created_for_sparrow_id=created_for_sparrow_id,
+            title=title,
             date_created=datetime.now(timezone.utc),
         )

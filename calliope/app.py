@@ -19,10 +19,11 @@ from calliope.forms.run_command import RunCommandFormModel, run_command_endpoint
 from calliope.routes import media as media_routes
 from calliope.routes import meta as meta_routes
 from calliope.routes import thoth as thoth_routes
-from calliope.routes.v1 import story as story_routes
-from calliope.routes.v1 import config as config_routes
-from calliope.routes.v1 import test as test_routes
-from calliope.routes.v1 import bookmark as bookmark_routes
+from calliope.routes.v1 import story as v1_story_routes
+from calliope.routes.v1 import config as v1_config_routes
+from calliope.routes.v1 import test as v1_test_routes
+from calliope.routes.v1 import bookmark as v1_bookmark_routes
+from calliope.routes.v2 import stories as v2_stories_routes
 from calliope.utils.authentication import get_api_key
 from calliope.utils.google import is_google_cloud_run_environment
 from calliope.settings import settings
@@ -48,12 +49,13 @@ from calliope.tables import (
 def register_views(app: FastAPI) -> None:
     print(f"Registering views for port {settings.PORT}")
     app.include_router(meta_routes.router)
-    app.include_router(story_routes.router)
-    app.include_router(config_routes.router)
+    app.include_router(v1_story_routes.router)
+    app.include_router(v1_config_routes.router)
     app.include_router(media_routes.router)
     app.include_router(thoth_routes.router)
-    app.include_router(test_routes.router)
-    app.include_router(bookmark_routes.router)
+    app.include_router(v1_test_routes.router)
+    app.include_router(v1_bookmark_routes.router)
+    app.include_router(v2_stories_routes.router)
 
 
 def get_db_uri(user: str, passwd: str, host: str, db: str) -> str:
