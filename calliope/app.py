@@ -23,7 +23,7 @@ from calliope.routes.v1 import story as v1_story_routes
 from calliope.routes.v1 import config as v1_config_routes
 from calliope.routes.v1 import test as v1_test_routes
 from calliope.routes.v1 import bookmark as v1_bookmark_routes
-from calliope.routes.v2 import stories as v2_stories_routes
+from calliope.routes.v2 import router as v2_router
 from calliope.utils.authentication import get_api_key
 from calliope.utils.google import is_google_cloud_run_environment
 from calliope.settings import settings
@@ -55,7 +55,7 @@ def register_views(app: FastAPI) -> None:
     app.include_router(thoth_routes.router)
     app.include_router(v1_test_routes.router)
     app.include_router(v1_bookmark_routes.router)
-    app.include_router(v2_stories_routes.router)
+    app.include_router(v2_router)
 
 
 def get_db_uri(user: str, passwd: str, host: str, db: str) -> str:
@@ -184,6 +184,16 @@ async def open_database_connection_pool() -> None:
             await engine.start_connection_pool()
     except Exception as e:
         print(f"Error connecting to database: {e}")
+        
+@app.on_event("startup")
+async def initialize_task_queue() -> None:
+    try:
+        # Initialize the task queue
+        from calliope.tasks.factory import configure_task_queue
+        configure_task_queue()
+        print("Task queue initialized")
+    except Exception as e:
+        print(f"Error initializing task queue: {e}")
 
 
 @app.on_event("shutdown")
