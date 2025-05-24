@@ -1,0 +1,208 @@
+/**
+ * Mobile-specific styles for the Clio app when running in Capacitor
+ * These styles will only be applied when running on a mobile device
+ */
+
+/* Apply this to elements when we know we're in a Capacitor environment */
+.capacitor-device {
+  /* Ensure proper spacing for iOS safe areas */
+  padding-top: env(safe-area-inset-top);
+  padding-right: env(safe-area-inset-right);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+}
+
+/* Fix MUI Drawer height and styling on mobile devices */
+.capacitor-device .MuiDrawer-paper {
+  /* Base styles for all drawers in mobile */
+  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Bottom drawer styles */
+.capacitor-device .MuiDrawer-paperAnchorBottom {
+  /* Set max height for bottom drawer to prevent full screen height */
+  /*max-height: 85vh !important;*/
+  height: auto !important;
+  top: auto !important;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+  padding-bottom: env(safe-area-inset-bottom) !important;
+  overflow-y: auto !important;
+}
+
+/* Properly handle scrolling within bottom drawers */
+.capacitor-device .MuiDrawer-paperAnchorBottom .MuiBox-root {
+  padding-bottom: env(safe-area-inset-bottom) !important;
+  /*max-height: calc(85vh - env(safe-area-inset-bottom)) !important;*/
+  overflow-y: auto !important;
+}
+
+/* Right drawer styles */
+.capacitor-device .MuiDrawer-paperAnchorRight {
+  /* Set width for right drawer */
+  height: auto !important;
+  top: auto !important;
+  max-width: 85vw !important;
+  width: 320px !important;
+  padding-right: env(safe-area-inset-right) !important;
+  border-top-left-radius: 12px;
+  border-bottom-left-radius: 12px;
+}
+
+/* Fix MUI Dialogs on mobile to prevent full-screen height */
+.capacitor-device .MuiDialog-paper {
+  max-height: 90vh !important;
+  max-width: 90vw !important;
+  margin: 16px !important;
+  overflow-y: auto !important;
+  border-radius: 12px !important;
+  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Increase touch targets for better mobile usability */
+.capacitor-device button,
+.capacitor-device .navButton,
+.capacitor-device .captureButton {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 12px;
+}
+
+/* Enhanced tap feedback */
+.capacitor-device button:active,
+.capacitor-device .navButton:active,
+.capacitor-device .captureButton:active {
+  opacity: 0.7;
+  transform: scale(0.98);
+}
+
+/* Increase font size for better readability on mobile */
+.capacitor-device .textScroll {
+  font-size: 14pt;
+  line-height: 1.5;
+}
+
+/* Adjust navigation buttons for better positioning on mobile devices */
+.capacitor-device .navLeft,
+.capacitor-device .navRight {
+  width: 60px; /* Wider touch target */
+}
+
+/* Ensure toolbar is always visible on mobile */
+.capacitor-device .toolbar {
+  opacity: 1;
+  height: 60px;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Enhanced media loading states for mobile */
+.capacitor-device .image img,
+.capacitor-device .image video {
+  transition: opacity 0.5s ease-in-out;
+}
+
+/* Improved PhotoCapture component for mobile */
+.capacitor-device .photoCapture {
+  width: 100%;
+  height: 100%;
+  z-index: 1000;
+}
+
+.capacitor-device .photoCaptureInner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+/* Improved camera controls for mobile */
+.capacitor-device .photoCapture .captureButton.close {
+  top: max(env(safe-area-inset-top), 20px);
+  right: max(env(safe-area-inset-right), 20px);
+  background-color: rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+  padding: 12px;
+}
+
+.capacitor-device .photoCapture .captureButton.send {
+  bottom: max(env(safe-area-inset-bottom), 20px);
+  right: max(env(safe-area-inset-right), 20px);
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  padding: 12px;
+}
+
+.capacitor-device .photoCapture .captureButton.reverseCamera {
+  bottom: max(env(safe-area-inset-bottom) + 60px, 80px);
+  right: max(env(safe-area-inset-right), 20px);
+  background-color: rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+  padding: 12px;
+}
+
+/* Improved AudioCapture component for mobile */
+.capacitor-device .audioCapture {
+  width: 100%;
+  padding-bottom: max(env(safe-area-inset-bottom), 10px);
+  bottom: max(env(safe-area-inset-bottom), 10px);
+}
+
+/* Larger audio recorder for mobile */
+.capacitor-device .audio-recorder {
+  height: 60px;
+  border-radius: 30px;
+  padding: 0 20px;
+}
+
+/* Make the loading spinner more visible on mobile */
+.capacitor-device .loader {
+  width: 48px;
+  height: 48px;
+}
+
+.capacitor-device .spinnerFrame {
+  width: 48px;
+  height: 48px;
+  bottom: env(safe-area-inset-bottom);
+  right: env(safe-area-inset-right);
+}
+
+/* Orientation-specific adjustments */
+@media (orientation: portrait) {
+  .capacitor-device.portrait .image {
+    height: 60vh; /* Use more vertical space for images in portrait */
+    max-height: 60vh;
+  }
+  
+  .capacitor-device.portrait .textFrame {
+    height: 40vh;
+    max-height: 40vh;
+  }
+  
+  .capacitor-device.portrait .toolbar {
+    bottom: env(safe-area-inset-bottom);
+  }
+}
+
+@media (orientation: landscape) {
+  .capacitor-device.landscape .textFrame {
+    padding-right: max(env(safe-area-inset-right), 20px);
+  }
+  
+  .capacitor-device.landscape .navRight {
+    right: env(safe-area-inset-right);
+  }
+  
+  .capacitor-device.landscape .photoCapture .captureButton.send {
+    right: max(env(safe-area-inset-right) + 20px, 40px);
+  }
+}
+
+/* Share notification enhancements */
+.capacitor-device .share-notification {
+  top: max(env(safe-area-inset-top) + 20px, 40px);
+  padding: 16px 24px;
+  font-size: 16px;
+  border-radius: 8px;
+}

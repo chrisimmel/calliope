@@ -15,8 +15,8 @@ import Typography from '@mui/material/Typography';
 import IconClose from '../icons/IconClose';
 import IconHeartFull from '../icons/IconHeartFull';
 import IconChevronDown from '../icons/IconChevronDown';
-import IconChevronRight from '../icons/IconChevronRight';
 import { Bookmark, Story } from './storyTypes';
+import { resolveMediaUrl } from "../utils/media";
 
 type BookmarksListProps = {
     bookmarksListIsOpen: boolean,
@@ -168,7 +168,7 @@ export default function BookmarksList({
                         >
                             <Box sx={{ display: 'flex', alignItems: 'center' }}>
                                 <IconHeartFull style={{ color: '#ff4081', width: '20px', height: '20px' }} />
-                                <Typography variant="subtitle1" fontWeight="bold" style={{ marginLeft: '10px'}}>Bookmarks</Typography>
+                                <Typography variant="subtitle1" style={{ marginLeft: '10px'}}>Bookmarks</Typography>
                             </Box>
                         </ListItem>
 
@@ -267,7 +267,7 @@ export default function BookmarksList({
                                                                 alignItems: 'center'
                                                             }}>
                                                                 <img 
-                                                                    src={bookmark.frame_image_url} 
+                                                                    src={resolveMediaUrl(bookmark.frame_image_url)} 
                                                                     alt={`Frame ${bookmark.frame_number + 1}`}
                                                                     style={{ 
                                                                         width: '100%',

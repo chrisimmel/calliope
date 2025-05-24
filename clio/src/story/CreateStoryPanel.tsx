@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { useState } from 'react';
 
+import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import CloseIcon from '@mui/icons-material/Close';
 import Dialog from '@mui/material/Dialog';
@@ -17,6 +18,7 @@ import MenuItem from '@mui/material/MenuItem';
 import Radio from '@mui/material/Radio';
 import RadioGroup from '@mui/material/RadioGroup';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
+import Typography from '@mui/material/Typography';
 import { styled } from '@mui/material/styles';
 
 import { FrameSeedMediaType, Strategy } from './storyTypes';
@@ -49,11 +51,16 @@ export default function CreateStoryPanel({
     strategy,
     startNewStory,
 }: CreateStoryPanelProps) {
-  strategies ||= [];
-  strategies = strategies.filter((strat) => allowExperimental || !strat.is_experimental);
-  strategy ||= (strategies.find(strategy => strategy.is_default_for_client) || {slug: null}).slug;
-  strategy ||= null;
-  const [newStrategy, setNewStrategy] = useState(strategy);
+  // Ensure strategies is always a valid array
+  const validStrategies = Array.isArray(strategies) ? strategies : [];
+  
+  // Safe filtering of strategies
+  const filteredStrategies = validStrategies.filter((strat) => allowExperimental || !strat.is_experimental);
+  
+  // Safely determine initial strategy
+  const defaultStrategy = filteredStrategies.find(s => s.is_default_for_client);
+  const safeStrategy = strategy || (defaultStrategy ? defaultStrategy.slug : null) || null;
+  const [newStrategy, setNewStrategy] = useState(safeStrategy);
   const [media, setMedia] = useState<FrameSeedMediaType>("photo");
 
   const handleClose = () => {
@@ -83,17 +90,28 @@ export default function CreateStoryPanel({
              },
           }}
       >
-        <DialogTitle>Create a New Story</DialogTitle>
+        <Box sx={{ 
+              display: 'flex',
+              alignItems: 'center',
+              bgcolor: '#f5f5f5', 
+              borderRadius: '4px',
+              padding: '6px 12px',
+              marginBottom: '10px',
+          }}>
+            <Typography variant="subtitle1" style={{fontSize: "1.2rem"}}>Create a New Story</Typography>
+        </Box>
         <IconButton
-          aria-label="close"
-          onClick={handleClose}
-          sx={{
-            position: 'absolute',
-            right: 8,
-            top: 8,
-          }}
+            aria-label="close"
+            onClick={handleClose}
+            sx={{
+                position: 'absolute',
+                zIndex: 1000,
+                top: 16,
+                right: 12,
+                color: "#aaa",
+            }}
         >
-          <CloseIcon />
+            <CloseIcon />
         </IconButton>
         <DialogContent dividers>
           <FormControl fullWidth>
@@ -106,9 +124,9 @@ export default function CreateStoryPanel({
               onChange={handleChangeStrategy}
             >
               {
-                strategies.map(
+                filteredStrategies.map(
                   (strat, index) => {
-                      return <MenuItem value={strat.slug}>{strat.slug}</MenuItem>
+                      return <MenuItem key={strat.slug} value={strat.slug}>{strat.slug}</MenuItem>
                   }
                 )
               }
@@ -119,7 +137,7 @@ export default function CreateStoryPanel({
           </FormGroup>
           */}
         <FormControl>
-          <FormLabel id="demo-radio-buttons-group-label">Begin Story From</FormLabel>
+          <FormLabel id="demo-radio-buttons-group-label" style={{marginTop: "16px"}}>Begin Story From</FormLabel>
           <RadioGroup
             aria-labelledby="demo-radio-buttons-group-label"
             value={media}

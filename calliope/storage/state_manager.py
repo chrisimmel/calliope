@@ -34,8 +34,11 @@ async def get_sparrow_state(sparrow_id: str) -> SparrowState:
     """
     Retrieves the state of the given sparrow. If a stored state isn't found, creates a
     new one.
+
+    Uses a race-condition-safe pattern to handle concurrent requests.
     """
 
+    # First, try to fetch the existing sparrow state
     sparrow_state = (
         await SparrowState.objects(SparrowState.current_story)
         .where(SparrowState.sparrow_id == sparrow_id)
@@ -43,18 +46,45 @@ async def get_sparrow_state(sparrow_id: str) -> SparrowState:
         .run()
     )
 
-    if not sparrow_state:
-        print("Creating a new sparrow state.")
+    # If it exists, use it
+    if sparrow_state:
+        if sparrow_state.current_story and not sparrow_state.current_story.id:
+            sparrow_state.current_story = None
+        return sparrow_state
+
+    # If no state exists, create a new one using a race-condition-safe pattern
+    try:
+        # Prepare a new state object
+        print(f"Attempting to create a new sparrow state for {sparrow_id}.")
         sparrow_state = SparrowState(
             sparrow_id=sparrow_id,
             date_created=datetime.now(timezone.utc),
         )
+
+        # Try to save it
         await put_sparrow_state(sparrow_state)
+        print(f"Successfully created new sparrow state for {sparrow_id}.")
+        return sparrow_state
 
-    if sparrow_state.current_story and not sparrow_state.current_story.id:
-        sparrow_state.current_story = None
+    except Exception as e:
+        # If we get an error (likely due to a unique constraint violation from a concurrent request),
+        # try fetching again as it was likely created by another process
+        print(f"Exception creating sparrow state: {e}. Retrying fetch.")
+        sparrow_state = (
+            await SparrowState.objects(SparrowState.current_story)
+            .where(SparrowState.sparrow_id == sparrow_id)
+            .first()
+            .run()
+        )
 
-    return sparrow_state
+        if sparrow_state:
+            # We successfully retrieved the state that was created by another process
+            if sparrow_state.current_story and not sparrow_state.current_story.id:
+                sparrow_state.current_story = None
+            return sparrow_state
+
+        # If we still don't have a state, there's a more serious issue
+        raise Exception(f"Failed to create or retrieve sparrow state for {sparrow_id} after retry.")
 
 
 async def put_sparrow_state(state: SparrowState) -> None:

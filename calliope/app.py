@@ -4,6 +4,7 @@ from fastapi import Depends, FastAPI
 from fastapi.openapi.utils import get_openapi
 from fastapi.security.api_key import APIKey
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 from piccolo_admin.endpoints import create_admin, FormConfig, TableConfig
 from piccolo_api.media.local import LocalMediaStorage
 from piccolo.engine import engine_finder
@@ -172,6 +173,15 @@ def create_app() -> FastAPI:
 
 app = create_app()
 print("Created app.")
+
+# Add CORS middleware to allow requests from the mobile app
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production, specify your domains
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.on_event("startup")

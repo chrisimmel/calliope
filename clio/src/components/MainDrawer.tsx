@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
@@ -19,8 +19,14 @@ import IconPause from '../icons/IconPause';
 import IconPlay from '../icons/IconPlay';
 import IconRewind from '../icons/IconRewind';
 import IconHeartEmpty from '../icons/IconHeartEmpty';
+import IconServer from '../icons/IconServer';
 import StoryBrowser from '../story/StoryBrowser';
 import BookmarksList from '../story/BookmarksList';
+import ServerSelector from './ServerSelector';
+import { ServerConfig } from '../utils/serverConfig';
+import apiService from '../services/ApiService';
+import { isPlatform } from '../utils/platform';
+import { isDevelopment } from '../utils/environment';
 
 
 type MainDrawerProps = {
@@ -74,10 +80,19 @@ export default function MainDrawer({
     const [storyBrowserIsOpen, setStoryBrowserIsOpen] = useState<boolean>(false);
     const [aboutPanelIsOpen, setAboutPanelIsOpen] = useState<boolean>(false);
     const [creatStoryDialogIsOpen, setCreatStoryDialogIsOpen] = useState<boolean>(false);
-    strategies ||= [];
-    strategies = strategies.filter((strat) => allowExperimental || !strat.is_experimental);
-    strategy ||= (strategies.find(strategy => strategy.is_default_for_client) || {slug: null}).slug;
-    strategy ||= null;
+    // Ensure strategies is always an array even if undefined or null
+    const validStrategies = Array.isArray(strategies) ? strategies : [];
+    // Safe filtering that checks if strategies is an array first
+    const filteredStrategies = validStrategies.filter((strat) => allowExperimental || !strat.is_experimental);
+    // Safely find default strategy
+    const defaultStrategy = filteredStrategies.find(s => s.is_default_for_client);
+    const safeStrategy = strategy || (defaultStrategy ? defaultStrategy.slug : null);
+
+    // Handle server change
+    const handleServerChange = (serverConfig: ServerConfig) => {
+        // Update the API service with the new server config
+        apiService.updateServerConfig(serverConfig);
+    };
 
     const toggleDrawer =
       (open: boolean) =>
@@ -93,8 +108,35 @@ export default function MainDrawer({
         setDrawerIsOpen(open);
       };
 
-    //const drawerAnchor = document.documentElement.clientHeight > document.documentElement.clientWidth ? "bottom" : "right";
     const drawerAnchor = "right";
+    /*
+    // Set up state for dynamic drawer position
+    const [drawerAnchor, setDrawerAnchor] = useState<"right" | "bottom">("right");
+
+    // Determine the best anchor position based on screen orientation and platform
+    const updateDrawerAnchor = () => {
+        const isPortrait = window.innerHeight > window.innerWidth;
+        const isMobile = isPlatform.capacitor();
+        // Use bottom drawer in portrait orientation on mobile, right drawer otherwise
+        setDrawerAnchor((isMobile && isPortrait) ? "bottom" : "right");
+    };
+
+    // Initialize anchor position and update on resize
+    useEffect(() => {
+        // Set initial anchor position
+        updateDrawerAnchor();
+
+        // Update on window resize or orientation change
+        window.addEventListener('resize', updateDrawerAnchor);
+        window.addEventListener('orientationchange', updateDrawerAnchor);
+
+        return () => {
+            // Clean up event listeners
+            window.removeEventListener('resize', updateDrawerAnchor);
+            window.removeEventListener('orientationchange', updateDrawerAnchor);
+        };
+    }, []);
+    */
     return (
         <>
             <Drawer
@@ -205,7 +247,7 @@ export default function MainDrawer({
                         </ListItem>
                         <ListItem disablePadding>
                             <Divider/>
-                            <ListItemText primary="Other" />
+                            <ListItemText primary="Settings" />
                             <List>
                                 <ListItem disablePadding>
                                     <ListItemButton
@@ -221,6 +263,17 @@ export default function MainDrawer({
                                         <ListItemText primary="Fullscreen" />
                                     </ListItemButton>
                                 </ListItem>
+                                {/* Show server selector only in development environment */}
+                                {isDevelopment() && (
+                                    <ListItem sx={{ flexDirection: 'column', alignItems: 'flex-start' }}>
+                                        <ListItemText 
+                                            primary="Server" 
+                                            secondary="Select which server to connect to"
+                                            sx={{ mb: 1 }}
+                                        />
+                                        <ServerSelector onServerChange={handleServerChange} />
+                                    </ListItem>
+                                )}
                                 {/* Disable auto-play option.
                                  <ListItem disablePadding>
                                     <ListItemButton
@@ -273,8 +326,8 @@ export default function MainDrawer({
                 isOpen={creatStoryDialogIsOpen}
                 setIsOpen={setCreatStoryDialogIsOpen}
                 allowExperimental={allowExperimental}
-                strategies={strategies}
-                strategy={strategy}
+                strategies={validStrategies}
+                strategy={safeStrategy}
                 startNewStory={startNewStory}
             />
             <BookmarksList
