@@ -184,12 +184,14 @@ async def open_database_connection_pool() -> None:
             await engine.start_connection_pool()
     except Exception as e:
         print(f"Error connecting to database: {e}")
-        
+
+
 @app.on_event("startup")
 async def initialize_task_queue() -> None:
     try:
         # Initialize the task queue
         from calliope.tasks.factory import configure_task_queue
+
         configure_task_queue()
         print("Task queue initialized")
     except Exception as e:
@@ -225,27 +227,34 @@ from starlette.responses import RedirectResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 
 # Mount Thoth static files
-app.mount("/thoth/", StaticFiles(directory="static/thoth", html=True), name="thoth_static")
+app.mount(
+    "/thoth/", StaticFiles(directory="static/thoth", html=True), name="thoth_static"
+)
+
 
 # Root redirect
 @app.get("/clio", include_in_schema=False)
 async def clio_root_redirect():
     return RedirectResponse("/clio/")
 
+
 # Root Clio route
 @app.get("/clio/", include_in_schema=False)
 async def serve_clio_root():
     return FileResponse("static/clio/index.html")
+
 
 # Define Clio routes more explicitly
 @app.get("/clio/main.js", include_in_schema=False)
 async def serve_js_file():
     # Find the main.js file with any query parameters
     import glob
+
     js_files = glob.glob("static/clio/main.js*")
     if js_files:
         return FileResponse(js_files[0])
     return FileResponse("static/clio/main.js")
+
 
 # All other Clio routes (for client-side routing)
 @app.get("/clio/{path:path}", include_in_schema=False)

@@ -192,12 +192,12 @@ class Story(Table):
             include_videos: Whether to include video references.
         """
         qs = (
-            StoryFrame.objects(StoryFrame.image, StoryFrame.source_image, StoryFrame.video)
+            StoryFrame.objects(
+                StoryFrame.image, StoryFrame.source_image, StoryFrame.video
+            )
             if include_media
             else StoryFrame.objects()
-        ).where(
-            StoryFrame.story.id == self.id
-        )  # type: ignore[attr-defined]
+        ).where(StoryFrame.story.id == self.id)  # type: ignore[attr-defined]
 
         if not include_indexed_for_search:
             qs = qs.where(StoryFrame.indexed_for_search.eq(True))
@@ -336,7 +336,7 @@ class Story(Table):
     def generate_slug_base(title: str) -> str:
         """
         Generate a base URL-friendly slug from a title.
-        Converts to lowercase, removes non-alphanumeric characters, 
+        Converts to lowercase, removes non-alphanumeric characters,
         and replaces spaces with hyphens.
 
         This is a base slug that might need to be modified to ensure uniqueness.
@@ -345,17 +345,17 @@ class Story(Table):
         slug = title.lower()
 
         # Replace non-alphanumeric characters with spaces.
-        slug = re.sub(r'[^a-z0-9\s]', ' ', slug)
+        slug = re.sub(r"[^a-z0-9\s]", " ", slug)
 
         # Replace multiple spaces with a single space.
-        slug = re.sub(r'\s+', ' ', slug).strip()
+        slug = re.sub(r"\s+", " ", slug).strip()
 
         # Replace spaces with hyphens.
-        slug = slug.replace(' ', '-')
+        slug = slug.replace(" ", "-")
 
         # Limit to first few words (up to 40 chars).
-        slug_parts = slug.split('-')
-        slug = '-'.join(slug_parts[:5])[:40]
+        slug_parts = slug.split("-")
+        slug = "-".join(slug_parts[:5])[:40]
 
         # Ensure slug is not empty.
         if not slug:
@@ -402,7 +402,7 @@ class Story(Table):
         title: Optional[str] = None,
     ) -> "Story":
         """
-        Create a new story. Slug is initially NULL and will be set 
+        Create a new story. Slug is initially NULL and will be set
         when the story gets frames with text.
         """
         return Story(
