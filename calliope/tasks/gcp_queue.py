@@ -8,10 +8,10 @@ background processing in production environments.
 from typing import Dict, Any, Optional, List
 import logging
 import json
-import os
 from datetime import datetime, timedelta
-import base64
 import uuid
+
+from protobuf import timestamp_pb2
 
 from .queue import TaskQueue
 
@@ -94,12 +94,12 @@ class GCPTaskQueue(TaskQueue):
         # Add scheduling time if delay is specified
         if delay_seconds > 0:
             # The schedule time can't be in the past
-            schedule_time = datetime.utcnow() + timedelta(seconds=delay_seconds)
+            schedule_time = datetime.now(datetime.timezone.utc) + timedelta(
+                seconds=delay_seconds
+            )
             timestamp = schedule_time.timestamp()
 
             # Convert the timestamp to a Protobuf Timestamp
-            from google.protobuf import timestamp_pb2
-
             timestamp_proto = timestamp_pb2.Timestamp()
             timestamp_proto.FromSeconds(int(timestamp))
 

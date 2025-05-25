@@ -5,10 +5,9 @@ This module provides endpoints for creating and managing stories with
 asynchronous background processing for time-consuming operations.
 """
 
-from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, Query
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, HTTPException, Depends, Query
 from sse_starlette.sse import EventSourceResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 import asyncio
 import logging
@@ -16,17 +15,13 @@ import json
 from datetime import datetime
 
 from calliope.storage.state_manager import (
-    get_sparrow_state,
-    get_stories_by_client,
-    get_story,
-    put_sparrow_state,
     put_story,
 )
 from calliope.tables import Story
 from calliope.tasks.factory import configure_task_queue
 from calliope.tasks.queue import TaskQueue
 
-from .models import Snippet, CreateStoryRequest, AddSnippetsRequest
+from calliope.routes.v2.models import CreateStoryRequest, AddSnippetsRequest
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +56,25 @@ def get_task_queue() -> TaskQueue:
 
 
 # --- Endpoint Implementations ---
+
+"""
+create_story:
+   creates story
+   requests initial frame (with optional snippets)
+
+add_frame:
+    requests a frame (with optional snippets)
+
+illustrate_frame:
+    requests a new illustration for an existing frame
+
+clean_story:
+    cleans up a story
+    - remove empty frames
+    - add illustrations where missing
+    - fix common formatting issues
+
+"""
 
 
 @router.post("/", response_model=CreateStoryResponse)
