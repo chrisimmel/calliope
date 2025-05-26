@@ -36,6 +36,35 @@ type Strategy = {
     slug: string,
 }
 
+type StoryStatus = {
+    status: string;
+    title?: string;
+    created_at?: string;
+    client_id?: string;
+    strategy?: string;
+    frame_count?: number;
+    task_id?: string;
+    processing_started_at?: string;
+    progress?: string;
+    error?: string;
+    error_time?: string;
+    completed_at?: string;
+    updated_at?: string;
+}
+
+type StoryUpdate = {
+    id: string;
+    type: string;
+    timestamp: string;
+    task_id?: string;
+    snippet_count?: number;
+    image_url?: string;
+    prompt?: string;
+    frame_number?: number;
+    has_image?: boolean;
+    analysis_summary?: string;
+}
+
 type Story = {
     story_id: string
     title: string
@@ -51,6 +80,9 @@ type Story = {
 
     date_created: string
     date_updated: string
+
+    // Real-time status information
+    status?: StoryStatus;
 }
 
 type FrameSeedMediaType = "photo" | "audio" | "none";
@@ -74,4 +106,4 @@ type BookmarksResponse = {
     generation_date: string;
 }
 
-export {DEVICE_ID_DEFAULT, DEVICE_ID_NONE, Frame, Image, Video, Story, Strategy, MediaDevice, FrameSeedMediaType, Bookmark, BookmarksResponse};
+export {DEVICE_ID_DEFAULT, DEVICE_ID_NONE, Frame, Image, Video, Story, Strategy, MediaDevice, FrameSeedMediaType, Bookmark, BookmarksResponse, StoryStatus, StoryUpdate};
