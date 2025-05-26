@@ -3,16 +3,14 @@ V2 Story API with asynchronous processing.
 
 This module provides endpoints for creating and managing stories with
 asynchronous background processing for time-consuming operations.
+Uses Firebase Realtime Database for real-time updates.
 """
 
+from datetime import datetime
 from fastapi import APIRouter, HTTPException, Depends, Query
-from sse_starlette.sse import EventSourceResponse
+import logging
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
-import asyncio
-import logging
-import json
-from datetime import datetime
 
 from calliope.storage.state_manager import (
     put_story,
@@ -20,6 +18,7 @@ from calliope.storage.state_manager import (
 from calliope.tables import Story
 from calliope.tasks.factory import configure_task_queue
 from calliope.tasks.queue import TaskQueue
+from calliope.storage.firebase import get_firebase_manager, FirebaseManager
 
 from calliope.routes.v2.models import CreateStoryRequest, AddSnippetsRequest
 
@@ -36,15 +35,6 @@ class CreateStoryResponse(BaseModel):
     task_id: Optional[str] = None
 
 
-class StoryUpdateEvent(BaseModel):
-    """Event data for story updates"""
-
-    event_type: str
-    story_id: str
-    timestamp: str
-    data: Dict[str, Any]
-
-
 # --- Router Setup ---
 router = APIRouter(prefix="/v2/stories", tags=["stories_v2"])
 
@@ -53,6 +43,12 @@ router = APIRouter(prefix="/v2/stories", tags=["stories_v2"])
 def get_task_queue() -> TaskQueue:
     """Dependency for getting the configured task queue"""
     return configure_task_queue()
+
+
+# Configure Firebase dependency
+def get_firebase() -> FirebaseManager:
+    """Dependency for getting the Firebase manager"""
+    return get_firebase_manager()
 
 
 # --- Endpoint Implementations ---
@@ -79,7 +75,9 @@ clean_story:
 
 @router.post("/", response_model=CreateStoryResponse)
 async def create_story(
-    request_data: CreateStoryRequest, task_queue: TaskQueue = Depends(get_task_queue)
+    request_data: CreateStoryRequest,
+    task_queue: TaskQueue = Depends(get_task_queue),
+    firebase: FirebaseManager = Depends(get_firebase),
 ):
     """
     Create a new story and optionally start processing initial snippets
@@ -97,6 +95,19 @@ async def create_story(
         new_story_id = story.cuid
         await put_story(story)
         logger.info(f"Created new story with ID: {new_story_id}")
+
+        # Initialize Firebase entry for this story
+        await firebase.update_story_status(
+            new_story_id,
+            {
+                "status": "created",
+                "title": request_data.title,
+                "created_at": datetime.now().isoformat(),
+                "client_id": request_data.client_id,
+                "strategy": request_data.strategy,
+                "frame_count": 0,
+            },
+        )
 
         message_parts = [f"Story {new_story_id} created."]
         task_id = None
@@ -122,6 +133,16 @@ async def create_story(
                 task_type="create_story", payload=task_payload
             )
 
+            # Update Firebase with task info
+            await firebase.update_story_status(
+                new_story_id,
+                {
+                    "status": "processing",
+                    "task_id": task_id,
+                    "processing_started_at": datetime.now().isoformat(),
+                },
+            )
+
             logger.info(
                 f"Story {new_story_id}: Enqueued task {task_id} to process {len(request_data.snippets)} initial snippets"
             )
@@ -139,6 +160,16 @@ async def create_story(
             # Enqueue the task
             task_id = await task_queue.enqueue(
                 task_type="create_story", payload=task_payload
+            )
+
+            # Update Firebase with task info
+            await firebase.update_story_status(
+                new_story_id,
+                {
+                    "status": "processing",
+                    "task_id": task_id,
+                    "processing_started_at": datetime.now().isoformat(),
+                },
             )
 
             logger.info(
@@ -160,6 +191,7 @@ async def add_snippets(
     story_id: str,
     request_data: AddSnippetsRequest,
     task_queue: TaskQueue = Depends(get_task_queue),
+    firebase: FirebaseManager = Depends(get_firebase),
 ):
     """
     Add new snippets to an existing story
@@ -193,6 +225,27 @@ async def add_snippets(
             task_type="generate_story_snippet", payload=task_payload
         )
 
+        # Update Firebase with task info
+        await firebase.update_story_status(
+            story_id,
+            {
+                "status": "processing",
+                "task_id": task_id,
+                "processing_started_at": datetime.now().isoformat(),
+            },
+        )
+
+        # Add an update to the story updates list
+        await firebase.add_story_update(
+            story_id,
+            {
+                "type": "snippet_requested",
+                "timestamp": datetime.now().isoformat(),
+                "task_id": task_id,
+                "snippet_count": len(request_data.snippets),
+            },
+        )
+
         logger.info(
             f"Story {story_id}: Enqueued task {task_id} to process {len(request_data.snippets)} snippets"
         )
@@ -212,12 +265,14 @@ async def add_snippets(
 
 
 @router.get("/{story_id}/updates")
-async def get_story_updates(story_id: str):
+async def get_story_updates(
+    story_id: str, firebase: FirebaseManager = Depends(get_firebase)
+):
     """
-    Server-Sent Events endpoint for real-time story updates
+    Get updates for a story from Firebase
 
-    This endpoint establishes a persistent connection that sends
-    events to the client whenever the story is updated.
+    This endpoint returns the latest updates for a story,
+    which are stored in Firebase Realtime Database.
     """
     try:
         # Verify the story exists
@@ -227,68 +282,29 @@ async def get_story_updates(story_id: str):
                 status_code=404, detail=f"Story with id {story_id} not found"
             )
 
-        # Define event generator
-        async def event_generator():
-            # In a real implementation, this would use Redis PubSub, a database change stream,
-            # or another mechanism to receive real-time updates
-            try:
-                # For demo purposes, we'll just poll the database every 2 seconds
-                # This would be replaced with a proper subscription mechanism
-                last_updated = datetime.now()
+        # Get status and updates from Firebase
+        status = await firebase.get_story_status(story_id)
+        updates = await firebase.get_story_updates(story_id)
 
-                while True:
-                    # Fetch the latest story data
-                    current_story = (
-                        await Story.objects().where(Story.cuid == story_id).first()
-                    )
-
-                    # If the story was updated since we last checked
-                    if current_story and current_story.date_updated > last_updated:
-                        # Create an event
-                        event = StoryUpdateEvent(
-                            event_type="story_updated",
-                            story_id=story_id,
-                            timestamp=datetime.now().isoformat(),
-                            data={
-                                "title": current_story.title,
-                                "frame_count": current_story.story_frame_count,
-                                # Include other relevant data
-                            },
-                        )
-
-                        # Send the event
-                        yield {"event": "story_update", "data": event.json()}
-
-                        # Update our timestamp
-                        last_updated = current_story.date_updated
-
-                    # Wait before checking again
-                    await asyncio.sleep(2)
-            except asyncio.CancelledError:
-                logger.info(f"Client disconnected from story {story_id} updates stream")
-                raise
-            except Exception as e:
-                logger.exception(
-                    f"Error in story updates stream for {story_id}: {str(e)}"
-                )
-                yield {"event": "error", "data": json.dumps({"error": str(e)})}
-                raise
-
-        # Return event source response
-        return EventSourceResponse(event_generator())
+        # Return the updates
+        return {"story_id": story_id, "status": status or {}, "updates": updates or []}
 
     except HTTPException:
         # Re-raise HTTP exceptions
         raise
     except Exception as e:
-        logger.exception(f"Error setting up updates for story {story_id}: {str(e)}")
+        logger.exception(f"Error getting updates for story {story_id}: {str(e)}")
         raise HTTPException(
-            status_code=500, detail=f"Failed to set up story updates: {str(e)}"
+            status_code=500, detail=f"Failed to get story updates: {str(e)}"
         )
 
 
 @router.get("/{story_id}/")
-async def get_story_state(story_id: str, include_frames: bool = Query(True)):
+async def get_story_state(
+    story_id: str,
+    include_frames: bool = Query(True),
+    firebase: FirebaseManager = Depends(get_firebase),
+):
     """
     Get the current state of a story
 
@@ -306,6 +322,11 @@ async def get_story_state(story_id: str, include_frames: bool = Query(True)):
 
         # Convert to dictionary
         story_dict = story.to_dict()
+
+        # Get Firebase status
+        firebase_status = await firebase.get_story_status(story_id)
+        if firebase_status:
+            story_dict["firebase_status"] = firebase_status
 
         # If requested, include frames
         if include_frames:
@@ -391,13 +412,14 @@ async def get_story_frames(story_id: str) -> List[Dict[str, Any]]:
     Returns:
         List of frame dictionaries
     """
-    # This implementation would depend on your data model
-    # For example, if you have a StoryFrame table with a foreign key to Story
-    # The implementation might look like:
-    #
-    # from calliope.tables import StoryFrame
-    # frames = await StoryFrame.objects().where(StoryFrame.story_id == story_id).order_by(StoryFrame.frame_number)
-    # return [frame.to_dict() for frame in frames]
-    #
-    # For now, we'll return an empty list as a placeholder
-    return []
+    from calliope.tables import StoryFrame
+
+    # Query frames for this story
+    frames = (
+        await StoryFrame.objects()
+        .where(StoryFrame.story_id == story_id)
+        .order_by(StoryFrame.frame_number)
+    )
+
+    # Convert to dictionaries
+    return [frame.to_dict() for frame in frames]

@@ -5,26 +5,19 @@ This module contains handler functions for different task types
 that are executed asynchronously by the task queue.
 """
 
-import asyncio
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 import uuid
-import time
 import os
 from datetime import datetime
 
 from .local_queue import LocalTaskQueue
+from ..storage.state_manager import StateManager
+from ..strategies.registry import get_strategy
+from ..inference import text_to_image
+from ..storage.firebase import get_firebase_manager
 
 logger = logging.getLogger(__name__)
-
-# Import storage and inference services
-try:
-    from ..storage.state_manager import StateManager
-    from ..strategies.registry import get_strategy
-    from ..inference import text_to_text, text_to_image
-except ImportError as e:
-    logger.warning(f"Could not import some modules: {str(e)}")
-    logger.warning("Some task handlers may not function correctly")
 
 
 async def create_story_task(payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -47,6 +40,9 @@ async def create_story_task(payload: Dict[str, Any]) -> Dict[str, Any]:
 
     logger.info(f"Creating story with strategy {strategy_name} for client {client_id}")
 
+    # Get Firebase manager
+    firebase = get_firebase_manager()
+
     # Create a new story in the database
     state_manager = StateManager()
 
@@ -64,24 +60,74 @@ async def create_story_task(payload: Dict[str, Any]) -> Dict[str, Any]:
         story = await state_manager.get_story(story_id)
         if not story:
             logger.error(f"Story {story_id} not found")
+            # Update Firebase with error status
+            await firebase.update_story_status(
+                story_id,
+                {
+                    "status": "error",
+                    "error": f"Story {story_id} not found",
+                    "error_time": datetime.now().isoformat(),
+                },
+            )
             raise ValueError(f"Story {story_id} not found")
 
         logger.info(f"Continuing existing story with ID: {story_id}")
+
+    # Update Firebase with progress
+    await firebase.update_story_status(
+        story_id,
+        {
+            "status": "generating_content",
+            "progress": "Loading strategy",
+            "updated_at": datetime.now().isoformat(),
+        },
+    )
 
     # Load the appropriate strategy
     strategy = get_strategy(strategy_name)
     if not strategy:
         logger.error(f"Strategy {strategy_name} not found")
+        # Update Firebase with error status
+        await firebase.update_story_status(
+            story_id,
+            {
+                "status": "error",
+                "error": f"Strategy {strategy_name} not found",
+                "error_time": datetime.now().isoformat(),
+            },
+        )
         raise ValueError(f"Strategy {strategy_name} not found")
 
     # Generate initial content
     try:
         logger.info(f"Generating initial content for story {story_id}")
+
+        # Update Firebase with progress
+        await firebase.update_story_status(
+            story_id,
+            {
+                "status": "generating_content",
+                "progress": "Generating text content",
+                "updated_at": datetime.now().isoformat(),
+            },
+        )
+
         content = await strategy.generate_initial_frame(story)
 
         # Generate image if requested
         if payload.get("generate_image", True):
             logger.info(f"Generating image for story {story_id}")
+
+            # Update Firebase with progress
+            await firebase.update_story_status(
+                story_id,
+                {
+                    "status": "generating_content",
+                    "progress": "Generating image",
+                    "updated_at": datetime.now().isoformat(),
+                },
+            )
+
             image_prompt = content.get("image_prompt", content.get("text", ""))
 
             # Create a unique filename for the image
@@ -99,9 +145,41 @@ async def create_story_task(payload: Dict[str, Any]) -> Dict[str, Any]:
                     f"Added image to story {story_id}: {image_result.get('url')}"
                 )
 
+                # Add image info to Firebase
+                await firebase.add_story_update(
+                    story_id,
+                    {
+                        "type": "image_generated",
+                        "timestamp": datetime.now().isoformat(),
+                        "image_url": image_result.get("url"),
+                        "prompt": image_prompt[:100],  # Truncate long prompts
+                    },
+                )
+
         # Update the story with new content
         logger.info(f"Adding frame to story {story_id}")
         updated_story = await state_manager.add_frame(story_id, content)
+
+        # Update Firebase with completion status
+        await firebase.update_story_status(
+            story_id,
+            {
+                "status": "completed",
+                "frame_count": updated_story.get("frame_count", 1),
+                "completed_at": datetime.now().isoformat(),
+            },
+        )
+
+        # Add completion update
+        await firebase.add_story_update(
+            story_id,
+            {
+                "type": "frame_added",
+                "timestamp": datetime.now().isoformat(),
+                "frame_number": updated_story.get("frame_count", 1),
+                "has_image": "image" in content and "url" in content["image"],
+            },
+        )
 
         return {
             "story_id": story_id,
@@ -110,6 +188,15 @@ async def create_story_task(payload: Dict[str, Any]) -> Dict[str, Any]:
         }
     except Exception as e:
         logger.exception(f"Error generating content for story {story_id}: {str(e)}")
+        # Update Firebase with error status
+        await firebase.update_story_status(
+            story_id,
+            {
+                "status": "error",
+                "error": str(e),
+                "error_time": datetime.now().isoformat(),
+            },
+        )
         raise
 
 
@@ -131,11 +218,23 @@ async def generate_story_snippet(payload: Dict[str, Any]) -> Dict[str, Any]:
     if not story_id:
         raise ValueError("story_id is required")
 
+    # Get Firebase manager
+    firebase = get_firebase_manager()
+
     state_manager = StateManager()
     story = await state_manager.get_story(story_id)
 
     if not story:
         logger.error(f"Story {story_id} not found")
+        # Update Firebase with error status
+        await firebase.update_story_status(
+            story_id,
+            {
+                "status": "error",
+                "error": f"Story {story_id} not found",
+                "error_time": datetime.now().isoformat(),
+            },
+        )
         raise ValueError(f"Story {story_id} not found")
 
     strategy_name = payload.get("strategy_name", story.get("strategy"))
@@ -145,20 +244,60 @@ async def generate_story_snippet(payload: Dict[str, Any]) -> Dict[str, Any]:
         f"Generating snippet for story {story_id} with strategy {strategy_name}"
     )
 
+    # Update Firebase with progress
+    await firebase.update_story_status(
+        story_id,
+        {
+            "status": "generating_content",
+            "progress": "Loading strategy",
+            "updated_at": datetime.now().isoformat(),
+        },
+    )
+
     # Load the appropriate strategy
     strategy = get_strategy(strategy_name)
     if not strategy:
         logger.error(f"Strategy {strategy_name} not found")
+        # Update Firebase with error status
+        await firebase.update_story_status(
+            story_id,
+            {
+                "status": "error",
+                "error": f"Strategy {strategy_name} not found",
+                "error_time": datetime.now().isoformat(),
+            },
+        )
         raise ValueError(f"Strategy {strategy_name} not found")
 
     try:
         # Generate new content
+        # Update Firebase with progress
+        await firebase.update_story_status(
+            story_id,
+            {
+                "status": "generating_content",
+                "progress": "Generating text content",
+                "updated_at": datetime.now().isoformat(),
+            },
+        )
+
         context = {"user_input": user_input} if user_input else {}
         content = await strategy.generate_next_frame(story, context)
 
         # Generate image if requested
         if payload.get("generate_image", True):
             logger.info(f"Generating image for story snippet in {story_id}")
+
+            # Update Firebase with progress
+            await firebase.update_story_status(
+                story_id,
+                {
+                    "status": "generating_content",
+                    "progress": "Generating image",
+                    "updated_at": datetime.now().isoformat(),
+                },
+            )
+
             image_prompt = content.get("image_prompt", content.get("text", ""))
 
             # Create a unique filename for the image
@@ -176,9 +315,41 @@ async def generate_story_snippet(payload: Dict[str, Any]) -> Dict[str, Any]:
                     f"Added image to snippet in story {story_id}: {image_result.get('url')}"
                 )
 
+                # Add image info to Firebase
+                await firebase.add_story_update(
+                    story_id,
+                    {
+                        "type": "image_generated",
+                        "timestamp": datetime.now().isoformat(),
+                        "image_url": image_result.get("url"),
+                        "prompt": image_prompt[:100],  # Truncate long prompts
+                    },
+                )
+
         # Update the story with new content
         logger.info(f"Adding snippet to story {story_id}")
         updated_story = await state_manager.add_frame(story_id, content)
+
+        # Update Firebase with completion status
+        await firebase.update_story_status(
+            story_id,
+            {
+                "status": "completed",
+                "frame_count": updated_story.get("frame_count", 0),
+                "completed_at": datetime.now().isoformat(),
+            },
+        )
+
+        # Add completion update
+        await firebase.add_story_update(
+            story_id,
+            {
+                "type": "frame_added",
+                "timestamp": datetime.now().isoformat(),
+                "frame_number": updated_story.get("frame_count", 0),
+                "has_image": "image" in content and "url" in content["image"],
+            },
+        )
 
         return {
             "story_id": story_id,
@@ -187,6 +358,15 @@ async def generate_story_snippet(payload: Dict[str, Any]) -> Dict[str, Any]:
         }
     except Exception as e:
         logger.exception(f"Error generating snippet for story {story_id}: {str(e)}")
+        # Update Firebase with error status
+        await firebase.update_story_status(
+            story_id,
+            {
+                "status": "error",
+                "error": str(e),
+                "error_time": datetime.now().isoformat(),
+            },
+        )
         raise
 
 
@@ -208,6 +388,20 @@ async def analyze_image(payload: Dict[str, Any]) -> Dict[str, Any]:
 
     story_id = payload.get("story_id")
 
+    # Get Firebase manager if we have a story ID
+    firebase = None
+    if story_id:
+        firebase = get_firebase_manager()
+        # Update Firebase with progress
+        await firebase.update_story_status(
+            story_id,
+            {
+                "status": "analyzing_image",
+                "image_url": image_url,
+                "started_at": datetime.now().isoformat(),
+            },
+        )
+
     logger.info(f"Analyzing image {image_url} for story {story_id}")
 
     try:
@@ -228,9 +422,45 @@ async def analyze_image(payload: Dict[str, Any]) -> Dict[str, Any]:
                     story_id, {"image_analysis": analysis}
                 )
 
+                # Update Firebase with result
+                if firebase:
+                    # Update status
+                    await firebase.update_story_status(
+                        story_id,
+                        {
+                            "status": "completed",
+                            "completed_at": datetime.now().isoformat(),
+                        },
+                    )
+
+                    # Add analysis update
+                    await firebase.add_story_update(
+                        story_id,
+                        {
+                            "type": "image_analyzed",
+                            "timestamp": datetime.now().isoformat(),
+                            "image_url": image_url,
+                            "analysis_summary": analysis.get("description", "")[
+                                :200
+                            ],  # Truncate long descriptions
+                        },
+                    )
+
         return {"image_url": image_url, "analysis": analysis, "story_id": story_id}
     except Exception as e:
         logger.exception(f"Error analyzing image {image_url}: {str(e)}")
+
+        # Update Firebase with error if we have a story ID
+        if story_id and firebase:
+            await firebase.update_story_status(
+                story_id,
+                {
+                    "status": "error",
+                    "error": f"Error analyzing image: {str(e)}",
+                    "error_time": datetime.now().isoformat(),
+                },
+            )
+
         raise
 
 

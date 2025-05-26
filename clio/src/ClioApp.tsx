@@ -6,13 +6,15 @@ import { useParams, useNavigate } from "react-router-dom";
 import './ClioApp.css';
 import AudioCapture from "./audio/AudioCapture";
 import Carousel, { CarouselItem } from "./components/Carousel";
-import { Bookmark, BookmarksResponse, Frame, FrameSeedMediaType, Story, Strategy } from './story/storyTypes'; 
+import { Bookmark, BookmarksResponse, Frame, FrameSeedMediaType, Story, Strategy } from './story/storyTypes';
 import IconChevronLeft from "./icons/IconChevronLeft";
 import IconChevronRight from "./icons/IconChevronRight";
 import Loader from "./components/Loader";
 import PhotoCapture from "./photo/PhotoCapture";
 import Toolbar from "./components/Toolbar";
 import VideoLoop from "./components/VideoLoop";
+import StoryStatusMonitor from "./story/StoryStatusMonitor";
+import { initializeFirebaseApp } from "./services/firebase";
 
 const FRAMES_TIMEOUT = 180_000;
 const DEFAULT_TIMEOUT = 30_000;
@@ -122,8 +124,8 @@ const renderFrame = (frame: Frame, index: number, currentIndex: number) => {
                             />
                         ) : (
                             // Display image with preloaded dimensions
-                            image_url && <img 
-                                src={image_url} 
+                            image_url && <img
+                                src={image_url}
                                 alt={`Frame ${index + 1}`}
                                 style={mediaStyles}
                                 loading={isPriority ? "eager" : "lazy"}
@@ -169,7 +171,6 @@ const resetStory = async () => {
     );
 };
 
-
 export default function ClioApp() {
     type ClioState = {
         handleFullScreen: () => void,
@@ -210,6 +211,12 @@ export default function ClioApp() {
     // True when we should skip transition animations (initial load or direct jumps)
     const [skipAnimation, setSkipAnimation] = useState<boolean>(true);
 
+    useEffect(() => {
+        initializeFirebaseApp().catch(err => {
+            console.error("Failed to initialize Firebase:", err);
+        });
+    }, []);
+
     function handleResize() {
         const root: HTMLElement | null = document.querySelector(':root');
         if (root) {
@@ -223,10 +230,10 @@ export default function ClioApp() {
         // Navigate to the proper URL for the current story and frame
         const frameForUrl = frameNumber + 1; // Convert to 1-based for URL
         const baseUrl = `/clio/story/${storySlug}/${frameForUrl}`;
-        
+
         // Preserve query parameters
         const urlWithParams = preserveQueryParams(baseUrl);
-        
+
         navigate(urlWithParams, { replace: true });
     };
 
@@ -403,12 +410,12 @@ export default function ClioApp() {
                 newStories = [...newStories, newStory];
                 updatedStory = newStory;
             }
-            
+
             // Update the current story state
             if (updatedStory) {
                 setCurrentStory(updatedStory);
             }
-            
+
             setStories(newStories);
         },
         [stories]
@@ -502,8 +509,8 @@ export default function ClioApp() {
         },
         [
             thisBrowserID,
-            frames, 
-            setCaptureActive, 
+            frames,
+            setCaptureActive,
             isPlaying,
             strategy,
             storyId,
@@ -652,7 +659,7 @@ export default function ClioApp() {
                         date_created: response.data.date_created || null,
                         date_updated: response.data.date_updated || null,
                     };
-                    
+
                     // Set the current story
                     setCurrentStory(apiStory);
                 }
@@ -698,7 +705,7 @@ export default function ClioApp() {
             // Check if we have URL parameters for story slug and frame
             if (storySlug) {
                 const frameNumInt = frameNum ? parseInt(frameNum, 10) : undefined;
-                
+
                 // Only load from the server if it's a different story
                 // or if we're on the initial load
                 if (storySlug !== lastLoadedStorySlugRef.current) {
@@ -780,7 +787,7 @@ export default function ClioApp() {
         },
         []
     );
- 
+
     const selectFrameNumber = useCallback(
         async (newSelectedFrameNumber: number) => {
             const frameCount = frames.length;
@@ -796,7 +803,7 @@ export default function ClioApp() {
                 // So we don't modify skipAnimation here
 
                 console.log(`New index is ${newSelectedFrameNumber}, total frames: ${frameCount}, skipAnimation=${skipAnimation}`);
-                
+
                 setSelectedFrameNumber(newSelectedFrameNumber);
 
                 // Update URL to reflect the current story and frame (1-based for URL)
@@ -873,7 +880,7 @@ export default function ClioApp() {
     const aheadOne = useCallback(
         () => {
             // Always animate for normal navigation within a story
-            setSkipAnimation(false); 
+            setSkipAnimation(false);
             selectFrameNumber(selectedFrameNumber + 1);
         },
         [selectedFrameNumber, selectFrameNumber, setSkipAnimation]
@@ -951,7 +958,7 @@ export default function ClioApp() {
                 console.log("Scheduling frames request.");
                 getFramesInterval = setInterval(() => stateRef.current.getFrames(null, null), 10);
             }
-            
+
             // After a short delay, enable animations for subsequent navigation within this story
             setTimeout(() => {
                 setSkipAnimation(false);
@@ -1008,7 +1015,7 @@ export default function ClioApp() {
     const updateStory = useCallback(
         (story_id: string | null, frame_number: number = 0) => {
             console.log(`Setting story to ${story_id}, frame ${frame_number}.`);
-            
+
             // Disable animations when changing stories
             setSkipAnimation(true);
             setStoryId(story_id);
@@ -1016,7 +1023,7 @@ export default function ClioApp() {
             // Set the strategy to match the selected story.
             let storySlug = null;
             let selectedStory = null;
-            
+
             for (let i = 0; i < stories.length; i++) {
                 const story = stories[i];
                 if (story.story_id == story_id) {
@@ -1028,13 +1035,13 @@ export default function ClioApp() {
                     break;
                 }
             }
-            
+
             // If we found the story in the stories array, update currentStory
             if (selectedStory) {
                 // Mark this story as current, make sure others are not
                 // Ensure date_updated is preserved
                 const updatedStory = {
-                    ...selectedStory, 
+                    ...selectedStory,
                     is_current: true,
                     date_updated: selectedStory.date_updated || '',
                     date_created: selectedStory.date_created || ''
@@ -1050,7 +1057,7 @@ export default function ClioApp() {
 
             // Get the selected story and jump to the specified frame.
             getStory(story_id, frame_number);
-            
+
             // After the story is loaded, getStory will re-enable animations
         },
         [stories, strategies, getStory, findNearestStrategy, navigate, setSkipAnimation]
@@ -1072,7 +1079,7 @@ export default function ClioApp() {
                 const params: {client_id: string, story_id?: string} = {
                     client_id: thisBrowserID,
                 };
-                
+
                 if (specific_story_id) {
                     params.story_id = specific_story_id;
                 }
@@ -1179,16 +1186,16 @@ export default function ClioApp() {
         },
         [storyId, selectedFrameNumber, frames, bookmarks]
     );
-    
+
     // Function to share the current URL
     const shareCurrentUrl = useCallback(() => {
         try {
             // Copy the current URL to clipboard
             navigator.clipboard.writeText(window.location.href);
-            
+
             // Show notification
             setShowShareNotification(true);
-            
+
             // Hide notification after 2 seconds
             setTimeout(() => {
                 setShowShareNotification(false);
@@ -1215,8 +1222,26 @@ export default function ClioApp() {
     */
     // Get the current frame index for the carousel
     const currentCarouselIndex = Math.max(0, Math.min(selectedFrameNumber, frames.length - 1));
-    
+
+    // Handler for when a new frame is added via Firebase
+    const handleNewFrameFromFirebase = useCallback((frameNumber: number) => {
+        console.log(`Firebase reported new frame ${frameNumber} - fetching the latest story data`);
+
+        // Fetch the latest story data, including the new frame
+        getStory(storyId, null);
+
+        // Optional: Navigate to the new frame
+        // This might be redundant as getStory might update the frame selection
+        // selectFrameNumber(frameNumber);
+    }, [storyId, getStory]);
+
     return <>
+        {/* Silent monitor for Firebase updates */}
+        {storyId && <StoryStatusMonitor
+            storyId={storyId}
+            onNewFrame={handleNewFrameFromFirebase}
+        />}
+
         {
             (selectedFrameNumber > 0) &&
             <div className="navLeft">
@@ -1251,7 +1276,7 @@ export default function ClioApp() {
             skipAnimation={skipAnimation}
         >
             {/* Render all frames but only load media for visible ones */}
-            {frames.map((frame, index) => 
+            {frames.map((frame, index) =>
                 renderFrame(frame, index, currentCarouselIndex)
             )}
         </Carousel>

@@ -1,6 +1,8 @@
+import os
 from typing import Sequence, Union
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, HTTPException
+from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
 from fastapi.security.api_key import APIKey
 from fastapi.staticfiles import StaticFiles
@@ -8,8 +10,7 @@ from piccolo_admin.endpoints import create_admin, FormConfig, TableConfig
 from piccolo_api.media.local import LocalMediaStorage
 from piccolo.engine import engine_finder
 from piccolo.table import Table
-from starlette.responses import JSONResponse
-
+from starlette.responses import FileResponse, JSONResponse, RedirectResponse
 
 from calliope.forms.add_story_thumbnails import (
     AddStoryThumbnailsFormModel,
@@ -24,10 +25,7 @@ from calliope.routes.v1 import config as v1_config_routes
 from calliope.routes.v1 import test as v1_test_routes
 from calliope.routes.v1 import bookmark as v1_bookmark_routes
 from calliope.routes.v2 import router as v2_router
-from calliope.utils.authentication import get_api_key
-from calliope.utils.google import is_google_cloud_run_environment
 from calliope.settings import settings
-
 from calliope.tables import (
     BookmarkList,
     ClientTypeConfig,
@@ -44,6 +42,8 @@ from calliope.tables import (
     StrategyConfig,
     Video,
 )
+from calliope.utils.authentication import get_api_key
+from calliope.utils.google import is_google_cloud_run_environment
 
 
 def register_views(app: FastAPI) -> None:
@@ -198,6 +198,19 @@ async def initialize_task_queue() -> None:
         print(f"Error initializing task queue: {e}")
 
 
+@app.on_event("startup")
+async def initialize_firebase() -> None:
+    try:
+        # Initialize Firebase connection
+        from calliope.storage.firebase import get_firebase_manager
+
+        # Just calling this will initialize the connection
+        get_firebase_manager()
+        print("Firebase initialized")
+    except Exception as e:
+        print(f"Error initializing Firebase: {e}")
+
+
 @app.on_event("shutdown")
 async def close_database_connection_pool() -> None:
     try:
@@ -218,18 +231,30 @@ async def get_open_api_endpoint(api_key: APIKey = Depends(get_api_key)) -> JSONR
 
 # Mount the static HTML front ends.
 # Add routes to support client-side routing in Clio
-from starlette.responses import FileResponse
-from starlette.staticfiles import StaticFiles
-import os
-
-# Revert to a simpler and more direct approach
-from starlette.responses import RedirectResponse, FileResponse
-from fastapi.staticfiles import StaticFiles
 
 # Mount Thoth static files
 app.mount(
     "/thoth/", StaticFiles(directory="static/thoth", html=True), name="thoth_static"
 )
+
+
+# Add a route to clean up Firebase data (useful for development)
+@app.delete("/v2/firebase/cleanup/{story_id}", include_in_schema=True)
+async def cleanup_firebase_data(story_id: str):
+    """
+    Delete all data for a story from Firebase.
+    This is useful for development and testing.
+    """
+    try:
+        from calliope.storage.firebase import get_firebase_manager
+
+        firebase = get_firebase_manager()
+        await firebase.delete_story_data(story_id)
+        return {"message": f"Firebase data for story {story_id} deleted successfully"}
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error cleaning up Firebase data: {str(e)}"
+        )
 
 
 # Root redirect

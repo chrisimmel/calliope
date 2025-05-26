@@ -31,12 +31,16 @@ email-validator==2.0.0.post2
 executing==1.2.0
 fastapi==0.104.1
 filelock==3.12.2
+firebase-admin==6.8.0
 frozenlist==1.4.0
 fsspec==2023.6.0
 futures==3.0.5
 google-api-core==2.11.1
+google-api-python-client==2.170.0
 google-auth==2.21.0
+google-auth-httplib2==0.2.0
 google-cloud-core==2.3.2
+google-cloud-firestore==2.20.2
 google-cloud-storage==2.10.0
 google-cloud-translate==3.11.1
 google-crc32c==1.5.0
@@ -50,6 +54,7 @@ h11==0.14.0
 h2==4.1.0
 hpack==4.0.0
 httpcore==0.17.2
+httplib2==0.22.0
 httptools==0.5.0
 httpx==0.24.1
 huggingface-hub==0.19.4
@@ -125,6 +130,7 @@ pydantic-settings==2.5.2
 pydumpck==1.5.113
 pygments==2.16.1
 pyjwt==2.7.0
+pyparsing==3.2.3
 python-dateutil==2.8.2
 python-dotenv==1.0.0
 python-multipart==0.0.6
@@ -170,7 +176,8 @@ types-urllib3==1.26.25.14
 typing-extensions==4.12.2
 typing-inspect==0.9.0
 tzlocal==5.0.1
-urllib3==1.26.16
+uritemplate==4.1.1
+urllib3==1.26.20
 uvicorn==0.22.0
 uvloop==0.17.0
 virtualenv==20.24.7
