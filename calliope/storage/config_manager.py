@@ -52,7 +52,8 @@ async def get_client_type_config(client_type_id: str) -> Optional[ClientTypeConf
 
 
 async def get_sparrow_story_parameters_and_keys(
-    request_params: FramesRequestParamsModel, sparrow_state: SparrowState
+    request_params: FramesRequestParamsModel,
+    sparrow_state: Optional[SparrowState] = None,
 ) -> Tuple[FramesRequestParamsModel, KeysModel, StrategyConfig]:
     """
     Gets the story parameters and keys given a set of request

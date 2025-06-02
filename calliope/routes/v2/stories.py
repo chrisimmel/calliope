@@ -7,12 +7,16 @@ Uses Firebase Realtime Database for real-time updates.
 """
 
 from datetime import datetime
+from urllib import request
 from fastapi import APIRouter, HTTPException, Depends, Query
 import logging
 from pydantic import BaseModel
-from typing import List, Dict, Any, Optional
+from typing import Any, Optional
 
 from calliope.storage.state_manager import (
+    get_sparrow_state,
+    put_sparrow_state,
+    get_story,
     put_story,
 )
 from calliope.tables import Story
@@ -20,7 +24,7 @@ from calliope.tasks.factory import configure_task_queue
 from calliope.tasks.queue import TaskQueue
 from calliope.storage.firebase import get_firebase_manager, FirebaseManager
 
-from calliope.routes.v2.models import CreateStoryRequest, AddSnippetsRequest
+from calliope.routes.v2.models import AddFrameRequest, CreateStoryRequest, Snippet
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +33,14 @@ logger = logging.getLogger(__name__)
 
 class CreateStoryResponse(BaseModel):
     """Response for story creation"""
+
+    story_id: str
+    message: str
+    task_id: Optional[str] = None
+
+
+class AddFrameResponse(BaseModel):
+    """Response for adding a new frame to a story"""
 
     story_id: str
     message: str
@@ -54,16 +66,35 @@ def get_firebase() -> FirebaseManager:
 # --- Endpoint Implementations ---
 
 """
+GET /stories/
+list_stories:
+   lists stories with pagination
+
+POST /stories/
 create_story:
-   creates story
+   creates empty story
    requests initial frame (with optional snippets)
+   returns story ID and task ID for processing
 
-add_frame:
+GET /stories/{story_id}/
+get_story:
+   returns story attributes, optionally including frames
+
+POST /stories/{story_id}/frames/
+create_frame:
     requests a frame (with optional snippets)
+    returns task ID for processing
 
+GET /stories/{story_id}/frames/{frame_index}/
+get_frame:
+   returns frame attributes
+
+POST /stories/{story_id}/frames/{frame_index}/illustrate/
 illustrate_frame:
     requests a new illustration for an existing frame
+    returns task ID for processing
 
+POST /stories/{story_id}/fix/
 clean_story:
     cleans up a story
     - remove empty frames
@@ -78,7 +109,7 @@ async def create_story(
     request_data: CreateStoryRequest,
     task_queue: TaskQueue = Depends(get_task_queue),
     firebase: FirebaseManager = Depends(get_firebase),
-):
+) -> CreateStoryResponse:
     """
     Create a new story and optionally start processing initial snippets
 
@@ -86,99 +117,51 @@ async def create_story(
     processes any provided snippets to generate initial story content.
     """
     try:
-        # Create the story record in the database
+        client_id = request_data.client_id
+        sparrow_state = await get_sparrow_state(client_id)
+
         story = Story.create_new(
             strategy_name=request_data.strategy,
-            created_for_sparrow_id=request_data.client_id,
+            created_for_sparrow_id=client_id,
             title=request_data.title,
         )
-        new_story_id = story.cuid
         await put_story(story)
-        logger.info(f"Created new story with ID: {new_story_id}")
+        print(f"Created new story: {story.to_dict()}")
+
+        # We're starting a new story.
+        sparrow_state.current_story = story.id
+        await put_sparrow_state(sparrow_state)
+        await put_story(story)
+
+        new_story_cuid = story.cuid
 
         # Initialize Firebase entry for this story
         await firebase.update_story_status(
-            new_story_id,
+            new_story_cuid,
             {
                 "status": "created",
                 "title": request_data.title,
-                "created_at": datetime.now().isoformat(),
-                "client_id": request_data.client_id,
+                "created_at": story.date_created.isoformat(),
+                "client_id": client_id,
                 "strategy": request_data.strategy,
                 "frame_count": 0,
             },
         )
 
-        message_parts = [f"Story {new_story_id} created."]
+        message_parts = [f"Story {new_story_cuid} created."]
         task_id = None
 
-        # If snippets were provided, enqueue a task to process them
-        if request_data.snippets:
-            # Convert snippets to the format expected by task handlers
-            snippet_data = []
-            for snippet in request_data.snippets:
-                snippet_data.append(snippet.model_dump(exclude_unset=True))
-
-            # Create a task payload
-            task_payload = {
-                "story_id": new_story_id,
-                "client_id": request_data.client_id,
-                "strategy_name": request_data.strategy,
-                "snippets": snippet_data,
-                "generate_image": True,  # Default to generating images
-            }
-
-            # Enqueue the task
-            task_id = await task_queue.enqueue(
-                task_type="create_story", payload=task_payload
-            )
-
-            # Update Firebase with task info
-            await firebase.update_story_status(
-                new_story_id,
-                {
-                    "status": "processing",
-                    "task_id": task_id,
-                    "processing_started_at": datetime.now().isoformat(),
-                },
-            )
-
-            logger.info(
-                f"Story {new_story_id}: Enqueued task {task_id} to process {len(request_data.snippets)} initial snippets"
-            )
-            message_parts.append("Initial snippets will be processed asynchronously.")
-        else:
-            # If no snippets, we might still want to generate initial content
-            # based on the strategy
-            task_payload = {
-                "story_id": new_story_id,
-                "client_id": request_data.client_id,
-                "strategy_name": request_data.strategy,
-                "generate_image": True,
-            }
-
-            # Enqueue the task
-            task_id = await task_queue.enqueue(
-                task_type="create_story", payload=task_payload
-            )
-
-            # Update Firebase with task info
-            await firebase.update_story_status(
-                new_story_id,
-                {
-                    "status": "processing",
-                    "task_id": task_id,
-                    "processing_started_at": datetime.now().isoformat(),
-                },
-            )
-
-            logger.info(
-                f"Story {new_story_id}: Enqueued task {task_id} to generate initial content"
-            )
-            message_parts.append("Initial content will be generated asynchronously.")
-
+        task_id = await _request_new_frame(
+            story=story,
+            snippets=request_data.snippets,
+            task_queue=task_queue,
+            firebase=firebase,
+            extra_parameters=request_data.extra_parameters,
+        )
         return CreateStoryResponse(
-            story_id=new_story_id, message=" ".join(message_parts), task_id=task_id
+            story_id=new_story_cuid,
+            message=" ".join(message_parts),
+            task_id=task_id,
         )
 
     except Exception as e:
@@ -186,75 +169,31 @@ async def create_story(
         raise HTTPException(status_code=500, detail=f"Failed to create story: {str(e)}")
 
 
-@router.post("/{story_id}/snippets/")
-async def add_snippets(
+@router.post("/{story_id}/frames/", response_model=AddFrameResponse)
+async def request_new_frame(
     story_id: str,
-    request_data: AddSnippetsRequest,
+    request_data: AddFrameRequest,
     task_queue: TaskQueue = Depends(get_task_queue),
     firebase: FirebaseManager = Depends(get_firebase),
-):
+) -> AddFrameResponse:
     """
-    Add new snippets to an existing story
-
-    This endpoint validates that the story exists and then asynchronously
-    processes the provided snippets to generate new story content.
+    Requests a new frame be added to an existing story, with optional input snippets.
     """
     try:
-        # Verify the story exists
-        story = await Story.objects().where(Story.cuid == story_id).first()
-        if not story:
-            raise HTTPException(
-                status_code=404, detail=f"Story with id {story_id} not found"
-            )
+        story = get_story(story_id)
 
-        # Convert snippets to the format expected by task handlers
-        snippet_data = []
-        for snippet in request_data.snippets:
-            snippet_data.append(snippet.model_dump(exclude_unset=True))
-
-        # Create a task payload
-        task_payload = {
-            "story_id": story_id,
-            "strategy_name": story.strategy_name,
-            "snippets": snippet_data,
-            "generate_image": True,  # Default to generating images
-        }
-
-        # Enqueue the task
-        task_id = await task_queue.enqueue(
-            task_type="generate_story_snippet", payload=task_payload
+        task_id = await _request_new_frame(
+            story=story,
+            snippets=request_data.snippets,
+            task_queue=task_queue,
+            firebase=firebase,
         )
 
-        # Update Firebase with task info
-        await firebase.update_story_status(
-            story_id,
-            {
-                "status": "processing",
-                "task_id": task_id,
-                "processing_started_at": datetime.now().isoformat(),
-            },
+        return AddFrameResponse(
+            story_id=story_id,
+            message="Frame request received and processing.",
+            task_id=task_id,
         )
-
-        # Add an update to the story updates list
-        await firebase.add_story_update(
-            story_id,
-            {
-                "type": "snippet_requested",
-                "timestamp": datetime.now().isoformat(),
-                "task_id": task_id,
-                "snippet_count": len(request_data.snippets),
-            },
-        )
-
-        logger.info(
-            f"Story {story_id}: Enqueued task {task_id} to process {len(request_data.snippets)} snippets"
-        )
-
-        return {
-            "message": "Snippets received and queued for processing.",
-            "story_id": story_id,
-            "task_id": task_id,
-        }
 
     except HTTPException:
         # Re-raise HTTP exceptions
@@ -264,39 +203,62 @@ async def add_snippets(
         raise HTTPException(status_code=500, detail=f"Failed to add snippets: {str(e)}")
 
 
-@router.get("/{story_id}/updates")
-async def get_story_updates(
-    story_id: str, firebase: FirebaseManager = Depends(get_firebase)
+async def _request_new_frame(
+    client_id: str,
+    story: Story,
+    snippets: list[Snippet],
+    task_queue: TaskQueue,
+    firebase: FirebaseManager,
+    extra_parameters: Optional[dict[str, Any]] = None,
 ):
     """
-    Get updates for a story from Firebase
+    Internal function to request a new frame for the current story.
 
-    This endpoint returns the latest updates for a story,
-    which are stored in Firebase Realtime Database.
+    This function is called when a new frame is requested, either during
+    story creation or when adding snippets to an existing story.
     """
-    try:
-        # Verify the story exists
-        story = await Story.objects().where(Story.cuid == story_id).first()
-        if not story:
-            raise HTTPException(
-                status_code=404, detail=f"Story with id {story_id} not found"
-            )
+    # Enqueue a task to create and add a frame.
+    snippet_data = []
+    if snippets:
+        for snippet in snippets:
+            snippet_data.append(snippet.model_dump(exclude_unset=True))
 
-        # Get status and updates from Firebase
-        status = await firebase.get_story_status(story_id)
-        updates = await firebase.get_story_updates(story_id)
+    forwarded_header = request.headers.get("X-Forwarded-For")
+    if forwarded_header:
+        # Handle case where request comes through a load balancer, altering
+        # request.client.host.
+        source_ip_address: Optional[str] = request.headers.getlist("X-Forwarded-For")[0]
+    else:
+        # Handle the normal case of a direct request.
+        source_ip_address = request.client.host if request.client else None
 
-        # Return the updates
-        return {"story_id": story_id, "status": status or {}, "updates": updates or []}
+    # Create a task payload
+    task_payload = {
+        "story_id": story.cuid,
+        "client_id": client_id,
+        "snippets": snippet_data,
+        "source_ip_address": source_ip_address,
+        "extra_parameters": extra_parameters or {},
+    }
 
-    except HTTPException:
-        # Re-raise HTTP exceptions
-        raise
-    except Exception as e:
-        logger.exception(f"Error getting updates for story {story_id}: {str(e)}")
-        raise HTTPException(
-            status_code=500, detail=f"Failed to get story updates: {str(e)}"
-        )
+    # Enqueue the task
+    task_id = await task_queue.enqueue(task_type="add_frame", payload=task_payload)
+
+    # Update Firebase with task info
+    await firebase.update_story_status(
+        story.cuid,
+        {
+            "status": "processing",
+            "task_id": task_id,
+            "processing_started_at": datetime.now().isoformat(),
+        },
+    )
+
+    logger.info(
+        f"Story {story.cuid}: Enqueued task {task_id} to add frame with {len(snippets)} snippets"
+    )
+
+    return task_id
 
 
 @router.get("/{story_id}/")
@@ -304,7 +266,7 @@ async def get_story_state(
     story_id: str,
     include_frames: bool = Query(True),
     firebase: FirebaseManager = Depends(get_firebase),
-):
+) -> dict[str, Any]:
     """
     Get the current state of a story
 
@@ -314,25 +276,26 @@ async def get_story_state(
     """
     try:
         # Fetch the story from the database
-        story = await Story.objects().where(Story.cuid == story_id).first()
+        # Get the specified story.
+        story = await get_story(story_id)
         if not story:
             raise HTTPException(
                 status_code=404, detail=f"Story with id {story_id} not found"
             )
 
         # Convert to dictionary
-        story_dict = story.to_dict()
+        story_dict = story.model_dump(exclude_unset=True)
 
         # Get Firebase status
         firebase_status = await firebase.get_story_status(story_id)
         if firebase_status:
-            story_dict["firebase_status"] = firebase_status
+            story_dict["status"] = firebase_status
 
         # If requested, include frames
         if include_frames:
             # This would be implemented based on your data model
             # For example, if frames are in a separate table with a foreign key
-            frames = await get_story_frames(story_id)
+            frames = await story.get_frames(include_media=True)
             story_dict["frames"] = frames
 
         return story_dict
@@ -397,29 +360,3 @@ async def list_stories(
     except Exception as e:
         logger.exception(f"Error listing stories: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to list stories: {str(e)}")
-
-
-# --- Helper Functions ---
-
-
-async def get_story_frames(story_id: str) -> List[Dict[str, Any]]:
-    """
-    Get all frames for a story
-
-    Args:
-        story_id: The story ID to get frames for
-
-    Returns:
-        List of frame dictionaries
-    """
-    from calliope.tables import StoryFrame
-
-    # Query frames for this story
-    frames = (
-        await StoryFrame.objects()
-        .where(StoryFrame.story_id == story_id)
-        .order_by(StoryFrame.frame_number)
-    )
-
-    # Convert to dictionaries
-    return [frame.to_dict() for frame in frames]

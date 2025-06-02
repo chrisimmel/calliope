@@ -6,166 +6,227 @@ that are executed asynchronously by the task queue.
 """
 
 import logging
+import sys
+import traceback
 from typing import Dict, Any
-import uuid
-import os
 from datetime import datetime
 
-from .local_queue import LocalTaskQueue
-from ..storage.state_manager import StateManager
-from ..strategies.registry import get_strategy
-from ..inference import text_to_image
-from ..storage.firebase import get_firebase_manager
+import httpx
+
+
+from calliope.inference import image_analysis_inference
+from calliope.inference.audio_to_text import audio_to_text_inference
+from calliope.location.location import get_location_metadata_for_ip
+from calliope.models import FramesRequestParamsModel
+from calliope.storage.config_manager import (
+    get_sparrow_story_parameters_and_keys,
+    load_json_if_necessary,
+)
+from calliope.storage.firebase import get_firebase_manager
+from calliope.storage.state_manager import (
+    get_sparrow_state,
+    get_story,
+    put_sparrow_state,
+    put_story,
+)
+from calliope.strategies import StoryStrategyRegistry
+from calliope.tables import ModelConfig
+from calliope.tasks.local_queue import LocalTaskQueue
+from calliope.utils.google import (
+    CLOUD_ENV_GCP_PROD,
+    get_cloud_environment,
+)
+from calliope.utils.story import (
+    prepare_frame_images,
+    prepare_input_files,
+)
 
 logger = logging.getLogger(__name__)
 
 
-async def create_story_task(payload: Dict[str, Any]) -> Dict[str, Any]:
+def prepare_frame_request_params(
+    payload: Dict[str, Any], strategy_name: str
+) -> FramesRequestParamsModel:
     """
-    Create a new story and generate initial content
+    Prepare the request parameters for frame generation.
+
+    Returns:
+        FramesRequestParamsModel: The prepared request parameters.
+    """
+    story_id = payload.get("story_id")
+    client_id = payload.get("client_id")
+    snippets = payload.get("snippets", [])
+
+    request_params = FramesRequestParamsModel(
+        story_id=story_id,
+        client_id=client_id,
+        strategy=strategy_name,
+        extra_fields=payload.get("extra_fields", {}),
+        debug=True,
+    )
+
+    for snippet in snippets:
+        # Add snippets to request parameters based on type.
+        # (Can only handle one snippet of each type for now due to v1 limitations.)
+        if snippet.get("snippet_type") == "image":
+            request_params.input_image = snippet.get("content")
+        elif snippet.get("snippet_type") == "audio":
+            request_params.input_audio = snippet.get("content")
+        elif snippet.get("snippet_type") == "text":
+            request_params.input_text = snippet.get("content")
+
+    return request_params
+
+
+async def add_frame_task(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Add a new frame to an existing story
 
     Args:
         payload: Task payload containing:
-            - client_id: Client identifier
-            - strategy_name: Strategy to use for generation
-            - title: Optional story title
-            - generate_image: Whether to generate an image
-
+            - story_id: Story cuid
+            - client_id: The requesting client
+            - snippets: Any snippets to use when creating the frame
     Returns:
-        Dictionary with story details
+        Dictionary with new frame details
     """
+    story_id = payload.get("story_id")
     client_id = payload.get("client_id")
-    strategy_name = payload.get("strategy_name")
-    title = payload.get("title")
+    source_ip_address = payload.get("source_ip_address")
 
-    logger.info(f"Creating story with strategy {strategy_name} for client {client_id}")
+    if not story_id or not client_id:
+        raise ValueError("story_id and client_id are required")
+
+    logger.info(f"Adding frame to story {story_id}")
 
     # Get Firebase manager
     firebase = get_firebase_manager()
-
-    # Create a new story in the database
-    state_manager = StateManager()
-
-    # Check if story_id is provided (for continuation)
-    story_id = payload.get("story_id")
-    if not story_id:
-        # Create new story
-        story = await state_manager.create_story(
-            client_id=client_id, strategy=strategy_name, title=title
-        )
-        story_id = story["story_id"]
-        logger.info(f"Created new story with ID: {story_id}")
-    else:
-        # Get existing story
-        story = await state_manager.get_story(story_id)
-        if not story:
-            logger.error(f"Story {story_id} not found")
-            # Update Firebase with error status
-            await firebase.update_story_status(
-                story_id,
-                {
-                    "status": "error",
-                    "error": f"Story {story_id} not found",
-                    "error_time": datetime.now().isoformat(),
-                },
-            )
-            raise ValueError(f"Story {story_id} not found")
-
-        logger.info(f"Continuing existing story with ID: {story_id}")
 
     # Update Firebase with progress
     await firebase.update_story_status(
         story_id,
         {
-            "status": "generating_content",
-            "progress": "Loading strategy",
+            "status": "adding_frame",
+            "progress": "Adding new frame",
             "updated_at": datetime.now().isoformat(),
         },
     )
 
-    # Load the appropriate strategy
-    strategy = get_strategy(strategy_name)
-    if not strategy:
-        logger.error(f"Strategy {strategy_name} not found")
-        # Update Firebase with error status
-        await firebase.update_story_status(
-            story_id,
-            {
-                "status": "error",
-                "error": f"Strategy {strategy_name} not found",
-                "error_time": datetime.now().isoformat(),
-            },
-        )
-        raise ValueError(f"Strategy {strategy_name} not found")
-
-    # Generate initial content
     try:
-        logger.info(f"Generating initial content for story {story_id}")
+        sparrow_state = await get_sparrow_state(client_id)
+        story = await get_story(story_id) if story_id else None
+        strategy_name = (story and story.strategy_name) or "tamarisk"
 
-        # Update Firebase with progress
-        await firebase.update_story_status(
-            story_id,
-            {
-                "status": "generating_content",
-                "progress": "Generating text content",
-                "updated_at": datetime.now().isoformat(),
-            },
+        request_params = prepare_frame_request_params(
+            payload=payload, strategy_name=strategy_name
         )
+        (
+            parameters,
+            keys,
+            strategy_config,
+        ) = await get_sparrow_story_parameters_and_keys(request_params)
+        parameters.strategy = parameters.strategy or "tamarisk"
+        parameters.debug = parameters.debug or False
 
-        content = await strategy.generate_initial_frame(story)
+        strategy_class = StoryStrategyRegistry.get_strategy_class(strategy_name)
 
-        # Generate image if requested
-        if payload.get("generate_image", True):
-            logger.info(f"Generating image for story {story_id}")
+        parameters = await prepare_input_files(parameters, story)
+        image_analysis = None
+        errors = []
 
-            # Update Firebase with progress
-            await firebase.update_story_status(
-                story_id,
-                {
-                    "status": "generating_content",
-                    "progress": "Generating image",
-                    "updated_at": datetime.now().isoformat(),
-                },
+        timeout = httpx.Timeout(180.0)
+        async with httpx.AsyncClient(timeout=timeout) as httpx_client:
+            location_metadata = await get_location_metadata_for_ip(
+                httpx_client,
+                source_ip_address,
             )
+            print(f"{location_metadata=}")
 
-            image_prompt = content.get("image_prompt", content.get("text", ""))
+            if parameters.input_image_filename:
+                print(f"{parameters.input_image_filename=}")
+                vision_model_slug = "azure-vision-analysis"
+                model_config = (
+                    await ModelConfig.objects(ModelConfig.model)
+                    .where(ModelConfig.slug == vision_model_slug)
+                    .first()
+                    .output(load_json=True)
+                    .run()
+                )
+                if (
+                    model_config
+                    and model_config.model
+                    and model_config.model.model_parameters
+                ):
+                    model_config.model.model_parameters = load_json_if_necessary(
+                        model_config.model.model_parameters
+                    )
+                try:
+                    image_analysis = await image_analysis_inference(
+                        httpx_client,
+                        parameters.input_image_filename,
+                        parameters.input_image,  # original b64-encoded image.
+                        model_config,
+                        keys,
+                    )
+                    print(f"{image_analysis=}")
 
-            # Create a unique filename for the image
-            image_filename = f"generated_{uuid.uuid4()}.png"
+                except Exception as e:
+                    traceback.print_exc(file=sys.stderr)
+                    errors.append(str(e))
 
-            # Generate the image
-            image_result = await text_to_image.generate(
-                prompt=image_prompt, filename=image_filename
-            )
-
-            # Add image data to content
-            if image_result and "url" in image_result:
-                content["image"] = image_result
-                logger.info(
-                    f"Added image to story {story_id}: {image_result.get('url')}"
+            language = "en"
+            if (
+                strategy_config.text_to_text_model_config
+                and strategy_config.text_to_text_model_config
+                and strategy_config.text_to_text_model_config.prompt_template
+                and strategy_config.text_to_text_model_config.prompt_template.target_language  # noqa: E501
+            ):
+                language = (
+                    strategy_config.text_to_text_model_config.prompt_template.target_language  # noqa: E501
                 )
 
-                # Add image info to Firebase
-                await firebase.add_story_update(
-                    story_id,
-                    {
-                        "type": "image_generated",
-                        "timestamp": datetime.now().isoformat(),
-                        "image_url": image_result.get("url"),
-                        "prompt": image_prompt[:100],  # Truncate long prompts
-                    },
+            if parameters.input_audio_filename:
+                text = await audio_to_text_inference(
+                    httpx_client, parameters.input_audio_filename, language, keys
                 )
+                parameters.input_text = text
 
-        # Update the story with new content
-        logger.info(f"Adding frame to story {story_id}")
-        updated_story = await state_manager.add_frame(story_id, content)
+            story_frames_response = await strategy_class().get_frame_sequence(
+                parameters,
+                image_analysis,
+                location_metadata,
+                strategy_config,
+                keys,
+                sparrow_state,
+                story,
+                httpx_client,
+            )
+
+        story_frames_response.debug_data = {
+            **(story_frames_response.debug_data or {}),
+            "story_id": story.cuid,
+            "story_title": story.title,
+        }
+        if image_analysis:
+            i_see = image_analysis.get("description")
+            story_frames_response.debug_data["i_see"] = i_see
+            story_frames_response.debug_data["image_analysis"] = image_analysis
+        if parameters.input_audio_filename and parameters.input_text:
+            i_hear = parameters.input_text
+            story_frames_response.debug_data["i_hear"] = i_hear
+
+        await prepare_frame_images(parameters, story_frames_response.frames)
+        await put_story(story)
+        await put_sparrow_state(sparrow_state)
+
+        num_frames = await story.get_num_frames()
 
         # Update Firebase with completion status
         await firebase.update_story_status(
             story_id,
             {
                 "status": "completed",
-                "frame_count": updated_story.get("frame_count", 1),
+                "frame_count": num_frames,
                 "completed_at": datetime.now().isoformat(),
             },
         )
@@ -176,16 +237,17 @@ async def create_story_task(payload: Dict[str, Any]) -> Dict[str, Any]:
             {
                 "type": "frame_added",
                 "timestamp": datetime.now().isoformat(),
-                "frame_number": updated_story.get("frame_count", 1),
-                "has_image": "image" in content and "url" in content["image"],
+                "frame_number": num_frames,
             },
         )
 
+        frame_models = [frame.to_pydantic() for frame in story_frames_response.frames]
         return {
             "story_id": story_id,
-            "frame_added": True,
-            "frame_count": updated_story.get("frame_count", 1),
+            "frames_added": frame_models,
+            "frame_count": num_frames,
         }
+
     except Exception as e:
         logger.exception(f"Error generating content for story {story_id}: {str(e)}")
         # Update Firebase with error status
@@ -200,270 +262,6 @@ async def create_story_task(payload: Dict[str, Any]) -> Dict[str, Any]:
         raise
 
 
-async def generate_story_snippet(payload: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Generate a new snippet for an existing story
-
-    Args:
-        payload: Task payload containing:
-            - story_id: Story identifier
-            - strategy_name: Strategy to use for generation
-            - generate_image: Whether to generate an image
-            - user_input: Optional user input to influence generation
-
-    Returns:
-        Dictionary with snippet details
-    """
-    story_id = payload.get("story_id")
-    if not story_id:
-        raise ValueError("story_id is required")
-
-    # Get Firebase manager
-    firebase = get_firebase_manager()
-
-    state_manager = StateManager()
-    story = await state_manager.get_story(story_id)
-
-    if not story:
-        logger.error(f"Story {story_id} not found")
-        # Update Firebase with error status
-        await firebase.update_story_status(
-            story_id,
-            {
-                "status": "error",
-                "error": f"Story {story_id} not found",
-                "error_time": datetime.now().isoformat(),
-            },
-        )
-        raise ValueError(f"Story {story_id} not found")
-
-    strategy_name = payload.get("strategy_name", story.get("strategy"))
-    user_input = payload.get("user_input")
-
-    logger.info(
-        f"Generating snippet for story {story_id} with strategy {strategy_name}"
-    )
-
-    # Update Firebase with progress
-    await firebase.update_story_status(
-        story_id,
-        {
-            "status": "generating_content",
-            "progress": "Loading strategy",
-            "updated_at": datetime.now().isoformat(),
-        },
-    )
-
-    # Load the appropriate strategy
-    strategy = get_strategy(strategy_name)
-    if not strategy:
-        logger.error(f"Strategy {strategy_name} not found")
-        # Update Firebase with error status
-        await firebase.update_story_status(
-            story_id,
-            {
-                "status": "error",
-                "error": f"Strategy {strategy_name} not found",
-                "error_time": datetime.now().isoformat(),
-            },
-        )
-        raise ValueError(f"Strategy {strategy_name} not found")
-
-    try:
-        # Generate new content
-        # Update Firebase with progress
-        await firebase.update_story_status(
-            story_id,
-            {
-                "status": "generating_content",
-                "progress": "Generating text content",
-                "updated_at": datetime.now().isoformat(),
-            },
-        )
-
-        context = {"user_input": user_input} if user_input else {}
-        content = await strategy.generate_next_frame(story, context)
-
-        # Generate image if requested
-        if payload.get("generate_image", True):
-            logger.info(f"Generating image for story snippet in {story_id}")
-
-            # Update Firebase with progress
-            await firebase.update_story_status(
-                story_id,
-                {
-                    "status": "generating_content",
-                    "progress": "Generating image",
-                    "updated_at": datetime.now().isoformat(),
-                },
-            )
-
-            image_prompt = content.get("image_prompt", content.get("text", ""))
-
-            # Create a unique filename for the image
-            image_filename = f"generated_{uuid.uuid4()}.png"
-
-            # Generate the image
-            image_result = await text_to_image.generate(
-                prompt=image_prompt, filename=image_filename
-            )
-
-            # Add image data to content
-            if image_result and "url" in image_result:
-                content["image"] = image_result
-                logger.info(
-                    f"Added image to snippet in story {story_id}: {image_result.get('url')}"
-                )
-
-                # Add image info to Firebase
-                await firebase.add_story_update(
-                    story_id,
-                    {
-                        "type": "image_generated",
-                        "timestamp": datetime.now().isoformat(),
-                        "image_url": image_result.get("url"),
-                        "prompt": image_prompt[:100],  # Truncate long prompts
-                    },
-                )
-
-        # Update the story with new content
-        logger.info(f"Adding snippet to story {story_id}")
-        updated_story = await state_manager.add_frame(story_id, content)
-
-        # Update Firebase with completion status
-        await firebase.update_story_status(
-            story_id,
-            {
-                "status": "completed",
-                "frame_count": updated_story.get("frame_count", 0),
-                "completed_at": datetime.now().isoformat(),
-            },
-        )
-
-        # Add completion update
-        await firebase.add_story_update(
-            story_id,
-            {
-                "type": "frame_added",
-                "timestamp": datetime.now().isoformat(),
-                "frame_number": updated_story.get("frame_count", 0),
-                "has_image": "image" in content and "url" in content["image"],
-            },
-        )
-
-        return {
-            "story_id": story_id,
-            "snippet_added": True,
-            "frame_count": updated_story.get("frame_count", 0),
-        }
-    except Exception as e:
-        logger.exception(f"Error generating snippet for story {story_id}: {str(e)}")
-        # Update Firebase with error status
-        await firebase.update_story_status(
-            story_id,
-            {
-                "status": "error",
-                "error": str(e),
-                "error_time": datetime.now().isoformat(),
-            },
-        )
-        raise
-
-
-async def analyze_image(payload: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Analyze an image and generate a description
-
-    Args:
-        payload: Task payload containing:
-            - image_url: URL of the image to analyze
-            - story_id: Optional story identifier to associate with
-
-    Returns:
-        Dictionary with analysis results
-    """
-    image_url = payload.get("image_url")
-    if not image_url:
-        raise ValueError("image_url is required")
-
-    story_id = payload.get("story_id")
-
-    # Get Firebase manager if we have a story ID
-    firebase = None
-    if story_id:
-        firebase = get_firebase_manager()
-        # Update Firebase with progress
-        await firebase.update_story_status(
-            story_id,
-            {
-                "status": "analyzing_image",
-                "image_url": image_url,
-                "started_at": datetime.now().isoformat(),
-            },
-        )
-
-    logger.info(f"Analyzing image {image_url} for story {story_id}")
-
-    try:
-        # Import image analysis module
-        from ..inference.image_analysis import analyze_image as analyze
-
-        # Analyze the image
-        analysis = await analyze(image_url)
-
-        # If story_id is provided, store the result
-        if story_id:
-            state_manager = StateManager()
-            story = await state_manager.get_story(story_id)
-
-            if story:
-                # Store analysis as a metadata update
-                await state_manager.update_story_metadata(
-                    story_id, {"image_analysis": analysis}
-                )
-
-                # Update Firebase with result
-                if firebase:
-                    # Update status
-                    await firebase.update_story_status(
-                        story_id,
-                        {
-                            "status": "completed",
-                            "completed_at": datetime.now().isoformat(),
-                        },
-                    )
-
-                    # Add analysis update
-                    await firebase.add_story_update(
-                        story_id,
-                        {
-                            "type": "image_analyzed",
-                            "timestamp": datetime.now().isoformat(),
-                            "image_url": image_url,
-                            "analysis_summary": analysis.get("description", "")[
-                                :200
-                            ],  # Truncate long descriptions
-                        },
-                    )
-
-        return {"image_url": image_url, "analysis": analysis, "story_id": story_id}
-    except Exception as e:
-        logger.exception(f"Error analyzing image {image_url}: {str(e)}")
-
-        # Update Firebase with error if we have a story ID
-        if story_id and firebase:
-            await firebase.update_story_status(
-                story_id,
-                {
-                    "status": "error",
-                    "error": f"Error analyzing image: {str(e)}",
-                    "error_time": datetime.now().isoformat(),
-                },
-            )
-
-        raise
-
-
 def is_development_environment() -> bool:
     """
     Check if the current environment is development
@@ -471,8 +269,8 @@ def is_development_environment() -> bool:
     Returns:
         True if running in development environment, False otherwise
     """
-    env = os.environ.get("ENVIRONMENT", "development").lower()
-    return env != "production"
+    is_production = get_cloud_environment() == CLOUD_ENV_GCP_PROD
+    return not is_production
 
 
 def register_handlers(task_queue: LocalTaskQueue):
@@ -482,8 +280,8 @@ def register_handlers(task_queue: LocalTaskQueue):
     Args:
         task_queue: The LocalTaskQueue instance to register handlers with
     """
-    task_queue.register_handler("create_story", create_story_task)
-    task_queue.register_handler("generate_story_snippet", generate_story_snippet)
-    task_queue.register_handler("analyze_image", analyze_image)
+    task_queue.register_handler("add_frame", add_frame_task)
+    # task_queue.register_handler("generate_story_snippet", generate_story_snippet)
+    # task_queue.register_handler("analyze_image", analyze_image)
 
     logger.info("Registered task handlers with the queue")

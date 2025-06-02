@@ -8,6 +8,12 @@ import logging
 import os
 from typing import Dict, Any, Optional, List
 
+from calliope.utils.google import (
+    CLOUD_ENV_GCP_PROD,
+    get_cloud_environment,
+    get_project_id,
+    is_google_cloud_run_environment,
+)
 import firebase_admin
 from firebase_admin import credentials, firestore
 
@@ -36,19 +42,20 @@ class FirebaseManager:
         self.database_id = database_id
 
         try:
-            # Use service account credentials if provided
-            if credential_path and os.path.exists(credential_path):
+            if is_google_cloud_run_environment():
+                # In GCP, can use default credentials.
+                self.app = firebase_admin.initialize_app(
+                    options={"projectId": project_id, "databaseId": database_id}
+                )
+            elif credential_path and os.path.exists(credential_path):
+                # Use service account credentials if provided.
                 cred = credentials.Certificate(credential_path)
                 self.app = firebase_admin.initialize_app(
                     cred, {"projectId": project_id, "databaseId": database_id}
                 )
             else:
-                # In GCP, can use default credentials
-                self.app = firebase_admin.initialize_app(
-                    options={"projectId": project_id, "databaseId": database_id}
-                )
+                raise ValueError("Firebase credentials not found.")
 
-            # Initialize Firestore client with specific database
             self.db = firestore.client().database(database_id)
             logger.info(
                 f"Firebase Firestore initialized with project ID: {project_id}, database: {database_id}"
@@ -210,18 +217,15 @@ class FirebaseManager:
 @lru_cache(maxsize=1)
 def get_firebase_manager() -> FirebaseManager:
     # Get environment
-    env = os.environ.get("ENVIRONMENT", "development").lower()
+    is_production = get_cloud_environment() == CLOUD_ENV_GCP_PROD
 
     # Same project ID for both environments
-    project_id = os.environ.get("FIREBASE_PROJECT_ID")
+    project_id = get_project_id()
 
-    # Choose database ID based on environment
-    if env == "production":
-        database_id = os.environ.get("FIREBASE_DATABASE_ID", "calliope-production")
-    else:
-        database_id = os.environ.get("FIREBASE_DEV_DATABASE_ID", "calliope-development")
-
-    # Get credentials path
+    database_id = os.environ.get(
+        "FIREBASE_DATABASE_ID",
+        "calliope-production" if is_production else "calliope-development",
+    )
     credential_path = os.environ.get("FIREBASE_CREDENTIALS_PATH")
 
     # Create and return the manager

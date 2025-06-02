@@ -9,6 +9,8 @@ import os
 import logging
 from functools import lru_cache
 
+from calliope.utils.google import CLOUD_ENV_GCP_PROD, get_cloud_environment
+
 from .queue import TaskQueue
 from .local_queue import LocalTaskQueue
 
@@ -30,9 +32,9 @@ def get_task_queue() -> TaskQueue:
     Returns:
         The appropriate TaskQueue implementation
     """
-    env = os.environ.get("ENVIRONMENT", "development").lower()
+    is_production = get_cloud_environment() == CLOUD_ENV_GCP_PROD
 
-    if env == "production":
+    if is_production:
         # Use Google Cloud Tasks in production
         logger.info("Using Google Cloud Tasks queue for production")
 

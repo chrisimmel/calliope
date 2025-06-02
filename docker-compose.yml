@@ -33,6 +33,8 @@ services:
       - PINECONE_API_KEY=$PINECONE_API_KEY
       - PINECONE_ENVIRONMENT=us-west1-gcp-free
       - SEMANTIC_SEARCH_INDEX=story-semantic-search
+      - FIREBASE_DATABASE_ID=calliope-development
+      - FIREBASE_CREDENTIALS_PATH=/gcp/config/firebase_default_credentials.json
     ports:
       - 8008:8008
     tty: true
