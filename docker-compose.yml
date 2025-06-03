@@ -28,13 +28,16 @@ services:
       - POSTGRESQL_DATABASE=calliope
       - CLOUDSDK_CONFIG=/gcp/config
       - GOOGLE_APPLICATION_CREDENTIALS=/gcp/config/application_default_credentials.json
+      - GOOGLE_CLOUD_PROJECT=ardent-course-370411
       - CLOUD_ENV=local
       - OPENAI_API_KEY=$OPENAI_API_KEY
       - PINECONE_API_KEY=$PINECONE_API_KEY
       - PINECONE_ENVIRONMENT=us-west1-gcp-free
       - SEMANTIC_SEARCH_INDEX=story-semantic-search
       - FIREBASE_DATABASE_ID=calliope-development
-      - FIREBASE_CREDENTIALS_PATH=/gcp/config/firebase_default_credentials.json
+      # Use the same credentials file for Firebase - Firebase Admin SDK will
+      # gracefully fall back to application default credentials if needed
+      - FIREBASE_CREDENTIALS_PATH=/gcp/config/application_default_credentials.json
     ports:
       - 8008:8008
     tty: true

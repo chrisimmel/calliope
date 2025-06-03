@@ -119,14 +119,28 @@ def list_google_files_with_prefix(
 def get_project_id():
     """
     Gets the Google Cloud project ID.
+    First checks for environment variable, then tries metadata server.
     """
-    # The Google Metadata Server is at this fixed URL.
-    url = "http://169.254.169.254/computeMetadata/v1/project/project-id"
-    headers = {"Metadata-Flavor": "Google"}
-    response = requests.get(url, headers=headers)
-    response.raise_for_status()
+    # First check if project ID is provided as an environment variable
+    project_id = os.environ.get("GOOGLE_CLOUD_PROJECT")
+    if project_id:
+        return project_id
 
-    return response.text
+    # If not in env var, try the Google Metadata Server (only works in GCP)
+    try:
+        url = "http://169.254.169.254/computeMetadata/v1/project/project-id"
+        headers = {"Metadata-Flavor": "Google"}
+        response = requests.get(url, headers=headers, timeout=2)
+        response.raise_for_status()
+        return response.text
+    except requests.exceptions.RequestException as e:
+        # If we're not in GCP or can't access metadata server
+        if get_cloud_environment() == CLOUD_ENV_LOCAL:
+            raise ValueError(
+                "Unable to determine Google Cloud project ID. "
+                "Please set GOOGLE_CLOUD_PROJECT environment variable."
+            ) from e
+        raise
 
 
 """

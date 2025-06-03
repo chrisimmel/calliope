@@ -16,15 +16,15 @@ import {
 } from 'firebase/firestore';
 
 
-// Firebase configuration objects - separate for dev and prod
+// Firebase configuration from environment variables
 const firebaseConfig = {
-  apiKey: "AIzaSyAzQGGL947jPY47wrOfDprQ5tloB_qXH_g",
-  authDomain: "ardent-course-370411.firebaseapp.com",
-  projectId: "ardent-course-370411",
-  storageBucket: "ardent-course-370411.firebasestorage.app",
-  messagingSenderId: "59295831264",
-  appId: "1:59295831264:web:ab96869323b36ab28b2c85",
-  measurementId: "G-XDBEEP5KTS"
+  apiKey: process.env.FIREBASE_API_KEY,
+  authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.FIREBASE_PROJECT_ID,
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.FIREBASE_APP_ID,
+  measurementId: process.env.FIREBASE_MEASUREMENT_ID
 };
 
 // Determine which config to use based on environment
@@ -48,6 +48,12 @@ const databaseId = process.env.NODE_ENV === 'production'
  */
 export async function initializeFirebaseApp(): Promise<void> {
   if (!firebaseApp) {
+    // Check if Firebase config is properly set up
+    if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
+      console.error('Firebase configuration is missing. Check your environment variables.');
+      throw new Error('Firebase configuration is incomplete. Make sure environment variables are set.');
+    }
+
     firebaseApp = initializeApp(firebaseConfig);
 
     // Sign in anonymously first
@@ -65,6 +71,9 @@ export async function initializeFirebaseApp(): Promise<void> {
  * Get the Firestore instance, initializing if necessary
  */
 export function getFirestoreInstance(): Firestore {
+  if (!firestore) {
+    throw new Error("Firebase has not been initialized. Call initializeFirebaseApp() first.");
+  }
   return firestore;
 }
 

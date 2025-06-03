@@ -48,18 +48,37 @@ class FirebaseManager:
                     options={"projectId": project_id, "databaseId": database_id}
                 )
             elif credential_path and os.path.exists(credential_path):
-                # Use service account credentials if provided.
-                cred = credentials.Certificate(credential_path)
-                self.app = firebase_admin.initialize_app(
-                    cred, {"projectId": project_id, "databaseId": database_id}
-                )
+                # Use application default credentials but in a way Firebase can use them
+                try:
+                    # First try with Certificate - requires specific Firebase service account format
+                    cred = credentials.Certificate(credential_path)
+                    self.app = firebase_admin.initialize_app(
+                        cred, {"projectId": project_id, "databaseId": database_id}
+                    )
+                except (ValueError, IOError) as e:
+                    # If Certificate fails, try with ApplicationDefault instead
+                    logger.info(
+                        f"Using application default credentials for Firebase: {e}"
+                    )
+                    self.app = firebase_admin.initialize_app(
+                        options={"projectId": project_id, "databaseId": database_id}
+                    )
             else:
-                raise ValueError("Firebase credentials not found.")
+                # Try with application default credentials in env var
+                try:
+                    self.app = firebase_admin.initialize_app(
+                        options={"projectId": project_id, "databaseId": database_id}
+                    )
+                except Exception as e:
+                    logger.error(
+                        f"Failed to initialize Firebase with default credentials: {e}"
+                    )
+                    raise ValueError("Firebase credentials not found or invalid.")
 
-            self.db = firestore.client().database(database_id)
-            logger.info(
-                f"Firebase Firestore initialized with project ID: {project_id}, database: {database_id}"
-            )
+            # Get the Firestore client
+            firestore_client = firestore.client(database_id=database_id)
+            self.db = firestore_client
+            logger.info(f"Firestore initialized with database {database_id}")
         except Exception as e:
             logger.error(f"Error initializing Firebase Firestore: {e}")
             raise
