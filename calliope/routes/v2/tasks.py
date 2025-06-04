@@ -5,7 +5,7 @@ These endpoints receive HTTP requests from Google Cloud Tasks and
 execute the appropriate task handlers.
 """
 
-from fastapi import APIRouter, Request, Response, HTTPException, Header, Depends
+from fastapi import APIRouter, Request, HTTPException, Header, Depends
 import logging
 import json
 from typing import Optional, Dict, Any
@@ -15,7 +15,7 @@ from calliope.tasks.factory import configure_task_queue
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/v2/tasks", tags=["tasks"])
+router = APIRouter(prefix="/tasks", tags=["tasks"])
 
 
 # --- Security Helpers ---
