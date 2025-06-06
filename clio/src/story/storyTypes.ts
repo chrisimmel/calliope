@@ -11,6 +11,12 @@ type Video = {
     frame_rate?: number
 }
 
+type Snippet = {
+    snippet_type: "image" | "audio" | "text" | "video",
+    content: string,
+    metadata: Record<string, any>
+}
+
 interface FrameMetadata {
     situation: string;
     [key: string]: any;
@@ -106,4 +112,4 @@ type BookmarksResponse = {
     generation_date: string;
 }
 
-export {DEVICE_ID_DEFAULT, DEVICE_ID_NONE, Frame, Image, Video, Story, Strategy, MediaDevice, FrameSeedMediaType, Bookmark, BookmarksResponse, StoryStatus, StoryUpdate};
+export {DEVICE_ID_DEFAULT, DEVICE_ID_NONE, Frame, Image, Video, Snippet, Story, Strategy, MediaDevice, FrameSeedMediaType, Bookmark, BookmarksResponse, StoryStatus, StoryUpdate};

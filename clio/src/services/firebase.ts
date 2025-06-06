@@ -45,35 +45,218 @@ const databaseId = process.env.NODE_ENV === 'production'
 
 /**
  * Initialize Firebase and return the Firestore instance
+ *
+ * This function is idempotent - it can be called multiple times without side effects
  */
 export async function initializeFirebaseApp(): Promise<void> {
-  if (!firebaseApp) {
-    // Check if Firebase config is properly set up
-    if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
-      console.error('Firebase configuration is missing. Check your environment variables.');
+  if (firebaseApp && firestore) {
+    // Already initialized
+    return;
+  }
+
+  // Log configuration presence at the beginning (not actual values)
+  console.log('Firebase configuration status:', {
+    apiKeyPresent: Boolean(firebaseConfig.apiKey),
+    authDomainPresent: Boolean(firebaseConfig.authDomain),
+    projectIdPresent: Boolean(firebaseConfig.projectId),
+    storageBucketPresent: Boolean(firebaseConfig.storageBucket),
+    messagingSenderIdPresent: Boolean(firebaseConfig.messagingSenderId),
+    appIdPresent: Boolean(firebaseConfig.appId),
+    measurementIdPresent: Boolean(firebaseConfig.measurementId),
+    environment: process.env.NODE_ENV,
+  });
+
+  // Check if Firebase config is properly set up
+  if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
+    console.warn('Firebase configuration is missing. Check your environment variables.');
+
+    // Allow initialization in development with missing config
+    // This prevents crashes but will show appropriate warnings
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('Proceeding with empty Firebase config in development environment');
+
+      // Create a temporary app with minimal config
+      const tempConfig = {
+        apiKey: firebaseConfig.apiKey || 'dev-placeholder-key',
+        projectId: firebaseConfig.projectId || 'dev-placeholder-project',
+        appId: firebaseConfig.appId || '1:000000000000:web:0000000000000000000000',
+      };
+
+      try {
+        firebaseApp = initializeApp(tempConfig);
+
+        // Initialize Firestore first to ensure it's available even if auth fails
+        firestore = getFirestore(firebaseApp);
+
+        // Skip authentication in development mode with placeholder config
+        // This prevents the auth/configuration-not-found error
+        console.warn('Skipping authentication with placeholder config');
+        console.warn('Firebase initialized with placeholder config for development');
+      } catch (error) {
+        console.error('Error initializing Firebase with placeholder config:', error);
+
+        // Create a fallback empty firestore object to prevent crashes
+        firebaseApp = {} as any;
+        firestore = {} as Firestore;
+      }
+      return;
+    } else {
       throw new Error('Firebase configuration is incomplete. Make sure environment variables are set.');
     }
+  }
 
+  try {
+    // Initialize the app
     firebaseApp = initializeApp(firebaseConfig);
 
-    // Sign in anonymously first
-    const auth = getAuth(firebaseApp);
-    await signInAnonymously(auth);
-
-    // Then initialize Firestore
+    // MOVED: Initialize Firestore FIRST (before auth) to ensure it's available even if auth fails
     firestore = getFirestore(firebaseApp);
+    console.log('Firebase Firestore initialized successfully');
 
-    console.log('Firebase initialized with anonymous auth');
+    // Try to sign in anonymously AFTER Firestore is initialized
+    // Check for authDomain before attempting authentication
+    if (firebaseConfig.authDomain) {
+      try {
+        const auth = getAuth(firebaseApp);
+
+        // Check if we actually need authentication
+        // Only attempt auth if we have the necessary configs
+        if (firebaseConfig.apiKey && firebaseConfig.projectId) {
+          try {
+            await signInAnonymously(auth);
+            console.log('Firebase initialized with anonymous auth');
+          } catch (authError: any) {
+            // Enhanced error handling with specific error codes and user-friendly instructions
+            switch (authError.code) {
+              case 'auth/configuration-not-found':
+                console.warn('Firebase auth configuration is missing or invalid.');
+                console.warn('SOLUTION: Check that your Firebase project is properly configured with correct API key and project ID.');
+                console.warn('Verify the project exists and has Authentication enabled in Firebase Console.');
+                break;
+              case 'auth/internal-error':
+                console.warn('Firebase auth internal error.');
+                console.warn('SOLUTION: Check your configuration and Firebase console for error logs.');
+                console.warn('Try clearing browser cache and cookies, then reload the application.');
+                break;
+              case 'auth/operation-not-allowed':
+                console.warn('Anonymous authentication is not enabled in your Firebase project.');
+                console.warn('SOLUTION:');
+                console.warn('1. Go to Firebase Console > Authentication > Sign-in method');
+                console.warn('2. Enable the "Anonymous" provider');
+                console.warn('3. Save your changes');
+                console.warn('4. Reload this application');
+                break;
+              case 'auth/network-request-failed':
+                console.warn('Network error when authenticating with Firebase.');
+                console.warn('SOLUTION:');
+                console.warn('1. Check your internet connection');
+                console.warn('2. Verify that your firewall or proxy settings allow access to Firebase services');
+                console.warn('3. Try again when connection is stable');
+                break;
+              case 'auth/app-deleted':
+                console.warn('Firebase app was deleted from Firebase Console.');
+                console.warn('SOLUTION: Create a new Firebase project and update your configuration.');
+                break;
+              case 'auth/app-not-authorized':
+                console.warn('Firebase app is not authorized to use Authentication.');
+                console.warn('SOLUTION:');
+                console.warn('1. Check your Firebase API key and project settings');
+                console.warn('2. Verify the domain is whitelisted in Firebase Console > Authentication > Settings > Authorized domains');
+                console.warn('3. Ensure your API key restrictions in Google Cloud Console are properly configured');
+                break;
+              case 'auth/invalid-api-key':
+                console.warn('The Firebase API key is invalid.');
+                console.warn('SOLUTION:');
+                console.warn('1. Check the FIREBASE_API_KEY environment variable for typos');
+                console.warn('2. Verify the API key in Firebase Console > Project Settings > Web API Key');
+                console.warn('3. Generate a new API key if necessary');
+                break;
+              case 'auth/invalid-tenant-id':
+                console.warn('The Firebase tenant ID is invalid.');
+                console.warn('SOLUTION: If you are using multi-tenancy, check your tenant configuration.');
+                break;
+              default:
+                console.warn(`Anonymous authentication failed: ${authError.code}`, authError);
+                console.warn('SOLUTION: Check Firebase console logs for more details');
+            }
+            console.warn('Continuing without auth - some operations may be limited');
+          }
+        } else {
+          console.warn('Skipping Firebase auth due to incomplete config - missing apiKey or projectId');
+          console.warn('SOLUTION: Make sure FIREBASE_API_KEY and FIREBASE_PROJECT_ID environment variables are set');
+        }
+      } catch (authError) {
+        // Handle generic auth error, but continue with initialization
+        console.warn('Anonymous authentication failed, continuing without auth:', authError);
+        console.warn('SOLUTION: Check the error message above for specific troubleshooting steps');
+        // We can still use Firestore for reading even without auth
+      }
+    } else {
+      console.warn('Skipping Firebase auth due to missing authDomain.');
+      console.warn('SOLUTION to enable authentication:');
+      console.warn('1. Make sure FIREBASE_AUTH_DOMAIN environment variable is set');
+      console.warn('2. Format should be: your-project-id.firebaseapp.com');
+      console.warn('3. You can find this in Firebase Console > Project settings > Your apps > SDK setup and configuration');
+    }
+  } catch (error) {
+    console.error('Error initializing Firebase:', error);
+
+    // If app is already initialized (duplicate app error), try to recover
+    if (error instanceof Error && error.message.includes('already exists')) {
+      console.log('Attempting to recover from duplicate Firebase app');
+
+      // Get the existing app
+      try {
+        firebaseApp = initializeApp();
+
+        // Initialize Firestore with recovered app
+        firestore = getFirestore(firebaseApp);
+
+        console.log('Recovered existing Firebase app');
+      } catch (recoverError) {
+        console.error('Failed to recover existing Firebase app:', recoverError);
+        throw error;
+      }
+    } else {
+      // Rethrow other errors
+      throw error;
+    }
   }
+}
+
+/**
+ * Check if Firestore is properly initialized and available
+ */
+export function isFirestoreAvailable(): boolean {
+  return Boolean(firestore && typeof firestore === 'object' &&
+    // Check if it has at least the basic Firestore methods we need
+    'collection' in firestore && typeof firestore.collection === 'function');
 }
 
 /**
  * Get the Firestore instance, initializing if necessary
  */
-export function getFirestoreInstance(): Firestore {
+export async function getFirestoreInstance(): Promise<Firestore> {
   if (!firestore) {
-    throw new Error("Firebase has not been initialized. Call initializeFirebaseApp() first.");
+    console.log("Firebase not initialized, initializing now...");
+    await initializeFirebaseApp();
+
+    if (!firestore) {
+      // If still not initialized, create a fallback in development
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Creating fallback Firestore instance for development');
+        firestore = {} as Firestore;
+      } else {
+        throw new Error("Firebase initialization failed. Check your configuration.");
+      }
+    }
   }
+
+  // Check if we have a proper Firestore instance
+  if (!isFirestoreAvailable()) {
+    console.warn('Firestore is not fully initialized. Some features may not work.');
+  }
+
   return firestore;
 }
 
@@ -88,18 +271,69 @@ export function watchStoryStatus(
   storyId: string,
   callback: (status: StoryStatus) => void
 ): Unsubscribe {
-  const db = getFirestoreInstance();
-  const storyRef = doc(db, 'stories', storyId);
+  // Variable to store the actual unsubscribe function when we get it
+  let actualUnsubscribe: Unsubscribe | null = null;
+  // Flag to track if we've been unsubscribed already
+  let isUnsubscribed = false;
 
-  return onSnapshot(storyRef, (snapshot) => {
-    if (snapshot.exists()) {
-      const data = snapshot.data();
-      const status = data?.status as StoryStatus;
-      callback(status || { status: 'unknown' });
+  try {
+    // Initialize Firebase if needed
+    getFirestoreInstance().then(db => {
+      // If the caller already unsubscribed, don't set up the listener
+      if (isUnsubscribed) {
+        return;
+      }
+
+      try {
+        if (!isFirestoreAvailable()) {
+          console.warn('Firestore not fully initialized - cannot watch story status');
+          callback({ status: 'error', error: 'Firestore not available' });
+          return;
+        }
+
+        const storyRef = doc(db, 'stories', storyId);
+
+        // Set up the snapshot listener
+        actualUnsubscribe = onSnapshot(storyRef, (snapshot) => {
+          if (snapshot.exists()) {
+            const data = snapshot.data();
+            const status = data?.status as StoryStatus;
+            callback(status || { status: 'unknown' });
+          } else {
+            callback({ status: 'unknown' });
+          }
+        }, error => {
+          console.error('Error in watchStoryStatus snapshot:', error);
+          callback({ status: 'error', error: error.message });
+        });
+      } catch (error) {
+        console.error('Error setting up watchStoryStatus:', error);
+        if (error instanceof Error) {
+          callback({ status: 'error', error: error.message });
+        } else {
+          callback({ status: 'error', error: 'Unknown error watching story status' });
+        }
+      }
+    }).catch(error => {
+      console.error('Error getting Firestore instance:', error);
+      callback({ status: 'error', error: 'Failed to initialize Firebase' });
+    });
+  } catch (error) {
+    console.error('Unexpected error in watchStoryStatus:', error);
+    if (error instanceof Error) {
+      callback({ status: 'error', error: error.message });
     } else {
-      callback({ status: 'unknown' });
+      callback({ status: 'error', error: 'Unknown error watching story status' });
     }
-  });
+  }
+
+  // Return an unsubscribe function that will use the actual one when available
+  return () => {
+    isUnsubscribed = true;
+    if (actualUnsubscribe) {
+      actualUnsubscribe();
+    }
+  };
 }
 
 /**
@@ -113,26 +347,69 @@ export function watchStoryUpdates(
   storyId: string,
   callback: (updates: StoryUpdate[]) => void
 ): Unsubscribe {
-  const db = getFirestoreInstance();
-  const updatesRef = collection(db, 'stories', storyId, 'updates');
-  const updatesQuery = query(
-    updatesRef,
-    orderBy('timestamp', 'desc'),
-    limit(20)
-  );
+  // Variable to store the actual unsubscribe function when we get it
+  let actualUnsubscribe: Unsubscribe | null = null;
+  // Flag to track if we've been unsubscribed already
+  let isUnsubscribed = false;
 
-  return onSnapshot(updatesQuery, (snapshot) => {
-    const updates: StoryUpdate[] = [];
+  try {
+    // Initialize Firebase if needed
+    getFirestoreInstance().then(db => {
+      // If the caller already unsubscribed, don't set up the listener
+      if (isUnsubscribed) {
+        return;
+      }
 
-    snapshot.forEach((doc) => {
-      updates.push({
-        id: doc.id,
-        ...doc.data()
-      } as StoryUpdate);
+      try {
+        if (!isFirestoreAvailable()) {
+          console.warn('Firestore not fully initialized - cannot watch story updates');
+          callback([]);
+          return;
+        }
+
+        const updatesRef = collection(db, 'stories', storyId, 'updates');
+        const updatesQuery = query(
+          updatesRef,
+          orderBy('timestamp', 'desc'),
+          limit(20)
+        );
+
+        // Set up the snapshot listener
+        actualUnsubscribe = onSnapshot(updatesQuery, (snapshot) => {
+          const updates: StoryUpdate[] = [];
+
+          snapshot.forEach((doc) => {
+            updates.push({
+              id: doc.id,
+              ...doc.data()
+            } as StoryUpdate);
+          });
+
+          callback(updates);
+        }, error => {
+          console.error('Error in watchStoryUpdates snapshot:', error);
+          callback([]);
+        });
+      } catch (error) {
+        console.error('Error setting up watchStoryUpdates:', error);
+        callback([]);
+      }
+    }).catch(error => {
+      console.error('Error getting Firestore instance for updates:', error);
+      callback([]);
     });
+  } catch (error) {
+    console.error('Unexpected error in watchStoryUpdates:', error);
+    callback([]);
+  }
 
-    callback(updates);
-  });
+  // Return an unsubscribe function that will use the actual one when available
+  return () => {
+    isUnsubscribed = true;
+    if (actualUnsubscribe) {
+      actualUnsubscribe();
+    }
+  };
 }
 
 /**
@@ -142,16 +419,22 @@ export function watchStoryUpdates(
  * @returns Promise resolving to status
  */
 export async function getStoryStatus(storyId: string): Promise<StoryStatus | null> {
-  const db = getFirestoreInstance();
-  const storyRef = doc(db, 'stories', storyId);
+  try {
+    // Get Firebase instance (initializing if needed)
+    const db = await getFirestoreInstance();
+    const storyRef = doc(db, 'stories', storyId);
 
-  const snapshot = await getDoc(storyRef);
-  if (snapshot.exists()) {
-    const data = snapshot.data();
-    return data?.status as StoryStatus || null;
+    const snapshot = await getDoc(storyRef);
+    if (snapshot.exists()) {
+      const data = snapshot.data();
+      return data?.status as StoryStatus || null;
+    }
+    return null;
+  } catch (error) {
+    console.error('Error getting story status:', error);
+    // Return a status object with error information
+    return { status: 'error', error: error instanceof Error ? error.message : 'Unknown error' };
   }
-
-  return null;
 }
 
 /**
@@ -161,25 +444,31 @@ export async function getStoryStatus(storyId: string): Promise<StoryStatus | nul
  * @returns Promise resolving to updates
  */
 export async function getStoryUpdates(storyId: string): Promise<StoryUpdate[]> {
-  const db = getFirestoreInstance();
-  const updatesRef = collection(db, 'stories', storyId, 'updates');
-  const updatesQuery = query(
-    updatesRef,
-    orderBy('timestamp', 'desc'),
-    limit(20)
-  );
+  try {
+    // Get Firebase instance (initializing if needed)
+    const db = await getFirestoreInstance();
+    const updatesRef = collection(db, 'stories', storyId, 'updates');
+    const updatesQuery = query(
+      updatesRef,
+      orderBy('timestamp', 'desc'),
+      limit(20)
+    );
 
-  const snapshot = await getDocs(updatesQuery);
-  const updates: StoryUpdate[] = [];
+    const snapshot = await getDocs(updatesQuery);
+    const updates: StoryUpdate[] = [];
 
-  snapshot.forEach((doc) => {
-    updates.push({
-      id: doc.id,
-      ...doc.data()
-    } as StoryUpdate);
-  });
+    snapshot.forEach((doc) => {
+      updates.push({
+        id: doc.id,
+        ...doc.data()
+      } as StoryUpdate);
+    });
 
-  return updates;
+    return updates;
+  } catch (error) {
+    console.error('Error getting story updates:', error);
+    return [];
+  }
 }
 
 /**
@@ -193,15 +482,21 @@ export async function addStoryUpdate(
   storyId: string,
   update: Omit<StoryUpdate, 'id'>
 ): Promise<string> {
-  const db = getFirestoreInstance();
-  const updatesRef = collection(db, 'stories', storyId, 'updates');
+  try {
+    // Get Firebase instance (initializing if needed)
+    const db = await getFirestoreInstance();
+    const updatesRef = collection(db, 'stories', storyId, 'updates');
 
-  // Add timestamp if not provided
-  if (!update.timestamp) {
-    update.timestamp = new Date().toISOString();
+    // Add timestamp if not provided
+    if (!update.timestamp) {
+      update.timestamp = new Date().toISOString();
+    }
+
+    // Add new update
+    const docRef = await addDoc(updatesRef, update);
+    return docRef.id;
+  } catch (error) {
+    console.error('Error adding story update:', error);
+    throw error;
   }
-
-  // Add new update
-  const docRef = await addDoc(updatesRef, update);
-  return docRef.id;
 }

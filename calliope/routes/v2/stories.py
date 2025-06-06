@@ -8,6 +8,7 @@ Uses Firebase Realtime Database for real-time updates.
 
 from datetime import datetime
 from urllib import request
+from calliope.utils.story import prepare_existing_frame_images
 from fastapi import APIRouter, HTTPException, Depends, Query
 import logging
 from pydantic import BaseModel
@@ -24,7 +25,9 @@ from calliope.tasks.factory import configure_task_queue
 from calliope.tasks.queue import TaskQueue
 from calliope.storage.firebase import get_firebase_manager, FirebaseManager
 
+from calliope.routes.v1.story import StoryResponseV1
 from calliope.routes.v2.models import AddFrameRequest, CreateStoryRequest, Snippet
+from calliope.utils.id import create_cuid
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +51,7 @@ class AddFrameResponse(BaseModel):
 
 
 # --- Router Setup ---
-router = APIRouter(prefix="/v2/stories", tags=["stories_v2"])
+router = APIRouter(prefix="/stories", tags=["stories_v2"])
 
 
 # Configure task queue dependency
@@ -264,9 +267,10 @@ async def _request_new_frame(
 @router.get("/{story_id}/")
 async def get_story_state(
     story_id: str,
+    client_id: str,
     include_frames: bool = Query(True),
     firebase: FirebaseManager = Depends(get_firebase),
-) -> dict[str, Any]:
+) -> StoryResponseV1:
     """
     Get the current state of a story
 
@@ -274,6 +278,7 @@ async def get_story_state(
         story_id: The story ID to retrieve
         include_frames: Whether to include story frames in the response
     """
+    print(f"Retrieving story {story_id} with include_frames={include_frames}")
     try:
         # Fetch the story from the database
         # Get the specified story.
@@ -283,22 +288,35 @@ async def get_story_state(
                 status_code=404, detail=f"Story with id {story_id} not found"
             )
 
-        # Convert to dictionary
-        story_dict = story.model_dump(exclude_unset=True)
-
         # Get Firebase status
         firebase_status = await firebase.get_story_status(story_id)
-        if firebase_status:
-            story_dict["status"] = firebase_status
 
-        # If requested, include frames
         if include_frames:
-            # This would be implemented based on your data model
-            # For example, if frames are in a separate table with a foreign key
             frames = await story.get_frames(include_media=True)
-            story_dict["frames"] = frames
+            prepare_existing_frame_images(frames)
+            frame_models = [frame.to_pydantic() for frame in frames]
+        else:
+            frame_models = None
 
-        return story_dict
+        print(f"{story.created_for_sparrow_id=} {client_id=}")
+        response = StoryResponseV1(
+            frames=frame_models,
+            story_id=story.cuid,
+            slug=story.slug,
+            story_frame_count=await story.get_num_frames(),
+            append_to_prior_frames=False,
+            request_id=create_cuid(),
+            status=firebase_status,
+            strategy=story.strategy_name,
+            is_read_only=story.created_for_sparrow_id != client_id,
+            created_for_sparrow_id=story.created_for_sparrow_id,
+            date_created=str(story.date_created.date()),
+            date_updated=str(story.date_updated.date()),
+            generation_date=str(datetime.utcnow()),
+            debug_data={},
+            errors=[],
+        )
+        return response
 
     except HTTPException:
         # Re-raise HTTP exceptions
