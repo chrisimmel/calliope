@@ -6,13 +6,16 @@ import { useParams, useNavigate } from "react-router-dom";
 import './ClioApp.css';
 import AudioCapture from "./audio/AudioCapture";
 import Carousel, { CarouselItem } from "./components/Carousel";
-import { Bookmark, BookmarksResponse, Frame, FrameSeedMediaType, Story, Strategy } from './story/storyTypes'; 
+import { Bookmark, BookmarksResponse, Frame, FrameSeedMediaType, Story, Strategy } from './story/storyTypes';
 import IconChevronLeft from "./icons/IconChevronLeft";
 import IconChevronRight from "./icons/IconChevronRight";
 import Loader from "./components/Loader";
 import PhotoCapture from "./photo/PhotoCapture";
 import Toolbar from "./components/Toolbar";
 import VideoLoop from "./components/VideoLoop";
+import { StoryStatus } from './story/storyTypes';
+import StoryStatusMonitor from "./story/StoryStatusMonitor";
+import { initializeFirebaseApp } from "./services/firebase";
 
 const FRAMES_TIMEOUT = 180_000;
 const DEFAULT_TIMEOUT = 30_000;
@@ -122,8 +125,8 @@ const renderFrame = (frame: Frame, index: number, currentIndex: number) => {
                             />
                         ) : (
                             // Display image with preloaded dimensions
-                            image_url && <img 
-                                src={image_url} 
+                            image_url && <img
+                                src={image_url}
                                 alt={`Frame ${index + 1}`}
                                 style={mediaStyles}
                                 loading={isPriority ? "eager" : "lazy"}
@@ -169,7 +172,6 @@ const resetStory = async () => {
     );
 };
 
-
 export default function ClioApp() {
     type ClioState = {
         handleFullScreen: () => void,
@@ -210,6 +212,12 @@ export default function ClioApp() {
     // True when we should skip transition animations (initial load or direct jumps)
     const [skipAnimation, setSkipAnimation] = useState<boolean>(true);
 
+    useEffect(() => {
+        initializeFirebaseApp().catch(err => {
+            console.error("Failed to initialize Firebase:", err);
+        });
+    }, []);
+
     function handleResize() {
         const root: HTMLElement | null = document.querySelector(':root');
         if (root) {
@@ -223,10 +231,10 @@ export default function ClioApp() {
         // Navigate to the proper URL for the current story and frame
         const frameForUrl = frameNumber + 1; // Convert to 1-based for URL
         const baseUrl = `/clio/story/${storySlug}/${frameForUrl}`;
-        
+
         // Preserve query parameters
         const urlWithParams = preserveQueryParams(baseUrl);
-        
+
         navigate(urlWithParams, { replace: true });
     };
 
@@ -403,12 +411,12 @@ export default function ClioApp() {
                 newStories = [...newStories, newStory];
                 updatedStory = newStory;
             }
-            
+
             // Update the current story state
             if (updatedStory) {
                 setCurrentStory(updatedStory);
             }
-            
+
             setStories(newStories);
         },
         [stories]
@@ -424,66 +432,148 @@ export default function ClioApp() {
                     getFramesInterval = null;
                 }
 
-                let params: {client_id: string, client_type: string, input_image: string | null, input_audio: string | null, debug: boolean, strategy?: string, story_id?: string, generate_video: boolean} = {
-                    client_id: thisBrowserID,
-                    client_type: "clio",
-                    input_image: image,
-                    input_audio: audio,
-                    debug: true,
-                    generate_video: false,
-                };
-
-                if (strategy) {
-                    params.strategy = strategy;
-                }
-                if (storyId) {
-                    params.story_id = storyId;
-                }
-                if (allowExperimental) {
-                    params.generate_video = true;
-                }
                 const imagePrefix = image ? image.substring(0, 20) : "(none)";
                 console.log(`Calling Calliope with strategy ${strategy}, image ${imagePrefix}...`);
                 setCaptureActive(false);
-                //setSelectedFrameNumber(frames ? frames.length: 0);
-                const response = await axios.post(
-                    "/v1/frames/",
-                    params,
-                    {
-                        headers: {
-                            "X-Api-Key": "xyzzy",
+
+                // Import the utilities for v2 API
+                const { createFrameRequestPayload, createStoryRequestPayload } = await import('./utils/apiUtils');
+
+                let response;
+
+                // If we have an existing story, add a frame to it
+                if (storyId) {
+                    // Create the request payload for adding a frame to an existing story
+                    const payload = createFrameRequestPayload(
+                        thisBrowserID,
+                        image,
+                        audio,
+                        strategy,
+                        allowExperimental // generateVideo parameter
+                    );
+
+                    // Call the v2 API to add a frame
+                    response = await axios.post(
+                        `/v2/stories/${storyId}/frames/`,
+                        payload,
+                        {
+                            headers: {
+                                "X-Api-Key": "xyzzy",
+                            },
+                            timeout: FRAMES_TIMEOUT,
                         },
-                        timeout: FRAMES_TIMEOUT,
-                    },
-                );
-                const newSelectedFrameNumber = frames ? frames.length: 0
-                setSelectedFrameNumber(newSelectedFrameNumber);
-                if (storySlugState) {
-                    navigateToFrame(storySlugState, newSelectedFrameNumber);
-                }
+                    );
 
-                console.log(response.data);
-                const caption = response.data?.debug_data?.i_see;
-                if (caption) {
-                    console.log(`I think I see: ${caption}.`);
-                }
-                const transcript = response.data?.debug_data?.i_hear;
-                if (transcript) {
-                    console.log(`I think I hear: ${transcript}.`);
-                }
+                    console.log("Frame request accepted with task ID:", response.data.task_id);
 
-                const newFrames = response.data?.frames;
-                if (newFrames) {
-                    setFrames(frames => [...frames, ...newFrames]);
-                    setStoryId(response.data?.story_id || null);
-                    if (response.data?.story_id) {
-                        updateStoryWithFrames(
-                            response.data.story_id,
-                            newFrames,
-                            response.data.story_frame_count,
-                            response.data.generation_date,
-                            response.data.strategy,
-                        )
+                    // The v2 API is asynchronous, so we need to wait for Firebase updates
+                    // StoryStatusMonitor will handle the updates and trigger UI refreshes
+
+                    // We need to fetch the story state to get the latest frames
+                    await new Promise(resolve => setTimeout(resolve, 2000)); // Wait a bit for task to start
+
+                    // Get the updated story data
+                    const storyResponse = await axios.get(
+                        `/v2/stories/${storyId}/`,
+                        {
+                            headers: {
+                                "X-Api-Key": "xyzzy",
+                            },
+                            params: {
+                                include_frames: true
+                            },
+                            timeout: DEFAULT_TIMEOUT,
+                        }
+                    );
+
+                    // Update our UI with the new story data
+                    const newFrames = storyResponse.data?.frames || [];
+
+                    // The rest of the processing remains similar
+                    const newSelectedFrameNumber = frames ? frames.length : 0;
+                    setSelectedFrameNumber(newSelectedFrameNumber);
+
+                    if (storySlugState) {
+                        navigateToFrame(storySlugState, newSelectedFrameNumber);
+                    }
+
+                    // Update frames and story data
+                    if (newFrames && newFrames.length > 0) {
+                        setFrames(newFrames);
+
+                        if (storyResponse.data) {
+                            updateStoryWithFrames(
+                                storyId,
+                                newFrames,
+                                newFrames.length,
+                                new Date().toISOString(), // Use current date as generation date
+                                storyResponse.data.strategy || strategy || '',
+                            )
+                        }
+                    }
+                } else {
+                    // We need to create a new story
+                    const payload = createStoryRequestPayload(
+                        thisBrowserID,
+                        strategy,
+                        null, // title
+                        image,
+                        audio,
+                        allowExperimental // generateVideo
+                    );
+
+                    // Call the v2 API to create a story
+                    response = await axios.post(
+                        "/v2/stories/",
+                        payload,
+                        {
+                            headers: {
+                                "X-Api-Key": "xyzzy",
+                            },
+                            timeout: FRAMES_TIMEOUT,
+                        },
+                    );
+
+                    console.log("Story creation accepted with ID:", response.data.story_id);
+                    console.log("Task ID:", response.data.task_id);
+
+                    // Save the new story ID
+                    const newStoryId = response.data.story_id;
+                    setStoryId(newStoryId);
+
+                    // Similar to adding a frame, we need to wait for Firebase updates
+                    await new Promise(resolve => setTimeout(resolve, 2000)); // Wait a bit for task to start
+
+                    // Get the new story data
+                    const storyResponse = await axios.get(
+                        `/v2/stories/${newStoryId}/`,
+                        {
+                            headers: {
+                                "X-Api-Key": "xyzzy",
+                            },
+                            params: {
+                                include_frames: true
+                            },
+                            timeout: DEFAULT_TIMEOUT,
+                        }
+                    );
+
+                    // Update our UI with the new story data
+                    const newFrames = storyResponse.data?.frames || [];
+
+                    if (newFrames && newFrames.length > 0) {
+                        setFrames(newFrames);
+                        setSelectedFrameNumber(0); // Select first frame for a new story
+
+                        if (storyResponse.data) {
+                            updateStoryWithFrames(
+                                newStoryId,
+                                newFrames,
+                                newFrames.length,
+                                new Date().toISOString(), // Use current date as generation date
+                                storyResponse.data.strategy || strategy || '',
+                            )
+                        }
                     }
                 }
 
@@ -494,21 +584,25 @@ export default function ClioApp() {
                     getFramesInterval = setInterval(() => stateRef.current.getFrames(null, null), 20000);
                 }
             } catch (err: any) {
-                setError(err.message);
+                console.error("Error getting frames:", err);
+                setError(err.message || "Failed to get frames");
             } finally {
                 setLoadingFrames(false);
+                setCaptureActive(false);
             }
-            setCaptureActive(false);
         },
         [
             thisBrowserID,
-            frames, 
-            setCaptureActive, 
+            frames,
+            setCaptureActive,
             isPlaying,
             strategy,
             storyId,
             updateStoryWithFrames,
             setStoryId,
+            storySlugState,
+            navigateToFrame,
+            allowExperimental
         ]
     );
     stateRef.current.getFrames = getFrames;
@@ -526,27 +620,26 @@ export default function ClioApp() {
             }
 
             try {
-                const params = {
-                    client_id: thisBrowserID,
-                    debug: true,
-                    story_id: story_id,
-                };
-                console.log("Getting story...");
+                console.log(`Getting story ${story_id}...`);
+
+                // Use v2 API to get the story
                 const response = await axios.get(
-                    "/v1/story/",
+                    `/v2/stories/${story_id}/`,
                     {
                         headers: {
                             "X-Api-Key": "xyzzy",
                         },
-                        params: params,
+                        params: {
+                            include_frames: true,
+                        },
                         timeout: DEFAULT_TIMEOUT,
                     },
                 );
+
                 const newFrames = response.data?.frames || [];
                 setFrames(newFrames);
-                //setStrategy(response.data?.strategy || defaultStrategy);
-                setStrategy(defaultStrategy);
-                setStoryId(response.data?.story_id || null);
+                setStrategy(response.data?.strategy || defaultStrategy);
+                setStoryId(story_id);
                 const maxFrameNum = newFrames ? newFrames.length - 1 : 0;
                 if (frame_num != null) {
                     frame_num = Math.min(frame_num, maxFrameNum);
@@ -556,14 +649,15 @@ export default function ClioApp() {
                 setSelectedFrameNumber(frame_num);
                 setIsReadOnly(response.data?.is_read_only || false);
                 const storySlug = response.data?.slug || null;
+                setStorySlugState(storySlug);
 
                 // Create a complete Story object from the API response
-                if (response.data?.story_id) {
+                if (story_id) {
                     const apiStory: Story = {
-                        story_id: response.data.story_id,
+                        story_id: story_id,
                         title: response.data.title || '',
                         slug: response.data.slug || null,
-                        story_frame_count: response.data.frames?.length || 0,
+                        story_frame_count: newFrames.length || 0,
                         is_bookmarked: response.data.is_bookmarked || false,
                         is_current: true,
                         is_read_only: response.data.is_read_only || false,
@@ -572,6 +666,8 @@ export default function ClioApp() {
                         thumbnail_image: newFrames[0]?.image || null,
                         date_created: response.data.date_created || '',
                         date_updated: response.data.date_updated || '',
+                        // Include the Firebase status if available
+                        status: response.data.status,
                     };
 
                     // Set the current story
@@ -580,7 +676,7 @@ export default function ClioApp() {
                 console.log(`Got story ${storySlug} (${newFrames.length} frames).`);
                 console.log(`Story is ${response.data?.is_read_only ? "" : "not"} read only.`);
 
-                if (response.data?.story_id && newFrames.length) {
+                if (story_id && newFrames.length) {
                     navigateToFrame(storySlug, frame_num);
                 }
 
@@ -589,18 +685,19 @@ export default function ClioApp() {
                     setDrawerIsOpen(true);
                 }
 
-                // After loading is done, enable animations for subsequent navigation within this story
-                // setTimeout(() => {
-                //     setSkipAnimation(false);
-                // }, 100);
+                // Get Firebase status updates
+                if (story_id) {
+                    await initializeFirebaseApp();
+                }
 
             } catch (err: any) {
-                setError(err.message);
+                console.error('Error getting story:', err);
+                setError(err.message || 'Failed to get story');
             } finally {
                 setLoadingStory(false);
             }
         },
-        [stories, navigate, setSkipAnimation]
+        [stories, navigate, setSkipAnimation, defaultStrategy, setStorySlugState, navigateToFrame]
     );
 
     const getStoryBySlug = useCallback(
@@ -652,7 +749,7 @@ export default function ClioApp() {
                         date_created: response.data.date_created || null,
                         date_updated: response.data.date_updated || null,
                     };
-                    
+
                     // Set the current story
                     setCurrentStory(apiStory);
                 }
@@ -698,7 +795,7 @@ export default function ClioApp() {
             // Check if we have URL parameters for story slug and frame
             if (storySlug) {
                 const frameNumInt = frameNum ? parseInt(frameNum, 10) : undefined;
-                
+
                 // Only load from the server if it's a different story
                 // or if we're on the initial load
                 if (storySlug !== lastLoadedStorySlugRef.current) {
@@ -780,7 +877,7 @@ export default function ClioApp() {
         },
         []
     );
- 
+
     const selectFrameNumber = useCallback(
         async (newSelectedFrameNumber: number) => {
             const frameCount = frames.length;
@@ -796,7 +893,7 @@ export default function ClioApp() {
                 // So we don't modify skipAnimation here
 
                 console.log(`New index is ${newSelectedFrameNumber}, total frames: ${frameCount}, skipAnimation=${skipAnimation}`);
-                
+
                 setSelectedFrameNumber(newSelectedFrameNumber);
 
                 // Update URL to reflect the current story and frame (1-based for URL)
@@ -873,7 +970,7 @@ export default function ClioApp() {
     const aheadOne = useCallback(
         () => {
             // Always animate for normal navigation within a story
-            setSkipAnimation(false); 
+            setSkipAnimation(false);
             selectFrameNumber(selectedFrameNumber + 1);
         },
         [selectedFrameNumber, selectFrameNumber, setSkipAnimation]
@@ -951,7 +1048,7 @@ export default function ClioApp() {
                 console.log("Scheduling frames request.");
                 getFramesInterval = setInterval(() => stateRef.current.getFrames(null, null), 10);
             }
-            
+
             // After a short delay, enable animations for subsequent navigation within this story
             setTimeout(() => {
                 setSkipAnimation(false);
@@ -1008,7 +1105,7 @@ export default function ClioApp() {
     const updateStory = useCallback(
         (story_id: string | null, frame_number: number = 0) => {
             console.log(`Setting story to ${story_id}, frame ${frame_number}.`);
-            
+
             // Disable animations when changing stories
             setSkipAnimation(true);
             setStoryId(story_id);
@@ -1016,7 +1113,7 @@ export default function ClioApp() {
             // Set the strategy to match the selected story.
             let storySlug = null;
             let selectedStory = null;
-            
+
             for (let i = 0; i < stories.length; i++) {
                 const story = stories[i];
                 if (story.story_id == story_id) {
@@ -1028,13 +1125,13 @@ export default function ClioApp() {
                     break;
                 }
             }
-            
+
             // If we found the story in the stories array, update currentStory
             if (selectedStory) {
                 // Mark this story as current, make sure others are not
                 // Ensure date_updated is preserved
                 const updatedStory = {
-                    ...selectedStory, 
+                    ...selectedStory,
                     is_current: true,
                     date_updated: selectedStory.date_updated || '',
                     date_created: selectedStory.date_created || ''
@@ -1050,7 +1147,7 @@ export default function ClioApp() {
 
             // Get the selected story and jump to the specified frame.
             getStory(story_id, frame_number);
-            
+
             // After the story is loaded, getStory will re-enable animations
         },
         [stories, strategies, getStory, findNearestStrategy, navigate, setSkipAnimation]
@@ -1072,7 +1169,7 @@ export default function ClioApp() {
                 const params: {client_id: string, story_id?: string} = {
                     client_id: thisBrowserID,
                 };
-                
+
                 if (specific_story_id) {
                     params.story_id = specific_story_id;
                 }
@@ -1179,16 +1276,16 @@ export default function ClioApp() {
         },
         [storyId, selectedFrameNumber, frames, bookmarks]
     );
-    
+
     // Function to share the current URL
     const shareCurrentUrl = useCallback(() => {
         try {
             // Copy the current URL to clipboard
             navigator.clipboard.writeText(window.location.href);
-            
+
             // Show notification
             setShowShareNotification(true);
-            
+
             // Hide notification after 2 seconds
             setTimeout(() => {
                 setShowShareNotification(false);
@@ -1215,8 +1312,40 @@ export default function ClioApp() {
     */
     // Get the current frame index for the carousel
     const currentCarouselIndex = Math.max(0, Math.min(selectedFrameNumber, frames.length - 1));
-    
+
+    // Handler for when a new frame is added via Firebase
+    const handleNewFrameFromFirebase = useCallback((frameNumber: number) => {
+        console.log(`Firebase reported new frame ${frameNumber} - fetching the latest story data`);
+
+        // Fetch the latest story data, including the new frame
+        getStory(storyId, null);
+
+        // Optional: Navigate to the new frame
+        // This might be redundant as getStory might update the frame selection
+        // selectFrameNumber(frameNumber);
+    }, [storyId, getStory]);
+
+    // Handler for story status changes
+    const handleStatusChange = useCallback((status: StoryStatus) => {
+        console.log(`Firebase reported status change: ${status.status}`);
+
+        if (status.status === 'error') {
+            // Display error to user
+            setError(status.error || 'An error occurred processing your request');
+        } else if (status.status === 'completed') {
+            // Refresh story data when processing is complete
+            getStory(storyId, null);
+        }
+    }, [storyId, getStory]);
+
     return <>
+        {/* Silent monitor for Firebase updates - enhanced for v2 API */}
+        {storyId && <StoryStatusMonitor
+            storyId={storyId}
+            onNewFrame={handleNewFrameFromFirebase}
+            onStatusChange={handleStatusChange}
+        />}
+
         {
             (selectedFrameNumber > 0) &&
             <div className="navLeft">
@@ -1251,7 +1380,7 @@ export default function ClioApp() {
             skipAnimation={skipAnimation}
         >
             {/* Render all frames but only load media for visible ones */}
-            {frames.map((frame, index) => 
+            {frames.map((frame, index) =>
                 renderFrame(frame, index, currentCarouselIndex)
             )}
         </Carousel>
