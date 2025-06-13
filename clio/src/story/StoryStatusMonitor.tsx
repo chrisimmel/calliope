@@ -12,6 +12,7 @@ import { StoryUpdate, StoryStatus } from './storyTypes';
 
 interface StoryStatusMonitorProps {
   storyId: string;
+  clientId: string;
   onNewFrame?: (frameNumber: number) => void;
   onStatusChange?: (status: StoryStatus) => void;
 }
@@ -26,12 +27,21 @@ interface StoryStatusMonitorProps {
  */
 const StoryStatusMonitor: React.FC<StoryStatusMonitorProps> = ({
   storyId,
+  clientId,
   onNewFrame,
   onStatusChange
 }) => {
   const [initialized, setInitialized] = useState(false);
   const [firebaseAvailable, setFirebaseAvailable] = useState<boolean | null>(null);
   const retryCount = useRef<number>(0);
+  const onNewFrameRef = useRef(onNewFrame);
+  const onStatusChangeRef = useRef(onStatusChange);
+  
+  // Update refs when props change
+  useEffect(() => {
+    onNewFrameRef.current = onNewFrame;
+    onStatusChangeRef.current = onStatusChange;
+  }, [onNewFrame, onStatusChange]);
 
   // Initialize Firebase once on component mount
   useEffect(() => {
@@ -67,8 +77,8 @@ const StoryStatusMonitor: React.FC<StoryStatusMonitorProps> = ({
           setInitialized(true);
 
           // Notify about error if we have a status change callback
-          if (onStatusChange) {
-            onStatusChange({
+          if (onStatusChangeRef.current) {
+            onStatusChangeRef.current({
               status: 'warning',
               error: 'Firebase unavailable - some real-time updates may not work'
             });
@@ -79,47 +89,30 @@ const StoryStatusMonitor: React.FC<StoryStatusMonitorProps> = ({
 
     // Initialize Firebase
     initFirebase();
-  }, [initialized, onStatusChange]);
+  }, [initialized]);
 
   // Handler for new frames
   const handleNewFrame = useCallback(async (update: StoryUpdate) => {
     if (update.type === 'frame_added' && update.frame_number !== undefined) {
       console.log(`New frame added: ${update.frame_number}`);
 
-      // When a new frame is added via the v2 API, we need to fetch the latest story data
-      try {
-        const response = await axios.get(
-          `/v2/stories/${storyId}/`,
-          {
-            headers: {
-              "X-Api-Key": "xyzzy",
-            },
-            params: {
-              include_frames: true
-            },
-            timeout: 30000,
-          }
-        );
-
-        // Notify the parent about the new frame so it can update the UI
-        if (onNewFrame) {
-          onNewFrame(update.frame_number);
-        }
-      } catch (error) {
-        console.error('Error fetching updated story after new frame:', error);
+      // Notify the parent about the new frame so it can update the UI
+      // The parent (ClioApp) will handle fetching the latest story data
+      if (onNewFrameRef.current) {
+        onNewFrameRef.current(update.frame_number);
       }
     }
-  }, [storyId, onNewFrame]);
+  }, []);
 
   // Handler for status changes
   const handleStatusChange = useCallback((status: StoryStatus) => {
     console.log('Story status update:', status);
 
     // Notify parent of status changes if callback provided
-    if (onStatusChange) {
-      onStatusChange(status);
+    if (onStatusChangeRef.current) {
+      onStatusChangeRef.current(status);
     }
-  }, [onStatusChange]);
+  }, []);
 
   // Set up Firebase listeners when storyId changes or Firebase initializes
   useEffect(() => {
@@ -139,6 +132,9 @@ const StoryStatusMonitor: React.FC<StoryStatusMonitorProps> = ({
             {
               headers: {
                 "X-Api-Key": "xyzzy",
+              },
+              params: {
+                client_id: clientId,
               },
               timeout: 10000,
             }
@@ -160,12 +156,10 @@ const StoryStatusMonitor: React.FC<StoryStatusMonitorProps> = ({
             // Check if we need to notify about new frames
             if (storyData.frames && storyData.frames.length > 0) {
               const latestFrame = storyData.frames.length - 1;
-              handleNewFrame({
-                id: `poll-${Date.now()}`,
-                type: 'frame_added',
-                timestamp: new Date().toISOString(),
-                frame_number: latestFrame
-              });
+              // Only notify if this is actually a new frame (avoid duplicate notifications)
+              if (onNewFrameRef.current) {
+                onNewFrameRef.current(latestFrame);
+              }
             }
           }
         } catch (error) {
@@ -231,8 +225,8 @@ const StoryStatusMonitor: React.FC<StoryStatusMonitorProps> = ({
         console.error('Error setting up Firebase monitors:', error);
 
         // Notify about error if we have a status change callback
-        if (onStatusChange) {
-          onStatusChange({
+        if (onStatusChangeRef.current) {
+          onStatusChangeRef.current({
             status: 'error',
             error: 'Failed to set up real-time updates'
           });
@@ -267,7 +261,7 @@ const StoryStatusMonitor: React.FC<StoryStatusMonitorProps> = ({
         }
       }
     };
-  }, [storyId, initialized, firebaseAvailable, handleNewFrame, handleStatusChange]);
+  }, [storyId, clientId, initialized, firebaseAvailable]);
 
   // This component doesn't render anything
   return null;

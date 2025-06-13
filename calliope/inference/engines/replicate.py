@@ -77,6 +77,7 @@ async def replicate_vision_inference(
 
     return "".join(list(output))
 
+
 MODEL_IDS_BY_NAME = {
     "mistralai/mistral-7b": "mistralai/mistral-7b-v0.1:3e8a0fb6d7812ce30701ba597e5080689bef8a013e5c6a724fafb108cc2426a0",
     # "mistralai/mixtral-8x7b-instruct-v0.1": "mistralai/mixtral-8x7b-instruct-v0.1",
@@ -129,6 +130,7 @@ async def replicate_text_to_text_inference(
         raise ValueError(f"Unknown provider_model_name: {model.provider_model_name}")
 
     print(f"make_replicate_request {model_id=}, {text=}, {parameters=}")
+
     def make_replicate_request() -> Any:
         return replicate.run(
             model_id,
@@ -213,15 +215,17 @@ async def text_to_image_file_inference_replicate(
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
         future = executor.submit(make_replicate_request)
-        image_urls = await loop.run_in_executor(None, future.result)
+        output = await loop.run_in_executor(None, future.result)
 
-    if isinstance(image_urls, str):
-        image_url = image_urls
+    if isinstance(output, str):
+        image_url = output
+    elif isinstance(output, list) and isinstance(output[0], str):
+        image_url = output[0]
     else:
-        image_url = image_urls[0]
+        image_url = None
 
-    print(f"{image_url=}")
     if image_url:
+        print(f"{image_url=}")
         response = await httpx_client.get(image_url)
         response.raise_for_status()
         f = await aiofiles.open(output_image_filename, mode="wb")
@@ -229,5 +233,11 @@ async def text_to_image_file_inference_replicate(
         await f.close()
 
         return output_image_filename
+    else:
+        # In newer versions of replicate, the output is one or more FileOutput object.
+        if isinstance(output, list):
+            output = output[0]
+        with open(output_image_filename, "wb") as f:
+            f.write(output.read())
 
     return None

@@ -117,7 +117,7 @@ class StoryStrategy(object, metaclass=ABCMeta):
         await frame.save().run()
 
         story_updated = False
-        if not story.title:
+        if not story.title or story.title == "Untitled":
             story.title = await story.compute_title()
             print(f"Computed story title: '{story.title}'")
             story_updated = True

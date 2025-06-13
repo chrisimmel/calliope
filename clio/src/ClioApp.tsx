@@ -460,6 +460,9 @@ export default function ClioApp() {
                             headers: {
                                 "X-Api-Key": "xyzzy",
                             },
+                            params: {
+                                client_id: thisBrowserID,
+                            },
                             timeout: FRAMES_TIMEOUT,
                         },
                     );
@@ -480,6 +483,7 @@ export default function ClioApp() {
                                 "X-Api-Key": "xyzzy",
                             },
                             params: {
+                                client_id: thisBrowserID,
                                 include_frames: true
                             },
                             timeout: DEFAULT_TIMEOUT,
@@ -530,6 +534,9 @@ export default function ClioApp() {
                             headers: {
                                 "X-Api-Key": "xyzzy",
                             },
+                            params: {
+                                client_id: thisBrowserID,
+                            },
                             timeout: FRAMES_TIMEOUT,
                         },
                     );
@@ -552,6 +559,7 @@ export default function ClioApp() {
                                 "X-Api-Key": "xyzzy",
                             },
                             params: {
+                                client_id: thisBrowserID,
                                 include_frames: true
                             },
                             timeout: DEFAULT_TIMEOUT,
@@ -630,6 +638,7 @@ export default function ClioApp() {
                             "X-Api-Key": "xyzzy",
                         },
                         params: {
+                            client_id: thisBrowserID,
                             include_frames: true,
                         },
                         timeout: DEFAULT_TIMEOUT,
@@ -808,13 +817,8 @@ export default function ClioApp() {
                     // Load the story from the server
                     getStoryBySlug(storySlug, frameNumInt);
                 } else {
-                    // Same story, just a different frame - use local navigation
-                    console.log(`Same story, different frame: ${frameNumInt}`);
-
-                    // Enable animations for navigation within the same story
-                    //setSkipAnimation(false); // skipAnimation is managed elsewhere.
-
-                    // Just update the selected frame number locally - don't reload from server
+                    // Same story, just a different frame - use local navigation.
+                    // Just update the selected frame number locally - don't reload from server.
                     if (frameNumInt !== undefined) {
                         // Convert from 1-based (URL) to 0-based (internal)
                         const frameIndex = Math.max(0, frameNumInt - 1);
@@ -835,10 +839,6 @@ export default function ClioApp() {
             const getStories = async () => {
                 setLoadingStories(true)
                 try {
-                    const params = {
-                        client_id: thisBrowserID,
-                        debug: true,
-                    };
                     console.log("Getting stories...");
                     const response = await axios.get(
                         "/v1/stories/",
@@ -846,7 +846,10 @@ export default function ClioApp() {
                             headers: {
                                 "X-Api-Key": "xyzzy",
                             },
-                            params: params,
+                            params: {
+                                client_id: thisBrowserID,
+                                debug: true,
+                            },
                             timeout: DEFAULT_TIMEOUT,
                         },
                     );
@@ -1341,6 +1344,7 @@ export default function ClioApp() {
     return <>
         {/* Silent monitor for Firebase updates - enhanced for v2 API */}
         {storyId && <StoryStatusMonitor
+            clientId={thisBrowserID}
             storyId={storyId}
             onNewFrame={handleNewFrameFromFirebase}
             onStatusChange={handleStatusChange}

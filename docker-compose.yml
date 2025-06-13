@@ -1,4 +1,3 @@
-version: '3.10'
 services:
   postgres:
     hostname: postgres
@@ -16,7 +15,7 @@ services:
     build:
       context: .
     # command: bash
-    command: uvicorn calliope.app:app --reload --host 0.0.0.0 --port 8008
+    command: uv run uvicorn calliope.app:app --reload --host 0.0.0.0 --port 8008
     container_name: calliope
     depends_on:
       - postgres
@@ -43,6 +42,11 @@ services:
     tty: true
     volumes:
       - .:/app
-      - /app/.venv
+      - /app/.venv  # Preserve container's virtual environment
       - $HOME/.config/gcloud:/gcp/config:ro
       - /gcp/config/logs
+      # Mount specific directories that need to be persistent
+      - ./config:/app/config
+      - ./input:/app/input
+      - ./media:/app/media
+      - ./state:/app/state

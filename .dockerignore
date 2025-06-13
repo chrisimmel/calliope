@@ -3,11 +3,11 @@
 **/__pycache__/
 
 .git
-.venv
+.venv/
+.uv_cache/
 restart.sh
 start.sh
 uwsgi.ini
-README.md
 
 # IDEs
 .vscode/
@@ -15,7 +15,7 @@ README.md
 # Mac doodads
 .DS_Store
 
-# Image files
+# Image files (uncomment if you want to exclude)
 # *.jpg
 # *.raw
 # *.png
@@ -23,13 +23,28 @@ README.md
 # Jupyter
 *.ipynb
 
-# Application storage
+# Application storage (these should be mounted as volumes)
 config/
 input/
 media/
 state/
+data/
+keepers/
+logos/
+videos/
 
 # Source dirs not used at runtime
-# clio/
 clio-elm/
 client/
+
+# Temporary files
+tmp/
+*.log
+
+# Old requirements files (we use uv now)
+requirements/
+requirements*.txt
+
+# Keep these files for uv
+!pyproject.toml
+!uv.lock

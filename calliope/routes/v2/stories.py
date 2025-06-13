@@ -7,9 +7,8 @@ Uses Firebase Realtime Database for real-time updates.
 """
 
 from datetime import datetime
-from urllib import request
 from calliope.utils.story import prepare_existing_frame_images
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends, Query, Request
 import logging
 from pydantic import BaseModel
 from typing import Any, Optional
@@ -109,6 +108,7 @@ clean_story:
 
 @router.post("/", response_model=CreateStoryResponse)
 async def create_story(
+    request: Request,
     request_data: CreateStoryRequest,
     task_queue: TaskQueue = Depends(get_task_queue),
     firebase: FirebaseManager = Depends(get_firebase),
@@ -126,7 +126,7 @@ async def create_story(
         story = Story.create_new(
             strategy_name=request_data.strategy,
             created_for_sparrow_id=client_id,
-            title=request_data.title,
+            title=request_data.title or "Untitled",
         )
         await put_story(story)
         print(f"Created new story: {story.to_dict()}")
@@ -155,11 +155,13 @@ async def create_story(
         task_id = None
 
         task_id = await _request_new_frame(
+            request=request,
+            client_id=client_id,
             story=story,
             snippets=request_data.snippets,
             task_queue=task_queue,
             firebase=firebase,
-            extra_parameters=request_data.extra_parameters,
+            extra_parameters={},  # request_data.extra_parameters,
         )
         return CreateStoryResponse(
             story_id=new_story_cuid,
@@ -174,8 +176,10 @@ async def create_story(
 
 @router.post("/{story_id}/frames/", response_model=AddFrameResponse)
 async def request_new_frame(
+    request: Request,
     story_id: str,
     request_data: AddFrameRequest,
+    client_id: str = Query(...),
     task_queue: TaskQueue = Depends(get_task_queue),
     firebase: FirebaseManager = Depends(get_firebase),
 ) -> AddFrameResponse:
@@ -183,9 +187,11 @@ async def request_new_frame(
     Requests a new frame be added to an existing story, with optional input snippets.
     """
     try:
-        story = get_story(story_id)
+        story = await get_story(story_id)
 
         task_id = await _request_new_frame(
+            request=request,
+            client_id=client_id,
             story=story,
             snippets=request_data.snippets,
             task_queue=task_queue,
@@ -207,6 +213,7 @@ async def request_new_frame(
 
 
 async def _request_new_frame(
+    request: Request,
     client_id: str,
     story: Story,
     snippets: list[Snippet],
@@ -267,7 +274,7 @@ async def _request_new_frame(
 @router.get("/{story_id}/")
 async def get_story_state(
     story_id: str,
-    client_id: str,
+    client_id: str = Query(...),
     include_frames: bool = Query(True),
     firebase: FirebaseManager = Depends(get_firebase),
 ) -> StoryResponseV1:
@@ -283,15 +290,19 @@ async def get_story_state(
         # Fetch the story from the database
         # Get the specified story.
         story = await get_story(story_id)
+        print(f"{story=}")
         if not story:
             raise HTTPException(
                 status_code=404, detail=f"Story with id {story_id} not found"
             )
 
+        print(f"Getting Firebase status for {story_id}")
         # Get Firebase status
         firebase_status = await firebase.get_story_status(story_id)
 
+        print(f"{firebase_status=}")
         if include_frames:
+            print("Getting frames")
             frames = await story.get_frames(include_media=True)
             prepare_existing_frame_images(frames)
             frame_models = [frame.to_pydantic() for frame in frames]
