@@ -627,6 +627,13 @@ export default function ClioApp() {
                 frame_num = defaultFrameNum;
             }
 
+            // If we still don't have a valid story_id, don't make the API call
+            if (!story_id || story_id === 'null') {
+                console.log('No valid story ID, skipping getStory API call');
+                setLoadingStory(false);
+                return;
+            }
+
             try {
                 console.log(`Getting story ${story_id}...`);
 
@@ -1343,7 +1350,7 @@ export default function ClioApp() {
 
     return <>
         {/* Silent monitor for Firebase updates - enhanced for v2 API */}
-        {storyId && <StoryStatusMonitor
+        {storyId && storyId !== 'null' && <StoryStatusMonitor
             clientId={thisBrowserID}
             storyId={storyId}
             onNewFrame={handleNewFrameFromFirebase}

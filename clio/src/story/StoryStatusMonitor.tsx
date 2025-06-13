@@ -116,7 +116,7 @@ const StoryStatusMonitor: React.FC<StoryStatusMonitorProps> = ({
 
   // Set up Firebase listeners when storyId changes or Firebase initializes
   useEffect(() => {
-    if (!storyId || !initialized) return;
+    if (!storyId || storyId === 'null' || !initialized) return;
 
     console.log(`Setting up status monitors for story ${storyId}`);
 

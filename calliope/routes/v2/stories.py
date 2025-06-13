@@ -110,6 +110,7 @@ clean_story:
 async def create_story(
     request: Request,
     request_data: CreateStoryRequest,
+    client_id: str = Query(...),
     task_queue: TaskQueue = Depends(get_task_queue),
     firebase: FirebaseManager = Depends(get_firebase),
 ) -> CreateStoryResponse:
@@ -120,7 +121,6 @@ async def create_story(
     processes any provided snippets to generate initial story content.
     """
     try:
-        client_id = request_data.client_id
         sparrow_state = await get_sparrow_state(client_id)
 
         story = Story.create_new(
