@@ -6,7 +6,9 @@
   "scripts": {
     "build": "webpack --mode production && cp build/* ../static/clio",
     "build-dev": "webpack --mode development && cp build/* ../static/clio",
-    "start": "webpack serve --mode development"
+    "start": "webpack serve --mode development",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "repository": {
     "type": "git",
@@ -28,6 +30,7 @@
     "css-loader": "^6.7.2",
     "dotenv": "^16.5.0",
     "html-webpack-plugin": "^5.5.0",
+    "prettier": "^3.0.0",
     "ts-loader": "^9.4.4",
     "typescript": "^5.1.6",
     "webpack": "^5.88.0",

@@ -1,32 +1,91 @@
-[tool.black]
-line-length = 89
-target-version = ['py38']
-exclude = '''
-(
-  /(
-      \.git          # exclude a few common directories in the
-    | \.mypy_cache   # root of the project
-    | \.env
-    | \.build
-    | \.venv
-  )/
-)
-'''
+[tool.ruff]
+# Enable pycodestyle (`E`), Pyflakes (`F`), and isort (`I`) codes
+select = ["E", "F", "I", "W", "B", "C4", "UP", "ARG001", "SIM", "TCH", "TID", "Q", "FLY", "PERF", "RUF"]
+ignore = [
+    "E501",  # line too long, handled by formatter
+    "B008",  # do not perform function calls in argument defaults
+    "C901",  # too complex
+]
 
-[tool.isort]
-line_length = 88
-lines_after_imports = 2
-# Use vertical hanging indents
-multi_line_output = 3
-use_parentheses = true
-# Co-mingle "import x" and "from x import y"
-force_sort_within_sections = true
-# Co-mingle constants, classes, and modules
-order_by_type = false
-case_sensitive = false
-# Sort . ahead of .. (primarily to appease flake8-import-order)
-reverse_relative = true
-profile = "black"
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = []
+
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pyenv",
+    ".pytest_cache",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    ".vscode",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+]
+
+# Same as Black.
+line-length = 89
+
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+# Assume Python 3.8
+target-version = "py38"
+
+[tool.ruff.format]
+# Like Black, use double quotes for strings.
+quote-style = "double"
+
+# Like Black, indent with spaces, rather than tabs.
+indent-style = "space"
+
+# Like Black, respect magic trailing commas.
+skip-magic-trailing-comma = false
+
+# Like Black, automatically detect the appropriate line ending.
+line-ending = "auto"
+
+# Enable auto-formatting of code examples in docstrings. Markdown,
+# reStructuredText code/literal blocks and doctests are all supported.
+docstring-code-format = true
+
+# Set the line length limit used by the formatter.
+line-length = 89
+
+[tool.ruff.isort]
+# Like Black, use double quotes for strings.
+quote-style = "double"
+
+# Like Black, indent with spaces, rather than tabs.
+indent-style = "space"
+
+# Like Black, respect magic trailing commas.
+skip-magic-trailing-comma = false
+
+# Like Black, automatically detect the appropriate line ending.
+line-ending = "auto"
+
+# Force sort within sections
+force-sort-within-sections = true
+
+# Known first party modules
+known-first-party = ["calliope"]
 
 [build-system]
 requires = ["hatchling"]
@@ -134,6 +193,13 @@ dev = [
     "types-urllib3>=1.26.25.14",
     "mypy>=1.5.1",
     "pre-commit>=4.2.0",
+    "ruff>=0.1.6",
+]
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.2.0",
+    "ruff>=0.11.13",
 ]
 
 [tool.hatch.build.targets.wheel]

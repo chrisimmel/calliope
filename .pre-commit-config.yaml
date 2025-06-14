@@ -8,10 +8,17 @@ repos:
       - id: check-json
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-  # Ruff version.
     rev: v0.1.6
     hooks:
       # Run the linter.
       - id: ruff
+        args: [--fix]
       # Run the formatter.
       - id: ruff-format
+
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v3.0.0
+    hooks:
+      - id: prettier
+        types_or:
+          [javascript, jsx, ts, tsx, json, css, scss, html, yaml, markdown]
