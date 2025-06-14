@@ -20,6 +20,7 @@ This modular design allows Calliope to combine AI capabilities from multiple pro
 The inference module is organized as follows:
 
 - **Core Inference Files**: High-level abstraction layer for different conversion types
+
   - `text_to_text.py`: Text generation using LLMs
   - `text_to_image.py`: Image generation from text descriptions
   - `image_analysis.py`: Extract information from images
@@ -92,7 +93,7 @@ async def image_and_text_to_video_file_inference(
 ) -> Optional[str]:
 ```
 
-Converts an image and text prompt into a video clip. Currently supports only Runway as a model provider. 
+Converts an image and text prompt into a video clip. Currently supports only Runway as a model provider.
 
 ### Image Analysis
 
@@ -108,7 +109,7 @@ async def image_analysis_inference(
 
 Analyzes images to extract descriptions, objects, tags, and text. Combines multimodal LLMs with computer vision services (Azure) to provide comprehensive image understanding. This enables Calliope to "see" through a webcam or analyze submitted images for storytelling context.
 
-### Audio-to-Text 
+### Audio-to-Text
 
 ```python
 async def audio_to_text_inference(
@@ -147,9 +148,9 @@ async def generate_story_continuation(
 ) -> str:
     async with httpx.AsyncClient() as client:
         continuation = await text_to_text_inference(
-            client, 
-            prompt, 
-            model_config, 
+            client,
+            prompt,
+            model_config,
             keys
         )
         return continuation
