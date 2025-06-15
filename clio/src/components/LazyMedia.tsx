@@ -10,18 +10,18 @@ interface LazyMediaProps {
   onLoad?: () => void;
 }
 
-const LazyMedia: React.FC<LazyMediaProps> = ({ 
-  imageUrl, 
-  videoUrl, 
-  alt = '', 
+const LazyMedia: React.FC<LazyMediaProps> = ({
+  imageUrl,
+  videoUrl,
+  alt = '',
   isVisible,
   isPriority,
-  onLoad 
+  onLoad,
 }) => {
   const [loaded, setLoaded] = useState<boolean>(false);
   const [loadStarted, setLoadStarted] = useState<boolean>(false);
   const mediaRef = useRef<HTMLImageElement | HTMLVideoElement>(null);
-  
+
   useEffect(() => {
     // Always load priority media immediately, or when the component becomes visible
     if ((isPriority || isVisible) && !loadStarted) {
@@ -48,7 +48,7 @@ const LazyMedia: React.FC<LazyMediaProps> = ({
     height: '100%',
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
   };
 
   if (videoUrl) {
@@ -63,26 +63,29 @@ const LazyMedia: React.FC<LazyMediaProps> = ({
             playsInline
             controls={false}
             poster={imageUrl}
-            style={{ 
+            style={{
               position: 'absolute',
-              width: '100%', 
-              height: '100%', 
+              width: '100%',
+              height: '100%',
               objectFit: 'contain',
               opacity: loaded ? 1 : 0,
-              transition: 'opacity 0.3s ease-in'
+              transition: 'opacity 0.3s ease-in',
             }}
             onLoadedData={handleLoad}
           >
-            <source src={videoUrl} type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"' />
+            <source
+              src={videoUrl}
+              type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"'
+            />
             {imageUrl && <img src={imageUrl} alt={alt} />}
           </video>
         )}
         {/* Placeholder remains in DOM for consistent layout until loaded */}
-        <div 
+        <div
           className="media-placeholder"
-          style={{ 
+          style={{
             opacity: loaded ? 0 : 0.6,
-            position: loaded ? 'absolute' : 'relative'
+            position: loaded ? 'absolute' : 'relative',
           }}
         >
           {isPriority ? 'Loading...' : ''}
@@ -98,23 +101,23 @@ const LazyMedia: React.FC<LazyMediaProps> = ({
           ref={mediaRef as React.RefObject<HTMLImageElement>}
           src={imageUrl}
           alt={alt}
-          style={{ 
+          style={{
             position: 'absolute',
             width: '100%',
             height: '100%',
             objectFit: 'contain',
             opacity: loaded ? 1 : 0,
-            transition: 'opacity 0.3s ease-in'
+            transition: 'opacity 0.3s ease-in',
           }}
           onLoad={handleLoad}
         />
       )}
       {/* Placeholder remains in DOM for consistent layout until loaded */}
-      <div 
+      <div
         className="media-placeholder"
-        style={{ 
+        style={{
           opacity: loaded ? 0 : 0.6,
-          position: loaded ? 'absolute' : 'relative'
+          position: loaded ? 'absolute' : 'relative',
         }}
       >
         {isPriority ? 'Loading...' : ''}

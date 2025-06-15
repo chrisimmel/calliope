@@ -6,7 +6,7 @@ import {
   getStoryStatus,
   getStoryUpdates,
   initializeFirebaseApp,
-  isFirestoreAvailable
+  isFirestoreAvailable,
 } from '../services/firebase';
 import { StoryUpdate, StoryStatus } from './storyTypes';
 
@@ -29,14 +29,16 @@ const StoryStatusMonitor: React.FC<StoryStatusMonitorProps> = ({
   storyId,
   clientId,
   onNewFrame,
-  onStatusChange
+  onStatusChange,
 }) => {
   const [initialized, setInitialized] = useState(false);
-  const [firebaseAvailable, setFirebaseAvailable] = useState<boolean | null>(null);
+  const [firebaseAvailable, setFirebaseAvailable] = useState<boolean | null>(
+    null
+  );
   const retryCount = useRef<number>(0);
   const onNewFrameRef = useRef(onNewFrame);
   const onStatusChangeRef = useRef(onStatusChange);
-  
+
   // Update refs when props change
   useEffect(() => {
     onNewFrameRef.current = onNewFrame;
@@ -72,7 +74,9 @@ const StoryStatusMonitor: React.FC<StoryStatusMonitorProps> = ({
           console.log(`Retry attempt ${retryCount.current}/3...`);
           setTimeout(initFirebase, 1000);
         } else {
-          console.warn('Max Firebase initialization retries reached, continuing without Firebase');
+          console.warn(
+            'Max Firebase initialization retries reached, continuing without Firebase'
+          );
           setFirebaseAvailable(false);
           setInitialized(true);
 
@@ -80,7 +84,8 @@ const StoryStatusMonitor: React.FC<StoryStatusMonitorProps> = ({
           if (onStatusChangeRef.current) {
             onStatusChangeRef.current({
               status: 'warning',
-              error: 'Firebase unavailable - some real-time updates may not work'
+              error:
+                'Firebase unavailable - some real-time updates may not work',
             });
           }
         }
@@ -127,18 +132,15 @@ const StoryStatusMonitor: React.FC<StoryStatusMonitorProps> = ({
       // Set up polling for story status
       const pollInterval = setInterval(async () => {
         try {
-          const response = await axios.get(
-            `/v2/stories/${storyId}/`,
-            {
-              headers: {
-                "X-Api-Key": "xyzzy",
-              },
-              params: {
-                client_id: clientId,
-              },
-              timeout: 10000,
-            }
-          );
+          const response = await axios.get(`/v2/stories/${storyId}/`, {
+            headers: {
+              'X-Api-Key': 'xyzzy',
+            },
+            params: {
+              client_id: clientId,
+            },
+            timeout: 10000,
+          });
 
           const storyData = response.data;
           if (storyData) {
@@ -188,7 +190,9 @@ const StoryStatusMonitor: React.FC<StoryStatusMonitorProps> = ({
         console.log('Initial story updates:', updates);
 
         // Check for frame_added events
-        const frameAddedUpdate = updates.find(update => update.type === 'frame_added');
+        const frameAddedUpdate = updates.find(
+          update => update.type === 'frame_added'
+        );
         if (frameAddedUpdate) {
           handleNewFrame(frameAddedUpdate);
         }
@@ -207,13 +211,15 @@ const StoryStatusMonitor: React.FC<StoryStatusMonitorProps> = ({
         statusUnsubscribe = watchStoryStatus(storyId, handleStatusChange);
 
         // Watch for updates, with special handling for frame_added events
-        updatesUnsubscribe = watchStoryUpdates(storyId, (newUpdates) => {
+        updatesUnsubscribe = watchStoryUpdates(storyId, newUpdates => {
           console.log('Story updates:', newUpdates);
 
           // Check for frame_added events in the latest batch of updates
           if (newUpdates.length > 0) {
             // Find the most recent frame_added update
-            const frameAddedUpdate = newUpdates.find(update => update.type === 'frame_added');
+            const frameAddedUpdate = newUpdates.find(
+              update => update.type === 'frame_added'
+            );
 
             // If we found one, notify the parent component
             if (frameAddedUpdate) {
@@ -228,7 +234,7 @@ const StoryStatusMonitor: React.FC<StoryStatusMonitorProps> = ({
         if (onStatusChangeRef.current) {
           onStatusChangeRef.current({
             status: 'error',
-            error: 'Failed to set up real-time updates'
+            error: 'Failed to set up real-time updates',
           });
         }
       }
