@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkreact_webpack_setup=self.webpackChunkreact_webpack_setup||[]).push([[30],{3030:(e,s,a)=>{a.r(s),a.d(s,{SplashScreenWeb:()=>p});var c=a(9895);class p extends c.Uw{async show(e){}async hide(e){}}}}]);

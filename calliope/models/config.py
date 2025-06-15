@@ -59,7 +59,7 @@ class ClientTypeConfigModel(ConfigModel):
 
 class StrategyConfigDescriptortModel(BaseModel):
     """
-    A small amount of information about a strategy config. 
+    A small amount of information about a strategy config.
     """
 
     # The unique slug for this strategy config.

@@ -22,105 +22,103 @@ function Copyright() {
   );
 }
 
-
 type AboutPanelProps = {
-    aboutPanelIsOpen: boolean,
-    setAboutPanelIsOpen: (open: boolean) => void,
-    drawerAnchor: "bottom" | "right",
-    story: Story | null,
-    selectedFrameNumber: number,
-    frames: Frame[],
-}
+  aboutPanelIsOpen: boolean;
+  setAboutPanelIsOpen: (open: boolean) => void;
+  drawerAnchor: 'bottom' | 'right';
+  story: Story | null;
+  selectedFrameNumber: number;
+  frames: Frame[];
+};
 
 export default function AboutPanel({
-    aboutPanelIsOpen,
-    setAboutPanelIsOpen,
-    drawerAnchor,
-    story,
-    selectedFrameNumber,
-    frames,
+  aboutPanelIsOpen,
+  setAboutPanelIsOpen,
+  drawerAnchor,
+  story,
+  selectedFrameNumber,
+  frames,
 }: AboutPanelProps) {
-    const toggleAboutPanel =
-      (open: boolean) =>
-      (event: React.KeyboardEvent | React.MouseEvent) => {
-        if (
-          event.type === 'keydown' &&
-          ((event as React.KeyboardEvent).key === 'Tab' ||
-            (event as React.KeyboardEvent).key === 'Shift')
-        ) {
-          return;
-        }
-  
-        setAboutPanelIsOpen(open);
-      };
+  const toggleAboutPanel =
+    (open: boolean) => (event: React.KeyboardEvent | React.MouseEvent) => {
+      if (
+        event.type === 'keydown' &&
+        ((event as React.KeyboardEvent).key === 'Tab' ||
+          (event as React.KeyboardEvent).key === 'Shift')
+      ) {
+        return;
+      }
 
-    const image_url = (story && story.thumbnail_image && story.thumbnail_image.url) ? `/${story.thumbnail_image.url}` : '';
-    const situation = (frames && frames[0]) ? (frames[0].metadata?.situation || "") : "";
-    const locationAndTail = situation.startsWith("Location\n") ? situation.slice("Location\n".length) : null;
-    const endLocationIndex = locationAndTail?.indexOf("\n\n") || locationAndTail?.length;
-    const location = locationAndTail?.slice(0, endLocationIndex);
+      setAboutPanelIsOpen(open);
+    };
 
-    return (
-        <Drawer
-            anchor={drawerAnchor}
-            open={aboutPanelIsOpen}
-            onClose={toggleAboutPanel(false)}
-        >
-            <IconButton
-                aria-label="close"
-                onClick={() => {
-                    setAboutPanelIsOpen(false);
-                }}
-                sx={{
-                    position: 'absolute',
-                    right: 8,
-                    top: 8,
-                    color: "#aaa",
-                }}
-            >
-                <CloseIcon />
-            </IconButton>
-            <Container maxWidth="sm">
-            {
-                story &&
-                <Box sx={{ my: 4 }} >
-                    <Typography variant="h6" sx={{ mb: 2 }}>
-                        {
-                            image_url &&
-                            <img src={image_url} width={64} height={64}/>
-                        }
-                        &nbsp;&nbsp;
-                        {story.title}
-                    </Typography>
-                    <Typography variant="subtitle1">
-                        Story created on {story.date_created} by storyteller {story.strategy_name}
-                    </Typography>
-                    {
-                        location &&
-                        <Typography variant="subtitle1">
-                            in {location}.
-                        </Typography>
-                    }
-                </Box>
-            }
-            {
-                story &&
-                <Box sx={{ my: 4 }} >
-                    <Typography variant="subtitle1">
-                        Last updated {story.date_updated}.
-                    </Typography>
-                    <Typography variant="subtitle1">
-                        Viewing frame {selectedFrameNumber + 1} of {frames.length}.
-                    </Typography>
-                </Box>
-            }
-            <Box sx={{ my: 4 }}>
-                <Copyright />
-                <Typography variant="body2" color="text.secondary" align="center">
-                    {'Version: ' + appVersion}
-                </Typography>
-            </Box>
-            </Container>
-        </Drawer>
-    );
+  const image_url =
+    story && story.thumbnail_image && story.thumbnail_image.url
+      ? `/${story.thumbnail_image.url}`
+      : '';
+  const situation =
+    frames && frames[0] ? frames[0].metadata?.situation || '' : '';
+  const locationAndTail = situation.startsWith('Location\n')
+    ? situation.slice('Location\n'.length)
+    : null;
+  const endLocationIndex =
+    locationAndTail?.indexOf('\n\n') || locationAndTail?.length;
+  const location = locationAndTail?.slice(0, endLocationIndex);
+
+  return (
+    <Drawer
+      anchor={drawerAnchor}
+      open={aboutPanelIsOpen}
+      onClose={toggleAboutPanel(false)}
+    >
+      <IconButton
+        aria-label="close"
+        onClick={() => {
+          setAboutPanelIsOpen(false);
+        }}
+        sx={{
+          position: 'absolute',
+          right: 8,
+          top: 8,
+          color: '#aaa',
+        }}
+      >
+        <CloseIcon />
+      </IconButton>
+      <Container maxWidth="sm">
+        {story && (
+          <Box sx={{ my: 4 }}>
+            <Typography variant="h6" sx={{ mb: 2 }}>
+              {image_url && <img src={image_url} width={64} height={64} />}
+              &nbsp;&nbsp;
+              {story.title}
+            </Typography>
+            <Typography variant="subtitle1">
+              Story created on {story.date_created} by storyteller{' '}
+              {story.strategy_name}
+            </Typography>
+            {location && (
+              <Typography variant="subtitle1">in {location}.</Typography>
+            )}
+          </Box>
+        )}
+        {story && (
+          <Box sx={{ my: 4 }}>
+            <Typography variant="subtitle1">
+              Last updated {story.date_updated}.
+            </Typography>
+            <Typography variant="subtitle1">
+              Viewing frame {selectedFrameNumber + 1} of {frames.length}.
+            </Typography>
+          </Box>
+        )}
+        <Box sx={{ my: 4 }}>
+          <Copyright />
+          <Typography variant="body2" color="text.secondary" align="center">
+            {'Version: ' + appVersion}
+          </Typography>
+        </Box>
+      </Container>
+    </Drawer>
+  );
 }

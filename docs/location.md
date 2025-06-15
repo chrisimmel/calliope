@@ -9,7 +9,7 @@ This module enables Calliope to be aware of:
 - **Geolocation**: Country, city, region, timezone based on IP address
 - **Time Context**: Local time, date, and season
 - **Weather Conditions**: Current temperature, conditions, and day/night status
-- **Astronomical Events**: 
+- **Astronomical Events**:
   - Visible planets and objects in the night sky
   - Moon phase information
   - Active or peaking meteor showers
@@ -51,28 +51,28 @@ async def get_story_context(client_ip: str):
     async with httpx.AsyncClient() as client:
         # Get full location metadata for the client's IP address
         location_metadata = await get_location_metadata_for_ip(client, client_ip)
-        
+
         # Access location information
         if location_metadata.location.city:
             print(f"Client is located in {location_metadata.location.city}, {location_metadata.location.country}")
-        
+
         # Access weather information
         if location_metadata.weather:
             print(f"Current weather: {location_metadata.weather.weather_description}")
             print(f"Temperature: {location_metadata.weather.temperature}°C")
-        
+
         # Access astronomical information
         if location_metadata.night_sky_objects and not location_metadata.weather.is_day:
             print("Visible in tonight's sky:")
             for obj in location_metadata.night_sky_objects:
                 if obj.naked_eye_object and obj.above_horizon:
                     print(f"- {obj.name} in {obj.constellation}")
-                    
+
         # Check for special astronomical events
         if location_metadata.peaking_meteor_showers:
             for shower in location_metadata.peaking_meteor_showers:
                 print(f"The {shower.name} meteor shower is peaking tonight!")
-        
+
         if location_metadata.solar_eclipse:
             print(f"Solar eclipse today: {location_metadata.solar_eclipse.description}")
             print(f"  Starts: {location_metadata.solar_eclipse.start_time.strftime('%H:%M')}")

@@ -213,36 +213,36 @@ async def get_frame_bookmark(
     client_id: str = Query(..., description="The client ID"),
 ) -> StoryFrameBookmarkResponse:
     """Get a specific frame bookmark by story ID and frame number."""
-    
+
     # Get the sparrow state
     sparrow_state = await get_sparrow_state(client_id)
-    
+
     # Find the story
     story = await Story.objects().where(
         Story.cuid == story_id
     ).first().run()
-    
+
     if not story:
         raise HTTPException(status_code=404, detail="Story not found")
-    
+
     # Find the frame
     frame = await StoryFrame.objects().where(
         StoryFrame.story.id == story.id,
         StoryFrame.number == frame_number
     ).first().run()
-    
+
     if not frame:
         raise HTTPException(status_code=404, detail="Frame not found")
-    
+
     # Get the bookmark
     bookmark = await StoryFrameBookmark.objects().where(
         StoryFrameBookmark.frame.id == frame.id,
         StoryFrameBookmark.sparrow.id == sparrow_state.id
     ).first().run()
-    
+
     if not bookmark:
         raise HTTPException(status_code=404, detail="Bookmark not found")
-    
+
     # Get frame image URL if available
     frame_image_url = None
     if frame.image and hasattr(frame.image, 'url') and frame.image.url:
