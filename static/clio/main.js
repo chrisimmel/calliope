@@ -10640,17 +10640,15 @@
             );
           }
           getFromCache(e, t) {
-            return this.cr
-              .sr(e, t)
-              .next(
-                (e) => (
-                  this.lr.set(t, {
-                    size: e.size,
-                    readTime: e.document.readTime,
-                  }),
-                  e.document
-                ),
-              );
+            return this.cr.sr(e, t).next(
+              (e) => (
+                this.lr.set(t, {
+                  size: e.size,
+                  readTime: e.document.readTime,
+                }),
+                e.document
+              ),
+            );
           }
           getAllFromCache(e, t) {
             return this.cr.ar(e, t).next(
@@ -11955,18 +11953,16 @@
                         return [0, xe(e)];
                       })(i);
                     r.push(
-                      t
-                        .get(a)
-                        .next((n) =>
-                          n
-                            ? oe.resolve()
-                            : ((n) =>
-                                t.put({
-                                  targetId: 0,
-                                  path: xe(n),
-                                  sequenceNumber: e.highestListenSequenceNumber,
-                                }))(i),
-                        ),
+                      t.get(a).next((n) =>
+                        n
+                          ? oe.resolve()
+                          : ((n) =>
+                              t.put({
+                                targetId: 0,
+                                path: xe(n),
+                                sequenceNumber: e.highestListenSequenceNumber,
+                              }))(i),
+                      ),
                     );
                   })
                   .next(() => oe.waitFor(r));
@@ -12808,13 +12804,11 @@
                     i.push(e.batchId);
                     for (const t of e.mutations) a = a.add(t.key);
                   }
-                  return n.localDocuments
-                    .getDocuments(e, a)
-                    .next((e) => ({
-                      hs: e,
-                      removedBatchIds: o,
-                      addedBatchIds: i,
-                    }));
+                  return n.localDocuments.getDocuments(e, a).next((e) => ({
+                    hs: e,
+                    removedBatchIds: o,
+                    addedBatchIds: i,
+                  }));
                 });
             },
           );
