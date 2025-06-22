@@ -430,8 +430,31 @@ export function watchStoryStatus(
               if (snapshot.exists()) {
                 const data = snapshot.data();
                 console.log(`Story ${storyId} data:`, data);
-                const status = data?.status as StoryStatus;
-                callback(status || { status: 'unknown' });
+
+                // Build status from harmonized schema fields
+                let status: StoryStatus;
+                if (data?.active_tasks && data.active_tasks.length > 0) {
+                  // Story has active tasks - currently processing
+                  status = {
+                    status: 'processing',
+                    title: data.title,
+                    frame_count: data.frame_count,
+                    created_at: data.date_created,
+                    updated_at: data.date_updated,
+                    task_id: data.active_tasks[0], // Most recent active task
+                  };
+                } else {
+                  // Story is idle
+                  status = {
+                    status: 'idle',
+                    title: data.title,
+                    frame_count: data.frame_count,
+                    created_at: data.date_created,
+                    updated_at: data.date_updated,
+                  };
+                }
+
+                callback(status);
               } else {
                 console.log(`Story ${storyId} does not exist`);
                 callback({ status: 'unknown' });
@@ -582,7 +605,28 @@ export async function getStoryStatus(
     const snapshot = await getDoc(storyRef);
     if (snapshot.exists()) {
       const data = snapshot.data();
-      return (data?.status as StoryStatus) || null;
+
+      // Build status from harmonized schema fields
+      if (data?.active_tasks && data.active_tasks.length > 0) {
+        // Story has active tasks - currently processing
+        return {
+          status: 'processing',
+          title: data.title,
+          frame_count: data.frame_count,
+          created_at: data.date_created,
+          updated_at: data.date_updated,
+          task_id: data.active_tasks[0], // Most recent active task
+        };
+      } else {
+        // Story is idle
+        return {
+          status: 'idle',
+          title: data.title,
+          frame_count: data.frame_count,
+          created_at: data.date_created,
+          updated_at: data.date_updated,
+        };
+      }
     }
     return null;
   } catch (error) {

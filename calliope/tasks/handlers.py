@@ -8,11 +8,9 @@ that are executed asynchronously by the task queue.
 import logging
 import sys
 import traceback
-from typing import Dict, Any
-from datetime import datetime
+from typing import Any, Dict
 
 import httpx
-
 
 from calliope.inference import image_analysis_inference
 from calliope.inference.audio_to_text import audio_to_text_inference
@@ -32,14 +30,8 @@ from calliope.storage.state_manager import (
 from calliope.strategies import StoryStrategyRegistry
 from calliope.tables import ModelConfig
 from calliope.tasks.local_queue import LocalTaskQueue
-from calliope.utils.google import (
-    CLOUD_ENV_GCP_PROD,
-    get_cloud_environment,
-)
-from calliope.utils.story import (
-    prepare_frame_images,
-    prepare_input_files,
-)
+from calliope.utils.google import CLOUD_ENV_GCP_PROD, get_cloud_environment
+from calliope.utils.story import prepare_frame_images, prepare_input_files
 
 logger = logging.getLogger(__name__)
 
@@ -102,15 +94,10 @@ async def add_frame_task(payload: Dict[str, Any]) -> Dict[str, Any]:
     # Get Firebase manager
     firebase = get_firebase_manager()
 
-    # Update Firebase with progress
-    await firebase.update_story_status(
-        story_id,
-        {
-            "status": "adding_frame",
-            "progress": "Adding new frame",
-            "updated_at": datetime.now().isoformat(),
-        },
-    )
+    # Update task status to running
+    task_id = payload.get("_task_id")
+    if task_id:
+        await firebase.update_task(task_id, {"status": "running"})
 
     try:
         sparrow_state = await get_sparrow_state(client_id)
@@ -179,11 +166,9 @@ async def add_frame_task(payload: Dict[str, Any]) -> Dict[str, Any]:
                 strategy_config.text_to_text_model_config
                 and strategy_config.text_to_text_model_config
                 and strategy_config.text_to_text_model_config.prompt_template
-                and strategy_config.text_to_text_model_config.prompt_template.target_language  # noqa: E501
+                and strategy_config.text_to_text_model_config.prompt_template.target_language
             ):
-                language = (
-                    strategy_config.text_to_text_model_config.prompt_template.target_language  # noqa: E501
-                )
+                language = strategy_config.text_to_text_model_config.prompt_template.target_language
 
             if parameters.input_audio_filename:
                 text = await audio_to_text_inference(
@@ -201,6 +186,8 @@ async def add_frame_task(payload: Dict[str, Any]) -> Dict[str, Any]:
                 story,
                 httpx_client,
             )
+            if story.title == "Untitled":
+                story.title = story_frames_response.frames[0].title
 
         story_frames_response.debug_data = {
             **(story_frames_response.debug_data or {}),
@@ -221,25 +208,50 @@ async def add_frame_task(payload: Dict[str, Any]) -> Dict[str, Any]:
 
         num_frames = await story.get_num_frames()
 
-        # Update Firebase with completion status
-        await firebase.update_story_status(
+        # Update task status to completed with results
+        if task_id:
+            await firebase.update_task(
+                task_id,
+                {
+                    "status": "completed",
+                    "result": {
+                        "frames_added": len(story_frames_response.frames),
+                        "new_frame_count": num_frames,
+                    },
+                },
+            )
+
+        # Update story with new frame count and full harmonized schema
+        await firebase.update_story_fields(
             story_id,
             {
-                "status": "completed",
+                "cuid": story.cuid,
+                "title": story.title,
+                "slug": story.slug,
+                "strategy_name": story.strategy_name,
+                "created_for_sparrow_id": story.created_for_sparrow_id,
+                "thumbnail_image": None,  # TODO: Handle thumbnail conversion
+                "state_props": story.state_props,
+                "date_created": story.date_created.isoformat(),
+                "date_updated": story.date_updated.isoformat(),
                 "frame_count": num_frames,
-                "completed_at": datetime.now().isoformat(),
             },
         )
 
-        # Add completion update
-        await firebase.add_story_update(
-            story_id,
-            {
-                "type": "frame_added",
-                "timestamp": datetime.now().isoformat(),
-                "frame_number": num_frames,
-            },
-        )
+        # Add a frame_added update for Clio to detect new frames
+        frames_added_count = len(story_frames_response.frames)
+        if frames_added_count > 0:
+            # Use the last frame number for the update (in case multiple frames were added)
+            latest_frame_number = num_frames - 1
+            await firebase.add_story_update(
+                story_id,
+                {
+                    "type": "frame_added",
+                    "frame_number": latest_frame_number,
+                    "frames_added_count": frames_added_count,
+                    "new_frame_count": num_frames,
+                },
+            )
 
         frame_models = [frame.to_pydantic() for frame in story_frames_response.frames]
         return {
@@ -249,16 +261,16 @@ async def add_frame_task(payload: Dict[str, Any]) -> Dict[str, Any]:
         }
 
     except Exception as e:
-        logger.exception(f"Error generating content for story {story_id}: {str(e)}")
-        # Update Firebase with error status
-        await firebase.update_story_status(
-            story_id,
-            {
-                "status": "error",
-                "error": str(e),
-                "error_time": datetime.now().isoformat(),
-            },
-        )
+        logger.exception(f"Error generating content for story {story_id}: {e!s}")
+        # Update task status to failed
+        if task_id:
+            await firebase.update_task(
+                task_id,
+                {
+                    "status": "failed",
+                    "error": str(e),
+                },
+            )
         raise
 
 

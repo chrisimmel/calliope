@@ -6,7 +6,10 @@ from datetime import datetime
 from functools import lru_cache
 import logging
 import os
-from typing import Dict, Any, Optional, List
+from typing import Any, Dict, List, Optional
+
+import firebase_admin
+from firebase_admin import credentials, firestore
 
 from calliope.utils.google import (
     CLOUD_ENV_GCP_PROD,
@@ -14,8 +17,6 @@ from calliope.utils.google import (
     get_project_id,
     is_google_cloud_run_environment,
 )
-import firebase_admin
-from firebase_admin import credentials, firestore
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +56,7 @@ class FirebaseManager:
                     self.app = firebase_admin.initialize_app(
                         cred, {"projectId": project_id, "databaseId": database_id}
                     )
-                except (ValueError, IOError) as e:
+                except (OSError, ValueError) as e:
                     # If Certificate fails, try with ApplicationDefault instead
                     logger.info(
                         f"Using application default credentials for Firebase: {e}"
@@ -73,7 +74,7 @@ class FirebaseManager:
                     logger.error(
                         f"Failed to initialize Firebase with default credentials: {e}"
                     )
-                    raise ValueError("Firebase credentials not found or invalid.")
+                    raise ValueError("Firebase credentials not found or invalid.") from e
 
             # Get the Firestore client
             firestore_client = firestore.client(database_id=database_id)
@@ -230,6 +231,219 @@ class FirebaseManager:
             logger.info(f"Deleted story {story_id} data from Firestore")
         except Exception as e:
             logger.error(f"Error deleting story data from Firestore: {e}")
+            raise
+
+    # --- Task Management Methods ---
+
+    async def create_task(self, task_data: Dict[str, Any]) -> str:
+        """
+        Create a new task record in Firebase.
+
+        Args:
+            task_data: Task information including task_id, task_type, payload, etc.
+
+        Returns:
+            The task ID
+        """
+        try:
+            task_id = task_data.get("task_id")
+            if not task_id:
+                raise ValueError("task_id is required in task_data")
+
+            # Ensure required fields are present
+            task_record = {
+                "task_id": task_id,
+                "task_type": task_data.get("task_type"),
+                "status": "pending",
+                "created_at": datetime.now().isoformat(),
+                "payload": task_data.get("payload", {}),
+                "story_id": task_data.get("story_id"),
+                "client_id": task_data.get("client_id"),
+            }
+
+            # Add optional fields if present
+            if "progress" in task_data:
+                task_record["progress"] = task_data["progress"]
+            if "error" in task_data:
+                task_record["error"] = task_data["error"]
+
+            # Create the task document
+            task_ref = self.db.collection("tasks").document(task_id)
+            task_ref.set(task_record)
+
+            # If associated with a story, update the story's active_tasks
+            story_id = task_data.get("story_id")
+            if story_id:
+                await self.add_active_task_to_story(story_id, task_id)
+
+            logger.debug(f"Created task {task_id} in Firebase")
+            return task_id
+        except Exception as e:
+            logger.error(f"Error creating task in Firebase: {e}")
+            raise
+
+    async def update_task(self, task_id: str, updates: Dict[str, Any]) -> None:
+        """
+        Update a task record in Firebase.
+
+        Args:
+            task_id: ID of the task to update
+            updates: Dictionary of fields to update
+        """
+        try:
+            task_ref = self.db.collection("tasks").document(task_id)
+
+            # Add timestamp for status changes
+            if "status" in updates:
+                timestamp = datetime.now().isoformat()
+                if updates["status"] == "running":
+                    updates["started_at"] = timestamp
+                elif updates["status"] in ["completed", "failed"]:
+                    updates["completed_at"] = timestamp
+                    # Move task from active to recent for associated story
+                    task_doc = task_ref.get()
+                    if task_doc.exists:
+                        task_data = task_doc.to_dict()
+                        story_id = task_data.get("story_id")
+                        if story_id:
+                            await self.move_task_to_recent(story_id, task_id)
+
+            task_ref.update(updates)
+            logger.debug(f"Updated task {task_id} in Firebase")
+        except Exception as e:
+            logger.error(f"Error updating task in Firebase: {e}")
+            raise
+
+    async def get_task(self, task_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Get a task record from Firebase.
+
+        Args:
+            task_id: ID of the task to retrieve
+
+        Returns:
+            Task data or None if not found
+        """
+        try:
+            task_ref = self.db.collection("tasks").document(task_id)
+            task_doc = task_ref.get()
+
+            if task_doc.exists:
+                return task_doc.to_dict()
+            return None
+        except Exception as e:
+            logger.error(f"Error getting task from Firebase: {e}")
+            return None
+
+    async def get_tasks_for_story(
+        self, story_id: str, limit: int = 20
+    ) -> List[Dict[str, Any]]:
+        """
+        Get recent tasks associated with a story.
+
+        Args:
+            story_id: ID of the story
+            limit: Maximum number of tasks to return
+
+        Returns:
+            List of task records
+        """
+        try:
+            tasks_ref = self.db.collection("tasks")
+            query = (
+                tasks_ref.where("story_id", "==", story_id)
+                .order_by("created_at", direction=firestore.Query.DESCENDING)
+                .limit(limit)
+            )
+
+            tasks_docs = query.stream()
+            tasks = []
+            for doc in tasks_docs:
+                task_data = doc.to_dict()
+                tasks.append(task_data)
+
+            return tasks
+        except Exception as e:
+            logger.error(f"Error getting tasks for story from Firebase: {e}")
+            return []
+
+    async def add_active_task_to_story(self, story_id: str, task_id: str) -> None:
+        """
+        Add a task ID to a story's active_tasks list.
+        Creates the story document with minimal schema if it doesn't exist.
+
+        Args:
+            story_id: ID of the story
+            task_id: ID of the task to add
+        """
+        try:
+            story_ref = self.db.collection("stories").document(story_id)
+
+            # Check if document exists first
+            story_doc = story_ref.get()
+            if story_doc.exists:
+                # Document exists, just add the task
+                story_ref.update({"active_tasks": firestore.ArrayUnion([task_id])})
+            else:
+                # Document doesn't exist, create it with minimal schema
+                # The task handler will fill in the full harmonized fields later
+                story_ref.set(
+                    {
+                        "cuid": story_id,
+                        "active_tasks": [task_id],
+                        "recent_tasks": [],
+                        "frame_count": 0,
+                    }
+                )
+        except Exception as e:
+            logger.error(f"Error adding active task to story: {e}")
+
+    async def move_task_to_recent(self, story_id: str, task_id: str) -> None:
+        """
+        Move a task from active_tasks to recent_tasks for a story.
+
+        Args:
+            story_id: ID of the story
+            task_id: ID of the task to move
+        """
+        try:
+            story_ref = self.db.collection("stories").document(story_id)
+
+            # Get current story data
+            story_doc = story_ref.get()
+            if not story_doc.exists:
+                return
+
+            story_data = story_doc.to_dict()
+            active_tasks = story_data.get("active_tasks", [])
+            recent_tasks = story_data.get("recent_tasks", [])
+
+            # Remove from active, add to recent (keeping only last 5)
+            if task_id in active_tasks:
+                active_tasks.remove(task_id)
+                recent_tasks.insert(0, task_id)  # Add to front
+                recent_tasks = recent_tasks[:5]  # Keep only last 5
+
+                story_ref.update(
+                    {"active_tasks": active_tasks, "recent_tasks": recent_tasks}
+                )
+        except Exception as e:
+            logger.error(f"Error moving task to recent: {e}")
+
+    async def update_story_fields(self, story_id: str, fields: Dict[str, Any]) -> None:
+        """
+        Update story fields in Firebase (for schema harmonization).
+
+        Args:
+            story_id: ID of the story
+            fields: Dictionary of story fields to update
+        """
+        try:
+            story_ref = self.db.collection("stories").document(story_id)
+            story_ref.set(fields, merge=True)
+            logger.debug(f"Updated story {story_id} fields in Firebase")
+        except Exception as e:
+            logger.error(f"Error updating story fields in Firebase: {e}")
             raise
 
 

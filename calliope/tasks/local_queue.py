@@ -6,13 +6,15 @@ blocking the main API server thread.
 """
 
 import asyncio
-from typing import Dict, Any, Optional, Callable, List, Set
-import time
-import logging
 from datetime import datetime
+import logging
+import time
 import traceback
+from typing import Any, Callable, Dict, List, Optional, Set
 
-from .queue import TaskQueue, Task
+from calliope.storage.firebase import get_firebase_manager
+
+from .queue import Task, TaskQueue
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +27,7 @@ class LocalTaskQueue(TaskQueue):
         self.handlers: Dict[str, Callable] = {}
         self.running_tasks: Set[str] = set()
         self.task_results: Dict[str, Any] = {}
+        self.firebase = get_firebase_manager()
 
     def register_handler(self, task_type: str, handler: Callable):
         """
@@ -57,15 +60,32 @@ class LocalTaskQueue(TaskQueue):
         task = Task.create(task_type, payload)
         self.tasks[task.task_id] = task
 
+        # Create Firebase task record
+        try:
+            firebase_task_data = {
+                "task_id": task.task_id,
+                "task_type": task_type,
+                "payload": payload,
+                "story_id": payload.get("story_id"),
+                "client_id": payload.get("client_id"),
+            }
+            await self.firebase.create_task(firebase_task_data)
+        except Exception as e:
+            logger.error(f"Failed to create Firebase task record: {e}")
+            # Continue anyway - task will still run locally
+
         # Schedule the task to run asynchronously with optional delay
         if delay_seconds > 0:
             logger.info(
                 f"Task {task.task_id} of type {task_type} scheduled with {delay_seconds}s delay"
             )
-            asyncio.create_task(self._run_task_with_delay(task.task_id, delay_seconds))
+            async_task = asyncio.create_task(
+                self._run_task_with_delay(task.task_id, delay_seconds)
+            )
         else:
             # Schedule immediately
-            asyncio.create_task(self._run_task(task.task_id))
+            async_task = asyncio.create_task(self._run_task(task.task_id))
+        print(f"Enqueued task: {async_task}")
 
         return task.task_id
 
@@ -91,6 +111,12 @@ class LocalTaskQueue(TaskQueue):
         self.running_tasks.add(task_id)
         task.status = "running"
 
+        # Update Firebase task status to running
+        try:
+            await self.firebase.update_task(task_id, {"status": "running"})
+        except Exception as e:
+            logger.error(f"Failed to update Firebase task status to running: {e}")
+
         try:
             # Execute the task handler
             start_time = time.time()
@@ -112,16 +138,69 @@ class LocalTaskQueue(TaskQueue):
                 "completed_at": datetime.now().isoformat(),
             }
 
+            # Update Firebase task status to completed
+            try:
+                # Serialize the result for Firestore storage
+                serializable_result = self._serialize_task_result(result)
+                await self.firebase.update_task(
+                    task_id, {"status": "completed", "result": serializable_result}
+                )
+            except Exception as e:
+                logger.error(f"Failed to update Firebase task status to completed: {e}")
+
         except Exception as e:
-            logger.exception(f"Task {task_id} failed: {str(e)}")
+            logger.exception(f"Task {task_id} failed: {e!s}")
             task.status = "failed"
             self.task_results[task_id] = {
                 "error": str(e),
                 "traceback": traceback.format_exc(),
                 "failed_at": datetime.now().isoformat(),
             }
+
+            # Update Firebase task status to failed
+            try:
+                await self.firebase.update_task(
+                    task_id, {"status": "failed", "error": str(e)}
+                )
+            except Exception as e:
+                logger.error(f"Failed to update Firebase task status to failed: {e}")
+
         finally:
             self.running_tasks.remove(task_id)
+
+    def _serialize_task_result(self, result: Any) -> Dict[str, Any]:
+        """
+        Serialize task result for Firestore storage.
+        Converts Pydantic models and other non-serializable objects to dictionaries.
+        """
+        if result is None:
+            return {"success": True}
+
+        if isinstance(result, dict):
+            serialized = {}
+            for key, value in result.items():
+                serialized[key] = self._serialize_value(value)
+            return serialized
+
+        # For non-dict results, wrap in a result object
+        return {"result": self._serialize_value(result)}
+
+    def _serialize_value(self, value: Any) -> Any:
+        """Helper method to serialize individual values."""
+        if value is None:
+            return None
+        elif hasattr(value, "model_dump"):
+            # Pydantic model - convert to dict
+            return value.model_dump()
+        elif isinstance(value, list):
+            # List - recursively serialize each item
+            return [self._serialize_value(item) for item in value]
+        elif isinstance(value, dict):
+            # Dict - recursively serialize each value
+            return {k: self._serialize_value(v) for k, v in value.items()}
+        else:
+            # Primitive value (str, int, float, bool) - return as-is
+            return value
 
     async def get_task_status(self, task_id: str) -> Optional[Dict[str, Any]]:
         """

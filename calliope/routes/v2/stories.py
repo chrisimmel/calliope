@@ -7,26 +7,26 @@ Uses Firebase Realtime Database for real-time updates.
 """
 
 from datetime import datetime
-from calliope.utils.story import prepare_existing_frame_images
-from fastapi import APIRouter, HTTPException, Depends, Query, Request
 import logging
-from pydantic import BaseModel
 from typing import Any, Optional
 
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from pydantic import BaseModel
+
+from calliope.routes.v1.story import StoryResponseV1
+from calliope.routes.v2.models import AddFrameRequest, CreateStoryRequest, Snippet
+from calliope.storage.firebase import FirebaseManager, get_firebase_manager
 from calliope.storage.state_manager import (
     get_sparrow_state,
-    put_sparrow_state,
     get_story,
+    put_sparrow_state,
     put_story,
 )
 from calliope.tables import Story
 from calliope.tasks.factory import configure_task_queue
 from calliope.tasks.queue import TaskQueue
-from calliope.storage.firebase import get_firebase_manager, FirebaseManager
-
-from calliope.routes.v1.story import StoryResponseV1
-from calliope.routes.v2.models import AddFrameRequest, CreateStoryRequest, Snippet
 from calliope.utils.id import create_cuid
+from calliope.utils.story import prepare_existing_frame_images
 
 logger = logging.getLogger(__name__)
 
@@ -138,16 +138,22 @@ async def create_story(
 
         new_story_cuid = story.cuid
 
-        # Initialize Firebase entry for this story
-        await firebase.update_story_status(
+        # Initialize Firebase entry for this story with harmonized schema
+        await firebase.update_story_fields(
             new_story_cuid,
             {
-                "status": "created",
-                "title": request_data.title,
-                "created_at": story.date_created.isoformat(),
-                "client_id": client_id,
-                "strategy": request_data.strategy,
+                "cuid": new_story_cuid,
+                "title": request_data.title or "Untitled",
+                "slug": None,  # Will be generated when first frame with text is added
+                "strategy_name": request_data.strategy,
+                "created_for_sparrow_id": client_id,
+                "thumbnail_image": None,
+                "state_props": None,
+                "date_created": story.date_created.isoformat(),
+                "date_updated": story.date_updated.isoformat(),
                 "frame_count": 0,
+                "active_tasks": [],
+                "recent_tasks": [],
             },
         )
 
@@ -170,8 +176,10 @@ async def create_story(
         )
 
     except Exception as e:
-        logger.exception(f"Error creating story: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to create story: {str(e)}")
+        logger.exception(f"Error creating story: {e!s}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to create story: {e!s}"
+        ) from e
 
 
 @router.post("/{story_id}/frames/", response_model=AddFrameResponse)
@@ -208,8 +216,10 @@ async def request_new_frame(
         # Re-raise HTTP exceptions
         raise
     except Exception as e:
-        logger.exception(f"Error adding snippets to story {story_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to add snippets: {str(e)}")
+        logger.exception(f"Error adding snippets to story {story_id}: {e!s}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to add snippets: {e!s}"
+        ) from e
 
 
 async def _request_new_frame(
@@ -218,7 +228,7 @@ async def _request_new_frame(
     story: Story,
     snippets: list[Snippet],
     task_queue: TaskQueue,
-    firebase: FirebaseManager,
+    firebase: FirebaseManager,  # noqa: ARG001
     extra_parameters: Optional[dict[str, Any]] = None,
 ):
     """
@@ -228,10 +238,7 @@ async def _request_new_frame(
     story creation or when adding snippets to an existing story.
     """
     # Enqueue a task to create and add a frame.
-    snippet_data = []
-    if snippets:
-        for snippet in snippets:
-            snippet_data.append(snippet.model_dump(exclude_unset=True))
+    snippet_data = [snippet.model_dump(exclude_unset=True) for snippet in snippets or []]
 
     forwarded_header = request.headers.get("X-Forwarded-For")
     if forwarded_header:
@@ -251,18 +258,8 @@ async def _request_new_frame(
         "extra_parameters": extra_parameters or {},
     }
 
-    # Enqueue the task
+    # Enqueue the task (Firebase task record created automatically by GCP queue)
     task_id = await task_queue.enqueue(task_type="add_frame", payload=task_payload)
-
-    # Update Firebase with task info
-    await firebase.update_story_status(
-        story.cuid,
-        {
-            "status": "processing",
-            "task_id": task_id,
-            "processing_started_at": datetime.now().isoformat(),
-        },
-    )
 
     logger.info(
         f"Story {story.cuid}: Enqueued task {task_id} to add frame with {len(snippets)} snippets"
@@ -296,11 +293,44 @@ async def get_story_state(
                 status_code=404, detail=f"Story with id {story_id} not found"
             )
 
-        print(f"Getting Firebase status for {story_id}")
-        # Get Firebase status
-        firebase_status = await firebase.get_story_status(story_id)
+        print(f"Getting Firebase story data for {story_id}")
+        # Get Firebase story data (harmonized schema)
+        firebase_story_data = await firebase.get_story_status(story_id)
 
-        print(f"{firebase_status=}")
+        # Get active tasks for status
+        active_tasks = (
+            firebase_story_data.get("active_tasks", []) if firebase_story_data else []
+        )
+        recent_tasks = (
+            firebase_story_data.get("recent_tasks", []) if firebase_story_data else []
+        )
+
+        # Build status from task information
+        status = {}
+        if active_tasks:
+            # Get the most recent active task
+            latest_task = await firebase.get_task(active_tasks[0])
+            if latest_task:
+                status = {
+                    "status": latest_task.get("status", "unknown"),
+                    "task_id": latest_task.get("task_id"),
+                    "task_type": latest_task.get("task_type"),
+                    "started_at": latest_task.get("started_at"),
+                }
+        elif recent_tasks:
+            # Get the most recent completed task
+            latest_task = await firebase.get_task(recent_tasks[0])
+            if latest_task:
+                status = {
+                    "status": "idle",  # Story is idle, last task completed
+                    "last_task_id": latest_task.get("task_id"),
+                    "last_task_type": latest_task.get("task_type"),
+                    "completed_at": latest_task.get("completed_at"),
+                }
+        else:
+            status = {"status": "idle"}
+
+        print(f"{firebase_story_data=}")
         if include_frames:
             print("Getting frames")
             frames = await story.get_frames(include_media=True)
@@ -317,7 +347,7 @@ async def get_story_state(
             story_frame_count=await story.get_num_frames(),
             append_to_prior_frames=False,
             request_id=create_cuid(),
-            status=firebase_status,
+            status=status,
             strategy=story.strategy_name,
             is_read_only=story.created_for_sparrow_id != client_id,
             created_for_sparrow_id=story.created_for_sparrow_id,
@@ -333,10 +363,10 @@ async def get_story_state(
         # Re-raise HTTP exceptions
         raise
     except Exception as e:
-        logger.exception(f"Error retrieving story {story_id}: {str(e)}")
+        logger.exception(f"Error retrieving story {story_id}: {e!s}")
         raise HTTPException(
-            status_code=500, detail=f"Failed to retrieve story: {str(e)}"
-        )
+            status_code=500, detail=f"Failed to retrieve story: {e!s}"
+        ) from e
 
 
 @router.get("/")
@@ -387,5 +417,7 @@ async def list_stories(
         }
 
     except Exception as e:
-        logger.exception(f"Error listing stories: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to list stories: {str(e)}")
+        logger.exception(f"Error listing stories: {e!s}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to list stories: {e!s}"
+        ) from e
