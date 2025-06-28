@@ -2,6 +2,7 @@
 Firebase Firestore integration for real-time updates.
 """
 
+import asyncio
 from datetime import datetime
 from functools import lru_cache
 import logging
@@ -274,7 +275,13 @@ class FirebaseManager:
             # If associated with a story, update the story's active_tasks
             story_id = task_data.get("story_id")
             if story_id:
+                logger.debug(
+                    f"Task {task_id} associated with story {story_id}, adding to active_tasks"
+                )
                 await self.add_active_task_to_story(story_id, task_id)
+                logger.debug(
+                    f"Finished adding task {task_id} to story {story_id} active_tasks"
+                )
 
             logger.debug(f"Created task {task_id} in Firebase")
             return task_id
@@ -382,25 +389,64 @@ class FirebaseManager:
             # Check if document exists first
             story_doc = story_ref.get()
             if story_doc.exists:
-                # Document exists, just add the task
-                story_ref.update({"active_tasks": firestore.ArrayUnion([task_id])})
+                # Document exists, get current data and update
+                story_data = story_doc.to_dict()
+                current_active_tasks = story_data.get("active_tasks", [])
+
+                # Only add if not already present (idempotent)
+                if task_id not in current_active_tasks:
+                    logger.debug(
+                        f"Adding task {task_id} to existing story {story_id}, current tasks: {current_active_tasks}"
+                    )
+
+                    # Use ArrayUnion for real-time listener compatibility
+                    # This should trigger real-time listeners more reliably than transactions
+                    story_ref.update({"active_tasks": firestore.ArrayUnion([task_id])})
+                    logger.debug(
+                        f"Successfully added task {task_id} to story {story_id} using ArrayUnion"
+                    )
+                else:
+                    logger.debug(
+                        f"Task {task_id} already in active_tasks for story {story_id}"
+                    )
             else:
                 # Document doesn't exist, create it with minimal schema
-                # The task handler will fill in the full harmonized fields later
-                story_ref.set(
-                    {
-                        "cuid": story_id,
-                        "active_tasks": [task_id],
-                        "recent_tasks": [],
-                        "frame_count": 0,
-                    }
+                logger.debug(
+                    f"Creating new story document {story_id} with task {task_id}"
                 )
+                initial_data = {
+                    "cuid": story_id,
+                    "active_tasks": [task_id],
+                    "recent_tasks": [],
+                    "frame_count": 0,
+                }
+
+                # Use set for new document creation
+                story_ref.set(initial_data)
+                logger.debug(
+                    f"Successfully created story {story_id} with task {task_id}"
+                )
+
+            # Add a small delay and force a timestamp update to ensure real-time propagation
+            # This helps trigger listeners across devices more reliably
+            await asyncio.sleep(0.1)  # Small delay
+
+            # Update the document with a timestamp to force a change event
+            story_ref.update(
+                {
+                    "last_activity": datetime.now().isoformat(),
+                    "active_tasks_updated_at": datetime.now().isoformat(),
+                }
+            )
+
         except Exception as e:
             logger.error(f"Error adding active task to story: {e}")
+            raise
 
     async def move_task_to_recent(self, story_id: str, task_id: str) -> None:
         """
         Move a task from active_tasks to recent_tasks for a story.
+        Uses ArrayRemove/ArrayUnion for better real-time listener compatibility.
 
         Args:
             story_id: ID of the story
@@ -412,6 +458,9 @@ class FirebaseManager:
             # Get current story data
             story_doc = story_ref.get()
             if not story_doc.exists:
+                logger.debug(
+                    f"Story {story_id} does not exist when moving task {task_id}"
+                )
                 return
 
             story_data = story_doc.to_dict()
@@ -420,15 +469,41 @@ class FirebaseManager:
 
             # Remove from active, add to recent (keeping only last 5)
             if task_id in active_tasks:
-                active_tasks.remove(task_id)
-                recent_tasks.insert(0, task_id)  # Add to front
-                recent_tasks = recent_tasks[:5]  # Keep only last 5
-
-                story_ref.update(
-                    {"active_tasks": active_tasks, "recent_tasks": recent_tasks}
+                logger.debug(
+                    f"Moving task {task_id} from active to recent for story {story_id}"
                 )
+                logger.debug(f"Current active_tasks: {active_tasks}")
+                logger.debug(f"Current recent_tasks: {recent_tasks}")
+
+                # Remove from active_tasks.
+                story_ref.update({"active_tasks": firestore.ArrayRemove([task_id])})
+
+                # Add to recent_tasks
+                updated_recent_tasks = [task_id, *recent_tasks]
+                updated_recent_tasks = updated_recent_tasks[:5]
+
+                # Update recent_tasks
+                story_ref.update({"recent_tasks": updated_recent_tasks})
+
+                logger.debug(f"Successfully moved task {task_id} from active to recent")
+                logger.debug(f"New recent_tasks: {updated_recent_tasks}")
+
+                # Force a timestamp update to ensure real-time propagation
+                await asyncio.sleep(0.1)  # Small delay
+                story_ref.update(
+                    {
+                        "last_activity": datetime.now().isoformat(),
+                        "active_tasks_updated_at": datetime.now().isoformat(),
+                    }
+                )
+            else:
+                logger.debug(
+                    f"Task {task_id} not found in active_tasks for story {story_id}"
+                )
+
         except Exception as e:
             logger.error(f"Error moving task to recent: {e}")
+            raise
 
     async def update_story_fields(self, story_id: str, fields: Dict[str, Any]) -> None:
         """

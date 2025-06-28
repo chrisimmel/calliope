@@ -201,9 +201,37 @@ const StoryStatusMonitor: React.FC<StoryStatusMonitorProps> = ({
       }
     };
 
+    // Backup polling mechanism to catch missed Firebase updates
+    // This helps ensure cross-device updates work even if real-time listeners miss something
+    // DISABLED BY DEFAULT - can be enabled if needed for debugging
+    const startBackupPolling = (enabled: boolean = false) => {
+      if (!enabled) {
+        console.log('🔄 BACKUP POLL: Disabled by default');
+        return () => {}; // Return no-op cleanup function
+      }
+
+      const pollInterval = setInterval(async () => {
+        try {
+          console.log(
+            '🔄 BACKUP POLL: Checking for missed Firebase updates...'
+          );
+          const currentStatus = await getStoryStatus(storyId);
+          if (currentStatus) {
+            console.log('🔄 BACKUP POLL: Current status:', currentStatus);
+            handleStatusChange(currentStatus);
+          }
+        } catch (error) {
+          console.error('🔄 BACKUP POLL: Error:', error);
+        }
+      }, 3000); // Poll every 3 seconds as backup
+
+      return () => clearInterval(pollInterval);
+    };
+
     // Set up Firebase listeners
     let statusUnsubscribe: (() => void) | null = null;
     let updatesUnsubscribe: (() => void) | null = null;
+    let backupPollCleanup: (() => void) | null = null;
 
     const setupListeners = async () => {
       try {
@@ -227,6 +255,10 @@ const StoryStatusMonitor: React.FC<StoryStatusMonitorProps> = ({
             }
           }
         });
+
+        // Start backup polling to catch missed updates (disabled by default)
+        // To enable: change to startBackupPolling(true)
+        backupPollCleanup = startBackupPolling(false);
       } catch (error) {
         console.error('Error setting up Firebase monitors:', error);
 
@@ -264,6 +296,15 @@ const StoryStatusMonitor: React.FC<StoryStatusMonitorProps> = ({
           updatesUnsubscribe();
         } catch (error) {
           console.error('Error cleaning up updates monitor:', error);
+        }
+      }
+
+      // Clean up backup polling
+      if (backupPollCleanup) {
+        try {
+          backupPollCleanup();
+        } catch (error) {
+          console.error('Error cleaning up backup polling:', error);
         }
       }
     };

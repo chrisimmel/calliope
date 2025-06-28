@@ -418,23 +418,45 @@ export function watchStoryStatus(
 
           // Set up the snapshot listener
           console.log(`Setting up snapshot listener for story ${storyId}`);
+          console.log('Database info:', {
+            databaseId: databaseId,
+            firestoreApp: db.app.name,
+            projectId: db.app.options.projectId,
+          });
           actualUnsubscribe = onSnapshot(
             storyRef,
             snapshot => {
               console.log(`Story ${storyId} snapshot received:`, {
                 exists: snapshot.exists(),
                 id: snapshot.id,
-                metadata: snapshot.metadata,
+                metadata: {
+                  fromCache: snapshot.metadata.fromCache,
+                  hasPendingWrites: snapshot.metadata.hasPendingWrites,
+                  isEqual: snapshot.metadata.isEqual,
+                },
               });
 
               if (snapshot.exists()) {
                 const data = snapshot.data();
-                console.log(`Story ${storyId} data:`, data);
+                console.log(`Story ${storyId} data:`, {
+                  ...data,
+                  active_tasks: data?.active_tasks,
+                  active_tasks_length: data?.active_tasks?.length || 0,
+                  active_tasks_type: typeof data?.active_tasks,
+                });
 
                 // Build status from harmonized schema fields
                 let status: StoryStatus;
                 if (data?.active_tasks && data.active_tasks.length > 0) {
                   // Story has active tasks - currently processing
+                  console.log(
+                    `🔥 FIREBASE: Story ${storyId} is PROCESSING with active tasks:`,
+                    data.active_tasks
+                  );
+                  console.log(`🔥 FIREBASE: Snapshot metadata:`, {
+                    fromCache: snapshot.metadata.fromCache,
+                    hasPendingWrites: snapshot.metadata.hasPendingWrites,
+                  });
                   status = {
                     status: 'processing',
                     title: data.title,
@@ -445,6 +467,15 @@ export function watchStoryStatus(
                   };
                 } else {
                   // Story is idle
+                  console.log(
+                    `🔥 FIREBASE: Story ${storyId} is IDLE - no active tasks`
+                  );
+                  console.log(`🔥 FIREBASE: Active tasks data:`, {
+                    active_tasks: data?.active_tasks,
+                    type: typeof data?.active_tasks,
+                    isArray: Array.isArray(data?.active_tasks),
+                    length: data?.active_tasks?.length,
+                  });
                   status = {
                     status: 'idle',
                     title: data.title,
@@ -454,6 +485,7 @@ export function watchStoryStatus(
                   };
                 }
 
+                console.log(`Story ${storyId} computed status:`, status);
                 callback(status);
               } else {
                 console.log(`Story ${storyId} does not exist`);

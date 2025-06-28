@@ -69,7 +69,11 @@ class LocalTaskQueue(TaskQueue):
                 "story_id": payload.get("story_id"),
                 "client_id": payload.get("client_id"),
             }
+            logger.debug(
+                f"Creating Firebase task record for {task.task_id} with story_id {payload.get('story_id')}"
+            )
             await self.firebase.create_task(firebase_task_data)
+            logger.debug(f"Successfully created Firebase task record for {task.task_id}")
         except Exception as e:
             logger.error(f"Failed to create Firebase task record: {e}")
             # Continue anyway - task will still run locally
@@ -122,11 +126,14 @@ class LocalTaskQueue(TaskQueue):
             start_time = time.time()
             logger.info(f"Starting task {task_id} of type {task.task_type}")
 
+            # Add task_id to payload so handlers can access it
+            task_payload = {**task.payload, "_task_id": task_id}
+
             if asyncio.iscoroutinefunction(handler):
-                result = await handler(task.payload)
+                result = await handler(task_payload)
             else:
                 # Run synchronous handlers in a thread pool
-                result = await asyncio.to_thread(handler, task.payload)
+                result = await asyncio.to_thread(handler, task_payload)
 
             task.status = "completed"
             duration = time.time() - start_time
