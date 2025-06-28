@@ -1,4 +1,3 @@
-version: '3.10'
 services:
   postgres:
     hostname: postgres
@@ -16,7 +15,7 @@ services:
     build:
       context: .
     # command: bash
-    command: uvicorn calliope.app:app --reload --host 0.0.0.0 --port 8008
+    command: uv run uvicorn calliope.app:app --reload --host 0.0.0.0 --port 8008
     container_name: calliope
     depends_on:
       - postgres
@@ -28,16 +27,26 @@ services:
       - POSTGRESQL_DATABASE=calliope
       - CLOUDSDK_CONFIG=/gcp/config
       - GOOGLE_APPLICATION_CREDENTIALS=/gcp/config/application_default_credentials.json
+      - GOOGLE_CLOUD_PROJECT=ardent-course-370411
       - CLOUD_ENV=local
       - OPENAI_API_KEY=$OPENAI_API_KEY
       - PINECONE_API_KEY=$PINECONE_API_KEY
       - PINECONE_ENVIRONMENT=us-west1-gcp-free
       - SEMANTIC_SEARCH_INDEX=story-semantic-search
+      - FIREBASE_DATABASE_ID=calliope-development
+      # Use the same credentials file for Firebase - Firebase Admin SDK will
+      # gracefully fall back to application default credentials if needed
+      - FIREBASE_CREDENTIALS_PATH=/gcp/config/application_default_credentials.json
     ports:
       - 8008:8008
     tty: true
     volumes:
       - .:/app
-      - /app/.venv
+      - /app/.venv  # Preserve container's virtual environment
       - $HOME/.config/gcloud:/gcp/config:ro
       - /gcp/config/logs
+      # Mount specific directories that need to be persistent
+      - ./config:/app/config
+      - ./input:/app/input
+      - ./media:/app/media
+      - ./state:/app/state

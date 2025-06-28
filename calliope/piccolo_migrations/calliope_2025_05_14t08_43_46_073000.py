@@ -39,7 +39,7 @@ class Story(Table):
     def generate_slug_base(title: str) -> str:
         """
         Generate a base URL-friendly slug from a title.
-        Converts to lowercase, removes non-alphanumeric characters, 
+        Converts to lowercase, removes non-alphanumeric characters,
         and replaces spaces with hyphens.
 
         This is a base slug that might need to be modified to ensure uniqueness.
@@ -101,7 +101,7 @@ class Story(Table):
 async def backfill_story_slugs() -> None:
     """
     Backfill slugs for all stories that don't have them yet.
-    
+
     Returns:
         Dictionary with counts of updated, failed, and total stories processed
     """
@@ -109,30 +109,30 @@ async def backfill_story_slugs() -> None:
     stories_without_slug = await Story.objects().where(
         Story.slug.is_null()
     ).run()
-    
+
     updated_count = 0
     failed_count = 0
-    
+
     # Generate and set slugs
     for story in stories_without_slug:
         try:
             # Generate slug for this story
             new_slug = await story.generate_unique_slug()
-            
+
             # Skip if we couldn't generate a slug (no title yet)
             if not new_slug:
                 failed_count += 1
                 continue
-                
+
             # Update the story with the new slug
             story.slug = new_slug
             await story.save().run()
             updated_count += 1
-            
+
         except Exception as e:
             print(f"Error generating slug for story {story.id}: {e}")
             failed_count += 1
-    
+
     print({
         "updated": updated_count,
         "failed": failed_count,

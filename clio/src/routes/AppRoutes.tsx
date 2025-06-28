@@ -15,11 +15,11 @@ const AppRoutes: React.FC = () => {
       <Routes>
         {/* Root route */}
         <Route path="/clio/" element={<ClioApp />} />
-        
+
         {/* Story routes */}
         <Route path="/clio/story/:storySlug" element={<ClioApp />} />
         <Route path="/clio/story/:storySlug/:frameNum" element={<ClioApp />} />
-        
+
         {/* Redirect any other routes to /clio/ */}
         <Route path="*" element={<Navigate to="/clio/" replace />} />
       </Routes>

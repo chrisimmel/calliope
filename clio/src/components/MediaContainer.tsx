@@ -16,7 +16,7 @@ const MediaContainer: React.FC<MediaContainerProps> = ({
   alt = '',
   isVisible,
   isPriority,
-  onLoad
+  onLoad,
 }) => {
   const [loaded, setLoaded] = useState<boolean>(false);
   const [loadStarted, setLoadStarted] = useState<boolean>(false);
@@ -38,7 +38,7 @@ const MediaContainer: React.FC<MediaContainerProps> = ({
 
   // Simple loading placeholder
   const placeholder = (
-    <div 
+    <div
       className="media-placeholder-container"
       style={{ opacity: loaded ? 0 : 0.6 }}
     >

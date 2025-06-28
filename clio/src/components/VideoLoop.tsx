@@ -19,7 +19,7 @@ const VideoLoop: React.FC<VideoLoopProps> = ({
   videoSrc,
   imageUrl,
   fadeDurationMs = 1000,
-  isVisible = true
+  isVisible = true,
 }) => {
   const autoPlay = true;
   const fadeDurationS = fadeDurationMs / 1000;
@@ -48,7 +48,8 @@ const VideoLoop: React.FC<VideoLoopProps> = ({
   const [videoDuration, setVideoDuration] = useState<number | null>(null);
 
   // Calculate actual fade duration based on video length
-  const [actualFadeDurationMs, setActualFadeDurationMs] = useState<number>(fadeDurationMs);
+  const [actualFadeDurationMs, setActualFadeDurationMs] =
+    useState<number>(fadeDurationMs);
   const actualFadeDurationS = actualFadeDurationMs / 1000;
 
   // Update fade duration when video duration is known
@@ -81,10 +82,15 @@ const VideoLoop: React.FC<VideoLoopProps> = ({
     const timeLeft = activeVideo.duration - activeVideo.currentTime;
 
     // If video is very short, ensure we don't start fading too early
-    const fadeThreshold = Math.min(actualFadeDurationS, activeVideo.duration * 0.15);
+    const fadeThreshold = Math.min(
+      actualFadeDurationS,
+      activeVideo.duration * 0.15
+    );
 
     if (timeLeft < fadeThreshold && activeVideo.style.opacity !== '0') {
-      console.log(`Starting fade with ${timeLeft}s left, using ${actualFadeDurationMs}ms fade`);
+      console.log(
+        `Starting fade with ${timeLeft}s left, using ${actualFadeDurationMs}ms fade`
+      );
 
       // Start fade out animation
       activeVideo.style.opacity = '0';
@@ -108,11 +114,12 @@ const VideoLoop: React.FC<VideoLoopProps> = ({
   useEffect(() => {
     const activeVideo = getActiveVideo();
     const inactiveVideo = getInactiveVideo();
-    
+
     if (isVisible) {
       // Component is visible, attempt to resume playing active video
       if (activeVideo && !isPlaying) {
-        activeVideo.play()
+        activeVideo
+          .play()
           .then(() => setIsPlaying(true))
           .catch(err => console.warn('Play error:', err));
       }
@@ -168,13 +175,13 @@ const VideoLoop: React.FC<VideoLoopProps> = ({
       // Pause and unload videos when component unmounts
       const v1 = video1Ref.current;
       const v2 = video2Ref.current;
-      
+
       if (v1) {
         v1.pause();
         v1.src = '';
         v1.load();
       }
-      
+
       if (v2) {
         v2.pause();
         v2.src = '';
@@ -201,7 +208,7 @@ const VideoLoop: React.FC<VideoLoopProps> = ({
           width: '100%',
           height: '100%',
           zIndex: activeVideoIndex === 1 ? 2 : 1,
-          opacity: activeVideoIndex === 1 ? 1 : 0
+          opacity: activeVideoIndex === 1 ? 1 : 0,
         }}
       >
         <source src={videoSrc} type="video/mp4" />
@@ -225,7 +232,7 @@ const VideoLoop: React.FC<VideoLoopProps> = ({
           width: '100%',
           height: '100%',
           zIndex: activeVideoIndex === 2 ? 2 : 1,
-          opacity: activeVideoIndex === 2 ? 1 : 0
+          opacity: activeVideoIndex === 2 ? 1 : 0,
         }}
       >
         <source src={videoSrc} type="video/mp4" />
