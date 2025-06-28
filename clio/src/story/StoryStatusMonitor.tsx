@@ -123,56 +123,15 @@ const StoryStatusMonitor: React.FC<StoryStatusMonitorProps> = ({
   useEffect(() => {
     if (!storyId || storyId === 'null' || !initialized) return;
 
-    console.log(`Setting up status monitors for story ${storyId}`);
-
     // If Firebase isn't available, we'll use polling instead
     if (firebaseAvailable === false) {
-      console.log('Firebase unavailable, using polling for story updates');
-
-      // Set up polling for story status
-      const pollInterval = setInterval(async () => {
-        try {
-          const response = await axios.get(`/v2/stories/${storyId}/`, {
-            headers: {
-              'X-Api-Key': 'xyzzy',
-            },
-            params: {
-              client_id: clientId,
-            },
-            timeout: 10000,
-          });
-
-          const storyData = response.data;
-          if (storyData) {
-            // Extract status and notify
-            const status: StoryStatus = {
-              status: storyData.status || 'unknown',
-              frame_count: storyData.story_frame_count,
-              title: storyData.title,
-              created_at: storyData.date_created,
-              updated_at: storyData.date_updated,
-            };
-
-            handleStatusChange(status);
-
-            // Check if we need to notify about new frames
-            if (storyData.frames && storyData.frames.length > 0) {
-              const latestFrame = storyData.frames.length - 1;
-              // Only notify if this is actually a new frame (avoid duplicate notifications)
-              if (onNewFrameRef.current) {
-                onNewFrameRef.current(latestFrame);
-              }
-            }
-          }
-        } catch (error) {
-          console.error('Error polling for story updates:', error);
-        }
-      }, 5000); // Poll every 5 seconds
-
-      return () => {
-        clearInterval(pollInterval);
-      };
+      console.log(
+        'Firebase unavailable. Unable to receive real-time story updates.'
+      );
+      return;
     }
+
+    console.log(`Setting up status monitors for story ${storyId}`);
 
     // Firebase is available, use real-time updates
     // Initial fetch of status and updates
@@ -199,33 +158,6 @@ const StoryStatusMonitor: React.FC<StoryStatusMonitorProps> = ({
       } catch (error) {
         console.error('Error fetching initial story state:', error);
       }
-    };
-
-    // Backup polling mechanism to catch missed Firebase updates
-    // This helps ensure cross-device updates work even if real-time listeners miss something
-    // DISABLED BY DEFAULT - can be enabled if needed for debugging
-    const startBackupPolling = (enabled: boolean = false) => {
-      if (!enabled) {
-        console.log('🔄 BACKUP POLL: Disabled by default');
-        return () => {}; // Return no-op cleanup function
-      }
-
-      const pollInterval = setInterval(async () => {
-        try {
-          console.log(
-            '🔄 BACKUP POLL: Checking for missed Firebase updates...'
-          );
-          const currentStatus = await getStoryStatus(storyId);
-          if (currentStatus) {
-            console.log('🔄 BACKUP POLL: Current status:', currentStatus);
-            handleStatusChange(currentStatus);
-          }
-        } catch (error) {
-          console.error('🔄 BACKUP POLL: Error:', error);
-        }
-      }, 3000); // Poll every 3 seconds as backup
-
-      return () => clearInterval(pollInterval);
     };
 
     // Set up Firebase listeners
@@ -255,10 +187,6 @@ const StoryStatusMonitor: React.FC<StoryStatusMonitorProps> = ({
             }
           }
         });
-
-        // Start backup polling to catch missed updates (disabled by default)
-        // To enable: change to startBackupPolling(true)
-        backupPollCleanup = startBackupPolling(false);
       } catch (error) {
         console.error('Error setting up Firebase monitors:', error);
 
