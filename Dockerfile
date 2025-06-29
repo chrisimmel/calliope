@@ -22,14 +22,14 @@ RUN apt install -y \
     libxext6 \
     tzdata
 
-# Copy project files
+# Copy dependency files first for better Docker layer caching
 COPY pyproject.toml uv.lock ./
-COPY calliope ./calliope
 
 # Install Python dependencies with uv
 RUN uv sync --frozen --no-dev
 
-# Copy remaining application files
+# Copy application code
+COPY calliope ./calliope
 COPY . .
 
 # Environment variables
@@ -44,5 +44,8 @@ ENV POSTGRESQL_USERNAME=$POSTGRESQL_USERNAME
 ENV POSTGRESQL_PASSWORD=$POSTGRESQL_PASSWORD
 ENV PYTHONPATH="$APP_HOME:${PYTHONPATH}"
 
-# Use uv to run the application
-CMD ["uv", "run", "--", "uvicorn", "calliope.app:app", "--reload","--host", "0.0.0.0", "--proxy-headers", "--port", "8080"]
+# Add virtual environment to PATH so Python can find installed packages
+ENV PATH="$APP_HOME/.venv/bin:$PATH"
+
+# Use uv to run the application (removed --reload for production)
+CMD ["uv", "run", "--", "uvicorn", "calliope.app:app", "--host", "0.0.0.0", "--proxy-headers", "--port", "8080"]

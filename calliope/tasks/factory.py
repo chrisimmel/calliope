@@ -5,14 +5,18 @@ This module selects either the local or GCP task queue implementation
 based on the current environment.
 """
 
-import os
-import logging
 from functools import lru_cache
+import logging
+import os
 
-from calliope.utils.google import CLOUD_ENV_GCP_PROD, get_cloud_environment
+from calliope.utils.google import (
+    CLOUD_ENV_GCP_PROD,
+    get_cloud_environment,
+    get_project_id,
+)
 
-from .queue import TaskQueue
 from .local_queue import LocalTaskQueue
+from .queue import TaskQueue
 
 logger = logging.getLogger(__name__)
 
@@ -23,8 +27,7 @@ def get_task_queue() -> TaskQueue:
     Factory function to get the appropriate task queue implementation
 
     Uses environment variables to determine which implementation to use:
-    - ENVIRONMENT: Set to 'production' to use GCP, anything else for local
-    - GCP_PROJECT_ID: Required for GCP implementation
+    - CLOUD_ENV: Set to 'gcp-prod' to use GCP, anything else for local
     - GCP_REGION: GCP region (defaults to 'us-central1')
     - GCP_QUEUE_NAME: Cloud Tasks queue name (defaults to 'calliope-tasks')
     - SERVICE_URL: URL of service handling tasks (required for GCP)
@@ -39,10 +42,10 @@ def get_task_queue() -> TaskQueue:
         logger.info("Using Google Cloud Tasks queue for production")
 
         # Check required environment variables
-        gcp_project_id = os.environ.get("GCP_PROJECT_ID")
+        gcp_project_id = get_project_id()
         if not gcp_project_id:
             raise ValueError(
-                "GCP_PROJECT_ID environment variable is required for production"
+                "GOOGLE_CLOUD_PROJECT environment variable is required for production"
             )
 
         service_url = os.environ.get("SERVICE_URL")
@@ -66,7 +69,7 @@ def get_task_queue() -> TaskQueue:
                 service_url=service_url,
             )
         except ImportError as e:
-            logger.error(f"Failed to import GCPTaskQueue: {str(e)}")
+            logger.error(f"Failed to import GCPTaskQueue: {e!s}")
             logger.warning(
                 "Falling back to LocalTaskQueue despite production environment"
             )
