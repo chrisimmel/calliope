@@ -72,7 +72,7 @@ def prepare_frame_request_params(
 
 async def add_frame_task(payload: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Add a new frame to an existing story
+    Add a new frame to an existing story.
 
     Args:
         payload: Task payload containing:
@@ -115,6 +115,9 @@ async def add_frame_task(payload: Dict[str, Any]) -> Dict[str, Any]:
         parameters.strategy = parameters.strategy or "tamarisk"
         parameters.debug = parameters.debug or False
 
+        strategy_name = (
+            strategy_config.strategy_name if strategy_config else parameters.strategy
+        )
         strategy_class = StoryStrategyRegistry.get_strategy_class(strategy_name)
 
         parameters = await prepare_input_files(parameters, story)
@@ -276,7 +279,7 @@ async def add_frame_task(payload: Dict[str, Any]) -> Dict[str, Any]:
 
 def is_development_environment() -> bool:
     """
-    Check if the current environment is development
+    Check if the current environment is development.
 
     Returns:
         True if running in development environment, False otherwise
@@ -287,13 +290,11 @@ def is_development_environment() -> bool:
 
 def register_handlers(task_queue: LocalTaskQueue):
     """
-    Register all task handlers with the queue
+    Register all task handlers with the queue.
 
     Args:
         task_queue: The LocalTaskQueue instance to register handlers with
     """
     task_queue.register_handler("add_frame", add_frame_task)
-    # task_queue.register_handler("generate_story_snippet", generate_story_snippet)
-    # task_queue.register_handler("analyze_image", analyze_image)
 
     logger.info("Registered task handlers with the queue")

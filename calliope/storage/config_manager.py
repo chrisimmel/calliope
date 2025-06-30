@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, cast, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple, cast
 
 from rich import print
 
@@ -8,12 +8,7 @@ from calliope.models import (
     KeysModel,
     StrategyConfigDescriptortModel,
 )
-from calliope.storage.state_manager import get_sparrow_state
-from calliope.tables import (
-    ClientTypeConfig,
-    SparrowConfig,
-    SparrowState,
-)
+from calliope.tables import ClientTypeConfig, SparrowConfig
 from calliope.tables.model_config import StrategyConfig
 from calliope.utils.piccolo import load_json_if_necessary
 
@@ -52,8 +47,7 @@ async def get_client_type_config(client_type_id: str) -> Optional[ClientTypeConf
 
 
 async def get_sparrow_story_parameters_and_keys(
-    request_params: FramesRequestParamsModel,
-    sparrow_state: Optional[SparrowState] = None,
+    request_params: FramesRequestParamsModel
 ) -> Tuple[FramesRequestParamsModel, KeysModel, StrategyConfig]:
     """
     Gets the story parameters and keys given a set of request
@@ -120,8 +114,9 @@ async def get_sparrow_story_parameters_and_keys(
 
             if sparrow_or_flock_id:
                 # Prepare to inherit from a parent flock.
-                new_sparrows_and_flocks_visited = sparrows_and_flocks_visited + [
-                    sparrow_or_flock_id
+                new_sparrows_and_flocks_visited = [
+                    *sparrows_and_flocks_visited,
+                    sparrow_or_flock_id,
                 ]
                 # Avoid inheritance loops.
                 if sparrow_or_flock_id in sparrows_and_flocks_visited:
@@ -260,10 +255,9 @@ async def get_strategy_config_descriptors(
 ) -> Sequence[StrategyConfigDescriptortModel]:
     if client_id:
         frames_request = FramesRequestParamsModel(client_id=client_id)
-        sparrow_state = await get_sparrow_state(client_id)
 
         _, _, default_strategy_config = await get_sparrow_story_parameters_and_keys(
-            frames_request, sparrow_state
+            frames_request
         )
     else:
         default_strategy_config = None

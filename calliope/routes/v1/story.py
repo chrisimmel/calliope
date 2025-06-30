@@ -3,15 +3,9 @@ import sys
 import traceback
 from typing import Any, Dict, List, Optional, cast
 
-from calliope.utils.story import (
-    prepare_existing_frame_images,
-    prepare_frame_images,
-    prepare_input_files,
-    shorten_title,
-)
-import httpx
 from fastapi import APIRouter, Depends, Request
 from fastapi.security.api_key import APIKey
+import httpx
 from pydantic import BaseModel
 
 from calliope.inference import image_analysis_inference
@@ -39,12 +33,14 @@ from calliope.strategies import StoryStrategyRegistry
 from calliope.tables import Image, ModelConfig, Story, StoryFrame
 from calliope.utils.authentication import get_api_key
 from calliope.utils.fastapi import get_base_url
-from calliope.utils.google import (
-    get_media_file,
-    is_google_cloud_run_environment,
-)
+from calliope.utils.google import get_media_file, is_google_cloud_run_environment
 from calliope.utils.id import create_cuid
-
+from calliope.utils.story import (
+    prepare_existing_frame_images,
+    prepare_frame_images,
+    prepare_input_files,
+    shorten_title,
+)
 
 router = APIRouter(prefix="/v1", tags=["story"])
 
@@ -105,9 +101,9 @@ class StoriesResponseV1(BaseModel):
 
 @router.put("/story/reset/")
 async def put_story_reset(
-    request: Request,
+    request: Request,  # noqa: ARG001
     client_id: str,
-    api_key: APIKey = Depends(get_api_key),
+    api_key: APIKey = Depends(get_api_key),  # noqa: ARG001
 ) -> None:
     """
     Resets the client's story state, forcing Calliope to begin a new story for this
@@ -121,7 +117,7 @@ async def put_story_reset(
 @router.get("/story/", response_model=StoryResponseV1)
 async def get_story_request(
     request: Request,
-    api_key: APIKey = Depends(get_api_key),
+    api_key: APIKey = Depends(get_api_key),  # noqa: ARG001
     request_params: StoryRequestParamsModel = Depends(StoryRequestParamsModel),
 ) -> StoryResponseV1:
     """
@@ -137,7 +133,7 @@ async def get_story_by_slug(
     story_slug: str,
     request: Request,
     client_id: str,
-    api_key: APIKey = Depends(get_api_key),
+    api_key: APIKey = Depends(get_api_key),  # noqa: ARG001
 ) -> StoryResponseV1:
     """
     Get a story by its slug.
@@ -156,8 +152,8 @@ async def get_story_by_slug(
             strategy=None,
             is_read_only=False,
             created_for_sparrow_id=client_id,
-            date_created=cast(datetime, datetime.now(datetime.timezone.utc).date()),
-            date_updated=cast(datetime, datetime.now(datetime.timezone.utc).date()),
+            date_created=cast("datetime", datetime.now(datetime.timezone.utc).date()),
+            date_updated=cast("datetime", datetime.now(datetime.timezone.utc).date()),
             request_id=create_cuid(),
             generation_date=str(datetime.utcnow()),
             debug_data={},
@@ -178,7 +174,7 @@ async def get_story_by_slug(
 async def post_frames(
     request: Request,
     request_params: FramesRequestParamsModel,
-    api_key: APIKey = Depends(get_api_key),
+    api_key: APIKey = Depends(get_api_key),  # noqa: ARG001
 ) -> StoryResponseV1:
     """
     Provide some harvested data (image, sound, text). Get a new episode of an
@@ -193,7 +189,7 @@ async def post_frames(
 @router.get("/frames/", response_model=StoryResponseV1)
 async def get_frames(
     request: Request,
-    api_key: APIKey = Depends(get_api_key),
+    api_key: APIKey = Depends(get_api_key),  # noqa: ARG001
     request_params: FramesRequestParamsModel = Depends(FramesRequestParamsModel),
 ) -> StoryResponseV1:
     """
@@ -208,7 +204,7 @@ async def get_frames(
 
 async def handle_frames_request_sleep(
     request_params: FramesRequestParamsModel,
-    base_url: str,
+    base_url: str,  # noqa: ARG001
 ) -> StoryResponseV1:
     image_filename = "media/Calliope-sleeps.png"
 
@@ -288,7 +284,7 @@ async def handle_frames_request(
         parameters,
         keys,
         strategy_config,
-    ) = await get_sparrow_story_parameters_and_keys(request_params, sparrow_state)
+    ) = await get_sparrow_story_parameters_and_keys(request_params)
     parameters.strategy = parameters.strategy or "continuous-v1"
     parameters.debug = parameters.debug or False
     errors: List[str] = []
@@ -377,10 +373,10 @@ async def handle_frames_request(
             strategy_config.text_to_text_model_config
             and strategy_config.text_to_text_model_config
             and strategy_config.text_to_text_model_config.prompt_template
-            and strategy_config.text_to_text_model_config.prompt_template.target_language  # noqa: E501
+            and strategy_config.text_to_text_model_config.prompt_template.target_language
         ):
             language = (
-                strategy_config.text_to_text_model_config.prompt_template.target_language  # noqa: E501
+                strategy_config.text_to_text_model_config.prompt_template.target_language
             )
 
         if parameters.input_audio_filename:
@@ -462,7 +458,7 @@ async def handle_existing_frames_request(
         frame_parameters,
         keys,
         strategy_config,
-    ) = await get_sparrow_story_parameters_and_keys(frame_parameters, sparrow_state)
+    ) = await get_sparrow_story_parameters_and_keys(frame_parameters)
 
     if not story:
         story = Story.create_new(
@@ -507,8 +503,8 @@ async def handle_existing_frames_request(
 
 @router.get("/stories/", response_model=StoriesResponseV1)
 async def get_stories(
-    request: Request,
-    api_key: APIKey = Depends(get_api_key),
+    request: Request,  # noqa: ARG001
+    api_key: APIKey = Depends(get_api_key),  # noqa: ARG001
     request_params: StoriesRequestParamsModel = Depends(StoriesRequestParamsModel),
 ) -> StoriesResponseV1:
     """
