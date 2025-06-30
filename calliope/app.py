@@ -24,7 +24,6 @@ from calliope.routes import thoth as thoth_routes
 from calliope.routes.v1 import bookmark as v1_bookmark_routes
 from calliope.routes.v1 import config as v1_config_routes
 from calliope.routes.v1 import story as v1_story_routes
-from calliope.routes.v1 import test as v1_test_routes
 from calliope.routes.v2 import router as v2_router
 from calliope.settings import settings
 from calliope.tables import (
@@ -54,7 +53,6 @@ def register_views(app: FastAPI) -> None:
     app.include_router(v1_config_routes.router)
     app.include_router(media_routes.router)
     app.include_router(thoth_routes.router)
-    app.include_router(v1_test_routes.router)
     app.include_router(v1_bookmark_routes.router)
     app.include_router(v2_router)
 
