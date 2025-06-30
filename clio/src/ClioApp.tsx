@@ -547,42 +547,19 @@ export default function ClioApp() {
           );
           console.log('Task ID:', response.data.task_id);
 
-          // Save the new story ID
+          // Save the new story ID IMMEDIATELY to start Firebase monitoring
+          // This ensures we don't miss the frame_added update from the background task
           const newStoryId = response.data.story_id;
           setStoryId(newStoryId);
 
-          // Similar to adding a frame, we need to wait for Firebase updates
-          await new Promise(resolve => setTimeout(resolve, 2000)); // Wait a bit for task to start
+          // Give the StoryStatusMonitor a moment to set up Firebase listeners
+          // before the background task might complete
+          await new Promise(resolve => setTimeout(resolve, 100));
 
-          // Get the new story data
-          const storyResponse = await axios.get(`/v2/stories/${newStoryId}/`, {
-            headers: {
-              'X-Api-Key': 'xyzzy',
-            },
-            params: {
-              client_id: thisBrowserID,
-              include_frames: true,
-            },
-            timeout: DEFAULT_TIMEOUT,
-          });
-
-          // Update our UI with the new story data
-          const newFrames = storyResponse.data?.frames || [];
-
-          if (newFrames && newFrames.length > 0) {
-            setFrames(newFrames);
-            setSelectedFrameNumber(0); // Select first frame for a new story
-
-            if (storyResponse.data) {
-              updateStoryWithFrames(
-                newStoryId,
-                newFrames,
-                newFrames.length,
-                new Date().toISOString(), // Use current date as generation date
-                storyResponse.data.strategy || strategy || ''
-              );
-            }
-          }
+          // For new story creation, we rely on Firebase updates to refresh the UI
+          // The handleNewFrameFromFirebase callback will fetch the story data
+          // when the first frame is complete, so we don't need to poll here
+          console.log('Story created, waiting for Firebase updates...');
         }
 
         setError(null);
@@ -1349,11 +1326,13 @@ export default function ClioApp() {
       // Fetch the latest story data, including the new frame
       getStory(storyId, null);
 
-      // Optional: Navigate to the new frame
-      // This might be redundant as getStory might update the frame selection
-      // selectFrameNumber(frameNumber);
+      // For new stories (when we only have 1 frame), navigate to that frame
+      if (frames.length === 0 || (frames.length === 1 && frameNumber === 0)) {
+        console.log('Navigating to first frame of new story');
+        setSelectedFrameNumber(frameNumber);
+      }
     },
-    [storyId, getStory]
+    [storyId, getStory, frames.length]
   );
 
   // Handler for story status changes
