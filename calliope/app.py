@@ -1,15 +1,16 @@
+import logging
 import os
+import sys
 from typing import Sequence, Union
 
-from fastapi import Depends, HTTPException
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.openapi.utils import get_openapi
 from fastapi.security.api_key import APIKey
 from fastapi.staticfiles import StaticFiles
-from piccolo_admin.endpoints import create_admin, FormConfig, TableConfig
-from piccolo_api.media.local import LocalMediaStorage
 from piccolo.engine import engine_finder
 from piccolo.table import Table
+from piccolo_admin.endpoints import FormConfig, TableConfig, create_admin
+from piccolo_api.media.local import LocalMediaStorage
 from starlette.responses import FileResponse, JSONResponse, RedirectResponse
 
 from calliope.forms.add_story_thumbnails import (
@@ -20,10 +21,10 @@ from calliope.forms.run_command import RunCommandFormModel, run_command_endpoint
 from calliope.routes import media as media_routes
 from calliope.routes import meta as meta_routes
 from calliope.routes import thoth as thoth_routes
-from calliope.routes.v1 import story as v1_story_routes
-from calliope.routes.v1 import config as v1_config_routes
-from calliope.routes.v1 import test as v1_test_routes
 from calliope.routes.v1 import bookmark as v1_bookmark_routes
+from calliope.routes.v1 import config as v1_config_routes
+from calliope.routes.v1 import story as v1_story_routes
+from calliope.routes.v1 import test as v1_test_routes
 from calliope.routes.v2 import router as v2_router
 from calliope.settings import settings
 from calliope.tables import (
@@ -131,6 +132,14 @@ def config_piccolo_tables() -> Sequence[Union[type[Table], TableConfig]]:
 def create_app() -> FastAPI:
     print("Creating app...")
 
+    # Configure logging to output to stdout for Docker compatibility
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        handlers=[logging.StreamHandler(sys.stdout)],
+    )
+    print("Configured logging to stdout")
+
     app = FastAPI(
         title="Calliope",
         description="Let me tell you a story.",
@@ -222,7 +231,7 @@ async def close_database_connection_pool() -> None:
 
 
 @app.get("/openapi.json", tags=["documentation"])
-async def get_open_api_endpoint(api_key: APIKey = Depends(get_api_key)) -> JSONResponse:
+async def get_open_api_endpoint(api_key: APIKey = Depends(get_api_key)) -> JSONResponse:  # noqa: ARG001
     response = JSONResponse(
         get_openapi(title="FastAPI security test", version="1", routes=app.routes)
     )
@@ -253,8 +262,8 @@ async def cleanup_firebase_data(story_id: str):
         return {"message": f"Firebase data for story {story_id} deleted successfully"}
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f"Error cleaning up Firebase data: {str(e)}"
-        )
+            status_code=500, detail=f"Error cleaning up Firebase data: {e!s}"
+        ) from e
 
 
 # Root redirect
