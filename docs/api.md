@@ -21,11 +21,32 @@ Auto-generated API documentation is available at:
 - Local development: `http://localhost:8008/docs`
 - Production: `https://calliope-ugaidvq5sa-uc.a.run.app/docs`
 
-The API has three main components:
+Calliope provides two API versions:
 
-1. **Story API**: Endpoints for generating and retrieving story frames
-2. **Media API**: Endpoints for managing media files (images, audio)
-3. **Admin Interface**: Web interface for configuration (replacing the former config API)
+### V2 API (Recommended)
+
+The V2 API is the modern, asynchronous API that provides:
+
+- **Non-blocking operations**: Story generation happens in background tasks
+- **Real-time updates**: Firebase integration provides live status updates
+- **Better scalability**: Can handle multiple concurrent story generations
+- **Improved user experience**: Immediate response with status tracking
+
+### V1 API (Legacy)
+
+The V1 API is the original synchronous API that:
+
+- **Blocks until completion**: Requests wait for full story generation
+- **Simple request/response**: Traditional REST API pattern
+- **Single request processing**: Limited to one story generation at a time
+- **Still supported**: Maintained for backward compatibility
+
+## API Components
+
+1. **V2 Story API**: Modern asynchronous story generation with real-time updates
+2. **V1 Story API**: Legacy synchronous story generation (still supported)
+3. **Media API**: Endpoints for managing media files (images, audio)
+4. **Admin Interface**: Web interface for configuration management
 
 ## Authentication
 
@@ -50,7 +71,167 @@ CALLIOPE_API_KEY=your_chosen_api_key
 
 For access to the production API key, please contact the project administrators.
 
-## Story API Endpoints
+## V2 Story API Endpoints (Recommended)
+
+The V2 API uses an asynchronous architecture where story generation happens in background tasks. Clients receive immediate responses with task IDs and can monitor progress through Firebase real-time updates.
+
+### POST `/v2/stories/`
+
+Create a new story with optional initial content. Returns immediately with a task ID while story generation happens in the background.
+
+#### Request Body
+
+```json
+{
+  "title": "My Adventure Story",
+  "strategy": "fern",
+  "snippets": [
+    {
+      "snippet_type": "image",
+      "content": "base64_encoded_image_data",
+      "metadata": {}
+    },
+    {
+      "snippet_type": "text",
+      "content": "A mysterious forest path",
+      "metadata": {}
+    }
+  ]
+}
+```
+
+#### Request Parameters
+
+| Parameter   | Type   | Description                                            |
+| ----------- | ------ | ------------------------------------------------------ |
+| `client_id` | string | **Required**. Unique identifier for the calling device |
+
+#### Response Format
+
+```json
+{
+  "story_id": "ck1234567890",
+  "message": "Story creation started",
+  "task_id": "task_abcd1234"
+}
+```
+
+### POST `/v2/stories/{story_id}/frames/`
+
+Add a new frame to an existing story with optional input content. Returns immediately with a task ID.
+
+#### Path Parameters
+
+| Parameter  | Type   | Description                                     |
+| ---------- | ------ | ----------------------------------------------- |
+| `story_id` | string | **Required**. ID of the story to add a frame to |
+
+#### Request Body
+
+```json
+{
+  "snippets": [
+    {
+      "snippet_type": "audio",
+      "content": "base64_encoded_audio_data",
+      "metadata": { "duration": 3.5 }
+    }
+  ]
+}
+```
+
+#### Response Format
+
+```json
+{
+  "story_id": "ck1234567890",
+  "message": "Frame generation started",
+  "task_id": "task_efgh5678"
+}
+```
+
+### GET `/v2/stories/{story_id}/`
+
+Retrieve a story with all its frames and current status.
+
+#### Path Parameters
+
+| Parameter  | Type   | Description                               |
+| ---------- | ------ | ----------------------------------------- |
+| `story_id` | string | **Required**. ID of the story to retrieve |
+
+#### Request Parameters
+
+| Parameter        | Type    | Description                                               |
+| ---------------- | ------- | --------------------------------------------------------- |
+| `client_id`      | string  | **Required**. Unique identifier for the calling device    |
+| `include_frames` | boolean | Optional. Include frame data in response (default: false) |
+
+#### Response Format
+
+```json
+{
+  "story_id": "ck1234567890",
+  "title": "My Adventure Story",
+  "slug": "my-adventure-story",
+  "strategy": "fern",
+  "created_for_sparrow_id": "client_12345",
+  "is_read_only": false,
+  "date_created": "2023-05-10T14:30:22Z",
+  "date_updated": "2023-05-10T15:45:33Z",
+  "status": {
+    "status": "completed",
+    "task_id": "task_abcd1234",
+    "error": null
+  },
+  "frames": [
+    {
+      "text": "Deep in the mysterious forest...",
+      "min_duration_seconds": 5,
+      "image": {
+        "format": "image/png",
+        "width": 512,
+        "height": 512,
+        "url": "media/frame_12345.png"
+      },
+      "metadata": {}
+    }
+  ]
+}
+```
+
+### GET `/v2/stories/`
+
+List stories with pagination support.
+
+#### Request Parameters
+
+| Parameter   | Type    | Description                                            |
+| ----------- | ------- | ------------------------------------------------------ |
+| `client_id` | string  | **Required**. Unique identifier for the calling device |
+| `limit`     | integer | Optional. Maximum number of stories to return          |
+| `offset`    | integer | Optional. Number of stories to skip                    |
+
+### Real-time Status Updates
+
+The V2 API integrates with Firebase Firestore to provide real-time status updates. Clients can listen to the following Firebase collections:
+
+- `/stories/{story_id}/status` - Real-time task status updates
+- `/stories/{story_id}/frames` - New frame notifications
+
+Example Firebase status update:
+
+```json
+{
+  "status": "processing",
+  "task_id": "task_abcd1234",
+  "progress": 0.5,
+  "message": "Generating story text...",
+  "timestamp": "2023-05-10T15:30:22Z"
+}
+```
+
+## V1 Story API Endpoints (Legacy)
 
 ### GET/POST `/v1/frames/`
 
@@ -193,7 +374,59 @@ The binary content of the requested media file.
 
 ## Example API Usage
 
-### Creating a New Story Frame with an Image Input
+### V2 API Examples (Recommended)
+
+#### Creating a New Story with Mixed Input
+
+```bash
+curl -X POST "http://localhost:8008/v2/stories/?client_id=browser_12345" \
+  -H "X-Api-Key: your_api_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "The Forest Adventure",
+    "strategy": "fern",
+    "snippets": [
+      {
+        "snippet_type": "image",
+        "content": "base64_encoded_image_data",
+        "metadata": {}
+      },
+      {
+        "snippet_type": "text",
+        "content": "A mysterious forest path leads into the unknown",
+        "metadata": {}
+      }
+    ]
+  }'
+```
+
+#### Adding a Frame to an Existing Story
+
+```bash
+curl -X POST "http://localhost:8008/v2/stories/ck1234567890/frames/?client_id=browser_12345" \
+  -H "X-Api-Key: your_api_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "snippets": [
+      {
+        "snippet_type": "audio",
+        "content": "base64_encoded_audio_data",
+        "metadata": {"duration": 3.5}
+      }
+    ]
+  }'
+```
+
+#### Retrieving a Story with Frames
+
+```bash
+curl -X GET "http://localhost:8008/v2/stories/ck1234567890/?client_id=browser_12345&include_frames=true" \
+  -H "X-Api-Key: your_api_key"
+```
+
+### V1 API Examples (Legacy)
+
+#### Creating a New Story Frame with an Image Input
 
 ```bash
 curl -X POST "http://localhost:8008/v1/frames/" \
@@ -210,7 +443,7 @@ curl -X POST "http://localhost:8008/v1/frames/" \
   }'
 ```
 
-### Continuing a Story with Text Input
+#### Continuing a Story with Text Input
 
 ```bash
 curl -X POST "http://localhost:8008/v1/frames/" \
@@ -224,7 +457,7 @@ curl -X POST "http://localhost:8008/v1/frames/" \
   }'
 ```
 
-### Retrieving an Existing Story
+#### Retrieving an Existing Story
 
 ```bash
 curl -X GET "http://localhost:8008/v1/story/?client_id=browser_12345&story_id=story_67890" \
