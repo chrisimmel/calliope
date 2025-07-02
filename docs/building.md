@@ -1,8 +1,44 @@
 
-# Locally, with Docker
+# Development Setup
+
+## Prerequisites
+
+Install [uv](https://docs.astral.sh/uv/getting-started/installation/):
+```bash
+# On macOS and Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# On Windows
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+
+# Or using brew on macOS
+brew install uv
 ```
+
+## Local Development
+
+Clone the repository and set up the environment:
+```bash
+git clone <repository-url>
+cd calliope
+
+# Install dependencies and create virtual environment
+uv sync --dev
+
+# Run the development server
+uv run uvicorn calliope.app:app --reload --host 0.0.0.0 --port 8008
+```
+
+## Using Docker
+
+```bash
 docker build -t calliope .
 docker run --env PORT=8080 --publish 127.0.0.1:8080:8080/tcp calliope
+```
+
+Or use docker-compose:
+```bash
+docker-compose up
 ```
 
 # In the Cloud
@@ -28,17 +64,30 @@ gcloud run deploy --image <your project tag> --platform managed
 ```
 
 
-# Generating and Executing Migrations
-To get to bash in calliope container:
-```
-docker-compose exec calliope /bin/bash
+# Database Management
+
+## Generating and Executing Migrations
+
+Using uv locally:
+```bash
+# Generate new migration
+uv run piccolo migrations new calliope --auto
+
+# Apply migrations
+uv run piccolo migrations forwards calliope
+
+# Create admin user
+uv run piccolo user create
 ```
 
-From within bash in container:
-```
+Using Docker:
+```bash
+# Get bash in calliope container
+docker-compose exec calliope /bin/bash
+
+# From within container
 piccolo migrations new calliope --auto
 piccolo migrations forwards calliope
-# python calliope/storage/config_manager.py
 piccolo user create
 ```
 

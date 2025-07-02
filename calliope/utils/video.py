@@ -31,9 +31,9 @@ def get_video_attributes(video_filename: str) -> Video:
     # Ensure the file exists
     if not os.path.exists(video_filename):
         raise FileNotFoundError(f"Video file {video_filename} not found")
-    
+
     format = guess_video_format_from_filename(video_filename)
-    
+
     # Default values in case ffprobe fails
     width = 1280
     height = 720

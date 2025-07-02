@@ -1,12 +1,11 @@
 from datetime import datetime
-import os
 import sys
 import traceback
 from typing import Any, Dict, List, Optional, cast
 
-import httpx
 from fastapi import APIRouter, Depends, Request
 from fastapi.security.api_key import APIKey
+import httpx
 from pydantic import BaseModel
 
 from calliope.inference import image_analysis_inference
@@ -34,25 +33,14 @@ from calliope.strategies import StoryStrategyRegistry
 from calliope.tables import Image, ModelConfig, Story, StoryFrame
 from calliope.utils.authentication import get_api_key
 from calliope.utils.fastapi import get_base_url
-from calliope.utils.file import (
-    create_sequential_filename,
-    decode_b64_to_file,
-    get_base_filename,
-)
-from calliope.utils.google import (
-    get_media_file,
-    is_google_cloud_run_environment,
-    put_media_file,
-)
+from calliope.utils.google import get_media_file, is_google_cloud_run_environment
 from calliope.utils.id import create_cuid
-from calliope.utils.image import (
-    convert_png_to_grayscale16,
-    convert_png_to_rgb565,
-    image_is_monochrome,
-    ImageFormat,
-    resize_image_if_needed,
+from calliope.utils.story import (
+    prepare_existing_frame_images,
+    prepare_frame_images,
+    prepare_input_files,
+    shorten_title,
 )
-
 
 router = APIRouter(prefix="/v1", tags=["story"])
 
@@ -63,7 +51,7 @@ class StoryResponseV1(BaseModel):
 
     # The story ID.
     story_id: Optional[str]
-    
+
     # The story slug (URL-friendly identifier)
     slug: Optional[str] = None
 
@@ -113,9 +101,9 @@ class StoriesResponseV1(BaseModel):
 
 @router.put("/story/reset/")
 async def put_story_reset(
-    request: Request,
+    request: Request,  # noqa: ARG001
     client_id: str,
-    api_key: APIKey = Depends(get_api_key),
+    api_key: APIKey = Depends(get_api_key),  # noqa: ARG001
 ) -> None:
     """
     Resets the client's story state, forcing Calliope to begin a new story for this
@@ -129,7 +117,7 @@ async def put_story_reset(
 @router.get("/story/", response_model=StoryResponseV1)
 async def get_story_request(
     request: Request,
-    api_key: APIKey = Depends(get_api_key),
+    api_key: APIKey = Depends(get_api_key),  # noqa: ARG001
     request_params: StoryRequestParamsModel = Depends(StoryRequestParamsModel),
 ) -> StoryResponseV1:
     """
@@ -145,16 +133,16 @@ async def get_story_by_slug(
     story_slug: str,
     request: Request,
     client_id: str,
-    api_key: APIKey = Depends(get_api_key),
+    api_key: APIKey = Depends(get_api_key),  # noqa: ARG001
 ) -> StoryResponseV1:
     """
     Get a story by its slug.
     """
     base_url = get_base_url(request)
-    
+
     # Find story by slug
     story = await Story.objects().where(Story.slug == story_slug).first().run()
-    
+
     if not story:
         return StoryResponseV1(
             frames=[],
@@ -164,21 +152,21 @@ async def get_story_by_slug(
             strategy=None,
             is_read_only=False,
             created_for_sparrow_id=client_id,
-            date_created=cast(datetime, datetime.now(datetime.timezone.utc).date()),
-            date_updated=cast(datetime, datetime.now(datetime.timezone.utc).date()),
+            date_created=cast("datetime", datetime.now(datetime.timezone.utc).date()),
+            date_updated=cast("datetime", datetime.now(datetime.timezone.utc).date()),
             request_id=create_cuid(),
             generation_date=str(datetime.utcnow()),
             debug_data={},
             errors=["Story not found"],
         )
-    
+
     # Create params with found story ID
     request_params = StoryRequestParamsModel(
         client_id=client_id,
         story_id=story.cuid,
         debug=True,
     )
-    
+
     return await handle_existing_frames_request(request_params, base_url)
 
 
@@ -186,7 +174,7 @@ async def get_story_by_slug(
 async def post_frames(
     request: Request,
     request_params: FramesRequestParamsModel,
-    api_key: APIKey = Depends(get_api_key),
+    api_key: APIKey = Depends(get_api_key),  # noqa: ARG001
 ) -> StoryResponseV1:
     """
     Provide some harvested data (image, sound, text). Get a new episode of an
@@ -201,7 +189,7 @@ async def post_frames(
 @router.get("/frames/", response_model=StoryResponseV1)
 async def get_frames(
     request: Request,
-    api_key: APIKey = Depends(get_api_key),
+    api_key: APIKey = Depends(get_api_key),  # noqa: ARG001
     request_params: FramesRequestParamsModel = Depends(FramesRequestParamsModel),
 ) -> StoryResponseV1:
     """
@@ -216,7 +204,7 @@ async def get_frames(
 
 async def handle_frames_request_sleep(
     request_params: FramesRequestParamsModel,
-    base_url: str,
+    base_url: str,  # noqa: ARG001
 ) -> StoryResponseV1:
     image_filename = "media/Calliope-sleeps.png"
 
@@ -296,7 +284,7 @@ async def handle_frames_request(
         parameters,
         keys,
         strategy_config,
-    ) = await get_sparrow_story_parameters_and_keys(request_params, sparrow_state)
+    ) = await get_sparrow_story_parameters_and_keys(request_params)
     parameters.strategy = parameters.strategy or "continuous-v1"
     parameters.debug = parameters.debug or False
     errors: List[str] = []
@@ -385,10 +373,10 @@ async def handle_frames_request(
             strategy_config.text_to_text_model_config
             and strategy_config.text_to_text_model_config
             and strategy_config.text_to_text_model_config.prompt_template
-            and strategy_config.text_to_text_model_config.prompt_template.target_language  # noqa: E501
+            and strategy_config.text_to_text_model_config.prompt_template.target_language
         ):
             language = (
-                strategy_config.text_to_text_model_config.prompt_template.target_language  # noqa: E501
+                strategy_config.text_to_text_model_config.prompt_template.target_language
             )
 
         if parameters.input_audio_filename:
@@ -422,7 +410,7 @@ async def handle_frames_request(
         i_hear = parameters.input_text
         story_frames_response.debug_data["i_hear"] = i_hear
 
-    await prepare_frame_images(parameters, story_frames_response.frames)    
+    await prepare_frame_images(parameters, story_frames_response.frames)
     await put_story(story)
     await put_sparrow_state(sparrow_state)
 
@@ -470,7 +458,7 @@ async def handle_existing_frames_request(
         frame_parameters,
         keys,
         strategy_config,
-    ) = await get_sparrow_story_parameters_and_keys(frame_parameters, sparrow_state)
+    ) = await get_sparrow_story_parameters_and_keys(frame_parameters)
 
     if not story:
         story = Story.create_new(
@@ -513,146 +501,10 @@ async def handle_existing_frames_request(
     return response
 
 
-async def prepare_input_files(
-    request_params: FramesRequestParamsModel, story: Story
-) -> FramesRequestParamsModel:
-    sparrow_id = request_params.client_id
-
-    # Decode b64-encoded file inputs and store to files.
-    if request_params.input_image:
-        input_image_filename = create_sequential_filename(
-            "input",
-            sparrow_id,
-            "in",
-            "jpg",
-            story.cuid,
-            0,
-        )
-        decode_b64_to_file(request_params.input_image, input_image_filename)
-        request_params.input_image_filename = input_image_filename
-
-    if request_params.input_audio:
-        frame_number = await story.get_num_frames()
-        input_audio_filename_webm = create_sequential_filename(
-            "input", sparrow_id, "in", "webm", story.cuid, frame_number
-        )
-        decode_b64_to_file(request_params.input_audio, input_audio_filename_webm)
-        input_audio_filename_wav = input_audio_filename_webm + ".wav"
-        command = f"/usr/bin/ffmpeg -y -i {input_audio_filename_webm} -vn {input_audio_filename_wav}"
-
-        print(f"Executing '{command}'")
-        retval = os.system(command)
-        if retval == 0:
-            request_params.input_audio_filename = input_audio_filename_wav
-        else:
-            print(f"Warning: ffmpeg failed with return code {retval}")
-            # Whisper claims to understand webm, so let it try.
-            request_params.input_audio_filename = input_audio_filename_webm
-
-    return request_params
-
-
-async def prepare_frame_images(
-    parameters: FramesRequestParamsModel,
-    frames: List[StoryFrame],
-    save: bool = True,
-) -> None:
-    is_google_cloud = is_google_cloud_run_environment()
-    output_image_format = ImageFormat.fromMediaFormat(parameters.output_image_format)
-
-    for frame in frames:
-        image = frame.image
-        if image:
-            image_updated = False
-            if save:
-                # Save the original image.
-                await image.save().run()
-            if is_google_cloud:
-                # Save the original PNG image in case we want to see it later.
-                put_media_file(image.url)
-
-            if image_is_monochrome(image.url):
-                print(f"Image {image.url} is monochrome. Skipping.")
-                # Skip the image if it has only a single color (usually black).
-                # (This doesn't appear to work.)
-                frame.image = None
-                if save:
-                    await frame.save().run()
-                continue
-
-            output_image_width = parameters.output_image_width
-            output_image_height = parameters.output_image_height
-            base_filename = get_base_filename(image.url)
-            resized_image_filename = f"media/{base_filename}.rsz.png"
-            resized_image = resize_image_if_needed(
-                image,
-                output_image_width,
-                output_image_height,
-                resized_image_filename,
-            )
-            if resized_image:
-                image_updated = True
-                image = resized_image
-
-            if output_image_format == ImageFormat.RGB565:
-                base_filename = get_base_filename(image.url)
-                output_image_filename_raw = f"media/{base_filename}.raw"
-                image = convert_png_to_rgb565(image.url, output_image_filename_raw)
-                image_updated = True
-            elif output_image_format == ImageFormat.GRAYSCALE16:
-                if is_google_cloud:
-                    # Also save the original PNG image in case we want to see it later.
-                    put_media_file(image.url)
-                base_filename = get_base_filename(image.url)
-                output_image_filename_raw = f"media/{base_filename}.grayscale16"
-                image = convert_png_to_grayscale16(image.url, output_image_filename_raw)
-                image_updated = True
-
-            if image_updated:
-                frame.image = image
-                if save:
-                    await image.save().run()
-                    await frame.save().run()
-                if is_google_cloud:
-                    put_media_file(image.url)
-        video = frame.video
-        if video:
-            if save:
-                await video.save().run()
-            if is_google_cloud:
-                put_media_file(video.url)
-
-
-def prepare_existing_frame_images(
-    frames: List[StoryFrame],
-) -> None:
-    # Always return images in the original size and format.
-    for frame in frames:
-        frame.image = frame.source_image
-
-def shorten_title(title: Optional[str], max_length: int = 64) -> str:
-    if not title:
-        return ""
-
-    lines: List[str] = title.split("\n")
-    title = ""
-    for line in lines:
-        if len(title):
-            title += " "
-        title += line
-        if len(title) > max_length:
-            break
-
-    if len(title) > max_length:
-        return title[:max_length] + "..."
-
-    return title
-
-
 @router.get("/stories/", response_model=StoriesResponseV1)
 async def get_stories(
-    request: Request,
-    api_key: APIKey = Depends(get_api_key),
+    request: Request,  # noqa: ARG001
+    api_key: APIKey = Depends(get_api_key),  # noqa: ARG001
     request_params: StoriesRequestParamsModel = Depends(StoriesRequestParamsModel),
 ) -> StoriesResponseV1:
     """

@@ -118,7 +118,7 @@ The tugboats the locomotives the wind will glide by in silence.
 Continuation:
 When the dust the stones the missing tears form the sun's robe on the huge deserted squares.
 We shall finally hear the voice.
-A startled cat looks up, leaps from the couch where it was sleeping. 
+A startled cat looks up, leaps from the couch where it was sleeping.
 A ghostly seagull told me this great terrible silence was my love.
 
 Story:
@@ -196,7 +196,7 @@ The tugboats the locomotives the wind will glide by in silence.
 Continuation:
 When the dust the stones the missing tears form the sun's robe on the huge deserted squares.
 We shall finally hear the voice.
-A startled cat looks up, leaps from the couch where it was sleeping. 
+A startled cat looks up, leaps from the couch where it was sleeping.
 A ghostly seagull told me this great terrible silence was my love.
 
 ----

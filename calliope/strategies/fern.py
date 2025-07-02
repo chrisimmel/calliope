@@ -24,10 +24,8 @@ from calliope.strategies.base import StoryStrategy
 from calliope.strategies.registry import StoryStrategyRegistry
 from calliope.tables import (
     Image,
-    Video,
     InferenceModel,
     ModelConfig,
-    PromptTemplate,
     SparrowState,
     Story,
     StrategyConfig,
@@ -49,32 +47,63 @@ class CharacterModel(BaseModel):
     goal: str = Field(description="What do they want?")
     hair_color: str = Field(description="Their hair color.")
     gender: str = Field(description="Their estimated biological gender.")
-    approximate_age: Literal["child", "young_adult", "adult", "middle_aged", "old_and_wise"] = Field(description="Their approximate age.")
+    approximate_age: Literal[
+        "child", "young_adult", "adult", "middle_aged", "old_and_wise"
+    ] = Field(description="Their approximate age.")
     personality: str = Field(description="Their personality.")
-    typical_attire: str = Field(description="What kind of clothes do they usually wear?")
-    other_attributes: dict[str, str] = Field(description="Any other notable attributes of the character not otherwise captured by this schema.")
+    typical_attire: str = Field(
+        description="What kind of clothes do they usually wear?"
+    )
+    other_attributes: dict[str, str] = Field(
+        description="Any other notable attributes of the character not otherwise captured by this schema."
+    )
 
 
 class StoryStateModel(BaseModel):
-    genre: str = Field(description="The story's genre.", examples=["Science Fiction", "Mystery", "Adventure"])
+    genre: str = Field(
+        description="The story's genre.",
+        examples=["Science Fiction", "Mystery", "Adventure"],
+    )
     conceit: str = Field(description="The overall conceit or concept of the story.")
     cast: list[CharacterModel] = Field(description="A list of characters in the story.")
-    atmosphere: str = Field(description="A description of the story's atmosphere, if pertinent.")
+    atmosphere: str = Field(
+        description="A description of the story's atmosphere, if pertinent."
+    )
     principal_setting: str = Field(description="Where the story mainly takes place.")
-    secondary_settings: list[str] = Field(description="A list of secondary settings in the story.")
-    sources_of_conflict: list[str] = Field(description="A list of sources of conflict or tension in the story.")
-    past_story_developments: list[str] = Field(description="Any past story developments.")
-    current_story_development: str = Field(description="What is happening now in the story.")
-    possible_future_story_developments: list[str] = Field(description="A list of ideas for future story developments.")
+    secondary_settings: list[str] = Field(
+        description="A list of secondary settings in the story."
+    )
+    sources_of_conflict: list[str] = Field(
+        description="A list of sources of conflict or tension in the story."
+    )
+    past_story_developments: list[str] = Field(
+        description="Any past story developments."
+    )
+    current_story_development: str = Field(
+        description="What is happening now in the story."
+    )
+    possible_future_story_developments: list[str] = Field(
+        description="A list of ideas for future story developments."
+    )
     story_summary: str = Field(description="A summary of the story.")
-    other_elements: dict[str, str] = Field(description="Any other pertinent story elements.")
+    other_elements: dict[str, str] = Field(
+        description="Any other pertinent story elements."
+    )
 
 
 class ExtendStoryResponseModel(BaseModel):
-    continuation: str = Field(description="The continuation of the story. This is the actual text the reader will read.")
-    illustration: str = Field(description="A detailed description of a visual illustration of this portion of the story. This will be used to generate an image.")
-    video_scene: str = Field(description="A detailed description of a short animated scene that begins from the illustration. It should capture some of the feeling and action in this part of the story. Describe any action, camera movement, or other motion that should happen.")
-    story_state: StoryStateModel = Field(description="The updated story state, including the genre, conceit, cast of characters, atmosphere, settings, sources of conflict, past and current story developments, possible future story developments, and any other elements.")
+    continuation: str = Field(
+        description="The continuation of the story. This is the actual text the reader will read."
+    )
+    illustration: str = Field(
+        description="A detailed description of a visual illustration of this portion of the story. This will be used to generate an image."
+    )
+    video_scene: str = Field(
+        description="A detailed description of a short animated scene that begins from the illustration. It should capture some of the feeling and action in this part of the story. Describe any action, camera movement, or other motion that should happen."
+    )
+    story_state: StoryStateModel = Field(
+        description="The updated story state, including the genre, conceit, cast of characters, atmosphere, settings, sources of conflict, past and current story developments, possible future story developments, and any other elements."
+    )
 
 
 @StoryStrategyRegistry.register()
@@ -111,7 +140,9 @@ class FernStrategy(StoryStrategy):
             "No signature. Don't sign the painting."
         )
 
-        generate_video = parameters.generate_video
+        generate_video = (
+            "true" == parameters.extra_fields.get("generate_video", "false").lower()
+        )
 
         situation = get_local_situation_text(image_analysis, location_metadata)
         debug_data = self._get_default_debug_data(
@@ -560,14 +591,14 @@ or muse text, consider merging them with existing characters.""".strip(),
 </SITUATION>
 """.strip(),
             },
-#             {
-#                 "role": "system",
-#                 "content": f"""
-# <MUSE_TEXT>
-# {muse_text}
-# </MUSE_TEXT>
-# """.strip(),
-#             },
+            #             {
+            #                 "role": "system",
+            #                 "content": f"""
+            # <MUSE_TEXT>
+            # {muse_text}
+            # </MUSE_TEXT>
+            # """.strip(),
+            #             },
             {
                 "role": "system",
                 "content": f"""

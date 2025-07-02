@@ -37,7 +37,7 @@ async def runway_image_and_text_to_video_inference(
         output_video_filename: where to save the generated video.
         model_config: model configuration with parameters.
         keys: API keys, including runway_api_key.
-        
+
     Returns:
         The path to the generated video file.
     """
@@ -121,7 +121,7 @@ async def runway_image_and_text_to_video_inference(
                         async with aiofiles.open(output_video_filename, "wb") as f:
                             async for chunk in response.aiter_bytes():
                                 await f.write(chunk)
-      
+
                     print(f"Video saved to {output_video_filename}")
                     return output_video_filename
                 else:
@@ -149,11 +149,11 @@ async def runway_retrieve_video(
 ) -> str:
     """
     Retrieves a video from a Runway generation task.
-    
+
     Args:
         httpx_client: the async HTTP session (not used with the RunwayML client).
         task_id: the ID of the Runway task.
-        
+
     Returns:
         The path to the generated video file.
     """
@@ -184,11 +184,11 @@ async def runway_retrieve_video(
                     async with aiofiles.open(output_video_filename, "wb") as f:
                         async for chunk in response.aiter_bytes():
                             await f.write(chunk)
-                            
+
                 print(f"Video saved to {output_video_filename}")
                 return output_video_filename
             else:
-                raise ValueError("No video recovered.")        
+                raise ValueError("No video recovered.")
     except Exception as e:
         print(f"Error in Runway video generation: {str(e)}")
         raise

@@ -3,11 +3,13 @@
 **/__pycache__/
 
 .git
-.venv
+.venv/
+.uv_cache/
+.ruff_cache/
+.mypy_cache/
 restart.sh
 start.sh
 uwsgi.ini
-README.md
 
 # IDEs
 .vscode/
@@ -15,7 +17,7 @@ README.md
 # Mac doodads
 .DS_Store
 
-# Image files
+# Image files (uncomment if you want to exclude)
 # *.jpg
 # *.raw
 # *.png
@@ -28,8 +30,21 @@ config/
 input/
 media/
 state/
+data/
+scratch/
 
 # Source dirs not used at runtime
-# clio/
 clio-elm/
 client/
+
+# Temporary files
+tmp/
+*.log
+
+# Keep these files for uv
+!pyproject.toml
+!uv.lock
+
+# AI
+CLAUDE.md
+.claude

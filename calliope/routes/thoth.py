@@ -29,9 +29,10 @@ async def thoth_root(
     if pagination.offset < num_stories:
         stories = cast(
             Sequence[Story],
-            await Story.objects(Story.thumbnail_image).order_by(
-                Story.date_updated, ascending=False
-            ).offset(pagination.offset).limit(pagination.page_size),
+            await Story.objects(Story.thumbnail_image)
+            .order_by(Story.date_updated, ascending=False)
+            .offset(pagination.offset)
+            .limit(pagination.page_size),
         )
     else:
         stories = []
@@ -50,9 +51,7 @@ async def thoth_root(
         "show_metadata": meta,
         "pagination": pagination,
     }
-    return cast(
-        HTMLResponse, templates.TemplateResponse("thoth.html", context)
-    )
+    return cast(HTMLResponse, templates.TemplateResponse("thoth.html", context))
 
 
 @router.get("/thoth/story/{story_cuid}", response_class=HTMLResponse)
@@ -77,7 +76,7 @@ async def thoth_story(
         frames = await story.get_frames(
             offset=pagination.offset,
             include_media=True,
-            max_frames=pagination.page_size
+            max_frames=pagination.page_size,
         )
     else:
         frames = []
@@ -93,9 +92,7 @@ async def thoth_story(
         "show_metadata": meta,
         "pagination": pagination,
     }
-    return cast(
-        HTMLResponse, templates.TemplateResponse("thoth_story.html", context)
-    )
+    return cast(HTMLResponse, templates.TemplateResponse("thoth_story.html", context))
 
 
 @router.get("/thoth/search/", response_class=HTMLResponse)
@@ -109,7 +106,10 @@ async def thoth_search(
         frame_id = int(result[0].metadata.get("frame_id", 0))
         frame: Optional[StoryFrame] = (
             await StoryFrame.objects(
-                StoryFrame.image, StoryFrame.source_image, StoryFrame.video, StoryFrame.story
+                StoryFrame.image,
+                StoryFrame.source_image,
+                StoryFrame.video,
+                StoryFrame.story,
             )
             .where(StoryFrame.id == frame_id)  # type: ignore[attr-defined]
             .first()
@@ -142,6 +142,4 @@ async def thoth_search(
         "show_metadata": meta,
         "story_page_size": PAGE_SIZE,
     }
-    return cast(
-        HTMLResponse, templates.TemplateResponse("thoth_search.html", context)
-    )
+    return cast(HTMLResponse, templates.TemplateResponse("thoth_search.html", context))

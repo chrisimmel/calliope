@@ -23,8 +23,8 @@ input/
 media/
 state/
 data/
-keepers/
 tmp/
+scratch/
 
 # C extensions
 *.so
@@ -144,10 +144,11 @@ bin/
 # mkdocs documentation
 /site
 
-# mypy
+# linters
 .mypy_cache/
 .dmypy.json
 dmypy.json
+.ruff_cache
 
 # Pyre type checker
 .pyre/
@@ -157,3 +158,4 @@ clio-elm/elm-stuff/
 
 # AI
 CLAUDE.md
+.claude

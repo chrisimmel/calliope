@@ -35,6 +35,7 @@ During request processing, Calliope uses the local file system for temporary sto
 In cloud environments (GCP), these files disappear whenever the serverless worker is deallocated. When running locally, these files remain in place, which is useful for debugging.
 
 File paths typically follow these patterns:
+
 - Input files: `input/{client_id}_{timestamp}_in.{ext}`
 - Generated images: `media/{uuid}.{ext}`
 
@@ -43,9 +44,10 @@ File paths typically follow these patterns:
 To ensure generated media remains accessible for story viewing, Calliope uses persistent storage for finalized media:
 
 - In **Google Cloud**: Images are stored in Google Cloud Storage
+
   - Path format: `gs://{bucket-name}/media/{uuid}.{ext}`
   - Automatically synced when running in GCP environments
-  
+
 - In **Local Development**: Images remain in the local `media/` directory
 
 ### Media Storage Process
@@ -61,7 +63,7 @@ When a story frame is generated:
 
 For semantic search functionality, Calliope uses Pinecone to index and search story content:
 
-- **Index Name**: Configured via `SEMANTIC_SEARCH_INDEX` (default: "story-semantic-search") 
+- **Index Name**: Configured via `SEMANTIC_SEARCH_INDEX` (default: "story-semantic-search")
 - **Data Indexed**: Story text, image descriptions, and metadata
 - **Embedding Model**: Vector embeddings are generated using OpenAI's models
 
@@ -70,6 +72,7 @@ For semantic search functionality, Calliope uses Pinecone to index and search st
 Storage configuration is managed through environment variables:
 
 - **Database Connection**:
+
   ```
   POSTGRESQL_HOSTNAME=postgres
   POSTGRESQL_USERNAME=postgres
@@ -78,6 +81,7 @@ Storage configuration is managed through environment variables:
   ```
 
 - **Cloud Storage**:
+
   ```
   GOOGLE_APPLICATION_CREDENTIALS=/path/to/credentials.json
   CLOUD_ENV=local|gcp

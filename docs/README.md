@@ -14,7 +14,7 @@ In Greek mythology, Calliope (/kəˈlaɪ.əpi/ kə-LY-ə-pee; Ancient Greek: Κ�
 
 Calliope is an experimental agentic framework that brings modern AI tools like generative AI (large language models and image generation models), computer vision, and vector databases to bear in the creation of interactive art works that dynamically produce images, video, text, and sound. The core system is a flexible framework, service, and API that enables an artist to build repeatable interaction strategies. The API accepts inputs such as images, text, and voice, then processes these through an artist-defined pipeline of AI models to generate its multimdia output.
 
-The focus is on enabling the creation of works that are "aware" of the environment in which they are installed or running, in the sense that they can see, hear, and react to things, people, and sounds around them. 
+The focus is on enabling the creation of works that are "aware" of the environment in which they are installed or running, in the sense that they can see, hear, and react to things, people, and sounds around them.
 
 * Processing is driven by pluggable modules called _story strategies_  (or "storytellers" in Clio parlance), meant to be experimented with and extended by the artist-engineers who make use of the framework.
 
@@ -66,3 +66,4 @@ Hints:
 - [Thoth](https://github.com/chrisimmel/calliope/tree/main/docs/Thoth.md)
 - [Storage](https://github.com/chrisimmel/calliope/tree/main/docs/storage.md)
 - [Calliope Admin](https://github.com/chrisimmel/calliope/tree/main/docs/Admin.md)
+- [Firebase](https://github.com/chrisimmel/calliope/tree/main/docs/firebase.md)

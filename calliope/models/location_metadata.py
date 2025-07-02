@@ -148,7 +148,7 @@ class NightSkyObjectModel(BaseModel):
     # Britannica: https://www.britannica.com/science/magnitude-astronomy
     magnitude: float
 
-    # Whether we can expect to see this with the naked eye. 
+    # Whether we can expect to see this with the naked eye.
     naked_eye_object: bool
 
     # Phase is new at 0, full at 50, and continues to climb to 100.

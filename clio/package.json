@@ -6,7 +6,9 @@
   "scripts": {
     "build": "webpack --mode production && cp build/* ../static/clio",
     "build-dev": "webpack --mode development && cp build/* ../static/clio",
-    "start": "webpack serve --mode development"
+    "start": "webpack serve --mode development",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "repository": {
     "type": "git",
@@ -26,7 +28,9 @@
     "@types/styled-components": "^5.1.34",
     "babel-loader": "^8.3.0",
     "css-loader": "^6.7.2",
+    "dotenv": "^16.5.0",
     "html-webpack-plugin": "^5.5.0",
+    "prettier": "^3.0.0",
     "ts-loader": "^9.4.4",
     "typescript": "^5.1.6",
     "webpack": "^5.88.0",
@@ -47,6 +51,7 @@
     "@types/react-dom": "^18.2.18",
     "axios": "^1.2.1",
     "browser-id": "^2.0.16",
+    "firebase": "^10.14.1",
     "react": "^18.2.0",
     "react-audio-visualize": "^1.2.0",
     "react-dom": "^18.2.0",

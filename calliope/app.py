@@ -1,15 +1,17 @@
+import logging
+import os
+import sys
 from typing import Sequence, Union
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.openapi.utils import get_openapi
 from fastapi.security.api_key import APIKey
 from fastapi.staticfiles import StaticFiles
-from piccolo_admin.endpoints import create_admin, FormConfig, TableConfig
-from piccolo_api.media.local import LocalMediaStorage
 from piccolo.engine import engine_finder
 from piccolo.table import Table
-from starlette.responses import JSONResponse
-
+from piccolo_admin.endpoints import FormConfig, TableConfig, create_admin
+from piccolo_api.media.local import LocalMediaStorage
+from starlette.responses import FileResponse, JSONResponse, RedirectResponse
 
 from calliope.forms.add_story_thumbnails import (
     AddStoryThumbnailsFormModel,
@@ -19,14 +21,11 @@ from calliope.forms.run_command import RunCommandFormModel, run_command_endpoint
 from calliope.routes import media as media_routes
 from calliope.routes import meta as meta_routes
 from calliope.routes import thoth as thoth_routes
-from calliope.routes.v1 import story as story_routes
-from calliope.routes.v1 import config as config_routes
-from calliope.routes.v1 import test as test_routes
-from calliope.routes.v1 import bookmark as bookmark_routes
-from calliope.utils.authentication import get_api_key
-from calliope.utils.google import is_google_cloud_run_environment
+from calliope.routes.v1 import bookmark as v1_bookmark_routes
+from calliope.routes.v1 import config as v1_config_routes
+from calliope.routes.v1 import story as v1_story_routes
+from calliope.routes.v2 import router as v2_router
 from calliope.settings import settings
-
 from calliope.tables import (
     BookmarkList,
     ClientTypeConfig,
@@ -43,17 +42,19 @@ from calliope.tables import (
     StrategyConfig,
     Video,
 )
+from calliope.utils.authentication import get_api_key
+from calliope.utils.google import is_google_cloud_run_environment
 
 
 def register_views(app: FastAPI) -> None:
     print(f"Registering views for port {settings.PORT}")
     app.include_router(meta_routes.router)
-    app.include_router(story_routes.router)
-    app.include_router(config_routes.router)
+    app.include_router(v1_story_routes.router)
+    app.include_router(v1_config_routes.router)
     app.include_router(media_routes.router)
     app.include_router(thoth_routes.router)
-    app.include_router(test_routes.router)
-    app.include_router(bookmark_routes.router)
+    app.include_router(v1_bookmark_routes.router)
+    app.include_router(v2_router)
 
 
 def get_db_uri(user: str, passwd: str, host: str, db: str) -> str:
@@ -129,6 +130,14 @@ def config_piccolo_tables() -> Sequence[Union[type[Table], TableConfig]]:
 def create_app() -> FastAPI:
     print("Creating app...")
 
+    # Configure logging to output to stdout for Docker compatibility
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        handlers=[logging.StreamHandler(sys.stdout)],
+    )
+    print("Configured logging to stdout")
+
     app = FastAPI(
         title="Calliope",
         description="Let me tell you a story.",
@@ -184,6 +193,31 @@ async def open_database_connection_pool() -> None:
         print(f"Error connecting to database: {e}")
 
 
+@app.on_event("startup")
+async def initialize_task_queue() -> None:
+    try:
+        # Initialize the task queue
+        from calliope.tasks.factory import configure_task_queue
+
+        configure_task_queue()
+        print("Task queue initialized")
+    except Exception as e:
+        print(f"Error initializing task queue: {e}")
+
+
+@app.on_event("startup")
+async def initialize_firebase() -> None:
+    try:
+        # Initialize Firebase connection
+        from calliope.storage.firebase import get_firebase_manager
+
+        # Just calling this will initialize the connection
+        get_firebase_manager()
+        print("Firebase initialized")
+    except Exception as e:
+        print(f"Error initializing Firebase: {e}")
+
+
 @app.on_event("shutdown")
 async def close_database_connection_pool() -> None:
     try:
@@ -195,7 +229,7 @@ async def close_database_connection_pool() -> None:
 
 
 @app.get("/openapi.json", tags=["documentation"])
-async def get_open_api_endpoint(api_key: APIKey = Depends(get_api_key)) -> JSONResponse:
+async def get_open_api_endpoint(api_key: APIKey = Depends(get_api_key)) -> JSONResponse:  # noqa: ARG001
     response = JSONResponse(
         get_openapi(title="FastAPI security test", version="1", routes=app.routes)
     )
@@ -204,36 +238,55 @@ async def get_open_api_endpoint(api_key: APIKey = Depends(get_api_key)) -> JSONR
 
 # Mount the static HTML front ends.
 # Add routes to support client-side routing in Clio
-from starlette.responses import FileResponse
-from starlette.staticfiles import StaticFiles
-import os
-
-# Revert to a simpler and more direct approach
-from starlette.responses import RedirectResponse, FileResponse
-from fastapi.staticfiles import StaticFiles
 
 # Mount Thoth static files
-app.mount("/thoth/", StaticFiles(directory="static/thoth", html=True), name="thoth_static")
+app.mount(
+    "/thoth/", StaticFiles(directory="static/thoth", html=True), name="thoth_static"
+)
+
+
+# Add a route to clean up Firebase data (useful for development)
+@app.delete("/v2/firebase/cleanup/{story_id}", include_in_schema=True)
+async def cleanup_firebase_data(story_id: str):
+    """
+    Delete all data for a story from Firebase.
+    This is useful for development and testing.
+    """
+    try:
+        from calliope.storage.firebase import get_firebase_manager
+
+        firebase = get_firebase_manager()
+        await firebase.delete_story_data(story_id)
+        return {"message": f"Firebase data for story {story_id} deleted successfully"}
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error cleaning up Firebase data: {e!s}"
+        ) from e
+
 
 # Root redirect
 @app.get("/clio", include_in_schema=False)
 async def clio_root_redirect():
     return RedirectResponse("/clio/")
 
+
 # Root Clio route
 @app.get("/clio/", include_in_schema=False)
 async def serve_clio_root():
     return FileResponse("static/clio/index.html")
+
 
 # Define Clio routes more explicitly
 @app.get("/clio/main.js", include_in_schema=False)
 async def serve_js_file():
     # Find the main.js file with any query parameters
     import glob
+
     js_files = glob.glob("static/clio/main.js*")
     if js_files:
         return FileResponse(js_files[0])
     return FileResponse("static/clio/main.js")
+
 
 # All other Clio routes (for client-side routing)
 @app.get("/clio/{path:path}", include_in_schema=False)
