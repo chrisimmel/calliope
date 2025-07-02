@@ -23,15 +23,13 @@ uwsgi.ini
 # Jupyter
 *.ipynb
 
-# Application storage (these should be mounted as volumes)
+# Application storage
 config/
 input/
 media/
 state/
 data/
-keepers/
-logos/
-videos/
+scratch/
 
 # Source dirs not used at runtime
 clio-elm/
@@ -41,10 +39,10 @@ client/
 tmp/
 *.log
 
-# Old requirements files (we use uv now)
-requirements/
-requirements*.txt
-
 # Keep these files for uv
 !pyproject.toml
 !uv.lock
+
+# AI
+CLAUDE.md
+.claude
