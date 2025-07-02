@@ -5,6 +5,8 @@
 .git
 .venv/
 .uv_cache/
+.ruff_cache/
+.mypy_cache/
 restart.sh
 start.sh
 uwsgi.ini
