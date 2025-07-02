@@ -23,7 +23,7 @@ input/
 media/
 state/
 data/
-keepers/
+scratch/
 tmp/
 
 # C extensions
@@ -157,6 +157,7 @@ clio-elm/elm-stuff/
 
 # AI
 CLAUDE.md
+.claude
 
 # Static files
 static/
