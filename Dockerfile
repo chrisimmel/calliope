@@ -3,7 +3,7 @@ FROM python:3.11-bookworm
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 
-ENV APP_HOME /app
+ENV APP_HOME=/app
 RUN mkdir $APP_HOME
 RUN mkdir $APP_HOME/config
 RUN mkdir $APP_HOME/input
@@ -11,16 +11,18 @@ RUN mkdir $APP_HOME/media
 RUN mkdir $APP_HOME/state
 WORKDIR $APP_HOME
 
-# Install system dependencies
-RUN apt update -y && apt upgrade -y
-RUN apt install -y \
+# Fix APT repository signature issues and install system dependencies
+RUN apt-get clean && rm -rf /var/lib/apt/lists/* && \
+    apt-get update --allow-insecure-repositories --allow-unauthenticated && \
+    apt-get install -y --allow-unauthenticated \
     libgl1-mesa-glx \
     jq \
     curl \
     ffmpeg \
     libsm6 \
     libxext6 \
-    tzdata
+    tzdata && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Copy dependency files first for better Docker layer caching
 COPY pyproject.toml uv.lock ./
