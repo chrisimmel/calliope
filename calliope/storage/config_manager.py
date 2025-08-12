@@ -152,14 +152,38 @@ async def get_sparrow_story_parameters_and_keys(
         strategy_params = _get_non_default_parameters(
             load_json_if_necessary(strategy_config.parameters)
         )
-        params_dict = {**strategy_params, **params_dict}
+        # Merge extra_fields separately to avoid overriding
+        strategy_extra_fields = strategy_params.get("extra_fields", {})
+        request_extra_fields = params_dict.get("extra_fields", {})
+        merged_extra_fields = {**strategy_extra_fields, **request_extra_fields}
+
+        # Remove extra_fields from both dicts to avoid override, then merge, then add back
+        strategy_params_without_extra = {
+            k: v for k, v in strategy_params.items() if k != "extra_fields"
+        }
+        params_dict_without_extra = {
+            k: v for k, v in params_dict.items() if k != "extra_fields"
+        }
+
+        params_dict = {**strategy_params_without_extra, **params_dict_without_extra}
+        if merged_extra_fields:
+            params_dict["extra_fields"] = merged_extra_fields
 
     print(
         f"Merged parameters: {str({key: val for key, val in params_dict.items() if key not in ('input_image', 'input_audio')})}"
     )
 
+    # Before constructing the FramesRequestParamsModel, flatten any extra_fields
+    # back to the top level so the root_validator can properly capture them
+    final_params_dict = params_dict.copy()
+    extra_fields = final_params_dict.get("extra_fields", {})
+    if extra_fields:
+        # Remove the nested extra_fields and add them at top level
+        final_params_dict.pop("extra_fields", None)
+        final_params_dict.update(extra_fields)
+
     return (
-        FramesRequestParamsModel(**params_dict),
+        FramesRequestParamsModel(**final_params_dict),
         KeysModel(**keys_dict),
         strategy_config,
     )
@@ -167,11 +191,28 @@ async def get_sparrow_story_parameters_and_keys(
 
 def _get_non_default_parameters(params_dict: Dict[str, Any]) -> Dict[str, Any]:
     non_default_request_params = {}
+    modeled_field_names = set(FramesRequestParamsModel.model_fields.keys())
+
     # Get the request parameters with non-default values.
     for field_name, field in FramesRequestParamsModel.model_fields.items():
         value = params_dict.get(field_name)
         if value != field.default:
             non_default_request_params[field_name] = value
+
+    # Also collect any extra fields that aren't part of the model
+    extra_fields = {}
+    for field_name, value in params_dict.items():
+        if field_name not in modeled_field_names and value is not None:
+            extra_fields[field_name] = value
+
+    # If we have extra fields, add them to the non-default parameters
+    if extra_fields:
+        # If extra_fields already exists in non_default_request_params, merge them
+        existing_extra_fields = non_default_request_params.get("extra_fields", {})
+        non_default_request_params["extra_fields"] = {
+            **existing_extra_fields,
+            **extra_fields,
+        }
 
     return non_default_request_params
 

@@ -1,7 +1,6 @@
 from abc import ABCMeta, abstractmethod
 from datetime import datetime, timezone
-from statistics import mode
-from typing import Any, cast, Dict, Optional, Sequence
+from typing import Any, Dict, Optional, Sequence, cast
 
 import httpx
 
@@ -14,22 +13,21 @@ from calliope.models.frame_sequence_response import StoryFrameSequenceResponseMo
 from calliope.storage.state_manager import put_story
 from calliope.tables import (
     Image,
-    Video,
     ModelConfig,
     PromptTemplate,
     SparrowState,
     Story,
     StoryFrame,
     StrategyConfig,
+    Video,
 )
-
 
 # By default, we ask each frame to be displayed for at
 # least 20 seconds.
 DEFAULT_MIN_DURATION_SECONDS = 20
 
 
-class StoryStrategy(object, metaclass=ABCMeta):
+class StoryStrategy(metaclass=ABCMeta):
     """
     Abstract base class for classes that implement story strategies.
     """
@@ -80,6 +78,9 @@ class StoryStrategy(object, metaclass=ABCMeta):
         """
         Adds a new frame to a story and persists everything.
 
+        IMPORTANT: This method prevents empty frames from being created.
+        A frame must have either text content or media (image/video).
+
         Args:
             story: the story up to now.
             image: the image for this frame, if any.
@@ -91,7 +92,22 @@ class StoryStrategy(object, metaclass=ABCMeta):
 
         Returns:
             the new frame.
+
+        Raises:
+            ValueError: If attempting to create an empty frame.
         """
+        # Prevent empty frames - a frame must have either content or media
+        has_text = text and text.strip()
+        has_media = image is not None or video is not None
+
+        if not has_text and not has_media:
+            error_msg = (
+                f"Cannot create empty frame {frame_number} for story {story.cuid}. "
+                "Frame generation failed - no text content or media was produced. "
+                "This indicates an upstream issue with content generation."
+            )
+            print(f"🚫 EMPTY FRAME PREVENTION: {error_msg}")
+            raise ValueError(error_msg)
         if image:
             image.date_updated = datetime.now(timezone.utc)
             await image.save().run()

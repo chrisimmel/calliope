@@ -2,11 +2,11 @@ import argparse
 from collections import defaultdict
 from enum import Enum
 import os
-from typing import cast, Dict, Optional, Sequence, Tuple
-from typing_extensions import Buffer
+from typing import Dict, Optional, Sequence, Tuple, cast
 
 import numpy as np
 from PIL import Image as PIL_Image
+from typing_extensions import Buffer
 
 from calliope.models import ImageFormat
 from calliope.tables import Image
@@ -71,7 +71,7 @@ def convert_rgb565_to_png(
     """
     Converts the given RGB565/raw file to PNG format.
     """
-    with open(input_filename, "r") as input_file:
+    with open(input_filename) as input_file:
         dataArray = np.fromfile(input_file, np.uint16)
 
         png = PIL_Image.new("RGB", (width, height))
@@ -109,12 +109,12 @@ def convert_png_to_grayscale16(input_filename: str, output_filename: str) -> Ima
         byte = 0
         done = True
         for x in range(0, png.size[0]):
-            l = png.getpixel((x, y))
+            luminance = png.getpixel((x, y))
             if x % 2 == 0:
-                byte = l >> 4
+                byte = luminance >> 4
                 done = False
             else:
-                byte |= l & 0xF0
+                byte |= luminance & 0xF0
                 output_image_content[i] = byte
                 done = True
                 i += 1
@@ -140,7 +140,7 @@ def convert_grayscale16_to_png(
     There are 2 pixels per byte, 4 bits (black, white, 14 shades of gray) each.
     """
 
-    with open(input_filename, "r") as input_file:
+    with open(input_filename) as input_file:
         dataArray = np.fromfile(input_file, np.uint8)
 
         png = PIL_Image.new("L", (width, height))
@@ -282,6 +282,7 @@ def get_image_colors(image_filename: str) -> Sequence[Tuple[int, int]]:
     return cast(Sequence[Tuple[int, int]], list(by_color.items()))
 
 
+# WARNING: This function can be very slow (over 2 minutes for a 1024x1024 image).
 def image_is_monochrome(image_filename: str) -> bool:
     """
     Returns True iff the given image is of a single solid d

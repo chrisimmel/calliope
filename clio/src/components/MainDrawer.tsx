@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
@@ -82,6 +82,14 @@ export default function MainDrawer({
   const [aboutPanelIsOpen, setAboutPanelIsOpen] = useState<boolean>(false);
   const [creatStoryDialogIsOpen, setCreatStoryDialogIsOpen] =
     useState<boolean>(false);
+
+  // Auto-open Create Story dialog when drawer opens and no stories exist
+  useEffect(() => {
+    if (drawerIsOpen && stories.length === 0 && !story_id) {
+      console.log('Auto-opening Create Story dialog - no existing stories');
+      setCreatStoryDialogIsOpen(true);
+    }
+  }, [drawerIsOpen, stories.length, story_id]);
   strategies ||= [];
   strategies = strategies.filter(
     strat => allowExperimental || !strat.is_experimental

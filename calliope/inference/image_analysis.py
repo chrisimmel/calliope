@@ -10,17 +10,12 @@ from calliope.inference.engines.azure_vision import (
 )
 from calliope.inference.engines.hugging_face import image_to_text_inference_hugging_face
 from calliope.inference.engines.openai_image import (
-    openai_vision_inference,
     openai_vision_inference_ext,
 )
 from calliope.inference.engines.replicate import replicate_vision_inference
-from calliope.models import (
-    InferenceModelProvider,
-    KeysModel,
-)
+from calliope.models import InferenceModelProvider, KeysModel
 from calliope.tables import ModelConfig
 from calliope.utils.image import convert_pil_image_to_png
-
 
 # The number of seconds to wait for a Replicate request to complete.
 # This is to prevent long waits for model cold starts.
@@ -204,6 +199,10 @@ async def image_analysis_inference(
         )
     )
 
+    # The Azure CV API appears to have disappeared, so we disable that dependency
+    # at least until we figure that out. It's sort of old, anyway, and we get better
+    # results from LLMs these days...
+    """
     azure_cv_task = asyncio.create_task(
         _image_analysis_inference(
             httpx_client,
@@ -214,6 +213,7 @@ async def image_analysis_inference(
             keys,
         )
     )
+    """
 
     # Execute Azure CV and the multimodal LLM analysis in parallel so we can use both
     # without suffering a time penalty.
@@ -232,16 +232,18 @@ async def image_analysis_inference(
         llm_analysis = {}
         print(f"Error getting LLM image analysis: {e}")
 
+    """
     try:
         azure_analysis = await azure_cv_task
         print(f"{azure_analysis=}")
     except Exception as e:
         azure_analysis = {}
         print(f"Error running Azure Computer Vision: {e}")
+    """
 
     # Merge the Azure and LLM analyses.
     analysis = {
-        **azure_analysis,
+        # **azure_analysis,
         **llm_analysis,
     }
 

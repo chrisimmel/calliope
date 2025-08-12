@@ -1,19 +1,13 @@
+import asyncio
 import sys
 import traceback
-from typing import Any, cast, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 import httpx
 
-from calliope.inference import (
-    text_to_text_inference,
-    text_to_image_file_inference,
-)
+from calliope.inference import text_to_image_file_inference, text_to_text_inference
 from calliope.location.location import get_local_situation_text
-from calliope.models import (
-    FramesRequestParamsModel,
-    FullLocationMetadata,
-    KeysModel,
-)
+from calliope.models import FramesRequestParamsModel, FullLocationMetadata, KeysModel
 from calliope.models.frame_sequence_response import StoryFrameSequenceResponseModel
 from calliope.strategies.base import StoryStrategy
 from calliope.strategies.registry import StoryStrategyRegistry
@@ -34,7 +28,7 @@ from calliope.utils.text import split_into_sentences, translate_text
 class TamariskStrategy(StoryStrategy):
     """
     An evolution of the continuous-v0 strategy, specifically based on the Lichen variant,
-    using gpt-4o to tidy up the results from EleutherAI/gpt-neo-2.7B.
+    using gpt-4.1 to tidy up the results from EleutherAI/gpt-neo-2.7B.
 
     Returns a single frame.
     """
@@ -119,10 +113,12 @@ class TamariskStrategy(StoryStrategy):
         if in_text and not in_text.isspace():
             # gpt-neo-2.7B produces very short text, so collect a handful
             # of its responses as the frame text.
-            for i in range(3):
-                try:
-                    text_n = await self._get_new_story_fragment(
-                        in_text + out_text,
+            # Use overall timeout to prevent entire loop from taking too long
+            try:
+                out_text = await asyncio.wait_for(
+                    self._collect_story_fragments(
+                        in_text,
+                        out_text,
                         parameters,
                         strategy_config,
                         keys,
@@ -130,22 +126,17 @@ class TamariskStrategy(StoryStrategy):
                         story,
                         last_text,
                         httpx_client,
-                    )
-                    print(f"{text_n=}")
-                    if text_n:
-                        if len(out_text):
-                            out_text += " "
-                        out_text += text_n
-                        if len(out_text) > 300:
-                            break
-                    else:
-                        # Things seem to be broken.
-                        # Reset to to the seed prompt.
-                        if caption or seed_prompt:
-                            in_text = caption or seed_prompt
-                except Exception as e:
-                    traceback.print_exc(file=sys.stderr)
-                    errors.append(str(e))
+                        caption,
+                        seed_prompt,
+                    ),
+                    timeout=45.0,  # Allow up to 45 seconds for all fragments
+                )
+            except asyncio.TimeoutError:
+                print("Story fragment collection timed out after 45 seconds")
+                errors.append(
+                    "Story fragment collection timed out - using partial results"
+                )
+                # Continue with whatever out_text was collected
 
         print(f"{out_text=}")
         text = out_text
@@ -218,7 +209,39 @@ class TamariskStrategy(StoryStrategy):
         if text and last_text_was_unterminated:
             text = "..." + text.strip()
 
+        # Ensure we don't create an empty frame
+        has_text = text and text.strip()
+        has_media = image is not None
+
+        if not has_text and not has_media:
+            # Provide meaningful fallback content rather than failing
+            if situation:
+                # Use the situation as fallback text - make it feel natural
+                text = situation.strip()
+                if not text.endswith("."):
+                    text += "."
+                print("🔄 EMPTY FRAME FALLBACK: Using situation as content")
+            else:
+                # Use seed prompt as ultimate fallback
+                fallback_text = await self.get_seed_prompt(strategy_config)
+                if fallback_text and fallback_text.strip():
+                    text = fallback_text.strip()
+                    if not text.endswith("."):
+                        text += "."
+                    print("🔄 EMPTY FRAME FALLBACK: Using seed prompt as content")
+                else:
+                    # If all else fails, let the empty frame exception be raised
+                    # This will cause the API to return an appropriate error
+                    print(
+                        "🚫 NO FALLBACK CONTENT AVAILABLE: Will raise empty frame error"
+                    )
+
+            if text:
+                errors.append("Content generation failed - used fallback content")
+
         # Append and persist the frame to the story.
+        # If we still don't have content, _add_frame will raise ValueError
+        # which will bubble up as an API error (this is the correct behavior)
         frame = await self._add_frame(
             story,
             image,
@@ -236,6 +259,52 @@ class TamariskStrategy(StoryStrategy):
             append_to_prior_frames=True,
         )
 
+    async def _collect_story_fragments(
+        self,
+        in_text: str,
+        out_text: str,
+        parameters: FramesRequestParamsModel,
+        strategy_config: StrategyConfig,
+        keys: KeysModel,
+        errors: List[str],
+        story: Story,
+        last_text: Optional[str],
+        httpx_client: httpx.AsyncClient,
+        caption: Optional[str],
+        seed_prompt: Optional[str],
+    ) -> str:
+        """
+        Collects multiple story fragments with individual timeouts.
+        """
+        for _ in range(3):
+            try:
+                text_n = await self._get_new_story_fragment(
+                    in_text + out_text,
+                    parameters,
+                    strategy_config,
+                    keys,
+                    errors,
+                    story,
+                    last_text,
+                    httpx_client,
+                )
+                print(f"{text_n=}")
+                if text_n:
+                    if len(out_text):
+                        out_text += " "
+                    out_text += text_n
+                    if len(out_text) > 300:
+                        break
+                else:
+                    # Things seem to be broken.
+                    # Reset to to the seed prompt.
+                    if caption or seed_prompt:
+                        in_text = caption or seed_prompt
+            except Exception as e:
+                traceback.print_exc(file=sys.stderr)
+                errors.append(str(e))
+        return out_text
+
     async def _get_new_story_fragment(
         self,
         text: str,
@@ -249,16 +318,29 @@ class TamariskStrategy(StoryStrategy):
     ) -> str:
         """
         Gets a new story fragment to be used in building the frame's text.
+        Relies on tenacity retry configuration in hugging_face.py for cold start handling.
         """
         print(f'_get_new_story_fragment: "{text=}"')
 
         try:
+            model_name = (
+                strategy_config.text_to_text_model_config.model.provider_model_name
+                if strategy_config.text_to_text_model_config
+                and strategy_config.text_to_text_model_config.model
+                else "unknown"
+            )
+
+            print(f"Calling HuggingFace model {model_name} (tenacity handles retries)")
+
             text = await text_to_text_inference(
                 httpx_client, text, strategy_config.text_to_text_model_config, keys
             )
+
         except Exception as e:
+            print(f"Story fragment generation failed: {e}")
             traceback.print_exc(file=sys.stderr)
-            errors.append(str(e))
+            errors.append(f"Story fragment generation failed: {e}")
+            text = ""
 
         text = " ".join(text.split(" "))
         text = text.replace("*", "")
@@ -318,15 +400,15 @@ Here is the text to correct:
         )
         if model:
             model_config = ModelConfig(
-                slug="gpt-4o-cleaner",
+                slug="gpt-4.1-cleaner",
                 description="",
                 model_parameters={},
                 model=model,
             )
         else:
-            raise ValueError("No gpt-4o model found.")
+            raise ValueError("No gpt-4.1 model found.")
 
-        # Use gpt-4o and the prompt above to clean up the text.
+        # Use gpt-4.1 and the prompt above to clean up the text.
         try:
             print(f"Cleaning text: {text}")
             text = await text_to_text_inference(httpx_client, prompt, model_config, keys)

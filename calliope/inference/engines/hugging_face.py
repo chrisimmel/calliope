@@ -1,24 +1,84 @@
+import json
+from typing import Any, Optional, cast
+
 import aiofiles
 import httpx
-import json
-import os
-from typing import Any, cast, Dict, Optional
-
-from langchain_community.llms import HuggingFaceHub
-from tenacity import retry, stop_after_attempt, wait_exponential
+from tenacity import retry, retry_if_exception, stop_after_delay, wait_exponential
 
 # from requests.models import Response
-
 from calliope.models import KeysModel
 from calliope.tables import ModelConfig
 
 
 def _hugging_face_model_to_api_url(model_name: str) -> str:
     # A HuggingFace model name may instead be a direct URL to an inference endpoint.
-    return model_name if model_name.startswith("https") else f"https://api-inference.huggingface.co/models/{model_name}"
+    return (
+        model_name
+        if model_name.startswith("https")
+        else f"https://api-inference.huggingface.co/models/{model_name}"
+    )
 
 
-@retry(stop=stop_after_attempt(5), wait=wait_exponential(multiplier=1, min=1))
+def _is_retryable_huggingface_error(error: Exception) -> bool:
+    """
+    Determine if an error from HuggingFace API is worth retrying.
+
+    Args:
+        error: The exception to check
+
+    Returns:
+        True if the error is likely transient and worth retrying
+    """
+    # Handle httpx HTTP errors
+    if isinstance(error, httpx.HTTPStatusError):
+        status_code = error.response.status_code
+
+        # Retryable status codes
+        retryable_codes = {
+            503,  # Service Unavailable (model cold start)
+            429,  # Too Many Requests (rate limiting)
+            500,  # Internal Server Error
+            502,  # Bad Gateway
+            504,  # Gateway Timeout
+        }
+
+        return status_code in retryable_codes
+
+    # Handle network/connection errors
+    if isinstance(
+        error,
+        (
+            httpx.ConnectError,
+            httpx.TimeoutException,
+            httpx.NetworkError,
+        ),
+    ):
+        return True
+
+    # Handle common error messages in response text
+    error_str = str(error).lower()
+    retryable_messages = [
+        "service unavailable",
+        "model is currently loading",
+        "model is loading",
+        "model loading",
+        "timeout",
+        "connection",
+        "network",
+        "temporarily unavailable",
+    ]
+
+    return any(msg in error_str for msg in retryable_messages)
+
+
+@retry(
+    stop=stop_after_delay(300),  # 5 minutes total for cold start scenarios
+    wait=wait_exponential(multiplier=2, min=2, max=30),  # 2s, 4s, 8s, 16s, 30s, 30s...
+    retry=retry_if_exception(lambda e: _is_retryable_huggingface_error(e)),
+    before_sleep=lambda retry_state: print(
+        f"HuggingFace API retry attempt {retry_state.attempt_number} after {retry_state.outcome.exception()}"
+    ),
+)
 async def _hugging_face_request(
     httpx_client: httpx.AsyncClient,
     data: Any,
@@ -86,66 +146,11 @@ async def _text_to_text_inference_hugging_face_http(
         prefix = text
         while len(prefix):
             if out_text.startswith(prefix):
-                out_text = out_text[len(prefix):]
+                out_text = out_text[len(prefix) :]
                 break
             prefix = prefix[1:]
 
     return out_text
-
-async def _text_to_text_inference_hugging_face_langchain(
-    httpx_client: httpx.AsyncClient,
-    text: str,
-    model_config: ModelConfig,
-    keys: KeysModel,
-) -> str:
-    """
-    Does a text->text inference on HuggingFace Hub via LangChain.
-
-    Args:
-        httpx_client: the async HTTP session.
-        text: the input text, to be sent as a prompt.
-        model_config: the ModelConfig with model and parameters.
-        keys: API keys, etc.
-
-    Returns:
-        the generated text.
-    """
-    model = model_config.model
-
-    if keys.huggingface_api_key:
-        os.environ["HUGGINGFACEHUB_API_TOKEN"] = keys.huggingface_api_key
-
-    parameters = {
-        **(
-            cast(Dict[str, Any], model.model_parameters)
-            if model.model_parameters
-            else {}
-        ),
-        **(
-            cast(Dict[str, Any], model_config.model_parameters)
-            if model_config.model_parameters
-            else {}
-        ),
-    }
-
-    text = text.replace(":", "")
-
-    extended_text = ""
-    chat = HuggingFaceHub(  # type: ignore[call-arg]
-        repo_id=model.provider_model_name,
-        model_kwargs=parameters,
-    )
-    llm_result = chat.generate([text])
-    print(f"Completion response is: '{llm_result}'")
-    if (
-        llm_result.generations
-        and llm_result.generations[0]
-        and llm_result.generations[0][0]
-    ):
-        # generations=[[Generation(text="\nA portrait of a moment in time
-        extended_text = llm_result.generations[0][0].text or ""
-
-    return extended_text
 
 
 async def text_to_text_inference_hugging_face(
@@ -178,8 +183,8 @@ async def text_to_image_file_inference_hugging_face(
     output_image_filename: str,
     model_config: ModelConfig,
     keys: KeysModel,
-    width: Optional[int] = None,
-    height: Optional[int] = None,
+    width: Optional[int] = None,  # noqa: ARG001
+    height: Optional[int] = None,  # noqa: ARG001
 ) -> str:
     """
     Performs a text->image inference using a HuggingFace-hosted model

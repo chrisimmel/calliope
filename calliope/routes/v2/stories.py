@@ -167,7 +167,7 @@ async def create_story(
             snippets=request_data.snippets,
             task_queue=task_queue,
             firebase=firebase,
-            extra_parameters={},  # request_data.extra_parameters,
+            extra_parameters=request_data.extra_fields,
         )
         return CreateStoryResponse(
             story_id=new_story_cuid,
@@ -197,6 +197,7 @@ async def request_new_frame(
     try:
         story = await get_story(story_id)
 
+        print(f"request_new_frame: {request_data.extra_fields=}")
         task_id = await _request_new_frame(
             request=request,
             client_id=client_id,
@@ -204,6 +205,7 @@ async def request_new_frame(
             snippets=request_data.snippets,
             task_queue=task_queue,
             firebase=firebase,
+            extra_parameters=request_data.extra_fields,
         )
 
         return AddFrameResponse(
@@ -249,6 +251,7 @@ async def _request_new_frame(
         # Handle the normal case of a direct request.
         source_ip_address = request.client.host if request.client else None
 
+    print(f"_request_new_frame: {extra_parameters=}")
     # Create a task payload
     task_payload = {
         "story_id": story.cuid,
@@ -420,4 +423,136 @@ async def list_stories(
         logger.exception(f"Error listing stories: {e!s}")
         raise HTTPException(
             status_code=500, detail=f"Failed to list stories: {e!s}"
+        ) from e
+
+
+@router.get("/{story_id}/debug/")
+async def debug_story_state(
+    story_id: str,
+    _client_id: str = Query(...),
+    firebase: FirebaseManager = Depends(get_firebase),
+):
+    """
+    Debug endpoint to inspect Firebase and database state for a story
+    """
+    try:
+        # Get database story
+        story = await get_story(story_id)
+
+        # Get Firebase story data
+        firebase_story_data = await firebase.get_story_status(story_id)
+
+        # Get active tasks
+        active_tasks = []
+        recent_tasks = []
+
+        if firebase_story_data:
+            active_task_ids = firebase_story_data.get("active_tasks", [])
+            recent_task_ids = firebase_story_data.get("recent_tasks", [])
+
+            # Get detailed task info
+            for task_id in active_task_ids:
+                task_data = await firebase.get_task(task_id)
+                if task_data:
+                    active_tasks.append(task_data)
+
+            for task_id in recent_task_ids[:5]:  # Last 5 recent tasks
+                task_data = await firebase.get_task(task_id)
+                if task_data:
+                    recent_tasks.append(task_data)
+
+        return {
+            "story_id": story_id,
+            "database_story": {
+                "exists": story is not None,
+                "id": story.id if story else None,
+                "cuid": story.cuid if story else None,
+                "title": story.title if story else None,
+                "strategy_name": story.strategy_name if story else None,
+                "frame_count": await story.get_num_frames() if story else 0,
+            },
+            "firebase_story_data": firebase_story_data,
+            "active_tasks": active_tasks,
+            "recent_tasks": recent_tasks,
+            "computed_status": {
+                "has_active_tasks": len(active_tasks) > 0,
+                "should_show_spinner": len(active_tasks) > 0,
+                "last_active_task": active_tasks[0] if active_tasks else None,
+                "last_recent_task": recent_tasks[0] if recent_tasks else None,
+            },
+        }
+
+    except Exception as e:
+        logger.exception(f"Error debugging story {story_id}: {e!s}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to debug story: {e!s}"
+        ) from e
+
+
+@router.post("/{story_id}/cleanup/")
+async def cleanup_story_state(
+    story_id: str,
+    _client_id: str = Query(...),
+    firebase: FirebaseManager = Depends(get_firebase),
+):
+    """
+    Cleanup corrupted state for a story (clear active tasks, reset status)
+    """
+    try:
+        # Get database story
+        story = await get_story(story_id)
+        if not story:
+            raise HTTPException(status_code=404, detail=f"Story {story_id} not found")
+
+        # Get Firebase story data
+        firebase_story_data = await firebase.get_story_status(story_id)
+
+        if firebase_story_data:
+            active_task_ids = firebase_story_data.get("active_tasks", [])
+
+            # Move any active tasks to recent tasks and mark them as failed/timeout
+            recent_tasks = firebase_story_data.get("recent_tasks", [])
+
+            for task_id in active_task_ids:
+                # Mark task as timed out/failed
+                await firebase.update_task(
+                    task_id,
+                    {
+                        "status": "timeout_cleanup",
+                        "error": "Task cleaned up due to persistent state corruption",
+                        "completed_at": datetime.utcnow().isoformat(),
+                    },
+                )
+                # Move to recent tasks
+                if task_id not in recent_tasks:
+                    recent_tasks.insert(0, task_id)
+
+            # Update story state - clear active tasks
+            await firebase.update_story_fields(
+                story_id,
+                {
+                    "active_tasks": [],
+                    "recent_tasks": recent_tasks[:10],  # Keep last 10
+                },
+            )
+
+            return {
+                "story_id": story_id,
+                "message": f"Cleaned up {len(active_task_ids)} stuck tasks",
+                "cleaned_tasks": active_task_ids,
+                "status": "cleaned",
+            }
+        else:
+            return {
+                "story_id": story_id,
+                "message": "No Firebase data found for story",
+                "status": "no_data",
+            }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f"Error cleaning up story {story_id}: {e!s}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to cleanup story: {e!s}"
         ) from e

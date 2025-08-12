@@ -1,9 +1,9 @@
-
 # Development Setup
 
 ## Prerequisites
 
 Install [uv](https://docs.astral.sh/uv/getting-started/installation/):
+
 ```bash
 # On macOS and Linux
 curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -18,6 +18,7 @@ brew install uv
 ## Local Development
 
 Clone the repository and set up the environment:
+
 ```bash
 git clone <repository-url>
 cd calliope
@@ -37,6 +38,7 @@ docker run --env PORT=8080 --publish 127.0.0.1:8080:8080/tcp calliope
 ```
 
 Or use docker-compose:
+
 ```bash
 docker-compose up
 ```
@@ -52,23 +54,25 @@ Storage if on Azure.
 ## Building and Deploying to Google Cloud
 
 Do this once:
+
 ```
 gcloud auth application-default login
 gcloud config set project ardent-course-370411
 ```
 
 Then do this for each build/deploy:
+
 ```
 gcloud builds submit --tag <your project tag>
 gcloud run deploy --image <your project tag> --platform managed
 ```
-
 
 # Database Management
 
 ## Generating and Executing Migrations
 
 Using uv locally:
+
 ```bash
 # Generate new migration
 uv run piccolo migrations new calliope --auto
@@ -81,6 +85,7 @@ uv run piccolo user create
 ```
 
 Using Docker:
+
 ```bash
 # Get bash in calliope container
 docker-compose exec calliope /bin/bash
@@ -93,31 +98,46 @@ piccolo user create
 
 Postgres
 To get to bash in the postgres container:
+
 ```
 docker-compose exec postgres /bin/bash
 ```
 
 From bash in the postgres container:
+
 ```
 psql -U postgres
 ```
 
 From psql:
+
 ```
 \dt
 etc.
 ```
 
-
-
 # Clio
 
-To build:
+First:
+
 ```
 cd clio
+```
+
+Then, to build for local development:
+
+```
+npm run build-dev
+```
+
+Or for production:
+
+```
 npm run build
 ```
-This generates a new version of `static/main.js` that must be committed to Git. Also, to be
-included in the cloud distribution, a new Google Cloud build must also be executed (see above).
+
+This generates a new version of `static/main.js` that must be committed to Git (only the production
+build, please). Also, to be included in the cloud distribution, a new Google Cloud build must also
+be executed (see above).
 
 Then it will be served at <calliope-host>/clio/

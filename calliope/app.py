@@ -1,9 +1,10 @@
 import logging
 import os
 import sys
+import time
 from typing import Sequence, Union
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.openapi.utils import get_openapi
 from fastapi.security.api_key import APIKey
 from fastapi.staticfiles import StaticFiles
@@ -144,6 +145,44 @@ def create_app() -> FastAPI:
         version=settings.APP_VERSION,
     )
 
+    # Add timing middleware for comprehensive request profiling
+    @app.middleware("http")
+    async def add_timing_middleware(request: Request, call_next):
+        # Skip static files and admin to reduce noise
+        if request.url.path.startswith(("/static/", "/admin/", "/favicon.ico")):
+            return await call_next(request)
+
+        start_time = time.time()
+        method = request.method
+        path = request.url.path
+        query_params = str(request.query_params) if request.query_params else ""
+
+        print(
+            f"🚀 HTTP {method} {path}{('?' + query_params) if query_params else ''} - REQUEST START"
+        )
+
+        try:
+            response = await call_next(request)
+            elapsed = time.time() - start_time
+            status = response.status_code
+
+            # Special logging for frame creation requests
+            if "/frames" in path and method == "POST":
+                print(
+                    f"⏱️  📝 FRAME REQUEST COMPLETE: {method} {path} - {status} - {elapsed:.2f}s ⭐"
+                )
+            else:
+                print(f"⏱️  HTTP {method} {path} - {status} - {elapsed:.2f}s")
+
+            # Add timing header for debugging
+            response.headers["X-Process-Time"] = f"{elapsed:.2f}"
+            return response
+
+        except Exception as e:
+            elapsed = time.time() - start_time
+            print(f"⏱️  HTTP {method} {path} - ERROR after {elapsed:.2f}s: {e}")
+            raise
+
     try:
         # Create and mount Piccolo Admin sub-app...
         admin_app = create_admin(
@@ -262,6 +301,12 @@ async def cleanup_firebase_data(story_id: str):
         raise HTTPException(
             status_code=500, detail=f"Error cleaning up Firebase data: {e!s}"
         ) from e
+
+
+# Root redirect to Clio client
+@app.get("/", include_in_schema=False)
+async def root_redirect():
+    return RedirectResponse("/clio/")
 
 
 # Root redirect

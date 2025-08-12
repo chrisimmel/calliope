@@ -1,24 +1,22 @@
+import asyncio
 import json
 import sys
+import time
 import traceback
-from typing import Any, Literal, cast, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional, cast
 
 import httpx
 from openai.types.chat import ChatCompletionMessageParam
 from pydantic import BaseModel, Field
 
 from calliope.inference import (
-    messages_to_object_inference,
-    text_to_text_inference,
-    text_to_image_file_inference,
     image_and_text_to_video_file_inference,
+    messages_to_object_inference,
+    text_to_image_file_inference,
+    text_to_text_inference,
 )
 from calliope.location.location import get_local_situation_text
-from calliope.models import (
-    FramesRequestParamsModel,
-    FullLocationMetadata,
-    KeysModel,
-)
+from calliope.models import FramesRequestParamsModel, FullLocationMetadata, KeysModel
 from calliope.models.frame_sequence_response import StoryFrameSequenceResponseModel
 from calliope.strategies.base import StoryStrategy
 from calliope.strategies.registry import StoryStrategyRegistry
@@ -32,13 +30,13 @@ from calliope.tables import (
 )
 from calliope.utils.file import create_character_filename, create_sequential_filename
 from calliope.utils.image import get_image_attributes
-from calliope.utils.video import get_video_attributes
 from calliope.utils.text import (
     balance_quotes,
     ends_with_punctuation,
     split_into_sentences,
     translate_text,
 )
+from calliope.utils.video import get_video_attributes
 
 
 class CharacterModel(BaseModel):
@@ -51,9 +49,7 @@ class CharacterModel(BaseModel):
         "child", "young_adult", "adult", "middle_aged", "old_and_wise"
     ] = Field(description="Their approximate age.")
     personality: str = Field(description="Their personality.")
-    typical_attire: str = Field(
-        description="What kind of clothes do they usually wear?"
-    )
+    typical_attire: str = Field(description="What kind of clothes do they usually wear?")
     other_attributes: dict[str, str] = Field(
         description="Any other notable attributes of the character not otherwise captured by this schema."
     )
@@ -130,6 +126,7 @@ class FernStrategy(StoryStrategy):
         story: Story,
         httpx_client: httpx.AsyncClient,
     ) -> StoryFrameSequenceResponseModel:
+        total_start = time.time()
         print(f"Begin processing strategy {self.strategy_name}...")
         client_id = parameters.client_id
         output_image_style = parameters.output_image_style or (
@@ -140,20 +137,19 @@ class FernStrategy(StoryStrategy):
             "No signature. Don't sign the painting."
         )
 
-        generate_video = (
-            "true" == parameters.extra_fields.get("generate_video", "false").lower()
-        )
+        print(f"{parameters=}")
+        generate_video = parameters.extra_fields.get("generate_video", False)
+        print(f"🎬 generate_video parameter: {generate_video}")
 
         situation = get_local_situation_text(image_analysis, location_metadata)
-        debug_data = self._get_default_debug_data(
-            parameters, strategy_config, situation
-        )
+        debug_data = self._get_default_debug_data(parameters, strategy_config, situation)
         errors: List[str] = []
         image = None
         video = None
 
         frame_number = await story.get_num_frames()
         if frame_number == 0:
+            init_start = time.time()
             await self._init_story(
                 parameters=parameters,
                 story=story,
@@ -162,6 +158,7 @@ class FernStrategy(StoryStrategy):
                 keys=keys,
                 httpx_client=httpx_client,
             )
+            print(f"⏱️  Story initialization took {time.time() - init_start:.2f}s")
 
         # Get some recent text.
         last_text = await story.get_text(-10)
@@ -171,9 +168,11 @@ class FernStrategy(StoryStrategy):
         last_text = (last_text.strip() + " ") if last_text else ""
         print(f"{last_text=}")
 
+        muse_start = time.time()
         muse_text = await self._consult_muse(last_text, errors, keys, httpx_client)
+        print(f"⏱️  Muse consultation took {time.time() - muse_start:.2f}s")
         print(f"{muse_text=}")
-        muse_text = None
+        # muse_text = None
 
         messages = self._compose_messages(
             parameters,
@@ -186,6 +185,7 @@ class FernStrategy(StoryStrategy):
         )
 
         # print(f'Text prompt: "{prompt}"')
+        story_gen_start = time.time()
         story_continuation: Optional[str] = await self._get_new_story_fragment(
             messages,
             strategy_config,
@@ -193,6 +193,7 @@ class FernStrategy(StoryStrategy):
             errors,
             httpx_client,
         )
+        print(f"⏱️  Story generation took {time.time() - story_gen_start:.2f}s")
 
         image_description = None
         story_state = None
@@ -216,7 +217,7 @@ class FernStrategy(StoryStrategy):
                 strategy_config.text_to_text_model_config
                 and strategy_config.text_to_text_model_config
                 and strategy_config.text_to_text_model_config.prompt_template
-                and strategy_config.text_to_text_model_config.prompt_template.target_language  # noqa: E501
+                and strategy_config.text_to_text_model_config.prompt_template.target_language
                 != "en"
             ):
                 # Translate the story to English before
@@ -231,6 +232,7 @@ class FernStrategy(StoryStrategy):
             for _ in range(2):
                 # Allow a retry.
                 try:
+                    image_gen_start = time.time()
                     output_image_filename_png = create_sequential_filename(
                         "media", client_id, "out", "png", story.cuid, frame_number
                     )
@@ -243,18 +245,26 @@ class FernStrategy(StoryStrategy):
                         parameters.output_image_width,
                         parameters.output_image_height,
                     )
+                    print(
+                        f"⏱️  Image generation took {time.time() - image_gen_start:.2f}s"
+                    )
                     output_image_filename = output_image_filename_png
                     print(f"Wrote image to file {output_image_filename}.")
                     image = get_image_attributes(output_image_filename)
                     print(f"Image: {image}.")
 
                     if generate_video and strategy_config.text_to_video_model_config:
+                        print(
+                            f"🎬 Generating video with model {strategy_config.text_to_video_model_config.model.slug}."
+                        )
                         # Generate the video using the image and text
                         output_video_filename = create_sequential_filename(
                             "media", client_id, "out", "mp4", story.cuid, frame_number
                         )
+                        print(f"🎬 Video filename: {output_video_filename}.")
 
                         # Generate the video
+                        video_gen_start = time.time()
                         await image_and_text_to_video_file_inference(
                             httpx_client,
                             output_image_filename,
@@ -262,6 +272,9 @@ class FernStrategy(StoryStrategy):
                             output_video_filename,
                             strategy_config.text_to_video_model_config,
                             keys,
+                        )
+                        print(
+                            f"⏱️  Video generation took {time.time() - video_gen_start:.2f}s"
                         )
                         print(f"Wrote video to file {output_video_filename}.")
                         video = get_video_attributes(output_video_filename)
@@ -288,6 +301,8 @@ class FernStrategy(StoryStrategy):
             await story.save()
 
         # Return the new frame.
+        total_time = time.time() - total_start
+        print(f"⏱️  TOTAL Fern strategy took {total_time:.2f}s")
         return StoryFrameSequenceResponseModel(
             frames=[frame],
             debug_data=debug_data,
@@ -304,29 +319,17 @@ class FernStrategy(StoryStrategy):
     ) -> str:
         """
         Gets some chaotic text to use as story inspiration.
+        Has a 15-second timeout to prevent long waits for slow Hugging Face endpoints.
         """
         try:
-            model = (
-                await InferenceModel.objects()
-                .where(InferenceModel.slug == "huggingface-gpt-neo-2.7B")
-                .first()
-                .output(load_json=True)
-                .run()
+            # Wrap the entire operation in a timeout
+            text = await asyncio.wait_for(
+                self._consult_muse_internal(seed, keys, httpx_client), timeout=15.0
             )
-            if model:
-                model_config = ModelConfig(
-                    slug="chaos-and-creativity",
-                    description="",
-                    model_parameters={},
-                    model=model,
-                )
-            else:
-                raise ValueError("No gpt-neo-2.7B model found.")
-
-            text = await text_to_text_inference(httpx_client, seed, model_config, keys)
-            print(f"Raw output: '{text}'")
-            text = text[len(seed) :].strip()
-            print(f"Abbreviated output: '{text}'")
+        except asyncio.TimeoutError:
+            print("Muse consultation timed out after 15 seconds")
+            errors.append("Muse consultation timed out - continuing without muse text")
+            text = ""
         except Exception as e:
             traceback.print_exc(file=sys.stderr)
             errors.append(str(e))
@@ -338,6 +341,34 @@ class FernStrategy(StoryStrategy):
         text = text.replace("�", "'")
         text = text.strip()
         return text
+
+    async def _consult_muse_internal(
+        self,
+        seed: str,
+        keys: KeysModel,
+        httpx_client: httpx.AsyncClient,
+    ) -> str:
+        """
+        Internal method for consulting the muse without timeout handling.
+        """
+        model = (
+            await InferenceModel.objects()
+            .where(InferenceModel.slug == "huggingface-gpt-neo-2.7B")
+            .first()
+            .output(load_json=True)
+            .run()
+        )
+        if model:
+            model_config = ModelConfig(
+                slug="chaos-and-creativity",
+                description="",
+                model_parameters={},
+                model=model,
+            )
+        else:
+            raise ValueError("No gpt-neo-2.7B model found.")
+
+        return await text_to_text_inference(httpx_client, seed, model_config, keys)
 
     async def _init_story(
         self,
@@ -455,7 +486,8 @@ Assemble your story scenario into the following JSON structure:
 """.strip(),
             },
         ]
-        model = "gpt-4o"
+        # model = "gpt-4o"
+        model = "gpt-4.1"
 
         if not keys.openai_api_key:
             raise ValueError(

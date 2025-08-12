@@ -452,8 +452,8 @@ export default function ClioApp() {
             thisBrowserID,
             image,
             audio,
-            strategy,
-            allowExperimental // generateVideo parameter
+            strategy
+            // allowExperimental // generateVideo parameter
           );
 
           // Call the v2 API to add a frame
@@ -526,8 +526,8 @@ export default function ClioApp() {
             strategy,
             null, // title
             image,
-            audio,
-            allowExperimental // generateVideo
+            audio
+            // allowExperimental // generateVideo
           );
 
           // Call the v2 API to create a story
@@ -573,7 +573,35 @@ export default function ClioApp() {
         }
       } catch (err: any) {
         console.error('Error getting frames:', err);
-        setError(err.message || 'Failed to get frames');
+        const errorMessage = err.message || 'Failed to get frames';
+
+        // Provide user-friendly error messages
+        let userMessage = errorMessage;
+        if (
+          errorMessage.includes('empty frame') ||
+          errorMessage.includes('no text content') ||
+          errorMessage.includes('content generation failed')
+        ) {
+          userMessage =
+            'Unable to generate story content. Please try again later.';
+        } else if (
+          errorMessage.includes('timeout') ||
+          errorMessage.includes('timed out')
+        ) {
+          userMessage =
+            'Story generation is taking longer than expected. Please try again.';
+        } else if (
+          errorMessage.includes('service unavailable') ||
+          errorMessage.includes('model loading')
+        ) {
+          userMessage =
+            'Story generation service is starting up. Please try again in a moment.';
+        } else {
+          userMessage =
+            'Unable to generate new story content. Please try again later.';
+        }
+
+        setError(userMessage);
       } finally {
         setLoadingFrames(false);
         setCaptureActive(false);
@@ -788,6 +816,8 @@ export default function ClioApp() {
 
   // Track the last loaded story slug to avoid unnecessary reloads
   const lastLoadedStorySlugRef = useRef<string | null>(null);
+  // Track if we've already processed the initial auto-load logic
+  const initialAutoLoadProcessedRef = useRef<boolean>(false);
 
   useEffect(() => {
     // Check if we have URL parameters for story slug and frame
@@ -817,11 +847,27 @@ export default function ClioApp() {
         }
       }
     } else {
-      // No URL parameters, use the default behavior
-      lastLoadedStorySlugRef.current = null;
-      getStory(null, null);
+      // No URL parameters - we're at the base URL
+      // Only set auto-load flag once on initial mount, but add a small delay
+      // to ensure the redirect from / to /clio/ has completed
+      if (!initialAutoLoadProcessedRef.current) {
+        console.log(
+          'Scheduling shouldAutoLoadStory to true after redirect delay'
+        );
+        setTimeout(() => {
+          if (!lastLoadedStorySlugRef.current) {
+            console.log('Setting shouldAutoLoadStory to true for initial load');
+            setShouldAutoLoadStory(true);
+            initialAutoLoadProcessedRef.current = true;
+          }
+        }, 100); // Small delay to ensure redirect is complete
+      }
     }
-  }, [getStory, getStoryBySlug, storySlug, frameNum, setSkipAnimation]);
+  }, [storySlug, frameNum]); // Removed function dependencies to prevent infinite loops
+
+  // State to track if we should auto-load a story after stories are fetched
+  const [shouldAutoLoadStory, setShouldAutoLoadStory] =
+    useState<boolean>(false);
 
   useEffect(() => {
     const getStories = async () => {
@@ -854,6 +900,44 @@ export default function ClioApp() {
         }
 
         setStories(newStories);
+
+        // If we're at the base URL and should auto-load a story
+        if (shouldAutoLoadStory && !storySlug) {
+          console.log(
+            'Processing auto-load logic, stories found:',
+            newStories.length
+          );
+          if (newStories.length > 0) {
+            // Load the current story or the most recent one
+            const storyToLoad = currentStoryFromList || newStories[0];
+            console.log(
+              'Auto-loading story for existing client:',
+              storyToLoad.story_id,
+              'slug:',
+              storyToLoad.slug
+            );
+
+            // Use a slight delay to ensure all state updates are complete
+            // before triggering the navigation
+            setTimeout(() => {
+              // Call getStory directly here to avoid dependency issues
+              getStory(storyToLoad.story_id, null);
+            }, 50);
+          } else {
+            // No stories exist - show the Create Story dialog
+            console.log(
+              'No stories found for client - opening Create Story dialog'
+            );
+            setDrawerIsOpen(true);
+            // Make sure we're not stuck in loading state for new clients
+            setLoadingStory(false);
+            // We'll handle the create story dialog opening in MainDrawer
+          }
+          setShouldAutoLoadStory(false);
+          console.log(
+            'Auto-load processing completed, shouldAutoLoadStory set to false'
+          );
+        }
       } catch (err: any) {
         setError(err.message);
       } finally {
@@ -862,7 +946,7 @@ export default function ClioApp() {
     };
 
     getStories();
-  }, []);
+  }, [shouldAutoLoadStory, storySlug]); // Removed getStory from dependencies to prevent infinite loop
 
   const selectFrameNumber = useCallback(
     async (newSelectedFrameNumber: number) => {
@@ -1344,8 +1428,34 @@ export default function ClioApp() {
       setCurrentStoryStatus(status);
 
       if (status.status === 'error') {
-        // Display error to user
-        setError(status.error || 'An error occurred processing your request');
+        // Display user-friendly error message
+        const errorMessage =
+          status.error || 'An error occurred processing your request';
+
+        // Provide more specific user-friendly messages for common issues
+        let userMessage = errorMessage;
+        if (
+          errorMessage.includes('empty frame') ||
+          errorMessage.includes('no text content') ||
+          errorMessage.includes('content generation failed')
+        ) {
+          userMessage =
+            'Unable to generate story content. Please try again later.';
+        } else if (
+          errorMessage.includes('timeout') ||
+          errorMessage.includes('timed out')
+        ) {
+          userMessage =
+            'Story generation is taking longer than expected. Please try again.';
+        } else if (
+          errorMessage.includes('service unavailable') ||
+          errorMessage.includes('model loading')
+        ) {
+          userMessage =
+            'Story generation service is starting up. Please try again in a moment.';
+        }
+
+        setError(userMessage);
       } else if (
         status.status === 'processing' ||
         status.status === 'adding_frame'

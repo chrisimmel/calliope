@@ -4,7 +4,6 @@ from typing import Optional
 
 import httpx
 
-from .text_to_text import text_to_text_inference
 from calliope.inference.engines.hugging_face import (
     text_to_image_file_inference_hugging_face,
 )
@@ -13,14 +12,10 @@ from calliope.inference.engines.replicate import text_to_image_file_inference_re
 from calliope.inference.engines.stability_image import (
     text_to_image_file_inference_stability,
 )
-from calliope.models import (
-    InferenceModelProvider,
-    KeysModel,
-)
-from calliope.tables import (
-    InferenceModel,
-    ModelConfig,
-)
+from calliope.models import InferenceModelProvider, KeysModel
+from calliope.tables import InferenceModel, ModelConfig
+
+from .text_to_text import text_to_text_inference
 
 
 async def text_to_image_file_inference(
@@ -53,74 +48,83 @@ async def text_to_image_file_inference(
     model = model_config.model
     last_exception: Optional[Exception] = None
 
-    for attempt in range(1, 4):
+    async def _attempt_image_generation():
+        """Single attempt at image generation."""
+        if model.provider == InferenceModelProvider.REPLICATE:
+            print(
+                f"text_to_image_file_inference.replicate {model.provider_model_name} "
+                f"({width}x{height})"
+            )
+            return await text_to_image_file_inference_replicate(
+                httpx_client,
+                text,
+                output_image_filename,
+                model_config,
+                keys,
+                width,
+                height,
+            )
+        elif model.provider == InferenceModelProvider.STABILITY:
+            print(
+                f"text_to_image_file_inference.stability {model.provider_model_name} "
+                f"({width}x{height})"
+            )
+            return await text_to_image_file_inference_stability(
+                httpx_client,
+                text,
+                output_image_filename,
+                model_config,
+                keys,
+                width,
+                height,
+            )
+        elif model.provider == InferenceModelProvider.OPENAI:
+            print(
+                f"text_to_image_file_inference.openai {model.provider_model_name} "
+                f"({width}x{height})"
+            )
+            return await text_to_image_file_inference_openai(
+                httpx_client,
+                text,
+                output_image_filename,
+                model_config,
+                keys,
+                width,
+                height,
+            )
+        elif model.provider == InferenceModelProvider.HUGGINGFACE:
+            print(
+                f"text_to_image_file_inference.huggingface {model.provider_model_name}"
+            )
+            return await text_to_image_file_inference_hugging_face(
+                httpx_client,
+                text,
+                output_image_filename,
+                model_config,
+                keys,
+                width,
+                height,
+            )
+        else:
+            raise ValueError(
+                "Don't know how to do text->image inference for provider "
+                f"{model.provider}."
+            )
+
+    # Attempt generation with retry logic extracted from loop
+    attempt = 1
+    while attempt <= 3:
         try:
-            if model.provider == InferenceModelProvider.REPLICATE:
-                print(
-                    f"text_to_image_file_inference.replicate {model.provider_model_name} "
-                    f"({width}x{height})"
-                )
-                return await text_to_image_file_inference_replicate(
-                    httpx_client,
-                    text,
-                    output_image_filename,
-                    model_config,
-                    keys,
-                    width,
-                    height,
-                )
-            elif model.provider == InferenceModelProvider.STABILITY:
-                print(
-                    f"text_to_image_file_inference.stability {model.provider_model_name} "
-                    f"({width}x{height})"
-                )
-                return await text_to_image_file_inference_stability(
-                    httpx_client,
-                    text,
-                    output_image_filename,
-                    model_config,
-                    keys,
-                    width,
-                    height,
-                )
-            elif model.provider == InferenceModelProvider.OPENAI:
-                print(
-                    f"text_to_image_file_inference.openai {model.provider_model_name} "
-                    f"({width}x{height})"
-                )
-                return await text_to_image_file_inference_openai(
-                    httpx_client,
-                    text,
-                    output_image_filename,
-                    model_config,
-                    keys,
-                    width,
-                    height,
-                )
-            elif model.provider == InferenceModelProvider.HUGGINGFACE:
-                print(
-                    f"text_to_image_file_inference.huggingface {model.provider_model_name}"
-                )
-                return await text_to_image_file_inference_hugging_face(
-                    httpx_client,
-                    text,
-                    output_image_filename,
-                    model_config,
-                    keys,
-                    width,
-                    height,
-                )
-            else:
-                raise ValueError(
-                    "Don't know how to do text->image inference for provider "
-                    f"{model.provider}."
-                )
-        except ValueError as e:
-            raise e
+            return await _attempt_image_generation()
+        except ValueError:  # noqa: PERF203
+            # Don't retry on configuration errors
+            raise
         except Exception as e:
             # This is simplistic. Assume that any error encountered may be due
             # to risqué content in the prompt. Censor it and try again.
             print(f"attempt {attempt} failed with error: {e}")
+            last_exception = e
+
             if attempt < 3:
                 errors = []
                 text = await censor_text(
@@ -130,7 +134,9 @@ async def text_to_image_file_inference(
                     httpx_client,
                 )
                 print(f"Retrying with censored text: {text}")
-            last_exception = e
+                attempt += 1
+            else:
+                break
 
     raise last_exception
 
@@ -161,20 +167,20 @@ Here is the text to review:
 """
     model = (
         await InferenceModel.objects()
-        .where(InferenceModel.slug == "openai-gpt-4o")
+        .where(InferenceModel.slug == "openai-gpt-4.1")
         .first()
         .output(load_json=True)
         .run()
     )
     if model:
         model_config = ModelConfig(
-            slug="gpt-4o-cleaner",
+            slug="gpt-4.1-cleaner",
             description="",
             model_parameters={},
             model=model,
         )
     else:
-        raise ValueError("No gpt-4o model found.")
+        raise ValueError("No gpt-4.1 model found.")
 
     # Use gpt-4o and the prompt above to clean up the text.
     try:
