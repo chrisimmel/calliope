@@ -5,13 +5,16 @@ Calliope can be run locally from the command line, in a local Docker container, 
 ## Local Development Setup
 
 ### Prerequisites
+
 - Python 3.11 or later
 - Poetry (recommended) or pip for dependency management
 - FFmpeg for audio processing
 - PostgreSQL database
 
 ### Environment Variables
+
 Create a `.env` file with the following variables:
+
 ```
 POSTGRESQL_HOSTNAME=localhost
 POSTGRESQL_USERNAME=postgres
@@ -26,6 +29,7 @@ CALLIOPE_API_KEY=your_chosen_api_key
 ```
 
 ### Running with Docker Compose (Recommended)
+
 The easiest way to run Calliope locally is with Docker Compose, which sets up both the PostgreSQL database and the Calliope server:
 
 ```bash
@@ -35,10 +39,12 @@ docker-compose up
 This will make the Calliope service available at http://localhost:8008.
 
 ### Running Standalone Server
+
 To start a local Calliope server without Docker:
 
 1. Make sure PostgreSQL is running and accessible with the credentials in your `.env` file
 2. Run the FastAPI server:
+
 ```bash
 uvicorn calliope.app:app --reload --host 0.0.0.0 --port 8008
 ```
@@ -46,28 +52,37 @@ uvicorn calliope.app:app --reload --host 0.0.0.0 --port 8008
 ## Accessing the Applications
 
 ### Calliope API
+
 The API will be available at:
+
 - http://localhost:8008 (local development)
 - https://your-cloud-url (when deployed to Google Cloud)
 
 The API documentation is available at:
+
 - http://localhost:8008/docs (local development)
 - https://your-cloud-url/docs (when deployed)
 
 ### Clio Client
+
 Clio is a Calliope client that can be run in a Web browser, located at:
+
 - http://localhost:8008/clio/ (local development)
 - https://your-cloud-url/clio/ (when deployed)
 
 It will ask to use your Web cam. If you allow it, Clio will use still images from the camera to help feed the Calliope story strategies. It shows images and text from the story.
 
 ### Thoth Admin Interface
+
 The Thoth interface for browsing and searching stories is available at:
+
 - http://localhost:8008/thoth/ (local development)
 - https://your-cloud-url/thoth/ (when deployed)
 
 ### Calliope Admin
+
 The admin interface for managing the Calliope configuration is available at:
+
 - http://localhost:8008/admin/ (local development)
 - https://your-cloud-url/admin/ (when deployed)
 
@@ -100,6 +115,7 @@ piccolo migrations forwards calliope
 ## Logs and Debugging
 
 When running with Docker Compose, view logs with:
+
 ```bash
 docker-compose logs -f calliope
 ```

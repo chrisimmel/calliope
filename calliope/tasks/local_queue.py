@@ -22,14 +22,15 @@ logger = logging.getLogger(__name__)
 class LocalTaskQueue(TaskQueue):
     """In-memory task queue for local development"""
 
-    def __init__(self):
+    def __init__(self) -> None:
+        super().__init__()
         self.tasks: Dict[str, Task] = {}
         self.handlers: Dict[str, Callable] = {}
         self.running_tasks: Set[str] = set()
         self.task_results: Dict[str, Any] = {}
         self.firebase = get_firebase_manager()
 
-    def register_handler(self, task_type: str, handler: Callable):
+    def register_handler(self, task_type: str, handler: Callable) -> None:
         """
         Register a handler function for a task type
 
@@ -93,12 +94,12 @@ class LocalTaskQueue(TaskQueue):
 
         return task.task_id
 
-    async def _run_task_with_delay(self, task_id: str, delay_seconds: int):
+    async def _run_task_with_delay(self, task_id: str, delay_seconds: int) -> None:
         """Run a task after a specified delay"""
         await asyncio.sleep(delay_seconds)
         await self._run_task(task_id)
 
-    async def _run_task(self, task_id: str):
+    async def _run_task(self, task_id: str) -> None:
         """
         Run a task in the background
 

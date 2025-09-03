@@ -1,4 +1,4 @@
-from typing import cast, Sequence
+from typing import Sequence, cast
 
 from fastapi import Request
 from pydantic import BaseModel
@@ -12,13 +12,12 @@ class AddStoryThumbnailsFormModel(BaseModel):
 
 # Run command action handler
 async def add_story_thumbnails_endpoint(
-    request: Request,
-    data: AddStoryThumbnailsFormModel
+    _request: Request, _data: AddStoryThumbnailsFormModel
 ) -> str:
     story_count = 0
     thumb_count = 0
 
-    for story in cast(Sequence[Story], await Story.objects()):
+    for story in cast("Sequence[Story]", await Story.objects()):
         story_count += 1
         print(
             f"Story {story.id} has thumbnail "  # type: ignore[attr-defined]

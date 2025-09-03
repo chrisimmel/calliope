@@ -2,7 +2,6 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 # from pydantic import BaseModel
-
 from calliope.tables.story import StoryFrame
 
 

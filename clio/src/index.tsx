@@ -1,13 +1,13 @@
-import React from "react";
-import { createRoot } from "react-dom/client";
+import React from 'react';
+import { createRoot } from 'react-dom/client';
 
-import AppRoutes from "./routes/AppRoutes";
+import AppRoutes from './routes/AppRoutes';
 
-const container = document.getElementById("root");
+const container = document.getElementById('root');
 if (container) {
-    const root = createRoot(container);
-    container.classList.add("fullscreen");
-    root.render(<AppRoutes />);
+  const root = createRoot(container);
+  container.classList.add('fullscreen');
+  root.render(<AppRoutes />);
 } else {
-    console.error("The 'root' element wasn't found.");
+  console.error("The 'root' element wasn't found.");
 }

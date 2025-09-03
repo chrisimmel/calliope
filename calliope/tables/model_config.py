@@ -2,21 +2,21 @@ from datetime import datetime
 from typing import Any, Dict
 
 import jinja2
-from piccolo.table import Table
 from piccolo.columns import (
+    JSONB,
     Boolean,
     ForeignKey,
-    JSONB,
+    Text,
     Timestamptz,
     Varchar,
-    Text,
 )
 from piccolo.columns.readable import Readable
+from piccolo.table import Table
 
 from calliope.models import InferenceModelProvider, InferenceModelProviderVariant
 
 
-class PromptTemplate(Table, tablename="prompt_template"):
+class PromptTemplate(Table, tablename="prompt_template"):  # type: ignore[call-arg]
     """
     A template for a text prompt to be sent to an inference model, with support for template
     variables and control structures in Jinja2 format.
@@ -56,7 +56,7 @@ class PromptTemplate(Table, tablename="prompt_template"):
         return Readable(template="%s", columns=[cls.slug])
 
 
-class InferenceModel(Table, tablename="inference_model"):
+class InferenceModel(Table, tablename="inference_model"):  # type: ignore[call-arg]
     """
     An inference model.
 
@@ -109,7 +109,7 @@ class InferenceModel(Table, tablename="inference_model"):
         return Readable(template="%s", columns=[cls.slug])
 
 
-class ModelConfig(Table, tablename="model_config"):
+class ModelConfig(Table, tablename="model_config"):  # type: ignore[call-arg]
     """
     An inference model configuration.
     """
@@ -137,7 +137,7 @@ class ModelConfig(Table, tablename="model_config"):
         return Readable(template="%s", columns=[cls.slug])
 
 
-class StrategyConfig(Table, tablename="strategy_config"):
+class StrategyConfig(Table, tablename="strategy_config"):  # type: ignore[call-arg]
     """
     For example:
     strategy_config = {

@@ -21,7 +21,7 @@ For local Docker development, these are configured in `docker-compose.yml`:
 ```yaml
 environment:
   - GOOGLE_CLOUD_PROJECT=your-gcp-project-id
-  - FIREBASE_DATABASE_ID=calliope-development  # For multi-database setups
+  - FIREBASE_DATABASE_ID=calliope-development # For multi-database setups
   - FIREBASE_CREDENTIALS_PATH=/gcp/config/application_default_credentials.json
 ```
 
@@ -47,6 +47,7 @@ The backend will try to authenticate with Firebase using the following methods, 
 There are two main types of credentials that can be used:
 
 1. **Firebase Service Account Credentials**: A specific JSON file with Firebase permissions
+
    - Contains a `"type": "service_account"` field
    - Available in Firebase Console → Project Settings → Service Accounts → Generate New Private Key
 
@@ -63,6 +64,7 @@ The frontend Firebase client uses environment variables to securely store Fireba
 ### Setup Process
 
 1. Copy the `.env.template` file to `.env` in the clio directory:
+
    ```
    cp clio/.env.template clio/.env
    ```

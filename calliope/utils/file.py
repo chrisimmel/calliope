@@ -1,15 +1,14 @@
 import base64
 from dataclasses import dataclass
 from datetime import datetime
-import os
 import json
+import os
 from typing import Type, TypeVar
 
 from pydantic import BaseModel
 
 from calliope.utils.id import create_cuid
 from calliope.utils.text import slugify
-
 
 filename_counter = 0
 
@@ -122,7 +121,6 @@ def create_character_filename(
     )
 
 
-
 T = TypeVar("T")
 
 
@@ -133,7 +131,7 @@ def load_json_into_pydantic_model(
     Takes a JSON file path as a string and a Pydantic model class as arguments, reads
     the JSON file, and loads the data into the model.
     """
-    with open(json_filename, "r") as f:
+    with open(json_filename) as f:
         data = json.load(f)
     return model(**data)
 

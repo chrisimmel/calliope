@@ -1,12 +1,10 @@
 import httpx
 
-from calliope.models import CurrentWeatherModel, WMO_WEATHER_DESCRIPTIONS_BY_CODE
+from calliope.models import WMO_WEATHER_DESCRIPTIONS_BY_CODE, CurrentWeatherModel
 
 
 async def get_weather_at_location(
-    httpx_client: httpx.AsyncClient,
-    latitude: float,
-    longitude: float
+    httpx_client: httpx.AsyncClient, latitude: float, longitude: float
 ) -> CurrentWeatherModel:
     """
     Gets the weather at a given location.

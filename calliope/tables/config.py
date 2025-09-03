@@ -1,18 +1,17 @@
 from datetime import datetime, timezone
 from typing import Optional
-from calliope.utils.file import FileMetadata
 
-from piccolo.table import Table
 from piccolo.columns import (
-    Boolean,
     JSONB,
+    Boolean,
     Text,
     Timestamptz,
     Varchar,
 )
-
+from piccolo.table import Table
 
 from calliope.models import ClientTypeConfigModel, SparrowConfigModel
+from calliope.utils.file import FileMetadata
 
 
 class SparrowConfig(Table):

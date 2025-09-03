@@ -1,8 +1,8 @@
 import os
 from typing import Any, Dict, List, Optional
 
-import httpx
 from fastapi import HTTPException
+import httpx
 
 from calliope.location.location import get_local_situation_text
 from calliope.models import (
@@ -12,7 +12,6 @@ from calliope.models import (
 )
 from calliope.models.frame_sequence_response import StoryFrameSequenceResponseModel
 from calliope.strategies.base import StoryStrategy
-from calliope.strategies.registry import StoryStrategyRegistry
 from calliope.tables import (
     SparrowState,
     Story,
@@ -44,12 +43,8 @@ class ShowThisFrameStrategy(StoryStrategy):
         story: Story,
         httpx_client: httpx.AsyncClient,
     ) -> StoryFrameSequenceResponseModel:
-        situation = get_local_situation_text(
-            image_analysis, location_metadata
-        )
-        debug_data = self._get_default_debug_data(
-            parameters, strategy_config, situation
-        )
+        situation = get_local_situation_text(image_analysis, location_metadata)
+        debug_data = self._get_default_debug_data(parameters, strategy_config, situation)
         errors: List[str] = []
 
         if parameters.input_image_filename:
@@ -91,7 +86,7 @@ class ShowThisFrameStrategy(StoryStrategy):
             except Exception as e:
                 raise HTTPException(
                     status_code=404, detail=f"Error retrieving file {filename}: {e}"
-                )
+                ) from e
 
         if not os.path.isfile(filename):
             raise HTTPException(

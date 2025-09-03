@@ -137,4 +137,3 @@ frameDecoder =
 imageDecoder : Decoder String
 imageDecoder =
   Decode.field "url" string
-

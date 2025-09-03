@@ -1,16 +1,16 @@
 from datetime import datetime, timezone
 from typing import Optional
-from calliope.utils.file import FileMetadata
 
-from piccolo.table import Table
 from piccolo.columns import (
     ForeignKey,
     Timestamptz,
     Varchar,
 )
+from piccolo.table import Table
 
 from calliope.models import SparrowStateModel
 from calliope.tables.story import Story
+from calliope.utils.file import FileMetadata
 
 
 class SparrowState(Table):

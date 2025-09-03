@@ -1,5 +1,5 @@
 from fastapi import HTTPException, Security
-from fastapi.security.api_key import APIKeyCookie, APIKeyQuery, APIKeyHeader
+from fastapi.security.api_key import APIKeyCookie, APIKeyHeader, APIKeyQuery
 from starlette.status import HTTP_403_FORBIDDEN
 
 from calliope.settings import settings

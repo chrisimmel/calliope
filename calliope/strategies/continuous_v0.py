@@ -6,8 +6,8 @@ from typing import Any, Dict, List, Optional
 import httpx
 
 from calliope.inference import (
-    text_to_text_inference,
     text_to_image_file_inference,
+    text_to_text_inference,
 )
 from calliope.location.location import get_local_situation_text
 from calliope.models import (
@@ -96,7 +96,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
         if in_text and not in_text.isspace():
             # gpt-neo-2.7B produces very short text, so collect a handful
             # of its responses as the frame text.
-            for i in range(5):
+            for _ in range(5):
                 try:
                     text_n = await self._get_new_story_fragment(
                         in_text + out_text,
@@ -118,7 +118,7 @@ class ContinuousStoryV0Strategy(StoryStrategy):
                         # Reset to to the seed prompt.
                         if caption or seed_prompt:
                             in_text = caption or seed_prompt
-                except Exception as e:
+                except Exception as e:  # noqa: PERF203
                     traceback.print_exc(file=sys.stderr)
                     errors.append(str(e))
 
@@ -151,8 +151,17 @@ class ContinuousStoryV0Strategy(StoryStrategy):
                 output_image_filename = output_image_filename_png
                 image = get_image_attributes(output_image_filename)
             except Exception as e:
-                traceback.print_exc(file=sys.stderr)
-                errors.append(str(e))
+                await self._handle_image_generation_failure(
+                    error=e,
+                    story_cuid=story.cuid,
+                    frame_number=frame_number,
+                    image_prompt=image_prompt,
+                    strategy_config=strategy_config,
+                    client_id=client_id,
+                    errors=errors,
+                    output_image_width=parameters.output_image_width,
+                    output_image_height=parameters.output_image_height,
+                )
 
         # Append and persist the frame to the story.
         frame = await self._add_frame(

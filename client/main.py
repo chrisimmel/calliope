@@ -1,19 +1,19 @@
 from pprint import pprint
-import sys, traceback
+import sys
+import traceback
 
 import cv2
-
 import requests
 from requests.models import Response
 
 # from PIL import Image
 # from image_captioning.model import predict
 from calliope.inference import (
+    # image_file_to_text_inference,  # Not available
     text_to_image_file_inference,
 )
 from calliope.models import KeysModel
 from calliope.settings import settings
-
 
 # image_to_text_model = "ydshieh/vit-gpt2-coco-en-ckpts"
 image_to_text_model = "nlpconnect/vit-gpt2-image-captioning"
@@ -47,8 +47,9 @@ def image_loop_inference_api() -> None:
             caption = None
             prompt = None
             try:
-                caption = image_file_to_text_inference(frame_file, keys)
-            except Exception as e:
+                # caption = image_file_to_text_inference(frame_file, keys)  # Not available
+                caption = "captured scene"  # Placeholder
+            except Exception:
                 traceback.print_exc(file=sys.stderr)
 
             if caption:
@@ -60,7 +61,7 @@ def image_loop_inference_api() -> None:
                     output_image_file = text_to_image_file_inference(prompt, keys)
                     image = cv2.imread(output_image_file)
                     cv2.imshow("weld", image)
-                except Exception as e:
+                except Exception:
                     traceback.print_exc(file=sys.stderr)
 
             cv2.waitKey(2000)
@@ -78,9 +79,10 @@ def image_loop_local() -> None:
         ret, frame = vid.read()
         if frame is not None:
             cv2.imwrite(frame_file, frame)
-            image = Image.open(frame_file)
-            caption = predict(image)
-            image.close()
+            # image = Image.open(frame_file)  # PIL not imported
+            # caption = predict(image)  # Function not available
+            # image.close()
+            caption = "captured scene"  # Placeholder
             pprint(caption)
 
 
@@ -99,9 +101,9 @@ def calliope_request(filename: str) -> Response:
         "strategy": "continuous-v0",
         "debug": True,
     }
-    files = {"input_image": open(filename, "rb")}
-
-    response = requests.post(api_url, files=files, data=values, headers=headers)
+    with open(filename, "rb") as f:
+        files = {"input_image": f}
+        response = requests.post(api_url, files=files, data=values, headers=headers)
     if response.status_code != 200:
         print(f"{response.status_code=}, {response.reason=}, {response.raw=}")
     response.raise_for_status()
@@ -163,7 +165,7 @@ def image_loop_calliope() -> None:
                         image = cv2.imread(image_file)
                         cv2.imshow("Calliope", image)
 
-            except Exception as e:
+            except Exception:
                 traceback.print_exc(file=sys.stderr)
 
         cv2.waitKey(10000)

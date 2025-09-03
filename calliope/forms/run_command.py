@@ -9,8 +9,7 @@ class RunCommandFormModel(BaseModel):
 
 
 # Run command action handler
-async def run_command_endpoint(request: Request, data: RunCommandFormModel) -> str:
-
+async def run_command_endpoint(_request: Request, data: RunCommandFormModel) -> str:
     result = subprocess.run(
         data.command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
     )

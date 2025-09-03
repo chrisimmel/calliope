@@ -1,7 +1,6 @@
-from typing import List, Dict, Any, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, root_validator
-
 
 SnippetType = Literal["image", "audio", "text", "video"]
 
@@ -27,12 +26,12 @@ class AddFrameRequest(BaseModel):
         """
         modeled_field_names = set(cls.model_fields.keys())
 
-        extra_fields: Dict[str, Any] = {}
-        for field_name in list(values):
-            if field_name not in modeled_field_names:
-                extra_fields[field_name] = values.pop(field_name)
-        values["extra_fields"] = extra_fields
-        return values
+        extra_fields = {
+            field_name: values.pop(field_name)
+            for field_name in list(values)
+            if field_name not in modeled_field_names
+        }
+        return {**values, "extra_fields": extra_fields}
 
 
 class CreateStoryRequest(AddFrameRequest):

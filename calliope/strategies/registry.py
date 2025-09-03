@@ -1,4 +1,4 @@
-from typing import Any, Callable, cast, Dict, Sequence, Type
+from typing import Any, Callable, ClassVar, Dict, Sequence, Type, cast
 
 from calliope.strategies.base import StoryStrategy
 
@@ -9,7 +9,7 @@ class StoryStrategyRegistry:
     """
 
     # All registered block classes, keyed by block type.
-    _story_strategies_by_name: Dict[str, Type] = {}
+    _story_strategies_by_name: ClassVar[Dict[str, Type]] = {}
 
     @classmethod
     def register(cls) -> Callable:
@@ -43,4 +43,4 @@ class StoryStrategyRegistry:
 
     @classmethod
     def get_all_strategy_names(cls) -> Sequence[str]:
-        return cast(Sequence[str], cls._story_strategies_by_name.keys())
+        return cast("Sequence[str]", cls._story_strategies_by_name.keys())

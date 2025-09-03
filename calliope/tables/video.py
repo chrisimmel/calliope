@@ -1,13 +1,13 @@
 from datetime import datetime, timezone
 from typing import Optional
 
-from piccolo.table import Table
 from piccolo.columns import (
     Float,
     Integer,
     Timestamptz,
     Varchar,
 )
+from piccolo.table import Table
 
 from calliope.models.video import VideoFormat, VideoModel
 from calliope.utils.file import FileMetadata

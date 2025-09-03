@@ -4,11 +4,7 @@ from typing import Any, Dict, Optional, Sequence, cast
 
 import httpx
 
-from calliope.models import (
-    FramesRequestParamsModel,
-    FullLocationMetadata,
-    KeysModel,
-)
+from calliope.models import FramesRequestParamsModel, FullLocationMetadata, KeysModel
 from calliope.models.frame_sequence_response import StoryFrameSequenceResponseModel
 from calliope.storage.state_manager import put_story
 from calliope.tables import (
@@ -176,16 +172,16 @@ class StoryStrategy(metaclass=ABCMeta):
             a dictionary with the default debug data.
         """
         text_to_text_model_config = cast(
-            ModelConfig, strategy_config.text_to_text_model_config
+            "ModelConfig", strategy_config.text_to_text_model_config
         )
         text_to_image_model_config = cast(
-            ModelConfig, strategy_config.text_to_image_model_config
+            "ModelConfig", strategy_config.text_to_image_model_config
         )
         text_to_video_model_config = cast(
-            ModelConfig, strategy_config.text_to_video_model_config
+            "ModelConfig", strategy_config.text_to_video_model_config
         )
         prompt_template = (
-            cast(PromptTemplate, text_to_text_model_config.prompt_template)
+            cast("PromptTemplate", text_to_text_model_config.prompt_template)
             if text_to_text_model_config
             else None
         )
@@ -227,6 +223,67 @@ class StoryStrategy(metaclass=ABCMeta):
                     StrategyConfig.seed_prompt_template
                 )
             # print(f"Seed prompt template: {strategy_config.seed_prompt_template.text}")
-            return cast(str, strategy_config.seed_prompt_template.text or "")
+            return cast("str", strategy_config.seed_prompt_template.text or "")
 
         return ""
+
+    async def _handle_image_generation_failure(
+        self,
+        error: Exception,
+        story_cuid: str,
+        frame_number: int,
+        image_prompt: str,
+        strategy_config: StrategyConfig,
+        client_id: str,
+        errors: list,
+        output_image_width: Optional[int] = None,
+        output_image_height: Optional[int] = None,
+    ) -> None:
+        """
+        Handle image generation failure by adding to backfill queue.
+
+        This helper method standardizes error handling and backfill queueing
+        across all strategies that generate images.
+
+        Args:
+            error: The exception that occurred during image generation
+            story_cuid: The story CUID
+            frame_number: The frame number
+            image_prompt: The image generation prompt that failed
+            strategy_config: The strategy configuration
+            client_id: The client ID for file naming
+            errors: List to append error messages to
+            output_image_width: Desired image width
+            output_image_height: Desired image height
+        """
+        import traceback
+
+        # Log the error
+        traceback.print_exc()
+        error_msg = f"Image generation failed: {error!s}"
+        errors.append(error_msg)
+        print(f"❌ Failed to generate image for frame {frame_number}: {error}")
+
+        from calliope.utils.cloud_run import trigger_maintenance_worker_if_needed
+        from calliope.utils.image_backfill import ImageBackfillQueue
+
+        # Add to backfill queue for retry
+        try:
+            await ImageBackfillQueue.add_to_queue(
+                story_cuid=story_cuid,
+                frame_number=frame_number,
+                image_prompt=image_prompt,
+                strategy_config_slug=strategy_config.slug,
+                model_config_slug=strategy_config.text_to_image_model_config.slug,
+                client_id=client_id,
+                output_image_width=output_image_width,
+                output_image_height=output_image_height,
+            )
+            print(f"🔄 Added frame {frame_number} to image backfill queue")
+
+            # In Google Cloud, trigger immediate maintenance worker for faster retry
+            await trigger_maintenance_worker_if_needed()
+
+        except Exception as queue_error:
+            print(f"❌ Failed to add to backfill queue: {queue_error}")
+            errors.append(f"Failed to queue for backfill: {queue_error!s}")

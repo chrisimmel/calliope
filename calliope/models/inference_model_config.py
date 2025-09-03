@@ -173,34 +173,34 @@ class InferenceModelConfigsModel(BaseModel):
     """
 
     # Image analysis
-    image_analysis_model_config: Optional[
-        InferenceModelConfigModel
-    ] = get_model_config_by_name("azure_vision_analysis")
+    image_analysis_model_config: Optional[InferenceModelConfigModel] = (
+        get_model_config_by_name("azure_vision_analysis")
+    )
 
     # Image OCR
-    image_ocr_model_config: Optional[
-        InferenceModelConfigModel
-    ] = get_model_config_by_name("azure_vision_ocr")
+    image_ocr_model_config: Optional[InferenceModelConfigModel] = (
+        get_model_config_by_name("azure_vision_ocr")
+    )
 
     # Image -> text
-    image_to_text_model_config: Optional[
-        InferenceModelConfigModel
-    ] = get_model_config_by_name("huggingface_image_captioning")
+    image_to_text_model_config: Optional[InferenceModelConfigModel] = (
+        get_model_config_by_name("huggingface_image_captioning")
+    )
 
     # Text -> image
-    text_to_image_model_config: Optional[
-        InferenceModelConfigModel
-    ] = get_model_config_by_name("stability_stable_diffusion_1.5")
+    text_to_image_model_config: Optional[InferenceModelConfigModel] = (
+        get_model_config_by_name("stability_stable_diffusion_1.5")
+    )
 
     # Text -> text
-    text_to_text_model_config: Optional[
-        InferenceModelConfigModel
-    ] = get_model_config_by_name("huggingface_gpt_neo_2.7B")
+    text_to_text_model_config: Optional[InferenceModelConfigModel] = (
+        get_model_config_by_name("huggingface_gpt_neo_2.7B")
+    )
 
     # Audio -> text
-    audio_to_text_model_config: Optional[
-        InferenceModelConfigModel
-    ] = get_model_config_by_name("openai_whisper")
+    audio_to_text_model_config: Optional[InferenceModelConfigModel] = (
+        get_model_config_by_name("openai_whisper")
+    )
 
 
 def load_model_configs(

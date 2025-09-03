@@ -1,12 +1,10 @@
-import sys
-import traceback
 from typing import Any, Dict, List, Optional
 
 import httpx
 
 from calliope.inference import (
-    text_to_text_inference,
     text_to_image_file_inference,
+    text_to_text_inference,
 )
 from calliope.location.location import get_local_situation_text
 from calliope.models import (
@@ -51,12 +49,8 @@ class SimpleOneFrameStoryStrategy(StoryStrategy):
         output_image_style = (
             parameters.output_image_style or "A watercolor, paper texture."
         )
-        situation = get_local_situation_text(
-            image_analysis, location_metadata
-        )
-        debug_data = self._get_default_debug_data(
-            parameters, strategy_config, situation
-        )
+        situation = get_local_situation_text(image_analysis, location_metadata)
+        debug_data = self._get_default_debug_data(parameters, strategy_config, situation)
         errors: List[str] = []
         description = ""
         image = None
@@ -100,8 +94,17 @@ class SimpleOneFrameStoryStrategy(StoryStrategy):
                 )
                 image = get_image_attributes(output_image_filename_png)
             except Exception as e:
-                traceback.print_exc(file=sys.stderr)
-                errors.append(str(e))
+                await self._handle_image_generation_failure(
+                    error=e,
+                    story_cuid=story.cuid,
+                    frame_number=frame_number,
+                    image_prompt=image_prompt,
+                    strategy_config=strategy_config,
+                    client_id=client_id,
+                    errors=errors,
+                    output_image_width=parameters.output_image_width,
+                    output_image_height=parameters.output_image_height,
+                )
 
         text = text + "\n"
         frame = await self._add_frame(

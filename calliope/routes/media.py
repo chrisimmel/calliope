@@ -16,7 +16,6 @@ from calliope.utils.image import (
     image_format_to_media_type,
 )
 
-
 router = APIRouter(prefix="/media", tags=["media"])
 
 
@@ -42,8 +41,8 @@ async def _handle_get_media_request(filename: str) -> Optional[FileResponse]:
         except Exception as e:
             raise HTTPException(
                 status_code=404,
-                detail=f"Error retrieving file {local_filename}: {e}",
-            )
+                detail=f"Error retrieving file {local_filename}: {e!s}",
+            ) from e
 
     if not os.path.isfile(local_filename):
         raise HTTPException(
@@ -57,7 +56,7 @@ async def _handle_get_media_request(filename: str) -> Optional[FileResponse]:
 async def put_media(
     filename: str,
     media_file: bytes = File(None),
-    api_key: APIKey = Depends(get_api_key),
+    api_key: APIKey = Depends(get_api_key),  # noqa: ARG001
 ) -> None:
     """
     Puts a media file in place for later use. Typical usage would be to upload
@@ -72,7 +71,7 @@ async def put_media(
             put_media_file(local_filename)
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f"Error storing file {local_filename}: {e}"
-        )
+            status_code=500, detail=f"Error storing file {local_filename}: {e!s}"
+        ) from e
 
     return None

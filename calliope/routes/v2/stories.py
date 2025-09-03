@@ -308,36 +308,11 @@ async def get_story_state(
             firebase_story_data.get("recent_tasks", []) if firebase_story_data else []
         )
 
-        # Build status from task information
-        status = {}
-        if active_tasks:
-            # Get the most recent active task
-            latest_task = await firebase.get_task(active_tasks[0])
-            if latest_task:
-                status = {
-                    "status": latest_task.get("status", "unknown"),
-                    "task_id": latest_task.get("task_id"),
-                    "task_type": latest_task.get("task_type"),
-                    "started_at": latest_task.get("started_at"),
-                }
-        elif recent_tasks:
-            # Get the most recent completed task
-            latest_task = await firebase.get_task(recent_tasks[0])
-            if latest_task:
-                status = {
-                    "status": "idle",  # Story is idle, last task completed
-                    "last_task_id": latest_task.get("task_id"),
-                    "last_task_type": latest_task.get("task_type"),
-                    "completed_at": latest_task.get("completed_at"),
-                }
-        else:
-            status = {"status": "idle"}
-
         print(f"{firebase_story_data=}")
         if include_frames:
             print("Getting frames")
             frames = await story.get_frames(include_media=True)
-            prepare_existing_frame_images(frames)
+            prepare_existing_frame_images(list(frames))
             frame_models = [frame.to_pydantic() for frame in frames]
         else:
             frame_models = None
@@ -350,7 +325,6 @@ async def get_story_state(
             story_frame_count=await story.get_num_frames(),
             append_to_prior_frames=False,
             request_id=create_cuid(),
-            status=status,
             strategy=story.strategy_name,
             is_read_only=story.created_for_sparrow_id != client_id,
             created_for_sparrow_id=story.created_for_sparrow_id,
@@ -359,6 +333,8 @@ async def get_story_state(
             generation_date=str(datetime.utcnow()),
             debug_data={},
             errors=[],
+            num_active_tasks=len(active_tasks),
+            num_recent_tasks=len(recent_tasks),
         )
         return response
 

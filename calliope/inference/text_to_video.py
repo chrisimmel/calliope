@@ -1,5 +1,6 @@
-import httpx
 from typing import Optional
+
+import httpx
 
 from calliope.inference.engines.runway import runway_image_and_text_to_video_inference
 from calliope.models import (
@@ -37,9 +38,7 @@ async def image_and_text_to_video_file_inference(
     model = await model_config.get_related(ModelConfig.model)
 
     if model.provider == InferenceModelProvider.RUNWAY:
-        print(
-            f"text_and_image_to_video_inference.runway {model.provider_model_name} "
-        )
+        print(f"text_and_image_to_video_inference.runway {model.provider_model_name} ")
         return await runway_image_and_text_to_video_inference(
             httpx_client=httpx_client,
             prompt_image_file=prompt_image_file,

@@ -1,15 +1,13 @@
-from pprint import pprint
-import sys, traceback
-from typing import Any
+import sys
+import traceback
 
 import cv2
 
 from calliope.inference import (
-    text_to_text_inference,
     text_to_image_file_inference,
+    text_to_text_inference,
 )
 from calliope.models import KeysModel
-
 
 frame_file = "frame.jpg"
 output_image_file = "output_image.jpg"
@@ -42,8 +40,9 @@ def story_loop_inference_api(image_style: str) -> None:
             fragment_len = 0
 
             try:
-                caption = image_file_to_text_inference(frame_file, keys)
-            except Exception as e:
+                # caption = image_file_to_text_inference(frame_file, keys)  # Not available
+                caption = "captured scene"  # Placeholder
+            except Exception:
                 traceback.print_exc(file=sys.stderr)
 
             if last_text:
@@ -55,7 +54,7 @@ def story_loop_inference_api(image_style: str) -> None:
             fragment_len = len(text)
             try:
                 text = text_to_text_inference(text, keys)
-            except Exception as e:
+            except Exception:
                 traceback.print_exc(file=sys.stderr)
 
             text = text[fragment_len + 1 :]
@@ -74,7 +73,7 @@ def story_loop_inference_api(image_style: str) -> None:
                 text_to_image_file_inference(prompt, output_image_filename, keys)
                 image = cv2.imread(output_image_filename)
                 cv2.imshow("Calliope", image)
-            except Exception as e:
+            except Exception:
                 traceback.print_exc(file=sys.stderr)
 
             cv2.waitKey(5000)

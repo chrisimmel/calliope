@@ -1,16 +1,15 @@
 from typing import Any, Iterable, TypeVar, Union
 
-from calliope.inference.engines.openai_object import openai_messages_to_object_inference
 import httpx
 from openai.types.chat import ChatCompletionMessageParam
 from pydantic import BaseModel
 
+from calliope.inference.engines.openai_object import openai_messages_to_object_inference
 from calliope.models import (
     InferenceModelProvider,
     KeysModel,
 )
 from calliope.tables import ModelConfig
-
 
 T = TypeVar("T", bound=Union[BaseModel, "Iterable[Any]"])
 

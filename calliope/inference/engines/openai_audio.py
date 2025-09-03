@@ -1,5 +1,4 @@
 import httpx
-
 from openai import AsyncOpenAI
 
 from calliope.models import (

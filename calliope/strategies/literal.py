@@ -1,6 +1,4 @@
-import sys
-import traceback
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import httpx
 
@@ -48,13 +46,9 @@ class LiteralStrategy(StoryStrategy):
         output_image_style = (
             parameters.output_image_style or "A watercolor, paper texture."
         )
-        situation = get_local_situation_text(
-            image_analysis, location_metadata
-        )
-        debug_data = self._get_default_debug_data(
-            parameters, strategy_config, situation
-        )
-        errors = []
+        situation = get_local_situation_text(image_analysis, location_metadata)
+        debug_data = self._get_default_debug_data(parameters, strategy_config, situation)
+        errors: List[str] = []
         frames = []
 
         input_text = parameters.input_text
@@ -90,8 +84,17 @@ class LiteralStrategy(StoryStrategy):
                 output_image_filename = output_image_filename_png
                 image = get_image_attributes(output_image_filename)
             except Exception as e:
-                traceback.print_exc(file=sys.stderr)
-                errors.append(str(e))
+                await self._handle_image_generation_failure(
+                    error=e,
+                    story_cuid=story.cuid,
+                    frame_number=frame_number,
+                    image_prompt=image_prompt,
+                    strategy_config=strategy_config,
+                    client_id=client_id,
+                    errors=errors,
+                    output_image_width=parameters.output_image_width,
+                    output_image_height=parameters.output_image_height,
+                )
 
             text = prompt + "\n"
 

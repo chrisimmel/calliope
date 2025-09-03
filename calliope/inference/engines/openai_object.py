@@ -1,7 +1,7 @@
-from typing import Any, cast, Dict, Iterable, TypeVar, Union
+from typing import Any, Dict, Iterable, TypeVar, Union, cast
 
 import httpx
-from instructor import from_openai, Mode
+from instructor import from_openai
 from openai import AsyncOpenAI
 from openai.types.chat import ChatCompletionMessageParam
 from pydantic import BaseModel
@@ -10,7 +10,6 @@ from calliope.models import (
     KeysModel,
 )
 from calliope.tables import ModelConfig
-
 
 T = TypeVar("T", bound=Union[BaseModel, "Iterable[Any]"])
 
@@ -40,12 +39,12 @@ async def openai_messages_to_object_inference(
 
     parameters = {
         **(
-            cast(Dict[str, Any], model.model_parameters)
+            cast("Dict[str, Any]", model.model_parameters)
             if model.model_parameters
             else {}
         ),
         **(
-            cast(Dict[str, Any], model_config.model_parameters)
+            cast("Dict[str, Any]", model_config.model_parameters)
             if model_config.model_parameters
             else {}
         ),

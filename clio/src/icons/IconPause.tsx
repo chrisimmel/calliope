@@ -1,5 +1,5 @@
 // icon:bx-pause | Boxicons https://boxicons.com/ | Atisa
-import * as React from "react";
+import * as React from 'react';
 
 export default function IconPause(props: any) {
   return (

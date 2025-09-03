@@ -1,12 +1,12 @@
 from datetime import datetime, timezone
 from typing import Optional
 
-from piccolo.table import Table
 from piccolo.columns import (
     Integer,
     Timestamptz,
     Varchar,
 )
+from piccolo.table import Table
 
 from calliope.models import ImageFormat, ImageModel
 from calliope.utils.file import FileMetadata

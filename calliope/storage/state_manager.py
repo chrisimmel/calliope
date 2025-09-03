@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from enum import Enum
 import glob
 import os
-from typing import cast, List, Optional, Sequence
+from typing import List, Optional, Sequence, cast
 
 from calliope.models import (
     SparrowStateModel,
@@ -73,14 +73,16 @@ def list_legacy_sparrow_states() -> Sequence[ModelAndMetadata]:
 
     if is_google_cloud_run_environment():
         blob_names = list_google_files_with_prefix("state/sparrow")
-        for blob_name in blob_names:
-            local_filename = blob_name
-            filenames_and_dates.append(get_google_file(blob_name, local_filename))
+        filenames_and_dates = [
+            get_google_file(filename=blob_name, destination_path=blob_name)
+            for blob_name in blob_names
+        ]
     else:
         dir_path = r"state/sparrow*"
         state_filenames = glob.glob(dir_path)
-        for filename in state_filenames:
-            filenames_and_dates.append(get_file_metadata(filename))
+        filenames_and_dates = [
+            get_file_metadata(filename) for filename in state_filenames
+        ]
 
     return [
         ModelAndMetadata(
@@ -99,14 +101,16 @@ def list_legacy_stories() -> Sequence[ModelAndMetadata]:
 
     if is_google_cloud_run_environment():
         blob_names = list_google_files_with_prefix("state/story")
-        for blob_name in blob_names:
-            local_filename = blob_name
-            filenames_and_dates.append(get_google_file(blob_name, local_filename))
+        filenames_and_dates = [
+            get_google_file(filename=blob_name, destination_path=blob_name)
+            for blob_name in blob_names
+        ]
     else:
         dir_path = r"state/story*"
         story_filenames = glob.glob(dir_path)
-        for filename in story_filenames:
-            filenames_and_dates.append(get_file_metadata(filename))
+        filenames_and_dates = [
+            get_file_metadata(filename) for filename in story_filenames
+        ]
 
     return sorted(
         [
@@ -117,9 +121,7 @@ def list_legacy_stories() -> Sequence[ModelAndMetadata]:
             for file_metadata in filenames_and_dates
         ],
         key=lambda model_and_metadata: cast(
-            str, cast(
-                StoryModel, model_and_metadata.model
-            ).date_updated
+            "str", cast("StoryModel", model_and_metadata.model).date_updated
         ),
         reverse=True,
     )
@@ -143,7 +145,7 @@ def get_legacy_story(story_id: str) -> Optional[StoryModel]:
         return None
 
     story = cast(
-        Optional[StoryModel], load_json_into_pydantic_model(local_filename, StoryModel)
+        "Optional[StoryModel]", load_json_into_pydantic_model(local_filename, StoryModel)
     )
 
     return story
@@ -156,7 +158,7 @@ async def get_story(story_cuid: str) -> Optional[Story]:
     return await Story.objects().where(Story.cuid == story_cuid).first().run()
 
 
-async def put_story(story: Story, update_dates: bool = True) -> None:
+async def put_story(story: Story) -> None:
     """
     Stores the given story state.
     """
@@ -169,11 +171,12 @@ async def get_stories_by_client(client_id: str) -> Sequence[Story]:
     """
     Retrieves all stories attributed to the given client.
     """
-    return await Story.objects(Story.thumbnail_image).where(
-        Story.created_for_sparrow_id == client_id
-    ).order_by(
-        Story.date_updated, ascending=False
-    ).run()
+    return (
+        await Story.objects(Story.thumbnail_image)
+        .where(Story.created_for_sparrow_id == client_id)
+        .order_by(Story.date_updated, ascending=False)
+        .run()
+    )
 
 
 def _compose_state_filename(type: StateType, id: str) -> str:

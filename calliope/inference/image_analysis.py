@@ -96,12 +96,12 @@ async def _image_analysis_inference(
         image_filename = convert_pil_image_to_png(image_filename)
 
         with open(image_filename, "rb") as f:
-            image_data = f.read()
-            if not image_data:
+            image_bytes = f.read()
+            if not image_bytes:
                 raise ValueError("No input image data to image_analysis_inference.")
 
             raw_metadata = await azure_vision_inference(
-                httpx_client, image_data, model_config, keys
+                httpx_client, image_bytes, model_config, keys
             )
 
             if not raw_metadata:
@@ -114,12 +114,12 @@ async def _image_analysis_inference(
 
     elif provider == InferenceModelProvider.HUGGINGFACE:
         with open(image_filename, "rb") as f:
-            image_data = f.read()
-            if not image_data:
+            image_bytes = f.read()
+            if not image_bytes:
                 raise ValueError("No input image data to image_analysis_inference.")
 
             description = await image_to_text_inference_hugging_face(
-                httpx_client, image_data, model_config, keys
+                httpx_client, image_bytes, model_config, keys
             )
 
             return {
@@ -127,8 +127,7 @@ async def _image_analysis_inference(
             }
     else:
         raise ValueError(
-            "Don't know how to do image->text inference for provider "
-            f"{model.provider}."
+            f"Don't know how to do image->text inference for provider {model.provider}."
         )
 
 

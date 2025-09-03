@@ -1,6 +1,5 @@
 import os
 import subprocess
-from typing import Optional
 
 from calliope.models.video import VideoFormat
 from calliope.tables import Video
@@ -45,27 +44,31 @@ def get_video_attributes(video_filename: str) -> Video:
         result = subprocess.run(
             [
                 "ffprobe",
-                "-v", "error",
-                "-select_streams", "v:0",
-                "-show_entries", "stream=width,height,duration,r_frame_rate",
-                "-of", "csv=p=0",
-                video_filename
+                "-v",
+                "error",
+                "-select_streams",
+                "v:0",
+                "-show_entries",
+                "stream=width,height,duration,r_frame_rate",
+                "-of",
+                "csv=p=0",
+                video_filename,
             ],
             capture_output=True,
             text=True,
-            check=True
+            check=True,
         )
 
         # Parse the output
         # Format: width,height,r_frame_rate,duration
         # e.g: ['960', '960', '24/1', '5.041667']
-        metadata = result.stdout.strip().split(',')
+        metadata = result.stdout.strip().split(",")
         print(f"Video metadata: {metadata}")
         if len(metadata) >= 4:
             width = int(metadata[0])
             height = int(metadata[1])
             # r_frame_rate is in the format "num/den", e.g. "30000/1001"
-            frame_rate_parts = metadata[2].split('/')
+            frame_rate_parts = metadata[2].split("/")
             print(f"{frame_rate_parts=}")
             if len(frame_rate_parts) == 2:
                 frame_rate = float(frame_rate_parts[0]) / float(frame_rate_parts[1])

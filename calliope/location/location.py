@@ -1,16 +1,22 @@
-import httpx
 from ipaddress import ip_address
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
+
+import httpx
 import yaml
 
-from calliope.location.time import get_local_datetime, get_season
 from calliope.location.astronomy import (
     get_active_meteor_showers,
     get_night_sky_objects,
     get_solar_eclipse_of_the_day,
 )
+from calliope.location.time import get_local_datetime, get_season
 from calliope.location.weather import get_weather_at_location
-from calliope.models import BasicLocationMetadataModel, FullLocationMetadata, Hemisphere
+from calliope.models import (
+    BasicLocationMetadataModel,
+    FullLocationMetadata,
+    Hemisphere,
+    MeteorShowerModel,
+)
 
 
 def is_ip_private(ip: str) -> bool:
@@ -95,8 +101,8 @@ async def get_location_metadata_for_ip(
 
     weather_metadata = None
     night_sky_objects = []
-    active_meteor_showers = []
-    peaking_meteor_showers = []
+    active_meteor_showers: List[MeteorShowerModel] = []
+    peaking_meteor_showers: List[MeteorShowerModel] = []
     solar_eclipse = None
 
     try:
@@ -212,14 +218,14 @@ def get_local_situation_text(
             f"{location_metadata.local_datetime.strftime('%A, %B %d, %Y')}.\n"
         )
         situation_text += (
-            "The time is " f"{location_metadata.local_datetime.strftime('%H:%M')}.\n"
+            f"The time is {location_metadata.local_datetime.strftime('%H:%M')}.\n"
         )
     if location_metadata.weather:
         is_day = location_metadata.weather.is_day
         situation_text += f"It is currently {'daytime' if is_day else 'nighttime'}.\n"
     if location_metadata.local_datetime:
         situation_text += (
-            "The season is " f"{get_season(location_metadata.local_datetime)}.\n"
+            f"The season is {get_season(location_metadata.local_datetime)}.\n"
         )
 
     if location_metadata.solar_eclipse:

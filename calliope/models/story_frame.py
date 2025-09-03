@@ -4,8 +4,8 @@ from typing import Any, Dict, Optional
 from pydantic import BaseModel
 
 from calliope.models.image import ImageModel
-from calliope.models.video import VideoModel
 from calliope.models.trigger_condition import TriggerConditionModel
+from calliope.models.video import VideoModel
 
 
 class StoryFrameModel(BaseModel):

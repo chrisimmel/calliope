@@ -5,7 +5,7 @@ This implementation uses Google Cloud Tasks for reliable and scalable
 background processing in production environments.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import json
 import logging
 from typing import Any, Dict, List, Optional
@@ -97,14 +97,11 @@ class GCPTaskQueue(TaskQueue):
         # Add scheduling time if delay is specified
         if delay_seconds > 0:
             # The schedule time can't be in the past
-            schedule_time = datetime.now(datetime.timezone.utc) + timedelta(
-                seconds=delay_seconds
-            )
-            timestamp = schedule_time.timestamp()
+            schedule_time = datetime.now(timezone.utc) + timedelta(seconds=delay_seconds)
 
             # Convert the timestamp to a Protobuf Timestamp
             timestamp_proto = timestamp_pb2.Timestamp()
-            timestamp_proto.FromSeconds(int(timestamp))
+            timestamp_proto.FromSeconds(int(schedule_time.timestamp()))
 
             # Add the schedule time to the task
             task["schedule_time"] = timestamp_proto
@@ -128,7 +125,7 @@ class GCPTaskQueue(TaskQueue):
 
             # Extract just the task ID from the full name
             parts = response.name.split("/")
-            return parts[-1]
+            return str(parts[-1])
         except Exception as e:
             logger.exception(f"Failed to enqueue task {task_id} in GCP Tasks: {e!s}")
             raise

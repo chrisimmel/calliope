@@ -51,11 +51,9 @@ WMO_WEATHER_DESCRIPTIONS_BY_CODE = {
     11: "Diamond dust",
     12: "Distant lightning",
     18: "Squalls",
-
     # Code figures 20-26 are used to report precipitation, fog (or ice fog) or
     # thunderstorm at the station  during the preceding hour but not at the time
     # of observation.
-
     20: "Fog",
     21: "Precipitation",
     22: "Drizzle (not freezing) or snow grains",
@@ -141,9 +139,9 @@ class NightSkyObjectModel(BaseModel):
     # The brightness of an object as it appears to an observer
     # at the given location. Smaller is brighter.
     # For reference:
-    # The Sun:  −26.7
-    # The full Moon: −11
-    # Sirius: −1.5
+    # The Sun:  -26.7
+    # The full Moon: -11
+    # Sirius: -1.5
     #
     # Britannica: https://www.britannica.com/science/magnitude-astronomy
     magnitude: float

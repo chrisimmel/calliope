@@ -20,7 +20,9 @@ export interface CameraProps {
   videoReadyCallback?(): void;
 }
 
-export type CameraType = React.ForwardRefExoticComponent<CameraProps & React.RefAttributes<unknown>> & {
+export type CameraType = React.ForwardRefExoticComponent<
+  CameraProps & React.RefAttributes<unknown>
+> & {
   takePhoto(): string;
   switchCamera(): FacingMode;
   getNumberOfCameras(): number;

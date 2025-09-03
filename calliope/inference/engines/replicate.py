@@ -1,10 +1,10 @@
 import asyncio
-import os
-from typing import Any, cast, Optional
-import aiofiles
-
-import httpx
 import concurrent.futures
+import os
+from typing import Any, Optional
+
+import aiofiles
+import httpx
 import replicate
 
 from calliope.models import (
@@ -15,7 +15,7 @@ from calliope.utils.piccolo import load_json_if_necessary
 
 
 async def replicate_vision_inference(
-    httpx_client: httpx.AsyncClient,
+    _httpx_client: httpx.AsyncClient,
     image_file: str,
     model_config: ModelConfig,
     keys: KeysModel,
@@ -86,7 +86,7 @@ MODEL_IDS_BY_NAME = {
 
 
 async def replicate_text_to_text_inference(
-    httpx_client: httpx.AsyncClient,
+    _httpx_client: httpx.AsyncClient,
     text: str,
     model_config: ModelConfig,
     keys: KeysModel,
@@ -174,17 +174,7 @@ async def text_to_image_file_inference_replicate(
         # "high_noise_frac": 0.8,
         # "prompt_strength": 0.9,
         "num_inference_steps": 100,
-        "negative_prompt": ",".join(
-            [
-                "Signature",
-                # "people",
-                # "photorealism",
-                # "cell phones",
-                "weird faces or hands",
-                "artist name",
-                "artist logo.",
-            ]
-        ),
+        "negative_prompt": "Signature,weird faces or hands,artist name,artist logo.",
         **(
             load_json_if_necessary(model.model_parameters)
             if model.model_parameters
@@ -237,7 +227,7 @@ async def text_to_image_file_inference_replicate(
         # In newer versions of replicate, the output is one or more FileOutput object.
         if isinstance(output, list):
             output = output[0]
-        with open(output_image_filename, "wb") as f:
-            f.write(output.read())
+        async with aiofiles.open(output_image_filename, "wb") as f:
+            await f.write(await output.read())
 
     return None

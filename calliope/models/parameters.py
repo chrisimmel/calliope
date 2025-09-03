@@ -2,7 +2,6 @@ from typing import Any, Dict, Optional
 
 from pydantic import BaseModel, root_validator
 
-
 """
 This doesn't work. Improper use of Field()...
 TODO: Would be nice to get descriptions on these fields for the OpenAPI docs.
@@ -117,12 +116,12 @@ class StoryParamsModel(ClientTypeParamsModel):
         """
         modeled_field_names = set(cls.model_fields.keys())
 
-        extra_fields: Dict[str, Any] = {}
-        for field_name in list(values):
-            if field_name not in modeled_field_names:
-                extra_fields[field_name] = values.pop(field_name)
-        values["extra_fields"] = extra_fields
-        return values
+        extra_fields = {
+            field_name: values.pop(field_name)
+            for field_name in list(values)
+            if field_name not in modeled_field_names
+        }
+        return {**values, "extra_fields": extra_fields}
 
 
 class FramesRequestParamsModel(StoryParamsModel):

@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import cast, Optional
+from typing import Optional, cast
 
 from calliope.models import (
     AfterWaitTriggerConditionModel,
@@ -55,9 +55,7 @@ def check_schedule(
     schedule_state = sparrow_state.schedule_state
 
     current_step_index = schedule_state.current_step_index
-    current_step = (
-        schedule.steps[current_step_index] if current_step_index else None
-    )
+    current_step = schedule.steps[current_step_index] if current_step_index else None
     if current_step and current_step.min_duration_seconds:
         if not schedule_state.step_started_at:
             raise ValueError(
@@ -116,12 +114,12 @@ def trigger_condition_is_met(
     now = datetime.utcnow()
     if trigger_condition.trigger_type == TriggerType.AT_TIME:
         at_time = parse_time(
-            cast(AtTimeTriggerConditionModel, trigger_condition).at_time
+            cast("AtTimeTriggerConditionModel", trigger_condition).at_time
         )
         return at_time < now
     elif trigger_condition.trigger_type == TriggerType.AFTER_WAIT:
         wait_seconds = cast(
-            AfterWaitTriggerConditionModel, trigger_condition
+            "AfterWaitTriggerConditionModel", trigger_condition
         ).wait_seconds
         if not schedule_state.wait_until:
             schedule_state.wait_until = (

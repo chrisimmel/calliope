@@ -5,6 +5,7 @@ class Pagination:
     """
     A helper class to manage pagination on a page showing potentially many rows.
     """
+
     total_rows: int
     page_size: int
     page: int
@@ -13,11 +14,7 @@ class Pagination:
     max_shown_pages: int
 
     def __init__(
-        self,
-        total_rows: int,
-        page: int,
-        page_size: int = 10,
-        max_shown_pages: int = 5
+        self, total_rows: int, page: int, page_size: int = 10, max_shown_pages: int = 5
     ) -> None:
         """
         Constructs a Pagination object.
@@ -65,5 +62,4 @@ class Pagination:
         """
         range_start_page = max(1, self.page - self.max_shown_pages // 2)
         range_end_page = min(self.num_pages + 1, range_start_page + self.max_shown_pages)
-        for show_page in range(range_start_page, range_end_page):
-            yield show_page
+        yield from range(range_start_page, range_end_page)

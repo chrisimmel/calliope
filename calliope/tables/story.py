@@ -1,21 +1,20 @@
 from datetime import datetime, timezone
 import json
 import re
-from typing import cast, Optional, Sequence
+from typing import Optional, Sequence, cast
 
-from piccolo.table import Table
 from piccolo.columns import (
+    JSONB,
     Boolean,
     ForeignKey,
     Integer,
-    JSONB,
     Text,
     Timestamptz,
     Varchar,
 )
+from piccolo.table import Table
 
-from calliope.models import StoryModel
-from calliope.models import StoryFrameModel
+from calliope.models import StoryFrameModel, StoryModel
 from calliope.tables.image import Image
 from calliope.tables.video import Video
 from calliope.utils.file import FileMetadata
@@ -167,7 +166,7 @@ class Story(Table):
 
     async def get_frame_count(self) -> int:
         return cast(
-            int,
+            "int",
             await StoryFrame.count().where(
                 StoryFrame.story.id == self.id  # type: ignore[attr-defined]
             ),
@@ -308,8 +307,8 @@ class Story(Table):
         strategy_name = model.strategy_name
         created_for_sparrow_id = model.created_for_id
 
-        date_created = datetime.fromisoformat(cast(str, model.date_created))
-        date_updated = datetime.fromisoformat(cast(str, model.date_updated))
+        date_created = datetime.fromisoformat(cast("str", model.date_created))
+        date_updated = datetime.fromisoformat(cast("str", model.date_updated))
 
         instance: Optional[Story] = (
             await Story.objects().where(Story.cuid == story_cuid).first().run()

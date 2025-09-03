@@ -42,7 +42,7 @@ services:
     tty: true
     volumes:
       - .:/app
-      - /app/.venv  # Preserve container's virtual environment
+      - /app/.venv # Preserve container's virtual environment
       - $HOME/.config/gcloud:/gcp/config:ro
       - /gcp/config/logs
       # Mount specific directories that need to be persistent

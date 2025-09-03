@@ -1,16 +1,14 @@
-from typing import cast, List, Optional, Sequence, Tuple
+from typing import List, Optional, Sequence, Tuple, cast
 
 from langchain.docstore.document import Document
-
-from langchain_community.embeddings import OpenAIEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_community.embeddings import OpenAIEmbeddings
 from langchain_pinecone.vectorstores import PineconeVectorStore
 
 from calliope.models import KeysModel
 from calliope.settings import settings
 from calliope.tables.story import Story, StoryFrame
 from calliope.utils.google import get_cloud_environment
-
 
 """
 sentence_transformer_model = None
@@ -232,7 +230,7 @@ async def send_all_stories_to_pinecone(keys: Optional[KeysModel] = None) -> None
         keys.openai_api_key = settings.OPENAI_API_KEY
 
     stories = cast(
-        Sequence[Story],
+        "Sequence[Story]",
         await Story.objects().order_by(Story.date_updated, ascending=False),
     )
 

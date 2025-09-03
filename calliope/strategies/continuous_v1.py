@@ -1,12 +1,12 @@
 import sys
 import traceback
-from typing import Any, cast, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 import httpx
 
 from calliope.inference import (
-    text_to_text_inference,
     text_to_image_file_inference,
+    text_to_text_inference,
 )
 from calliope.location.location import get_local_situation_text
 from calliope.models import (
@@ -130,7 +130,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
                 strategy_config.text_to_text_model_config
                 and strategy_config.text_to_text_model_config
                 and strategy_config.text_to_text_model_config.prompt_template
-                and strategy_config.text_to_text_model_config.prompt_template.target_language  # noqa: E501
+                and strategy_config.text_to_text_model_config.prompt_template.target_language
                 != "en"
             ):
                 # Translate the story to English before
@@ -164,7 +164,22 @@ class ContinuousStoryV1Strategy(StoryStrategy):
                     break
                 except Exception as e:
                     traceback.print_exc(file=sys.stderr)
-                    errors.append(str(e))
+                    error_msg = f"Image generation failed: {e!s}"
+                    errors.append(error_msg)
+
+                    # Add to backfill queue for retry (only on the last attempt)
+                    if _ == 1:  # Second and final attempt (range(2) means 0,1)
+                        await self._handle_image_generation_failure(
+                            error=e,
+                            story_cuid=story.cuid,
+                            frame_number=frame_number,
+                            image_prompt=image_prompt,
+                            strategy_config=strategy_config,
+                            client_id=client_id,
+                            errors=errors,
+                            output_image_width=parameters.output_image_width,
+                            output_image_height=parameters.output_image_height,
+                        )
 
         # Append and persist the frame to the story.
         frame = await self._add_frame(
@@ -208,7 +223,7 @@ class ContinuousStoryV1Strategy(StoryStrategy):
                 input_text
                 or (
                     strategy_config.seed_prompt_template
-                    and cast(Optional[str], strategy_config.seed_prompt_template.text)
+                    and cast("Optional[str]", strategy_config.seed_prompt_template.text)
                 )
                 or ""
             )
@@ -229,12 +244,14 @@ class ContinuousStoryV1Strategy(StoryStrategy):
             image_text += input_text
 
         model_config = (
-            cast(ModelConfig, strategy_config.text_to_text_model_config)
+            cast("ModelConfig", strategy_config.text_to_text_model_config)
             if strategy_config
             else None
         )
         prompt_template = (
-            cast(PromptTemplate, model_config.prompt_template) if model_config else None
+            cast("PromptTemplate", model_config.prompt_template)
+            if model_config
+            else None
         )
 
         if prompt_template:

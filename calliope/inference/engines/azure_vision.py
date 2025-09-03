@@ -1,4 +1,4 @@
-from typing import Any, cast, Dict
+from typing import Any, Dict, cast
 from urllib.parse import urlencode
 
 import httpx
@@ -34,9 +34,9 @@ async def azure_vision_inference(
         ),
     }
 
-    api_host = cast(str, keys.azure_api_host)
+    api_host = cast("str", keys.azure_api_host)
     api_key = keys.azure_api_key
-    endpoint_name = cast(str, model.provider_model_name)
+    endpoint_name = cast("str", model.provider_model_name)
     api_url = _azure_endpoint_to_api_url(api_host, endpoint_name)
 
     if parameters:
@@ -50,7 +50,7 @@ async def azure_vision_inference(
         # "Accept-Encoding": "gzip, deflate, br",
     }
     response = await httpx_client.post(api_url, headers=headers, content=image_data)
-    return cast(Dict[str, Any], response.json())
+    return cast("Dict[str, Any]", response.json())
 
 
 def interpret_azure_v3_metadata(raw_metadata: Dict[str, Any]) -> Dict[str, Any]:

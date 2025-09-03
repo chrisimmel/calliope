@@ -1,64 +1,204 @@
 {% from 'macros.j2' import paginator %}
 
 <html>
-
-<head>
+  <head>
     <title>{{ story.title }}</title>
-    <link href="/thoth/styles.css" rel="stylesheet">
-</head>
+    <link href="/thoth/styles.css" rel="stylesheet" />
+  </head>
 
-<body>
+  <body>
     <div class="header">
-        <img src="/thoth/Eye_of_Horus_bw.svg.png" width="90" , height="69">
-        <div class="header-right">
-            <a href="/thoth/">
-                <h1 class="title">Thoth</h1>
-            </a>
-        </div>
+      <img src="/thoth/Eye_of_Horus_bw.svg.png" width="90" , height="69" />
+      <div class="header-right">
+        <a href="/thoth/">
+          <h1 class="title">Thoth</h1>
+        </a>
+      </div>
     </div>
 
     <div class="story-summary">
-        <div class="summary-line">
-            {{story.title}}
-        </div>
-        <div class="summary-line">
-            Made by strategy {{story.strategy_name}} on {{story.date_created}} for client
-            {{story.created_for_sparrow_id}}.
-        </div>
-        <div class="summary-line">
-            Last updated on {{story.date_updated}}.
-        </div>
+      <div class="summary-line">{{story.title}}</div>
+      <div class="summary-line">
+        Made by strategy {{story.strategy_name}} on {{story.date_created}} for
+        client {{story.created_for_sparrow_id}}.
+      </div>
+      <div class="summary-line">Last updated on {{story.date_updated}}.</div>
     </div>
 
-    {{paginator(pagination, '&meta=true' if show_metadata else '')}}
-
-    {% for frame in frames %}
+    {{paginator(pagination, '&meta=true' if show_metadata else '')}} {% for
+    frame in frames %}
     <div class="story-frame" id="f{{frame.number}}">
-        <div class="frame-media">
-            {%- if frame.video -%}
-            <video controls width="{{frame.video.width if frame.video.width <= 512 else 512}}">
-                <source src="/{{frame.video.url}}" type="{{frame.video.format}}">
-                Your browser does not support the video tag.
-            </video>
-            {%- elif frame.source_image -%}
-            <img src="/{{frame.source_image.url}}" alt="Frame {{frame.number}}" />
-            {%- endif %}
-        </div>
-        <div class="frame-text">{{frame.text}}</div>
+      <div class="frame-media">
+        {%- if frame.video -%}
+        <video
+          controls
+          width="{{frame.video.width if frame.video.width <= 512 else 512}}"
+        >
+          <source src="/{{frame.video.url}}" type="{{frame.video.format}}" />
+          Your browser does not support the video tag.
+        </video>
+        {%- elif frame.source_image -%}
+        <img src="/{{frame.source_image.url}}" alt="Frame {{frame.number}}" />
+        {%- endif %}
+      </div>
+      <div class="frame-text">{{frame.text}}</div>
+      {% if show_metadata %}
+      <div class="frame-metadata">{{frame.pretty_metadata}}</div>
+      {% endif %}
+      <div class="frame-links">
+        <a
+          href="/clio/story/{{story.slug if story.slug else story.cuid}}/{{frame.number + 1}}"
+          class="clio-link"
+          target="_blank"
+          >View in Clio</a
+        >
         {% if show_metadata %}
-        <div class="frame-metadata">
-            {{frame.pretty_metadata}}
-        </div>
+        <a
+          href="/admin/#/story_frame/{{frame.id}}/"
+          class="admin-link"
+          target="_blank"
+          >View in Admin</a
+        >
         {% endif %}
-        <div class="frame-links">
-            <a href="/clio/story/{{story.slug if story.slug else story.cuid}}/{{frame.number + 1}}" class="clio-link"
-                target="_blank">View in Clio</a>
-            {% if show_metadata %}
-            <a href="/admin/#/story_frame/{{frame.id}}/" class="admin-link" target="_blank">View in Admin</a>
-            {% endif %}
-        </div>
+        <button
+          class="backfill-btn"
+          onclick="backfillFrame('{{story.cuid}}', {{frame.number}}, this)"
+          title="Generate/replace image for this frame"
+        >
+          🎨 Backfill Image
+        </button>
+      </div>
     </div>
     {% endfor %}
-</body>
 
+    <style>
+      .backfill-btn {
+        background-color: #4caf50;
+        border: none;
+        color: white;
+        padding: 6px 12px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 12px;
+        margin: 4px 2px;
+        cursor: pointer;
+        border-radius: 4px;
+        transition: background-color 0.3s;
+      }
+
+      .backfill-btn:hover {
+        background-color: #45a049;
+      }
+
+      .backfill-btn:disabled {
+        background-color: #cccccc;
+        cursor: not-allowed;
+      }
+
+      .backfill-btn.processing {
+        background-color: #ff9800;
+      }
+
+      .backfill-btn.success {
+        background-color: #2196f3;
+      }
+    </style>
+
+    <script>
+      async function backfillFrame(storyCuid, frameNumber, button) {
+        const originalText = button.textContent;
+        const originalClass = button.className;
+        const frameDiv = document.getElementById(`f${frameNumber}`);
+        const frameImage = frameDiv ? frameDiv.querySelector("img") : null;
+
+        // Update button to show processing state
+        button.disabled = true;
+        button.className = "backfill-btn processing";
+        button.textContent = "🎨 Generating...";
+
+        try {
+          const response = await fetch(
+            `/thoth/backfill-frame/${storyCuid}/${frameNumber}`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+            },
+          );
+
+          const result = await response.json();
+
+          if (response.ok && result.success) {
+            if (result.processed_immediately) {
+              // Immediate processing succeeded - refresh the image
+              button.className = "backfill-btn success";
+              button.textContent = "✅ Generated!";
+
+              if (frameImage) {
+                // Add cache-busting parameter and refresh image
+                const currentSrc = frameImage.src;
+                const separator = currentSrc.includes("?") ? "&" : "?";
+                frameImage.src = currentSrc + separator + "_t=" + Date.now();
+              } else {
+                // No image exists yet - reload the page to show the new image
+                setTimeout(() => {
+                  window.location.reload();
+                }, 1000);
+              }
+
+              // Reset button after 5 seconds
+              setTimeout(() => {
+                button.disabled = false;
+                button.className = originalClass;
+                button.textContent = originalText;
+              }, 5000);
+            } else if (result.fallback_queued) {
+              // Immediate processing failed, but queued for retry
+              button.className = "backfill-btn success";
+              button.textContent = "⏳ Queued for retry";
+
+              // Reset after 3 seconds
+              setTimeout(() => {
+                button.disabled = false;
+                button.className = originalClass;
+                button.textContent = originalText;
+              }, 3000);
+            } else {
+              // Queue-only mode
+              button.className = "backfill-btn success";
+              button.textContent = "✅ Queued!";
+
+              // Reset after 3 seconds
+              setTimeout(() => {
+                button.disabled = false;
+                button.className = originalClass;
+                button.textContent = originalText;
+              }, 3000);
+            }
+          } else {
+            throw new Error(
+              result.detail || result.message || "Failed to process frame",
+            );
+          }
+        } catch (error) {
+          console.error("Backfill error:", error);
+
+          // Show error state
+          button.className = "backfill-btn";
+          button.style.backgroundColor = "#f44336";
+          button.textContent = "❌ Failed";
+
+          // Reset after 3 seconds
+          setTimeout(() => {
+            button.disabled = false;
+            button.className = originalClass;
+            button.textContent = originalText;
+            button.style.backgroundColor = "";
+          }, 3000);
+        }
+      }
+    </script>
+  </body>
 </html>

@@ -1,11 +1,11 @@
-from typing import Any, cast, Dict
+from typing import Any, Dict, cast
 
 import httpx
 from openai import AsyncOpenAI
 
 from calliope.models import (
-    KeysModel,
     InferenceModelProviderVariant,
+    KeysModel,
 )
 from calliope.tables import ModelConfig
 
@@ -35,12 +35,12 @@ async def openai_text_to_text_inference(
 
     parameters = {
         **(
-            cast(Dict[str, Any], model.model_parameters)
+            cast("Dict[str, Any]", model.model_parameters)
             if model.model_parameters
             else {}
         ),
         **(
-            cast(Dict[str, Any], model_config.model_parameters)
+            cast("Dict[str, Any]", model_config.model_parameters)
             if model_config.model_parameters
             else {}
         ),

@@ -1,7 +1,7 @@
 import {
   MediaAudioTrackConstraints,
   recorderControls,
-} from "./useAudioRecorder";
+} from './useAudioRecorder';
 
 interface StyleProps {
   /**
@@ -71,7 +71,7 @@ export interface Props {
   /**
    * File extension for the audio filed that gets downloaded
    **/
-  downloadFileExtension?: "mp3" | "wav" | "webm";
+  downloadFileExtension?: 'mp3' | 'wav' | 'webm';
   /**
    * Displays a waveform visualization for the audio when set to `true`. Defaults to `false`
    **/

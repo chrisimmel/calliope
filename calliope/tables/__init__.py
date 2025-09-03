@@ -8,7 +8,6 @@ from .config import (
     SparrowConfig,
 )
 from .image import Image
-from .video import Video
 from .model_config import (
     InferenceModel,
     ModelConfig,
@@ -17,7 +16,7 @@ from .model_config import (
 )
 from .sparrow_state import SparrowState
 from .story import Story, StoryFrame
-
+from .video import Video
 
 __all__ = [
     "BookmarkList",

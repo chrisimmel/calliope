@@ -1,5 +1,5 @@
 // icon:bx-rewind | Boxicons https://boxicons.com/ | Atisa
-import * as React from "react";
+import * as React from 'react';
 
 export default function IconRewind(props: any) {
   return (

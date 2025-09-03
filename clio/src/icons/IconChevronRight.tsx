@@ -1,5 +1,5 @@
 // icon:bx-chevron-right | Boxicons https://boxicons.com/ | Atisa
-import * as React from "react";
+import * as React from 'react';
 
 export default function IconChevronRight(props: any) {
   return (

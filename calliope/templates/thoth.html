@@ -1,67 +1,80 @@
 {% from 'macros.j2' import paginator %}
 
 <html>
-
-<head>
+  <head>
     <title>Thoth</title>
-    <link href="/thoth/styles.css" rel="stylesheet">
-</head>
+    <link href="/thoth/styles.css" rel="stylesheet" />
+  </head>
 
-<body>
+  <body>
     <div class="header">
-        <img src="/thoth/Eye_of_Horus_bw.svg.png" width="90" , height="69">
-        <div class="header-right">
-            <h1 class="title">Thoth</h1>
-            <div class="subtitle">
-                Messenger and recorder of the deities, master of knowledge.
-            </div>
+      <img src="/thoth/Eye_of_Horus_bw.svg.png" width="90" , height="69" />
+      <div class="header-right">
+        <h1 class="title">Thoth</h1>
+        <div class="subtitle">
+          Messenger and recorder of the deities, master of knowledge.
         </div>
+      </div>
 
-        <div class="header-search">
-            <form action="/thoth/search/" method="get" id="search">
-                <a href="javascript: submit()">
-                    <img src="/thoth/search_icon.png" width="32" , height="32">
-                </a>
-                <input type="search" name="query" class="search-query"
-                    placeholder="(search for a phrase, idea, or mood)">
-                {% if show_metadata %}
-                <input type="hidden" name="meta" value="true" />
-                {% endif %}
-            </form>
-            <script>
-                function submit() {
-                    form.submit();
-                    alert("Searching...");
-                }
-            </script>
-        </div>
+      <div class="header-search">
+        <form action="/thoth/search/" method="get" id="search">
+          <a href="javascript: submit()">
+            <img src="/thoth/search_icon.png" width="32" , height="32" />
+          </a>
+          <input
+            type="search"
+            name="query"
+            class="search-query"
+            placeholder="(search for a phrase, idea, or mood)"
+          />
+          {% if show_metadata %}
+          <input type="hidden" name="meta" value="true" />
+          {% endif %}
+        </form>
+        <script>
+          function submit() {
+            form.submit();
+            alert("Searching...");
+          }
+        </script>
+      </div>
     </div>
 
-    {{paginator(pagination, '&meta=true' if show_metadata else '')}}
-
-    {% for story in stories %}
+    {{paginator(pagination, '&meta=true' if show_metadata else '')}} {% for
+    story in stories %}
     <div class="story">
-        <a class="story-link" href="story/{{story.cuid}}{{'?meta=true' if show_metadata else ''}}">
-            <div class="story-thumb">
-                {% if story_thumbs_by_story_id.get(story.cuid) %}
-                <img src="/{{story_thumbs_by_story_id.get(story.cuid).url}}"
-                    width="{{story_thumbs_by_story_id.get(story.cuid).width}}"
-                    height="{{story_thumbs_by_story_id.get(story.cuid).height}}" />
-                {% endif %}
-            </div>
-            <div class="story-title">
-                {{ story.title }}
-            </div>
-        </a>
-        <div class="story-links">
-            <a href="/clio/story/{{story.slug if story.slug else story.cuid}}" class="clio-link" target="_blank">View in
-                Clio</a>
-            {% if show_metadata %}
-            <a href="/admin/#/story/{{story.id}}/" class="admin-link" target="_blank">View in Admin</a>
-            {% endif %}
+      <a
+        class="story-link"
+        href="story/{{story.cuid}}{{'?meta=true' if show_metadata else ''}}"
+      >
+        <div class="story-thumb">
+          {% if story_thumbs_by_story_id.get(story.cuid) %}
+          <img
+            src="/{{story_thumbs_by_story_id.get(story.cuid).url}}"
+            width="{{story_thumbs_by_story_id.get(story.cuid).width}}"
+            height="{{story_thumbs_by_story_id.get(story.cuid).height}}"
+          />
+          {% endif %}
         </div>
+        <div class="story-title">{{ story.title }}</div>
+      </a>
+      <div class="story-links">
+        <a
+          href="/clio/story/{{story.slug if story.slug else story.cuid}}"
+          class="clio-link"
+          target="_blank"
+          >View in Clio</a
+        >
+        {% if show_metadata %}
+        <a
+          href="/admin/#/story/{{story.id}}/"
+          class="admin-link"
+          target="_blank"
+          >View in Admin</a
+        >
+        {% endif %}
+      </div>
     </div>
     {% endfor %}
-</body>
-
+  </body>
 </html>

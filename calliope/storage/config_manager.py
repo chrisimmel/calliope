@@ -23,7 +23,7 @@ async def get_sparrow_config(sparrow_or_flock_id: str) -> Optional[SparrowConfig
     Retrieves the config for the given sparrow or flock.
     """
     return cast(
-        Optional[SparrowConfig],
+        "Optional[SparrowConfig]",
         await SparrowConfig.objects()
         .where(SparrowConfig.client_id == sparrow_or_flock_id)
         .first()
@@ -37,7 +37,7 @@ async def get_client_type_config(client_type_id: str) -> Optional[ClientTypeConf
     Retrieves the given client type config.
     """
     return cast(
-        Optional[ClientTypeConfig],
+        "Optional[ClientTypeConfig]",
         await ClientTypeConfig.objects()
         .where(ClientTypeConfig.client_id == client_type_id)
         .first()
@@ -47,7 +47,7 @@ async def get_client_type_config(client_type_id: str) -> Optional[ClientTypeConf
 
 
 async def get_sparrow_story_parameters_and_keys(
-    request_params: FramesRequestParamsModel
+    request_params: FramesRequestParamsModel,
 ) -> Tuple[FramesRequestParamsModel, KeysModel, StrategyConfig]:
     """
     Gets the story parameters and keys given a set of request
@@ -170,7 +170,7 @@ async def get_sparrow_story_parameters_and_keys(
             params_dict["extra_fields"] = merged_extra_fields
 
     print(
-        f"Merged parameters: {str({key: val for key, val in params_dict.items() if key not in ('input_image', 'input_audio')})}"
+        f"Merged parameters: { {key: val for key, val in params_dict.items() if key not in ('input_image', 'input_audio')}!s}"
     )
 
     # Before constructing the FramesRequestParamsModel, flatten any extra_fields
@@ -200,10 +200,11 @@ def _get_non_default_parameters(params_dict: Dict[str, Any]) -> Dict[str, Any]:
             non_default_request_params[field_name] = value
 
     # Also collect any extra fields that aren't part of the model
-    extra_fields = {}
-    for field_name, value in params_dict.items():
-        if field_name not in modeled_field_names and value is not None:
-            extra_fields[field_name] = value
+    extra_fields = {
+        field_name: value
+        for field_name, value in params_dict.items()
+        if field_name not in modeled_field_names and value is not None
+    }
 
     # If we have extra fields, add them to the non-default parameters
     if extra_fields:
@@ -224,7 +225,7 @@ async def get_strategy_config(strategy_config_slug: str) -> StrategyConfig:
     """
     print(f"get_strategy_config({strategy_config_slug})")
     strategy_config: Optional[StrategyConfig] = cast(
-        Optional[StrategyConfig],
+        "Optional[StrategyConfig]",
         await StrategyConfig.objects(
             StrategyConfig.text_to_image_model_config.all_related(),
             StrategyConfig.text_to_text_model_config.all_related(),
@@ -244,7 +245,7 @@ async def get_strategy_config(strategy_config_slug: str) -> StrategyConfig:
         # If StrategyConfig of the given slug is not found, then look for one that
         # references a strategy of that name and for which is_default is True.
         strategy_config = cast(
-            StrategyConfig,
+            "StrategyConfig",
             await StrategyConfig.objects(
                 StrategyConfig.text_to_image_model_config.all_related(),
                 StrategyConfig.text_to_text_model_config.all_related(),

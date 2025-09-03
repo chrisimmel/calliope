@@ -1,5 +1,5 @@
 // icon:fullscreen | Material Design Icons https://materialdesignicons.com/ | Austin Andrews
-import * as React from "react";
+import * as React from 'react';
 
 export default function IconFullscreen(props: any) {
   return (

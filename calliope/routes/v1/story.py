@@ -1,7 +1,7 @@
-from datetime import datetime
+from datetime import datetime, timezone
 import sys
 import traceback
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.security.api_key import APIKey
@@ -73,6 +73,8 @@ class StoryResponseV1(BaseModel):
     generation_date: str
     debug_data: Optional[Dict[str, Any]] = None
     errors: List[str]
+    num_active_tasks: int = 0
+    num_recent_tasks: int = 0
 
 
 class StoryInfo(BaseModel):
@@ -152,8 +154,8 @@ async def get_story_by_slug(
             strategy=None,
             is_read_only=False,
             created_for_sparrow_id=client_id,
-            date_created=cast("datetime", datetime.now(datetime.timezone.utc).date()),
-            date_updated=cast("datetime", datetime.now(datetime.timezone.utc).date()),
+            date_created=datetime.now(timezone.utc).date().isoformat(),
+            date_updated=datetime.now(timezone.utc).date().isoformat(),
             request_id=create_cuid(),
             generation_date=str(datetime.utcnow()),
             debug_data={},
@@ -257,8 +259,8 @@ Calliope sleeps. She will awake shortly, improved.
         strategy=None,
         is_read_only=True,
         created_for_sparrow_id="me",
-        date_created=str(datetime.now(datetime.timezone.utc).date()),
-        date_updated=str(datetime.now(datetime.timezone.utc).date()),
+        date_created=str(datetime.now(timezone.utc).date()),
+        date_updated=str(datetime.now(timezone.utc).date()),
         request_id=create_cuid(),
         generation_date=str(datetime.utcnow()),
         debug_data={},
@@ -478,7 +480,7 @@ async def handle_existing_frames_request(
     }
 
     frames = await story.get_frames(include_media=True)
-    prepare_existing_frame_images(frames)
+    prepare_existing_frame_images(list(frames))
     frame_models = [frame.to_pydantic() for frame in frames]
 
     print(f"{story.created_for_sparrow_id=} {client_id=}")

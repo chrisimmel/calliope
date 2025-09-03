@@ -1,7 +1,7 @@
 import argparse
 import asyncio
-from calliope.storage.vector_manager import index_frames, semantic_search
 
+from calliope.storage.vector_manager import index_frames, semantic_search
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="index_stories")

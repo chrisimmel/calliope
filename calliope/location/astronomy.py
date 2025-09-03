@@ -1,13 +1,14 @@
-import httpx
 from datetime import date, datetime, timedelta
-from typing import Any, cast, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, cast
+
+import httpx
 
 from calliope.models import (
-    Hemisphere,
     MAJOR_METEOR_SHOWERS,
+    Hemisphere,
     MeteorShowerModel,
     NightSkyObjectModel,
-    SolarEclipseModel
+    SolarEclipseModel,
 )
 
 
@@ -33,13 +34,16 @@ def get_active_meteor_showers(
                 shower.peak_morning.year,
                 shower.peak_morning.month,
                 shower.peak_morning.day,
-                0, 0, 0, tzinfo=when.tzinfo
+                0,
+                0,
+                0,
+                tzinfo=when.tzinfo,
             )
             peaking_start = peaking_midnight - timedelta(hours=15)
             peaking_end = peaking_midnight + timedelta(hours=6)
 
             if peaking_start <= when <= peaking_end:
-                peaking_meteor_showers.append((shower))
+                peaking_meteor_showers.append(shower)
 
     return active_meteor_showers, peaking_meteor_showers
 
@@ -52,9 +56,7 @@ def _get_printable_object_name(object_name: str) -> str:
 
 
 async def get_night_sky_objects(
-    httpx_client: httpx.AsyncClient,
-    latitude: float,
-    longitude: float
+    httpx_client: httpx.AsyncClient, latitude: float, longitude: float
 ) -> List[NightSkyObjectModel]:
     """
     Gets information about what astronomical bodies are in the key at a given location
@@ -82,12 +84,12 @@ async def get_night_sky_objects(
     data: List[Dict[str, Any]] = json_response.get("data", [])
     objects: List[NightSkyObjectModel] = [
         NightSkyObjectModel(
-            name=_get_printable_object_name(cast(str, object_data.get("name", ""))),
-            constellation=cast(str, object_data.get("constellation", "")),
+            name=_get_printable_object_name(cast("str", object_data.get("name", ""))),
+            constellation=cast("str", object_data.get("constellation", "")),
             above_horizon=object_data.get("aboveHorizon", False),
             magnitude=object_data.get("magnitude", 0.0),
-            naked_eye_object=cast(bool, object_data.get("nakedEyeObject", False)),
-            phase=cast(int, object_data.get("phase", None)),
+            naked_eye_object=cast("bool", object_data.get("nakedEyeObject", False)),
+            phase=cast("int", object_data.get("phase", None)),
         )
         for object_data in data
     ]
@@ -95,8 +97,7 @@ async def get_night_sky_objects(
 
 
 def _parse_eclipse_response(
-    when: datetime,
-    json_response: Dict[str, Any]
+    when: datetime, json_response: Dict[str, Any]
 ) -> Optional[SolarEclipseModel]:
     properties = json_response.get("properties")
     if properties:
@@ -109,20 +110,20 @@ def _parse_eclipse_response(
             end_time = None
             for entry in local_data:
                 phenomenon = entry.get("phenomenon")
-                time = cast(Optional[str], entry.get("time"))
+                time = cast("Optional[str]", entry.get("time"))
                 start_time = end_time = None
                 if time:
                     if phenomenon == "Eclipse Begins":
                         start_time = datetime.combine(
                             when.date(),
                             datetime.strptime(time, "%H:%M:%S.%f").time(),
-                            when.tzinfo
+                            when.tzinfo,
                         )
                     elif phenomenon == "Eclipse Ends":
                         end_time = datetime.combine(
                             when.date(),
                             datetime.strptime(time, "%H:%M:%S.%f").time(),
-                            when.tzinfo
+                            when.tzinfo,
                         )
             if start_time and end_time:
                 return SolarEclipseModel(

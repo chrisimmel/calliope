@@ -3,10 +3,10 @@ Abstract task queue interface that can be implemented for different backends.
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional, Callable, Awaitable, List
-import uuid
-import logging
 from datetime import datetime
+import logging
+from typing import Any, Dict, List, Optional
+import uuid
 
 logger = logging.getLogger(__name__)
 

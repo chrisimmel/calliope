@@ -1,4 +1,3 @@
-import asyncio
 import sys
 import traceback
 from typing import Any, Dict, List, Optional, cast
@@ -65,12 +64,14 @@ class TamariskStrategy(StoryStrategy):
         seed_prompt = await self.get_seed_prompt(strategy_config)
 
         model_config = (
-            cast(ModelConfig, strategy_config.text_to_text_model_config)
+            cast("ModelConfig", strategy_config.text_to_text_model_config)
             if strategy_config
             else None
         )
         prompt_template = (
-            cast(PromptTemplate, model_config.prompt_template) if model_config else None
+            cast("PromptTemplate", model_config.prompt_template)
+            if model_config
+            else None
         )
         target_language = prompt_template.target_language if prompt_template else "en"
         print(f"{target_language=}")
@@ -113,30 +114,25 @@ class TamariskStrategy(StoryStrategy):
         if in_text and not in_text.isspace():
             # gpt-neo-2.7B produces very short text, so collect a handful
             # of its responses as the frame text.
-            # Use overall timeout to prevent entire loop from taking too long
+            # Let tenacity handle the retry timing (up to 5 minutes for HuggingFace cold start)
             try:
-                out_text = await asyncio.wait_for(
-                    self._collect_story_fragments(
-                        in_text,
-                        out_text,
-                        parameters,
-                        strategy_config,
-                        keys,
-                        errors,
-                        story,
-                        last_text,
-                        httpx_client,
-                        caption,
-                        seed_prompt,
-                    ),
-                    timeout=45.0,  # Allow up to 45 seconds for all fragments
+                out_text = await self._collect_story_fragments(
+                    in_text,
+                    out_text,
+                    parameters,
+                    strategy_config,
+                    keys,
+                    errors,
+                    story,
+                    last_text,
+                    httpx_client,
+                    caption,
+                    seed_prompt,
                 )
-            except asyncio.TimeoutError:
-                print("Story fragment collection timed out after 45 seconds")
-                errors.append(
-                    "Story fragment collection timed out - using partial results"
-                )
-                # Continue with whatever out_text was collected
+            except Exception as e:
+                print(f"Story fragment collection failed: {e}")
+                errors.append(f"Story fragment collection failed: {e}")
+                # Continue with whatever out_text was collected (likely empty)
 
         print(f"{out_text=}")
         text = out_text
@@ -152,40 +148,6 @@ class TamariskStrategy(StoryStrategy):
         )
 
         if text:
-            # Generate an image for the frame, composing a prompt from
-            # the frame's text...
-
-            # Translate the story to English before
-            # sending as an image prompt.
-            try:
-                text_en = translate_text("en", text)
-            except Exception as e:
-                traceback.print_exc(file=sys.stderr)
-                errors.append(str(e))
-                text_en = text
-
-            image_prompt = output_image_style + " " + text_en
-            print(f'Image prompt: "{image_prompt}"')
-
-            try:
-                output_image_filename_png = create_sequential_filename(
-                    "media", client_id, "out", "png", story.cuid, frame_number
-                )
-                await text_to_image_file_inference(
-                    httpx_client,
-                    image_prompt,
-                    output_image_filename_png,
-                    strategy_config.text_to_image_model_config,
-                    keys,
-                    parameters.output_image_width,
-                    parameters.output_image_height,
-                )
-                output_image_filename = output_image_filename_png
-                image = get_image_attributes(output_image_filename)
-            except Exception as e:
-                traceback.print_exc(file=sys.stderr)
-                errors.append(str(e))
-
             if target_language != "en":
                 try:
                     text = translate_text(target_language, text)
@@ -238,6 +200,51 @@ class TamariskStrategy(StoryStrategy):
 
             if text:
                 errors.append("Content generation failed - used fallback content")
+
+        # Generate an image for the frame using the final text content
+        # (whether it's generated text or fallback content)
+        if text:
+            # Translate the story to English before sending as an image prompt.
+            try:
+                text_en = translate_text("en", text)
+            except Exception as e:
+                traceback.print_exc(file=sys.stderr)
+                errors.append(str(e))
+                text_en = text
+
+            image_prompt = output_image_style + " " + text_en
+            print(f'Image prompt: "{image_prompt}"')
+
+            try:
+                output_image_filename_png = create_sequential_filename(
+                    "media", client_id, "out", "png", story.cuid, frame_number
+                )
+                await text_to_image_file_inference(
+                    httpx_client,
+                    image_prompt,
+                    output_image_filename_png,
+                    strategy_config.text_to_image_model_config,
+                    keys,
+                    parameters.output_image_width,
+                    parameters.output_image_height,
+                )
+                output_image_filename = output_image_filename_png
+                image = get_image_attributes(output_image_filename)
+                print(
+                    f"✅ Generated image for frame {frame_number} using {'fallback' if 'fallback content' in ''.join(errors) else 'generated'} text"
+                )
+            except Exception as e:
+                await self._handle_image_generation_failure(
+                    error=e,
+                    story_cuid=story.cuid,
+                    frame_number=frame_number,
+                    image_prompt=image_prompt,
+                    strategy_config=strategy_config,
+                    client_id=client_id,
+                    errors=errors,
+                    output_image_width=parameters.output_image_width,
+                    output_image_height=parameters.output_image_height,
+                )
 
         # Append and persist the frame to the story.
         # If we still don't have content, _add_frame will raise ValueError

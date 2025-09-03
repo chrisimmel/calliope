@@ -1,15 +1,15 @@
-from datetime import datetime
-from typing import cast, Optional, Sequence
+from datetime import datetime  # noqa: TC003
+from typing import Optional, Sequence, cast
 
-from fastapi import APIRouter, Request, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from markupsafe import Markup
 
-from calliope.tables import Story, StoryFrame
 from calliope.storage.vector_manager import semantic_search
+from calliope.tables import Story, StoryFrame
+from calliope.utils.image_backfill import ImageBackfillQueue
 from calliope.utils.pagination import Pagination
-
 
 router = APIRouter()
 templates = Jinja2Templates(directory="calliope/templates")
@@ -28,7 +28,7 @@ async def thoth_root(
 
     if pagination.offset < num_stories:
         stories = cast(
-            Sequence[Story],
+            "Sequence[Story]",
             await Story.objects(Story.thumbnail_image)
             .order_by(Story.date_updated, ascending=False)
             .offset(pagination.offset)
@@ -51,7 +51,7 @@ async def thoth_root(
         "show_metadata": meta,
         "pagination": pagination,
     }
-    return cast(HTMLResponse, templates.TemplateResponse("thoth.html", context))
+    return cast("HTMLResponse", templates.TemplateResponse("thoth.html", context))
 
 
 @router.get("/thoth/story/{story_cuid}", response_class=HTMLResponse)
@@ -82,8 +82,8 @@ async def thoth_story(
         frames = []
 
     # Truncate datetimes to dates to clean up display.
-    story.date_created = cast(datetime, story.date_created.date())
-    story.date_updated = cast(datetime, story.date_updated.date())
+    story.date_created = cast("datetime", story.date_created.date())
+    story.date_updated = cast("datetime", story.date_updated.date())
 
     context = {
         "request": request,
@@ -92,7 +92,7 @@ async def thoth_story(
         "show_metadata": meta,
         "pagination": pagination,
     }
-    return cast(HTMLResponse, templates.TemplateResponse("thoth_story.html", context))
+    return cast("HTMLResponse", templates.TemplateResponse("thoth_story.html", context))
 
 
 @router.get("/thoth/search/", response_class=HTMLResponse)
@@ -131,7 +131,7 @@ async def thoth_search(
                 )
             )
 
-            frame.date_created = cast(datetime, frame.date_created.date())
+            frame.date_created = cast("datetime", frame.date_created.date())
 
             result_frames.append(frame)
 
@@ -142,4 +142,184 @@ async def thoth_search(
         "show_metadata": meta,
         "story_page_size": PAGE_SIZE,
     }
-    return cast(HTMLResponse, templates.TemplateResponse("thoth_search.html", context))
+    return cast("HTMLResponse", templates.TemplateResponse("thoth_search.html", context))
+
+
+@router.post("/thoth/backfill-frame/{story_cuid}/{frame_number}")
+async def backfill_frame_image(
+    story_cuid: str, frame_number: int, immediate: bool = True
+) -> JSONResponse:
+    """
+    Process a frame for image backfill - either immediately or queued.
+
+    Args:
+        story_cuid: Story CUID
+        frame_number: Frame number
+        immediate: If True, process immediately; if False, add to queue only
+    """
+    try:
+        # Get the story and frame
+        story: Optional[Story] = (
+            await Story.objects().where(Story.cuid == story_cuid).first().run()
+        )
+        if not story:
+            raise HTTPException(status_code=404, detail=f"Story not found: {story_cuid}")
+
+        frame: Optional[StoryFrame] = (
+            await StoryFrame.objects()
+            .where(
+                StoryFrame.story.cuid == story_cuid, StoryFrame.number == frame_number
+            )
+            .first()
+            .run()
+        )
+        if not frame:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Frame {frame_number} not found in story {story_cuid}",
+            )
+
+        # Extract metadata to reconstruct backfill parameters
+        import json
+
+        from calliope.utils.image_backfill import reconstruct_image_prompt
+
+        metadata = frame.metadata or {}
+        if isinstance(metadata, str):
+            try:
+                metadata = json.loads(metadata)
+            except (json.JSONDecodeError, TypeError):
+                metadata = {}
+
+        # Get strategy config slug with fallbacks
+        strategy_config_slug = metadata.get("strategy_config")
+        if not strategy_config_slug:
+            # Handle legacy format
+            parameters = metadata.get("parameters", {})
+            if isinstance(parameters, str):
+                try:
+                    parameters = json.loads(parameters)
+                except (json.JSONDecodeError, TypeError):
+                    parameters = {}
+
+            legacy_strategy = parameters.get("strategy")
+            if legacy_strategy:
+                legacy_mapping = {
+                    "continuous": "continuous-v1-gpt-4",
+                    "continuous_v0": "continuous-v1-gpt-4",
+                    "continuous_v1": "continuous-v1-gpt-4",
+                    "simple_one_frame": "simple-one-frame",
+                    "fern": "fern",
+                    "tamarisk": "tamarisk",
+                    "lavender": "lavender",
+                    "narcissus": "narcissus",
+                    "literal": "literal",
+                }
+                strategy_config_slug = legacy_mapping.get(
+                    legacy_strategy, "simple-one-frame"
+                )
+            else:
+                strategy_config_slug = "simple-one-frame"  # Default fallback
+
+        # Get model config slug with fallback
+        model_config_slug = metadata.get(
+            "text_to_image_model_config", "stability-stable-diffusion-1.6"
+        )
+
+        # Reconstruct image prompt
+        image_prompt = await reconstruct_image_prompt(frame=frame, metadata=metadata)
+        if not image_prompt:
+            image_prompt = f"A watercolor, paper texture. {frame.text[:200] if frame.text else 'abstract artistic composition'}"
+
+        # Extract client_id from story
+        story_state_props = story.state_props or {}
+        if isinstance(story_state_props, str):
+            try:
+                story_state_props = json.loads(story_state_props)
+            except (json.JSONDecodeError, TypeError):
+                story_state_props = {}
+
+        client_id = story_state_props.get("client_id", story.cuid)
+
+        if immediate:
+            # Process immediately using the same logic as the worker
+            import httpx
+
+            # Create a queue item structure for immediate processing
+            queue_item = {
+                "queue_item_id": f"{story_cuid}_{frame_number}_immediate",
+                "story_cuid": story_cuid,
+                "frame_number": frame_number,
+                "image_prompt": image_prompt,
+                "strategy_config_slug": strategy_config_slug,
+                "model_config_slug": model_config_slug,
+                "client_id": client_id,
+                "force_replace": True,
+            }
+
+            # Process immediately with a reasonable timeout
+            async with httpx.AsyncClient(timeout=120) as httpx_client:
+                success = await ImageBackfillQueue.process_queue_item(
+                    queue_item, httpx_client
+                )
+
+                if success:
+                    return JSONResponse(
+                        {
+                            "success": True,
+                            "message": f"Frame {frame_number} image generated successfully",
+                            "story_cuid": story_cuid,
+                            "frame_number": frame_number,
+                            "processed_immediately": True,
+                        }
+                    )
+                else:
+                    # If immediate processing fails, fall back to queueing
+                    await ImageBackfillQueue.add_to_queue(
+                        story_cuid=story_cuid,
+                        frame_number=frame_number,
+                        image_prompt=image_prompt,
+                        strategy_config_slug=strategy_config_slug,
+                        model_config_slug=model_config_slug,
+                        client_id=client_id,
+                        force_replace=True,
+                    )
+
+                    return JSONResponse(
+                        {
+                            "success": True,
+                            "message": f"Immediate processing failed, frame {frame_number} queued for retry",
+                            "story_cuid": story_cuid,
+                            "frame_number": frame_number,
+                            "processed_immediately": False,
+                            "fallback_queued": True,
+                        }
+                    )
+        else:
+            # Add to backfill queue only
+            await ImageBackfillQueue.add_to_queue(
+                story_cuid=story_cuid,
+                frame_number=frame_number,
+                image_prompt=image_prompt,
+                strategy_config_slug=strategy_config_slug,
+                model_config_slug=model_config_slug,
+                client_id=client_id,
+                force_replace=True,
+            )
+
+            return JSONResponse(
+                {
+                    "success": True,
+                    "message": f"Frame {frame_number} queued for image backfill",
+                    "story_cuid": story_cuid,
+                    "frame_number": frame_number,
+                    "processed_immediately": False,
+                }
+            )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to queue frame for backfill: {e!s}"
+        ) from e

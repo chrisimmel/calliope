@@ -1,10 +1,9 @@
 import asyncio
 import glob
-from typing import cast, List, Sequence, Type
+from typing import List, Sequence, Type, cast
 
 from fastapi import Request
 from piccolo.engine import engine_finder
-from piccolo.table import Table
 from pydantic import BaseModel
 
 from calliope.models import (
@@ -13,6 +12,10 @@ from calliope.models import (
     SparrowStateModel,
     StoryModel,
 )
+from calliope.storage.state_manager import (
+    list_legacy_sparrow_states,
+    list_legacy_stories,
+)
 from calliope.tables import (
     ClientTypeConfig,
     Image,
@@ -20,10 +23,6 @@ from calliope.tables import (
     SparrowState,
     Story,
     StoryFrame,
-)
-from calliope.storage.state_manager import (
-    list_legacy_sparrow_states,
-    list_legacy_stories,
 )
 from calliope.utils.file import (
     ModelAndMetadata,
@@ -46,7 +45,7 @@ class MigrateFromPydanticFormModel(BaseModel):
 
 # Migrate action handler
 async def migrate_from_pydantic_endpoint(
-    request: Request, data: MigrateFromPydanticFormModel
+    _request: Request, _data: MigrateFromPydanticFormModel
 ) -> str:
     await main()
     return "Data migrated"
@@ -68,8 +67,9 @@ def list_legacy_configs() -> Sequence[ModelAndMetadata]:
     else:
         dir_path = r"config/*"
         config_filenames = glob.glob(dir_path)
-        for filename in config_filenames:
-            filenames_and_dates.append(get_file_metadata(filename))
+        filenames_and_dates.extend(
+            get_file_metadata(filename) for filename in config_filenames
+        )
 
     return [
         ModelAndMetadata(
@@ -79,10 +79,10 @@ def list_legacy_configs() -> Sequence[ModelAndMetadata]:
                     # This cast is needed to make the type inference system
                     # properly recognize that both SparrowConfigModel and
                     # ClientTypeConfigModel are subclasses of BaseModel.
-                    Type[BaseModel],
+                    "Type[BaseModel]",
                     SparrowConfigModel
                     if filename_and_dates.filename.startswith("config/sparrow")
-                    else ClientTypeConfigModel
+                    else ClientTypeConfigModel,
                 ),
             ),
             filename_and_dates,
@@ -99,7 +99,7 @@ async def copy_configs_to_piccolo() -> None:
             f"Copying model {model_and_metadata.model.id}"  # type: ignore[attr-defined]
         )
         if isinstance(model_and_metadata.model, SparrowConfigModel):
-            config: Table = await SparrowConfig.from_pydantic(
+            config = await SparrowConfig.from_pydantic(
                 model_and_metadata.model, model_and_metadata.metadata
             )
         elif isinstance(model_and_metadata.model, ClientTypeConfigModel):
@@ -114,8 +114,7 @@ async def copy_configs_to_piccolo() -> None:
     for model_and_metadata in legacy_configs:
         if isinstance(model_and_metadata.model, SparrowConfigModel):
             print(
-                "Connecting flocks for "
-                f"{model_and_metadata.model.id}"  # type: ignore[attr-defined]
+                f"Connecting flocks for {model_and_metadata.model.id}"  # type: ignore[attr-defined]
             )
             config = await SparrowConfig.from_pydantic(
                 model_and_metadata.model, model_and_metadata.metadata
@@ -138,7 +137,7 @@ async def copy_stories_to_piccolo() -> None:
     # await Image.delete(force=True).run()
 
     for model_and_metadata in legacy_stories:
-        story_model = cast(StoryModel, model_and_metadata.model)
+        story_model = cast("StoryModel", model_and_metadata.model)
         file_metadata = model_and_metadata.metadata
 
         print(f"Copying story {story_model.title}")
@@ -216,7 +215,7 @@ async def copy_sparrow_states_to_piccolo() -> None:
     legacy_sparrow_states = list_legacy_sparrow_states()
 
     for model_and_metadata in legacy_sparrow_states:
-        sparrow_state_model = cast(SparrowStateModel, model_and_metadata.model)
+        sparrow_state_model = cast("SparrowStateModel", model_and_metadata.model)
         file_metadata = model_and_metadata.metadata
 
         print(f"Copying state for Sparrow {sparrow_state_model.sparrow_id}")

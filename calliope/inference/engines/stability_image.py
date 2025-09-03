@@ -51,6 +51,11 @@ async def text_to_image_file_inference_stability(
         ),
     }
     engine_id = model.provider_model_name
+    if engine_id == "stable-diffusion-v1-6":
+        # stable-diffusion-v1-6 has been deprecated.
+        print("Using stable-diffusion-xl-1024-v1-0 instead of stable-diffusion-v1-6.")
+        engine_id = "stable-diffusion-xl-1024-v1-0"
+
     url = f"{api_host}/v1/generation/{engine_id}/text-to-image"
     headers = {
         "Content-Type": "application/json",
@@ -102,6 +107,7 @@ async def text_to_image_file_inference_stability(
         height = 1024
 
     print(f"Stable Diffusion engine: {engine_id}")
+
     if engine_id in ("stable-diffusion-v1-6", "stable-diffusion-xl-1024-v1-0"):
         # Stable Diffusion 1.6 is limited to 2K input characters.
         text = text[:1999]
@@ -128,17 +134,7 @@ async def text_to_image_file_inference_stability(
             },
             {
                 # Things we don't want (negative prompt):
-                "text": ",".join(
-                    [
-                        "Signature",
-                        "photorealism",
-                        "cell phones",
-                        "weird faces or hands",
-                        "artist name",
-                        "artist logo",
-                        "Eiffel tower.",
-                    ]
-                ),
+                "text": "Signature,photorealism,cell phones,weird faces or hands,artist name,artist logo,Eiffel tower.",
                 "weight": -1,
             },
         ],

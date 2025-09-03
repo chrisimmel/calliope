@@ -13,7 +13,7 @@ from calliope.inference import (
     image_and_text_to_video_file_inference,
     messages_to_object_inference,
     text_to_image_file_inference,
-    text_to_text_inference,
+    text_to_text_inference_fast_fail,
 )
 from calliope.location.location import get_local_situation_text
 from calliope.models import FramesRequestParamsModel, FullLocationMetadata, KeysModel
@@ -186,7 +186,9 @@ class FernStrategy(StoryStrategy):
 
         # print(f'Text prompt: "{prompt}"')
         story_gen_start = time.time()
-        story_continuation: Optional[str] = await self._get_new_story_fragment(
+        story_continuation: Optional[
+            ExtendStoryResponseModel
+        ] = await self._get_new_story_fragment(
             messages,
             strategy_config,
             keys,
@@ -282,7 +284,22 @@ class FernStrategy(StoryStrategy):
                     break
                 except Exception as e:
                     traceback.print_exc(file=sys.stderr)
-                    errors.append(str(e))
+                    error_msg = f"Image generation failed: {e!s}"
+                    errors.append(error_msg)
+
+                    # Add to backfill queue for retry (only on the last attempt)
+                    if _ == 1:  # Second and final attempt (range(2) means 0,1)
+                        await self._handle_image_generation_failure(
+                            error=e,
+                            story_cuid=story.cuid,
+                            frame_number=frame_number,
+                            image_prompt=media_prompt,
+                            strategy_config=strategy_config,
+                            client_id=client_id,
+                            errors=errors,
+                            output_image_width=parameters.output_image_width,
+                            output_image_height=parameters.output_image_height,
+                        )
 
         # Append and persist the frame to the story.
         frame = await self._add_frame(
@@ -368,7 +385,9 @@ class FernStrategy(StoryStrategy):
         else:
             raise ValueError("No gpt-neo-2.7B model found.")
 
-        return await text_to_text_inference(httpx_client, seed, model_config, keys)
+        return await text_to_text_inference_fast_fail(
+            httpx_client, seed, model_config, keys
+        )
 
     async def _init_story(
         self,
@@ -662,7 +681,7 @@ or muse text, consider merging them with existing characters.""".strip(),
         Gets a new story fragment to be used in building the frame's text.
         """
         result = cast(
-            ExtendStoryResponseModel,
+            "ExtendStoryResponseModel",
             await messages_to_object_inference(
                 httpx_client,
                 messages,
@@ -758,7 +777,7 @@ other_attributes: {character.other_attributes}
 
         try:
             output_image_filename_png = create_character_filename(
-                "media", client_id, story.cuid, create_character_filename, "png"
+                "media", client_id, story.cuid, character.name, "png"
             )
             await text_to_image_file_inference(
                 httpx_client,

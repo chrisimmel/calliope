@@ -1,8 +1,7 @@
 import json
 import re
-from typing import Any, cast, Dict, List, Optional, Sequence, Union
+from typing import Any, Dict, List, Optional, Sequence, Union, cast
 import unicodedata
-
 
 from google.cloud import translate_v2 as translate
 
@@ -31,15 +30,37 @@ def slugify(value: Any, allow_unicode: bool = False) -> str:
 alphabets = "([A-Za-z])"
 prefixes = "(Mr|St|Mrs|Ms|Dr)[.]"
 suffixes = "(Inc|Ltd|Jr|Sr|Co)"
-starters = "(Mr|Mrs|Ms|Dr|Prof|Capt|Cpt|Lt|He\s|She\s|It\s|They\s|Their\s|Our\s|We\s|But\s|However\s|That\s|This\s|Wherever)"  # noqa: E501
+starters = r"(Mr|Mrs|Ms|Dr|Prof|Capt|Cpt|Lt|He\s|She\s|It\s|They\s|Their\s|Our\s|We\s|But\s|However\s|That\s|This\s|Wherever)"
 acronyms = "([A-Z][.][A-Z][.](?:[A-Z][.])?)"
 websites = "[.](com|net|org|io|gov|edu|me)"
 digits = "([0-9])"
 multiple_dots = r"\.{2,}"
 abbreviations = [
-    "etc.", "i.e.", "e.g.", "vs.", "Mr.", "Mrs.", "Ms.", "Dr.", "Prof.",
-    "Inc.", "Ltd.", "Co.", "Jr.", "Sr.", "St.", "Ave.", "Blvd.", "Rd.",
-    "Ph.D.", "M.D.", "B.A.", "M.A.", "U.S.", "U.K.", "U.N."
+    "etc.",
+    "i.e.",
+    "e.g.",
+    "vs.",
+    "Mr.",
+    "Mrs.",
+    "Ms.",
+    "Dr.",
+    "Prof.",
+    "Inc.",
+    "Ltd.",
+    "Co.",
+    "Jr.",
+    "Sr.",
+    "St.",
+    "Ave.",
+    "Blvd.",
+    "Rd.",
+    "Ph.D.",
+    "M.D.",
+    "B.A.",
+    "M.A.",
+    "U.S.",
+    "U.K.",
+    "U.N.",
 ]
 
 
@@ -47,7 +68,7 @@ def split_into_sentences(text: str) -> List[str]:
     """
     Splits text into a list of sentences.
     Improved from: https://stackoverflow.com/questions/4576077/how-can-i-split-a-text-into-sentences
-    """  # noqa: E501
+    """
 
     text = " " + text + "  "
     text = text.replace("\n", " ")
@@ -66,7 +87,7 @@ def split_into_sentences(text: str) -> List[str]:
         multiple_dots, lambda match: "<prd>" * len(match.group(0)) + "<stop>", text
     )
 
-    text = re.sub("\s" + alphabets + "[.] ", " \\1<prd> ", text)
+    text = re.sub(r"\s" + alphabets + "[.] ", " \\1<prd> ", text)
     text = re.sub(acronyms + " " + starters, "\\1<stop> \\2", text)
     text = re.sub(
         alphabets + "[.]" + alphabets + "[.]" + alphabets + "[.]",
@@ -78,8 +99,11 @@ def split_into_sentences(text: str) -> List[str]:
     text = re.sub(" " + suffixes + "[.]", " \\1<prd>", text)
     text = re.sub(" " + alphabets + "[.]", " \\1<prd>", text)
 
-    text = text.replace(""", '"')
-    text = text.replace(""", '"')
+    text = text.replace(
+        """, '"')
+    text = text.replace(""",
+        '"',
+    )
     text = text.replace("'", "'")
     text = text.replace("'", "'")
 
@@ -153,7 +177,7 @@ def translate_text(target: str, text: Union[str, bytes]) -> str:
     # will return a sequence of results for each text.
     result = translate_client.translate(text, target_language=target)
 
-    translation = cast(str, result.get("translatedText", text)) if result else text
+    translation = cast("str", result.get("translatedText", text)) if result else text
 
     print(f"Translation: {translation}")
     print(f"Detected source language: {result['detectedSourceLanguage']}")

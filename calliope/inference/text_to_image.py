@@ -1,6 +1,6 @@
 import sys
 import traceback
-from typing import Optional
+from typing import List, Optional
 
 import httpx
 
@@ -126,7 +126,7 @@ async def text_to_image_file_inference(
             last_exception = e
 
             if attempt < 3:
-                errors = []
+                errors: List[str] = []
                 text = await censor_text(
                     text,
                     keys,

@@ -1,12 +1,12 @@
 import sys
 import traceback
-from typing import Any, cast, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 import httpx
 
 from calliope.inference import (
-    text_to_text_inference,
     text_to_image_file_inference,
+    text_to_text_inference,
 )
 from calliope.location.location import get_local_situation_text
 from calliope.models import (
@@ -69,9 +69,7 @@ class LavenderStrategy(StoryStrategy):
         )
 
         situation = get_local_situation_text(image_analysis, location_metadata)
-        debug_data = self._get_default_debug_data(
-            parameters, strategy_config, situation
-        )
+        debug_data = self._get_default_debug_data(parameters, strategy_config, situation)
         errors: List[str] = []
         prompt = None
         image = None
@@ -124,23 +122,17 @@ class LavenderStrategy(StoryStrategy):
             )
 
         image_description = None
-        state_props = {}
         if story_continuation and not story_continuation.isspace():
             print(f"{story_continuation=}")
             continuation_json = load_llm_output_as_json(story_continuation)
             print(f"{continuation_json=}")
             if continuation_json:
                 story_continuation = cast(
-                    Optional[str], continuation_json.get("continuation")
+                    "Optional[str]", continuation_json.get("continuation")
                 )
                 image_description = cast(
-                    Optional[str], continuation_json.get("illustration")
+                    "Optional[str]", continuation_json.get("illustration")
                 )
-                state_props = {
-                    key: val
-                    for key, val in continuation_json
-                    if key not in ("continuation", "illustration")
-                }
 
         if not story_continuation or story_continuation.isspace():
             story_continuation = situation + "\n"
@@ -151,7 +143,7 @@ class LavenderStrategy(StoryStrategy):
                 strategy_config.text_to_text_model_config
                 and strategy_config.text_to_text_model_config
                 and strategy_config.text_to_text_model_config.prompt_template
-                and strategy_config.text_to_text_model_config.prompt_template.target_language  # noqa: E501
+                and strategy_config.text_to_text_model_config.prompt_template.target_language
                 != "en"
             ):
                 # Translate the story to English before
@@ -187,7 +179,22 @@ class LavenderStrategy(StoryStrategy):
                     break
                 except Exception as e:
                     traceback.print_exc(file=sys.stderr)
-                    errors.append(str(e))
+                    error_msg = f"Image generation failed: {e!s}"
+                    errors.append(error_msg)
+
+                    # Add to backfill queue for retry (only on the last attempt)
+                    if _ == 1:  # Second and final attempt (range(2) means 0,1)
+                        await self._handle_image_generation_failure(
+                            error=e,
+                            story_cuid=story.cuid,
+                            frame_number=frame_number,
+                            image_prompt=image_prompt,
+                            strategy_config=strategy_config,
+                            client_id=client_id,
+                            errors=errors,
+                            output_image_width=parameters.output_image_width,
+                            output_image_height=parameters.output_image_height,
+                        )
 
         # Append and persist the frame to the story.
         frame = await self._add_frame(
@@ -251,12 +258,14 @@ class LavenderStrategy(StoryStrategy):
         #     image_text += input_text
 
         model_config = (
-            cast(ModelConfig, strategy_config.text_to_text_model_config)
+            cast("ModelConfig", strategy_config.text_to_text_model_config)
             if strategy_config
             else None
         )
         prompt_template = (
-            cast(PromptTemplate, model_config.prompt_template) if model_config else None
+            cast("PromptTemplate", model_config.prompt_template)
+            if model_config
+            else None
         )
 
         if prompt_template:

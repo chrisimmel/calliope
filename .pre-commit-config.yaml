@@ -8,13 +8,34 @@ repos:
       - id: check-json
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.6
+    rev: v0.11.13
     hooks:
       # Run the linter.
       - id: ruff
         args: [--fix]
       # Run the formatter.
       - id: ruff-format
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.8.0
+    hooks:
+      - id: mypy
+        additional_dependencies:
+          [
+            types-requests,
+            types-aiofiles,
+            types-setuptools,
+            types-PyYAML,
+            types-tzlocal,
+            types-Pillow,
+            pydantic,
+            fastapi,
+            httpx,
+            aiohttp,
+          ]
+        args: [--config-file=pyproject.toml]
+        files: ^calliope/.*\.py$
+        exclude: ^calliope/piccolo_migrations/
 
   - repo: https://github.com/pre-commit/mirrors-prettier
     rev: v3.0.0

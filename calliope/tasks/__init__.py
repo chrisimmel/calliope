@@ -6,6 +6,6 @@ both local development and production environments.
 """
 
 from .factory import get_task_queue
-from .queue import TaskQueue, Task
+from .queue import Task, TaskQueue
 
-__all__ = ["get_task_queue", "TaskQueue", "Task"]
+__all__ = ["Task", "TaskQueue", "get_task_queue"]

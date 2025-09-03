@@ -2,8 +2,6 @@ import json
 from typing import Any, Optional
 
 import httpx
-import aiofiles
-import openai
 from openai import AsyncOpenAI
 
 from calliope.models import KeysModel

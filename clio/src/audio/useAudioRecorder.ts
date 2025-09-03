@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback } from 'react';
 
 export interface recorderControls {
   canRecord: boolean;
@@ -14,14 +14,14 @@ export interface recorderControls {
 
 export type MediaAudioTrackConstraints = Pick<
   MediaTrackConstraints,
-  | "deviceId"
-  | "groupId"
-  | "autoGainControl"
-  | "channelCount"
-  | "echoCancellation"
-  | "noiseSuppression"
-  | "sampleRate"
-  | "sampleSize"
+  | 'deviceId'
+  | 'groupId'
+  | 'autoGainControl'
+  | 'channelCount'
+  | 'echoCancellation'
+  | 'noiseSuppression'
+  | 'sampleRate'
+  | 'sampleSize'
 >;
 
 /**
@@ -42,22 +42,23 @@ export type MediaAudioTrackConstraints = Pick<
 const useAudioRecorder: (
   audioTrackConstraints?: MediaAudioTrackConstraints,
   onNotAllowedOrFound?: (exception: DOMException) => any,
-  mediaRecorderOptions?: MediaRecorderOptions,
+  mediaRecorderOptions?: MediaRecorderOptions
 ) => recorderControls = (
   audioTrackConstraints,
   onNotAllowedOrFound,
-  mediaRecorderOptions,
+  mediaRecorderOptions
 ) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder>();
-  const [timerInterval, setTimerInterval] = useState<ReturnType<typeof setInterval>>();
+  const [timerInterval, setTimerInterval] =
+    useState<ReturnType<typeof setInterval>>();
   const [recordingBlob, setRecordingBlob] = useState<Blob>();
 
   const _startTimer: () => void = useCallback(() => {
     const interval = setInterval(() => {
-      setRecordingTime((time) => time + 1);
+      setRecordingTime(time => time + 1);
     }, 1000);
     setTimerInterval(interval);
   }, [setRecordingTime, setTimerInterval]);
@@ -77,7 +78,7 @@ const useAudioRecorder: (
 
     navigator.mediaDevices
       .getUserMedia({ audio: audioTrackConstraints ?? true })
-      .then((stream) => {
+      .then(stream => {
         setIsRecording(true);
         const recorder: MediaRecorder = new MediaRecorder(
           stream,
@@ -87,9 +88,9 @@ const useAudioRecorder: (
         recorder.start();
         _startTimer();
 
-        recorder.addEventListener("dataavailable", (event) => {
+        recorder.addEventListener('dataavailable', event => {
           setRecordingBlob(event.data);
-          recorder.stream.getTracks().forEach((t) => t.stop());
+          recorder.stream.getTracks().forEach(t => t.stop());
           setMediaRecorder(undefined);
         });
       })

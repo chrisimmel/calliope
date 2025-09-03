@@ -1,5 +1,5 @@
 // icon:bx-fast-forward | Boxicons https://boxicons.com/ | Atisa
-import * as React from "react";
+import * as React from 'react';
 
 export default function IconFastForward(props: any) {
   return (

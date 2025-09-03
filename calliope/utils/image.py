@@ -55,7 +55,7 @@ def convert_png_to_rgb565(input_filename: str, output_filename: str) -> Image:
         output_image_content[i] = rgb
 
     with open(output_filename, "wb") as output_file:
-        output_file.write(cast(Buffer, output_image_content))
+        output_file.write(cast("Buffer", output_image_content))
 
     return Image(
         width=png.width,
@@ -122,7 +122,7 @@ def convert_png_to_grayscale16(input_filename: str, output_filename: str) -> Ima
             output_image_content[i] = byte
 
     with open(output_filename, "wb") as output_file:
-        output_file.write(cast(Buffer, output_image_content))
+        output_file.write(cast("Buffer", output_image_content))
 
     return Image(
         width=png.width,
@@ -279,7 +279,7 @@ def get_image_colors(image_filename: str) -> Sequence[Tuple[int, int]]:
     by_color: Dict[int, int] = defaultdict(int)
     for pixel in image.getdata():
         by_color[pixel] += 1
-    return cast(Sequence[Tuple[int, int]], list(by_color.items()))
+    return cast("Sequence[Tuple[int, int]]", list(by_color.items()))
 
 
 # WARNING: This function can be very slow (over 2 minutes for a 1024x1024 image).

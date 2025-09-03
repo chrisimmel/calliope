@@ -1,6 +1,5 @@
 from datetime import datetime
 
-from piccolo.table import Table
 from piccolo.columns import (
     Boolean,
     ForeignKey,
@@ -8,6 +7,7 @@ from piccolo.columns import (
     Timestamptz,
     Varchar,
 )
+from piccolo.table import Table
 
 from calliope.tables.sparrow_state import SparrowState
 from calliope.tables.story import Story, StoryFrame

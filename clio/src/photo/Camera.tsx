@@ -12,7 +12,6 @@ import {
 } from './cameraTypes';
 import { Container, Wrapper, Canvas, Cam, ErrorMsg } from './cameraStyles';
 
-
 export const Camera = React.forwardRef<unknown, CameraProps>(
   (
     {
@@ -21,15 +20,17 @@ export const Camera = React.forwardRef<unknown, CameraProps>(
       numberOfCamerasCallback = () => null,
       videoSourceDeviceId = undefined,
       errorMessages = {
-        noCameraAccessible: 'No camera device accessible. Please connect your camera or try a different browser.',
-        permissionDenied: 'Permission denied. Please refresh and give camera permission.',
+        noCameraAccessible:
+          'No camera device accessible. Please connect your camera or try a different browser.',
+        permissionDenied:
+          'Permission denied. Please refresh and give camera permission.',
         switchCamera:
           'It is not possible to switch camera to different one because there is only one video device accessible.',
         canvas: 'Canvas is not supported.',
       },
       videoReadyCallback = () => null,
     },
-    ref,
+    ref
   ) => {
     const player = useRef<HTMLVideoElement>(null);
     const canvas = useRef<HTMLCanvasElement>(null);
@@ -91,9 +92,12 @@ export const Camera = React.forwardRef<unknown, CameraProps>(
         if (numberOfCameras < 1) {
           throw new Error(errorMessages.noCameraAccessible);
         } else if (numberOfCameras < 2) {
-          console.error('Error: Unable to switch camera. Only one device is accessible.'); // console only
+          console.error(
+            'Error: Unable to switch camera. Only one device is accessible.'
+          ); // console only
         }
-        const newFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+        const newFacingMode =
+          currentFacingMode === 'user' ? 'environment' : 'user';
         setFacingMode(newFacingMode);
         return newFacingMode;
       },
@@ -111,7 +115,7 @@ export const Camera = React.forwardRef<unknown, CameraProps>(
         setFacingMode,
         setNumberOfCameras,
         setNotSupported,
-        setPermissionDenied,
+        setPermissionDenied
       );
     }, [currentFacingMode, videoSourceDeviceId]);
 
@@ -131,8 +135,12 @@ export const Camera = React.forwardRef<unknown, CameraProps>(
     return (
       <Container ref={container} aspectRatio={aspectRatio}>
         <Wrapper>
-          {notSupported ? <ErrorMsg>{errorMessages.noCameraAccessible}</ErrorMsg> : null}
-          {permissionDenied ? <ErrorMsg>{errorMessages.permissionDenied}</ErrorMsg> : null}
+          {notSupported ? (
+            <ErrorMsg>{errorMessages.noCameraAccessible}</ErrorMsg>
+          ) : null}
+          {permissionDenied ? (
+            <ErrorMsg>{errorMessages.permissionDenied}</ErrorMsg>
+          ) : null}
           <Cam
             ref={player}
             id="video"
@@ -148,7 +156,7 @@ export const Camera = React.forwardRef<unknown, CameraProps>(
         </Wrapper>
       </Container>
     );
-  },
+  }
 );
 
 Camera.displayName = 'Camera';
@@ -161,7 +169,7 @@ const initCameraStream = (
   setFacingMode: SetFacingMode,
   setNumberOfCameras: SetNumberOfCameras,
   setNotSupported: SetNotSupported,
-  setPermissionDenied: SetPermissionDenied,
+  setPermissionDenied: SetPermissionDenied
 ) => {
   // stop any active streams in the window
   if (stream) {
@@ -173,7 +181,9 @@ const initCameraStream = (
   const constraints = {
     audio: false,
     video: {
-      deviceId: videoSourceDeviceId ? { exact: videoSourceDeviceId } : undefined,
+      deviceId: videoSourceDeviceId
+        ? { exact: videoSourceDeviceId }
+        : undefined,
       facingMode: currentFacingMode,
       //width: { ideal: 1920 },
       //height: { ideal: 1920 },
@@ -205,7 +215,7 @@ const initCameraStream = (
         },
         (err: any) => {
           handleError(err as Error, setNotSupported, setPermissionDenied);
-        },
+        }
       );
     } else {
       setNotSupported(true);
@@ -213,22 +223,27 @@ const initCameraStream = (
   }
 };
 
-const handleSuccess = (stream: MediaStream, setNumberOfCameras: SetNumberOfCameras, setFacingMode: SetFacingMode) => {
-  navigator.mediaDevices
-    .enumerateDevices()
-    .then(r => {
-      const numCameras = r.filter(i => i.kind === 'videoinput').length;
-      setNumberOfCameras(numCameras);
-      if (numCameras == 1) {
-        setFacingMode('user');
-      }
-    });
-
+const handleSuccess = (
+  stream: MediaStream,
+  setNumberOfCameras: SetNumberOfCameras,
+  setFacingMode: SetFacingMode
+) => {
+  navigator.mediaDevices.enumerateDevices().then(r => {
+    const numCameras = r.filter(i => i.kind === 'videoinput').length;
+    setNumberOfCameras(numCameras);
+    if (numCameras == 1) {
+      setFacingMode('user');
+    }
+  });
 
   return stream;
 };
 
-const handleError = (error: Error, setNotSupported: SetNotSupported, setPermissionDenied: SetPermissionDenied) => {
+const handleError = (
+  error: Error,
+  setNotSupported: SetNotSupported,
+  setPermissionDenied: SetPermissionDenied
+) => {
   console.error(error);
 
   //https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia
