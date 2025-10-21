@@ -84,8 +84,9 @@ const renderFrame = (frame: Frame, index: number, currentIndex: number) => {
 
   // Only process media URLs if the frame is visible
   // This prevents unnecessary downloads of images/videos for frames far from current view
-  const image_url = frame.image && frame.image.url ? `/${frame.image.url}` : '';
-  const video_url = frame.video && frame.video.url ? `/${frame.video.url}` : '';
+  // URLs are provided as full GCS URLs from the API (or local paths in development)
+  const image_url = frame.image && frame.image.url ? frame.image.url : '';
+  const video_url = frame.video && frame.video.url ? frame.video.url : '';
   const hasVideo = Boolean(frame.video && frame.video.url);
 
   // Create a fixed-height wrapper to prevent text shifting

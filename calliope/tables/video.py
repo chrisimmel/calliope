@@ -43,11 +43,23 @@ class Video(Table):
         if not format:
             return None
 
+        # Convert local path to full GCS URL for direct access from client
+        from calliope.utils.google import (
+            is_google_cloud_run_environment,
+            local_path_to_gcs_url,
+        )
+
+        url = (
+            local_path_to_gcs_url(self.url)
+            if is_google_cloud_run_environment()
+            else self.url
+        )
+
         return VideoModel(
             width=self.width,
             height=self.height,
             format=format,
-            url=self.url,
+            url=url,
             duration_seconds=self.duration_seconds,
             frame_rate=self.frame_rate,
         )

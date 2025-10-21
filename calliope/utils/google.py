@@ -22,6 +22,14 @@ def is_google_cloud_run_environment() -> bool:
     return get_cloud_environment() == CLOUD_ENV_GCP_PROD
 
 
+def local_path_to_gcs_url(local_path: str) -> str:
+    """
+    Converts a local file path (e.g., 'media/file.png') to a full GCS URL.
+    This allows Clio to fetch media files directly from Cloud Storage.
+    """
+    return f"https://storage.googleapis.com/{settings.CALLIOPE_BUCKET_NAME}/{local_path}"
+
+
 def put_media_file(filename: str) -> None:
     put_google_file(settings.MEDIA_FOLDER, filename)
 

@@ -1,13 +1,13 @@
 import os
-from typing import Optional
+from typing import Union
 
 from fastapi import APIRouter, Depends, File, HTTPException
 from fastapi.security.api_key import APIKey
-from starlette.responses import FileResponse
+from starlette.responses import FileResponse, RedirectResponse
 
+from calliope.settings import settings
 from calliope.utils.authentication import get_api_key
 from calliope.utils.google import (
-    get_media_file,
     is_google_cloud_run_environment,
     put_media_file,
 )
@@ -23,27 +23,27 @@ router = APIRouter(prefix="/media", tags=["media"])
 async def get_media(
     filename: str,
     # api_key: APIKey = Depends(get_api_key),
-) -> Optional[FileResponse]:
+) -> Union[FileResponse, RedirectResponse, None]:
     """
     Gets a media file, such as for display as part of a story frame.
+    Redirects to direct GCS URL in Cloud Run to save costs.
     """
     return await _handle_get_media_request(filename)
 
 
-async def _handle_get_media_request(filename: str) -> Optional[FileResponse]:
+async def _handle_get_media_request(
+    filename: str,
+) -> Union[FileResponse, RedirectResponse, None]:
+    # In Cloud Run, redirect to direct GCS URL to avoid Cloud Run serving costs
+    if is_google_cloud_run_environment():
+        gcs_url = f"https://storage.googleapis.com/{settings.CALLIOPE_BUCKET_NAME}/media/{filename}"
+        return RedirectResponse(url=gcs_url, status_code=302)
+
+    # For local development, serve files directly
     format = guess_image_format_from_filename(filename)
     media_type = image_format_to_media_type(format)
 
     local_filename = f"media/{filename}"
-    if is_google_cloud_run_environment():
-        try:
-            get_media_file(local_filename, local_filename)
-        except Exception as e:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Error retrieving file {local_filename}: {e!s}",
-            ) from e
-
     if not os.path.isfile(local_filename):
         raise HTTPException(
             status_code=404, detail=f"Media file not found: {local_filename}"
