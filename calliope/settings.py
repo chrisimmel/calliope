@@ -9,6 +9,7 @@ class Settings(BaseSettings):
 
     CALLIOPE_API_KEY: str = "xyzzy"
     CALLIOPE_BUCKET_NAME: str = "artifacts.ardent-course-370411.appspot.com"
+    CALLIOPE_CDN_DOMAIN: str = "media.chrisimmel.com"
     MEDIA_FOLDER: str = "media"
 
     POSTGRESQL_HOSTNAME: str = "postgres"

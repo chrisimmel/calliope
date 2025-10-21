@@ -38,6 +38,22 @@ class Image(Table):
             f"{self.format}, {self.url}"
         )
 
+    @property
+    def display_url(self) -> str:
+        """
+        Returns the URL for displaying this image.
+        In cloud environments, returns CDN URL; locally returns local path.
+        """
+        from calliope.utils.google import (
+            is_google_cloud_run_environment,
+            local_path_to_gcs_url,
+        )
+
+        if is_google_cloud_run_environment():
+            return local_path_to_gcs_url(self.url)
+        else:
+            return self.url
+
     def to_pydantic(self) -> Optional[ImageModel]:
         format = ImageFormat.fromMediaFormat(self.format)
         if not format:

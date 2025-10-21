@@ -24,10 +24,15 @@ def is_google_cloud_run_environment() -> bool:
 
 def local_path_to_gcs_url(local_path: str) -> str:
     """
-    Converts a local file path (e.g., 'media/file.png') to a full GCS URL.
-    This allows Clio to fetch media files directly from Cloud Storage.
+    Converts a local file path (e.g., 'media/file.png') to a CDN URL.
+    In cloud environments, uses the Cloud CDN with custom domain for HTTPS support.
     """
-    return f"https://storage.googleapis.com/{settings.CALLIOPE_BUCKET_NAME}/{local_path}"
+    if is_google_cloud_run_environment():
+        # Use Cloud CDN with custom domain for HTTPS and caching
+        return f"https://{settings.CALLIOPE_CDN_DOMAIN}/{local_path}"
+    else:
+        # For local development, use direct GCS URLs
+        return f"https://storage.googleapis.com/{settings.CALLIOPE_BUCKET_NAME}/{local_path}"
 
 
 def put_media_file(filename: str) -> None:

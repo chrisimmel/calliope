@@ -50,7 +50,7 @@
         <div class="story-thumb">
           {% if story_thumbs_by_story_id.get(story.cuid) %}
           <img
-            src="{{story_thumbs_by_story_id.get(story.cuid).url if story_thumbs_by_story_id.get(story.cuid).url.startswith('http') else '/' + story_thumbs_by_story_id.get(story.cuid).url}}"
+            src="{{story_thumbs_by_story_id.get(story.cuid).display_url if story_thumbs_by_story_id.get(story.cuid).display_url.startswith('http') else '/' + story_thumbs_by_story_id.get(story.cuid).display_url}}"
             width="{{story_thumbs_by_story_id.get(story.cuid).width}}"
             height="{{story_thumbs_by_story_id.get(story.cuid).height}}"
           />

@@ -34,10 +34,10 @@ async def get_media(
 async def _handle_get_media_request(
     filename: str,
 ) -> Union[FileResponse, RedirectResponse, None]:
-    # In Cloud Run, redirect to direct GCS URL to avoid Cloud Run serving costs
+    # In Cloud Run, redirect to CDN URL to avoid Cloud Run serving costs
     if is_google_cloud_run_environment():
-        gcs_url = f"https://storage.googleapis.com/{settings.CALLIOPE_BUCKET_NAME}/media/{filename}"
-        return RedirectResponse(url=gcs_url, status_code=302)
+        cdn_url = f"https://{settings.CALLIOPE_CDN_DOMAIN}/media/{filename}"
+        return RedirectResponse(url=cdn_url, status_code=302)
 
     # For local development, serve files directly
     format = guess_image_format_from_filename(filename)
