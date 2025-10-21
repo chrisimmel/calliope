@@ -666,7 +666,15 @@ export default function ClioApp() {
         if (frame_num != null) {
           frame_num = Math.min(frame_num, maxFrameNum);
         } else {
-          frame_num = maxFrameNum;
+          // If no frame specified, preserve current position if story is already loaded
+          // Otherwise default to last frame for initial loads
+          if (storyId === story_id && selectedFrameNumber >= 0) {
+            // Story is already loaded, preserve current frame
+            frame_num = Math.min(selectedFrameNumber, maxFrameNum);
+          } else {
+            // Initial load, go to last frame
+            frame_num = maxFrameNum;
+          }
         }
         setSelectedFrameNumber(frame_num);
         setIsReadOnly(response.data?.is_read_only || false);

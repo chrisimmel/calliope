@@ -144,15 +144,22 @@ const StoryStatusMonitor: React.FC<StoryStatusMonitorProps> = ({
           handleStatusChange(currentStatus);
         }
 
-        // Get recent updates
+        // Get recent updates to catch any frames that arrived while user was away
         const updates = await getStoryUpdates(storyId);
         console.log('Initial story updates:', updates);
 
-        // Check for frame_added events
+        // Check for frame_added events that might have been missed
+        // This handles cases like:
+        // - User's device went to sleep during frame generation
+        // - App was closed and reopened
+        // - Network disconnection caused Firebase listeners to miss updates
         const frameAddedUpdate = updates.find(
           update => update.type === 'frame_added'
         );
         if (frameAddedUpdate) {
+          // Let parent know about the new frame so it can fetch latest data
+          // The parent (ClioApp.handleNewFrameFromFirebase) will call getStory()
+          // which preserves the current frame, so this won't cause unwanted jumps
           handleNewFrame(frameAddedUpdate);
         }
       } catch (error) {

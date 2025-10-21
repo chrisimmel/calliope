@@ -39,14 +39,14 @@
           width="{{frame.video.width if frame.video.width <= 512 else 512}}"
         >
           <source
-            src="{{frame.video.display_url if frame.video.display_url.startswith('http') else '/' + frame.video.display_url}}"
+            src="{{frame.video.display_url}}"
             type="{{frame.video.format}}"
           />
           Your browser does not support the video tag.
         </video>
         {%- elif frame.source_image -%}
         <img
-          src="{{frame.source_image.display_url if frame.source_image.display_url.startswith('http') else '/' + frame.source_image.display_url}}"
+          src="{{frame.source_image.display_url}}"
           alt="Frame {{frame.number}}"
         />
         {%- endif %}

@@ -42,7 +42,7 @@ class Video(Table):
     def display_url(self) -> str:
         """
         Returns the URL for displaying this video.
-        In cloud environments, returns CDN URL; locally returns local path.
+        In cloud environments, returns CDN URL; locally returns local path with leading slash.
         """
         from calliope.utils.google import (
             is_google_cloud_run_environment,
@@ -52,7 +52,8 @@ class Video(Table):
         if is_google_cloud_run_environment():
             return local_path_to_gcs_url(self.url)
         else:
-            return self.url
+            # Ensure local path has leading slash for proper serving
+            return f"/{self.url}" if not self.url.startswith("/") else self.url
 
     def to_pydantic(self) -> Optional[VideoModel]:
         format = VideoFormat.fromMediaFormat(self.format)
@@ -65,11 +66,11 @@ class Video(Table):
             local_path_to_gcs_url,
         )
 
-        url = (
-            local_path_to_gcs_url(self.url)
-            if is_google_cloud_run_environment()
-            else self.url
-        )
+        if is_google_cloud_run_environment():
+            url = local_path_to_gcs_url(self.url)
+        else:
+            # Ensure local path has leading slash for proper serving
+            url = f"/{self.url}" if not self.url.startswith("/") else self.url
 
         return VideoModel(
             width=self.width,
