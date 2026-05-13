@@ -15,7 +15,7 @@ class InferenceClient(Protocol):
     Concrete clients implement the modalities they support; unsupported
     modalities should raise `UnsupportedOperation`. The `model` argument is
     a provider-specific identifier (e.g. ``"gpt-4o-mini"``,
-    ``"black-forest-labs/flux-schnell"``); strategies in YAML pin these.
+    ``"black-forest-labs/flux-schnell"``); storytellers in YAML pin these.
     """
 
     provider: str

@@ -28,7 +28,7 @@ class Story(Base):
     thumbnail_image_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("images.id", ondelete="SET NULL")
     )
-    strategy_name: Mapped[str | None] = mapped_column(String(128))
+    storyteller_name: Mapped[str | None] = mapped_column(String(128))
     metadata_: Mapped[dict | None] = mapped_column("metadata", JSONB)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False

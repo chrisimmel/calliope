@@ -3,7 +3,7 @@ description: |
   Continuous multi-frame narrative. Each invocation generates one frame
   conditioned on `previous_text` (string, may be empty) and `previous_image`
   (ImageBlob, may be None). The API/task layer is responsible for invoking
-  the strategy per frame and threading state forward.
+  the storyteller per frame and threading state forward.
 steps:
   - generate_text:
       provider: openai

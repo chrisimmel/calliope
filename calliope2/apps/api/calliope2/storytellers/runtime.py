@@ -1,14 +1,14 @@
-"""YAML-driven story-strategy runtime.
+"""YAML-driven story-storyteller runtime.
 
-A ``StoryStrategy`` is declared in ``defs/<name>.yaml`` as a list of steps.
+A ``Storyteller`` is declared in ``defs/<name>.yaml`` as a list of steps.
 Each step is a single-key dict whose key is the step type (``generate_text``,
 ``generate_image``, ``generate_video``, ``analyze_image``, ``set``) and whose
 value is a parameter map. Each step writes its result to ``out: <var>`` and
 subsequent steps can reference any variable in the context via Jinja2 in
 their ``prompt`` field (templates can be inline or ``.j2`` file paths
-rooted at the strategy package).
+rooted at the storyteller package).
 
-The runtime is purely functional: ``run_strategy(name, inputs)`` returns a
+The runtime is purely functional: ``run_storyteller(name, inputs)`` returns a
 ``FrameOutput`` and never touches the database, GCS, or Firestore — the
 caller is responsible for persistence.
 """
@@ -23,11 +23,11 @@ import yaml
 from jinja2 import ChainableUndefined, Environment, FileSystemLoader, TemplateNotFound
 
 from calliope2.inference import ImageBlob, VideoBlob, get_client
-from calliope2.strategies.errors import (
+from calliope2.storytellers.errors import (
     MissingVariable,
-    StrategySchemaError,
+    StorytellerSchemaError,
     UnknownStepType,
-    UnknownStrategy,
+    UnknownStoryteller,
 )
 
 if TYPE_CHECKING:
@@ -35,8 +35,8 @@ if TYPE_CHECKING:
 
     from jinja2 import Template
 
-STRATEGIES_ROOT = Path(__file__).parent
-DEFS_DIR = STRATEGIES_ROOT / "defs"
+STORYTELLERS_ROOT = Path(__file__).parent
+DEFS_DIR = STORYTELLERS_ROOT / "defs"
 
 KNOWN_STEP_TYPES = frozenset(
     {"generate_text", "generate_image", "generate_video", "analyze_image", "set"}
@@ -51,7 +51,7 @@ class FrameOutput:
 
 
 @dataclass
-class StoryStrategy:
+class Storyteller:
     name: str
     description: str
     steps: list[dict[str, Any]]
@@ -60,31 +60,31 @@ class StoryStrategy:
 
     def __post_init__(self) -> None:
         self._env = Environment(
-            loader=FileSystemLoader(str(STRATEGIES_ROOT)),
+            loader=FileSystemLoader(str(STORYTELLERS_ROOT)),
             undefined=ChainableUndefined,
             keep_trailing_newline=False,
             autoescape=False,
         )
 
     @classmethod
-    def load(cls, name: str) -> StoryStrategy:
+    def load(cls, name: str) -> Storyteller:
         path = DEFS_DIR / f"{name}.yaml"
         if not path.exists():
-            raise UnknownStrategy(f"no strategy definition for {name!r} at {path}")
+            raise UnknownStoryteller(f"no storyteller definition for {name!r} at {path}")
         with path.open() as f:
             data = yaml.safe_load(f) or {}
         return cls._from_dict(data)
 
     @classmethod
-    def _from_dict(cls, data: Mapping[str, Any]) -> StoryStrategy:
+    def _from_dict(cls, data: Mapping[str, Any]) -> Storyteller:
         if "name" not in data:
-            raise StrategySchemaError("strategy YAML missing required field 'name'")
+            raise StorytellerSchemaError("storyteller YAML missing required field 'name'")
         steps = data.get("steps") or []
         if not isinstance(steps, list):
-            raise StrategySchemaError("'steps' must be a list")
+            raise StorytellerSchemaError("'steps' must be a list")
         for i, step in enumerate(steps):
             if not isinstance(step, dict) or len(step) != 1:
-                raise StrategySchemaError(
+                raise StorytellerSchemaError(
                     f"step {i} must be a single-key dict (got {step!r})"
                 )
             (step_type,) = step.keys()
@@ -108,7 +108,7 @@ class StoryStrategy:
                 result = await self._execute_step(step_type, params or {}, ctx)
             except MissingVariable:
                 raise
-            except StrategySchemaError:
+            except StorytellerSchemaError:
                 raise
             except Exception as e:  # pragma: no cover — pass through with step context
                 raise type(e)(f"step {i} ({step_type}): {e}") from e
@@ -143,7 +143,7 @@ class StoryStrategy:
                 )
             image = ctx[input_var]
             if not isinstance(image, ImageBlob):
-                raise StrategySchemaError(
+                raise StorytellerSchemaError(
                     f"analyze_image input {input_var!r} must be an ImageBlob, "
                     f"got {type(image).__name__}"
                 )
@@ -161,7 +161,7 @@ class StoryStrategy:
             try:
                 return self._env.get_template(prompt)
             except TemplateNotFound as e:
-                raise StrategySchemaError(f"prompt template not found: {prompt}") from e
+                raise StorytellerSchemaError(f"prompt template not found: {prompt}") from e
         return self._env.from_string(prompt)
 
     def _build_output(self, ctx: dict[str, Any]) -> FrameOutput:
@@ -177,17 +177,17 @@ class StoryStrategy:
 
 def _require(params: Mapping[str, Any], field_name: str, step_type: str) -> Any:
     if field_name not in params:
-        raise StrategySchemaError(
+        raise StorytellerSchemaError(
             f"step {step_type!r} requires field {field_name!r}"
         )
     return params[field_name]
 
 
-async def run_strategy(
+async def run_storyteller(
     name: str, inputs: Mapping[str, Any] | None = None
 ) -> FrameOutput:
-    """Load and execute a named strategy. Pure async function."""
-    return await StoryStrategy.load(name).run(inputs)
+    """Load and execute a named storyteller. Pure async function."""
+    return await Storyteller.load(name).run(inputs)
 
 
-__all__ = ["FrameOutput", "StoryStrategy", "run_strategy"]
+__all__ = ["FrameOutput", "Storyteller", "run_storyteller"]

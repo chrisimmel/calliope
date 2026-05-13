@@ -79,7 +79,7 @@ def upgrade() -> None:
         sa.Column("slug", sa.String(256), nullable=True),
         sa.Column("title", sa.String(512), nullable=True),
         sa.Column("thumbnail_image_id", sa.Integer(), nullable=True),
-        sa.Column("strategy_name", sa.String(128), nullable=True),
+        sa.Column("storyteller_name", sa.String(128), nullable=True),
         sa.Column("metadata", postgresql.JSONB(), nullable=True),
         sa.Column(
             "created_at",

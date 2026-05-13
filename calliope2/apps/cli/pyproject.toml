@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "calliope2-cli"
 version = "0.1.0"
-description = "Operational CLI for Calliope v2 (migrate, seed, reindex, run-strategy)."
+description = "Operational CLI for Calliope v2 (migrate, seed, reindex, run-storyteller)."
 requires-python = ">=3.11"
 dependencies = [
     "calliope2",
