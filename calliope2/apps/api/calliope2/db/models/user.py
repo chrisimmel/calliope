@@ -1,9 +1,16 @@
-from datetime import datetime
+from __future__ import annotations
+
+from datetime import datetime  # noqa: TC003 — Mapped[datetime] is resolved at class init
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, DateTime, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from calliope2.db.base import Base
+
+if TYPE_CHECKING:
+    from calliope2.db.models.bookmark import Bookmark
+    from calliope2.db.models.story import Story
 
 
 class User(Base):
@@ -18,5 +25,5 @@ class User(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
-    stories: Mapped[list["Story"]] = relationship(back_populates="owner", lazy="noload")  # type: ignore[name-defined]
-    bookmarks: Mapped[list["Bookmark"]] = relationship(back_populates="owner", lazy="noload")  # type: ignore[name-defined]
+    stories: Mapped[list[Story]] = relationship(back_populates="owner", lazy="noload")
+    bookmarks: Mapped[list[Bookmark]] = relationship(back_populates="owner", lazy="noload")

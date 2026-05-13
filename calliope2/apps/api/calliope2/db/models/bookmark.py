@@ -1,9 +1,17 @@
-from datetime import datetime
+from __future__ import annotations
+
+from datetime import datetime  # noqa: TC003 — Mapped[datetime] is resolved at class init
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from calliope2.db.base import Base
+
+if TYPE_CHECKING:
+    from calliope2.db.models.story import Story
+    from calliope2.db.models.story_frame import StoryFrame
+    from calliope2.db.models.user import User
 
 
 class Bookmark(Base):
@@ -26,6 +34,6 @@ class Bookmark(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
-    owner: Mapped["User"] = relationship(back_populates="bookmarks", lazy="noload")  # type: ignore[name-defined]
-    story: Mapped["Story"] = relationship(back_populates="bookmarks", lazy="noload")  # type: ignore[name-defined]
-    frame: Mapped["StoryFrame | None"] = relationship(foreign_keys=[frame_id], lazy="noload")  # type: ignore[name-defined]
+    owner: Mapped[User] = relationship(back_populates="bookmarks", lazy="noload")
+    story: Mapped[Story] = relationship(back_populates="bookmarks", lazy="noload")
+    frame: Mapped[StoryFrame | None] = relationship(foreign_keys=[frame_id], lazy="noload")

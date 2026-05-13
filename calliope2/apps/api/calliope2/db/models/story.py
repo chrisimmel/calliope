@@ -1,10 +1,19 @@
-from datetime import datetime
+from __future__ import annotations
+
+from datetime import datetime  # noqa: TC003 — Mapped[datetime] is resolved at class init
+from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, ForeignKey, Integer, String, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from calliope2.db.base import Base
+
+if TYPE_CHECKING:
+    from calliope2.db.models.bookmark import Bookmark
+    from calliope2.db.models.image import Image
+    from calliope2.db.models.story_frame import StoryFrame
+    from calliope2.db.models.user import User
 
 
 class Story(Base):
@@ -31,9 +40,11 @@ class Story(Base):
         nullable=False,
     )
 
-    owner: Mapped["User"] = relationship(back_populates="stories", lazy="noload")  # type: ignore[name-defined]
-    thumbnail_image: Mapped["Image | None"] = relationship(foreign_keys=[thumbnail_image_id], lazy="noload")  # type: ignore[name-defined]
-    frames: Mapped[list["StoryFrame"]] = relationship(  # type: ignore[name-defined]
+    owner: Mapped[User] = relationship(back_populates="stories", lazy="noload")
+    thumbnail_image: Mapped[Image | None] = relationship(
+        foreign_keys=[thumbnail_image_id], lazy="noload"
+    )
+    frames: Mapped[list[StoryFrame]] = relationship(
         back_populates="story", order_by="StoryFrame.number", lazy="noload"
     )
-    bookmarks: Mapped[list["Bookmark"]] = relationship(back_populates="story", lazy="noload")  # type: ignore[name-defined]
+    bookmarks: Mapped[list[Bookmark]] = relationship(back_populates="story", lazy="noload")

@@ -1,11 +1,19 @@
-from datetime import datetime
+from __future__ import annotations
 
+from datetime import datetime  # noqa: TC003 — Mapped[datetime] is resolved at class init
+from typing import TYPE_CHECKING
+
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import DateTime, Float, ForeignKey, Integer, Text, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from pgvector.sqlalchemy import Vector
 
 from calliope2.db.base import Base
+
+if TYPE_CHECKING:
+    from calliope2.db.models.image import Image
+    from calliope2.db.models.story import Story
+    from calliope2.db.models.video import Video
 
 EMBEDDING_DIM = 1536
 
@@ -35,7 +43,9 @@ class StoryFrame(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
-    story: Mapped["Story"] = relationship(back_populates="frames", lazy="noload")  # type: ignore[name-defined]
-    image: Mapped["Image | None"] = relationship(foreign_keys=[image_id], lazy="noload")  # type: ignore[name-defined]
-    video: Mapped["Video | None"] = relationship(foreign_keys=[video_id], lazy="noload")  # type: ignore[name-defined]
-    source_image: Mapped["Image | None"] = relationship(foreign_keys=[source_image_id], lazy="noload")  # type: ignore[name-defined]
+    story: Mapped[Story] = relationship(back_populates="frames", lazy="noload")
+    image: Mapped[Image | None] = relationship(foreign_keys=[image_id], lazy="noload")
+    video: Mapped[Video | None] = relationship(foreign_keys=[video_id], lazy="noload")
+    source_image: Mapped[Image | None] = relationship(
+        foreign_keys=[source_image_id], lazy="noload"
+    )
