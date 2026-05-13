@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from calliope2 import __version__
+from calliope2.api.v3 import bookmarks, stories, storytellers
 from calliope2.settings import get_settings
 
 
@@ -22,6 +23,10 @@ def create_app() -> FastAPI:
     @app.get("/v3/health", tags=["meta"])
     async def health() -> dict[str, str]:
         return {"status": "ok", "version": __version__}
+
+    app.include_router(stories.router)
+    app.include_router(bookmarks.router)
+    app.include_router(storytellers.router)
 
     return app
 

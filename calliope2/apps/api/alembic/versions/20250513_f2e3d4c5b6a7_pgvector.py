@@ -5,16 +5,16 @@ Revises: c1a0b2c3d4e5
 Create Date: 2025-05-13 00:01:00.000000
 
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
 
 import sqlalchemy as sa
 from alembic import op
 from pgvector.sqlalchemy import Vector
 
 revision: str = "f2e3d4c5b6a7"
-down_revision: Union[str, None] = "c1a0b2c3d4e5"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = "c1a0b2c3d4e5"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 EMBEDDING_DIM = 1536
 

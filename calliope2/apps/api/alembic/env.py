@@ -5,8 +5,8 @@ from alembic import context
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
-from calliope2.db.base import Base
 from calliope2.db import models  # noqa: F401  -- registers models on Base.metadata
+from calliope2.db.base import Base
 from calliope2.settings import get_settings
 
 config = context.config
