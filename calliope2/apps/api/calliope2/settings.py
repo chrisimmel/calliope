@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     openrouter_base_url: str = Field(default="https://openrouter.ai/api/v1/")
     replicate_api_token: SecretStr = Field(default=SecretStr(""))
 
+    embedding_provider: str = Field(default="openai")
+    embedding_model: str = Field(default="text-embedding-3-small")
+    embedding_dim: int = Field(default=1536)
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:

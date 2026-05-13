@@ -27,6 +27,7 @@ from calliope2.db.session import sessionmaker_for
 from calliope2.inference import ImageBlob
 from calliope2.realtime import TaskRecord, TaskType, get_task_writer
 from calliope2.storytellers import FrameOutput, run_storyteller
+from calliope2.vector import try_embed_text
 
 logger = logging.getLogger(__name__)
 
@@ -140,6 +141,7 @@ async def _load_story_with_frames(session, story_id: int) -> Story | None:
 async def _persist_frame(
     story_id: int, frame_number: int, output: FrameOutput
 ) -> StoryFrame:
+    embedding = await try_embed_text(output.text) if output.text else None
     Session = sessionmaker_for()
     async with Session() as session:
         image_id = await _persist_image(session, output.image) if output.image else None
@@ -150,6 +152,7 @@ async def _persist_frame(
             text=output.text,
             image_id=image_id,
             video_id=video_id,
+            embedding=embedding,
         )
         session.add(frame)
         await session.commit()

@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from calliope2 import __version__
-from calliope2.api.v3 import bookmarks, stories, storytellers
+from calliope2.api.v3 import bookmarks, search, stories, storytellers
 from calliope2.settings import get_settings
 
 
@@ -27,6 +27,7 @@ def create_app() -> FastAPI:
     app.include_router(stories.router)
     app.include_router(bookmarks.router)
     app.include_router(storytellers.router)
+    app.include_router(search.router)
 
     return app
 

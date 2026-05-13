@@ -76,3 +76,18 @@ class BookmarkOut(_Out):
     comments: str | None = None
     is_public: bool
     created_at: datetime
+
+
+class SearchHitOut(BaseModel):
+    frame_id: int
+    story_id: int
+    story_title: str | None = None
+    frame_number: int
+    frame_text: str | None = None
+    image_url: str | None = None
+    distance: float
+
+
+class SearchResponse(BaseModel):
+    query: str
+    hits: list[SearchHitOut] = Field(default_factory=list)
