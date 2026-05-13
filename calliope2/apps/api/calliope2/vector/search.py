@@ -35,9 +35,14 @@ async def search_frames(
     session: AsyncSession,
     embedding: Sequence[float],
     *,
-    owner_id: int,
+    owner_id: int | None = None,
     limit: int = 20,
 ) -> list[SearchHit]:
+    """Cosine-distance search over ``StoryFrame.embedding``.
+
+    When ``owner_id`` is provided, results are restricted to that user. Pass
+    ``None`` for admin-wide search.
+    """
     distance = StoryFrame.embedding.cosine_distance(list(embedding))
     stmt = (
         select(
@@ -51,10 +56,12 @@ async def search_frames(
         )
         .join(Story, StoryFrame.story_id == Story.id)
         .outerjoin(Image, StoryFrame.image_id == Image.id)
-        .where(Story.owner_id == owner_id, StoryFrame.embedding.is_not(None))
+        .where(StoryFrame.embedding.is_not(None))
         .order_by(distance)
         .limit(limit)
     )
+    if owner_id is not None:
+        stmt = stmt.where(Story.owner_id == owner_id)
     rows = (await session.execute(stmt)).all()
     return [
         SearchHit(

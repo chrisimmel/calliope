@@ -6,6 +6,10 @@ from fastapi.staticfiles import StaticFiles
 
 from calliope2 import __version__
 from calliope2.api.v3 import bookmarks, search, stories, storytellers
+from calliope2.api.v3.admin import actions as admin_actions
+from calliope2.api.v3.admin import resources as admin_resources
+from calliope2.api.v3.admin import search as admin_search
+from calliope2.api.v3.admin import stories as admin_stories
 from calliope2.settings import get_settings
 
 STATIC_ROOT = Path(__file__).parent / "static"
@@ -33,12 +37,22 @@ def create_app() -> FastAPI:
     app.include_router(storytellers.router)
     app.include_router(search.router)
 
-    # v3 Clio SPA — built by `npm run build` in apps/web/clio/. Mounted as the
-    # last route so /v3/* takes precedence. The legacy /calliope/ app still
-    # serves the v1/v2 Clio at /clio/ on its own service until Phase 9 cutover.
+    # /v3/admin/* — admin-only; gated by is_admin in the dependency chain.
+    app.include_router(admin_stories.router)
+    app.include_router(admin_resources.router)
+    app.include_router(admin_search.router)
+    app.include_router(admin_actions.router)
+
+    # SPAs — built by their respective `npm run build`. Mounted last so /v3/*
+    # routers always take precedence. Tolerated-missing in tests that don't
+    # build the frontends.
     clio_dir = STATIC_ROOT / "clio"
     if clio_dir.exists():
         app.mount("/clio", StaticFiles(directory=clio_dir, html=True), name="clio")
+
+    admin_dir = STATIC_ROOT / "admin"
+    if admin_dir.exists():
+        app.mount("/admin", StaticFiles(directory=admin_dir, html=True), name="admin")
 
     return app
 
