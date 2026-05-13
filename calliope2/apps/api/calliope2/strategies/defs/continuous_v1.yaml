@@ -1,0 +1,20 @@
+name: continuous_v1
+description: |
+  Continuous multi-frame narrative. Each invocation generates one frame
+  conditioned on `previous_text` (string, may be empty) and `previous_image`
+  (ImageBlob, may be None). The API/task layer is responsible for invoking
+  the strategy per frame and threading state forward.
+steps:
+  - generate_text:
+      provider: openai
+      model: gpt-4o-mini
+      prompt: prompts/continuous_v1/continue.j2
+      out: frame_text
+  - generate_image:
+      provider: openai
+      model: gpt-image-1
+      prompt: prompts/continuous_v1/illustrate.j2
+      out: frame_image
+output:
+  text: frame_text
+  image: frame_image

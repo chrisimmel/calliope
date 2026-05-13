@@ -1,0 +1,17 @@
+{% if previous_text %}
+You are continuing a multi-frame narrative. The previous frame's text was:
+
+"""
+{{ previous_text }}
+"""
+
+Write the next short paragraph (3–5 sentences). It should follow naturally
+from the previous frame — same characters or place if any, same voice and
+tense, no recap. Move the moment forward, even a little.
+{% else %}
+Begin a new multi-frame narrative. Write a short opening paragraph (3–5
+sentences). Establish a place and a moment of attention — quiet, specific,
+present tense, third person. Leave room to continue.
+{% endif %}
+
+Return only the prose. No title, no preamble, no commentary.

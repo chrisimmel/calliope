@@ -1,0 +1,24 @@
+name: fern
+description: |
+  Image-driven literary fiction. Observe a `source_image`, narrate a short
+  literary passage rooted in what was observed, and illustrate it.
+steps:
+  - analyze_image:
+      provider: openai
+      model: gpt-4o-mini
+      input: source_image
+      prompt: prompts/fern/observe.j2
+      out: scene
+  - generate_text:
+      provider: openai
+      model: gpt-4o-mini
+      prompt: prompts/fern/narrate.j2
+      out: frame_text
+  - generate_image:
+      provider: openai
+      model: gpt-image-1
+      prompt: prompts/fern/illustrate.j2
+      out: frame_image
+output:
+  text: frame_text
+  image: frame_image

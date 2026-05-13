@@ -1,0 +1,18 @@
+name: narcissus
+description: |
+  Image-only mirror. Observes a `source_image` and regenerates it in a new
+  aesthetic — no narrative text. Requires a `source_image` input.
+steps:
+  - analyze_image:
+      provider: openai
+      model: gpt-4o-mini
+      input: source_image
+      prompt: prompts/narcissus/observe.j2
+      out: scene
+  - generate_image:
+      provider: openai
+      model: gpt-image-1
+      prompt: prompts/narcissus/reimagine.j2
+      out: frame_image
+output:
+  image: frame_image
