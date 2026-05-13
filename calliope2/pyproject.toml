@@ -29,6 +29,8 @@ known-first-party = ["calliope2", "calliope2_cli"]
 # Pytest fixtures resolve return-type annotations at runtime in some configs;
 # keep helper imports at module level to avoid surprise.
 "apps/api/tests/conftest.py" = ["TC002", "TC003"]
+# Typer reads parameter type annotations at runtime to validate CLI args.
+"apps/cli/calliope2_cli/commands/**/*.py" = ["TC001", "TC002", "TC003"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

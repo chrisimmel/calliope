@@ -2,10 +2,11 @@ import typer
 
 from calliope2 import __version__ as core_version
 from calliope2_cli import __version__ as cli_version
-from calliope2_cli.commands import vector
+from calliope2_cli.commands import migrate, vector
 
 app = typer.Typer(help="Operational CLI for Calliope v2.", no_args_is_help=True)
 app.add_typer(vector.app, name="vector")
+app.add_typer(migrate.app, name="migrate")
 
 
 @app.callback()
