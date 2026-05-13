@@ -1,20 +1,22 @@
-"""Background task layer: run a storyteller and persist the resulting frame.
+"""Background task layer: run a storyteller, persist the frame, and write status.
 
 This module owns the *content* of the work that's enqueued via
 ``BackgroundTasks`` from the routers. It opens its own DB session (the
 request session is already closed by the time this runs), invokes the
-storyteller, and writes any produced Image/Video rows + StoryFrame.
+storyteller, writes any produced Image/Video rows + StoryFrame, and
+emits status updates to the realtime writer (Firestore in prod, logging
+in dev).
 
-Realtime status writes (Firestore) are stubbed here and wired up in
-Phase 5. GCS upload of generated-bytes images is wired up in the storage
-phase; for now, `ImageBlob.url` (a remote URL) is persisted verbatim
-and `ImageBlob.data` (raw bytes) is logged as a TODO and skipped.
+GCS upload of generated-bytes images is wired up in the storage phase;
+for now, `ImageBlob.url` (a remote URL) is persisted verbatim and
+`ImageBlob.data` (raw bytes) is logged as a TODO and skipped.
 """
 
 from __future__ import annotations
 
 import logging
 import uuid
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import select
@@ -23,6 +25,7 @@ from sqlalchemy.orm import selectinload
 from calliope2.db.models import Image, Story, StoryFrame, Video
 from calliope2.db.session import sessionmaker_for
 from calliope2.inference import ImageBlob
+from calliope2.realtime import TaskRecord, TaskType, get_task_writer
 from calliope2.storytellers import FrameOutput, run_storyteller
 
 logger = logging.getLogger(__name__)
@@ -33,31 +36,56 @@ def new_task_id() -> str:
 
 
 async def generate_first_frame(
-    task_id: str, story_id: int, storyteller_name: str, inputs: dict[str, Any]
+    task_id: str,
+    story_id: int,
+    user_id: int,
+    storyteller_name: str,
+    inputs: dict[str, Any],
 ) -> None:
     logger.info(
         "task %s: generating first frame for story %s (storyteller=%s)",
         task_id, story_id, storyteller_name,
     )
+    writer = get_task_writer()
+    record = TaskRecord(
+        task_id=task_id,
+        user_id=user_id,
+        story_id=story_id,
+        type=TaskType.CREATE_STORY,
+        started_at=datetime.now(UTC),
+    )
+    await writer.started(record)
     try:
         output = await run_storyteller(storyteller_name, _prepare_inputs(inputs))
         await _persist_frame(story_id, frame_number=1, output=output)
-        logger.info("task %s: complete", task_id)
-    except Exception:
+        await writer.completed(task_id)
+    except Exception as e:
         logger.exception("task %s: failed", task_id)
+        await writer.failed(task_id, str(e))
         raise
 
 
 async def generate_next_frame(
-    task_id: str, story_id: int, inputs: dict[str, Any]
+    task_id: str, story_id: int, user_id: int, inputs: dict[str, Any]
 ) -> None:
     """Continue a story: load the latest frame, thread previous_text/previous_image, persist a new frame."""
     logger.info("task %s: generating next frame for story %s", task_id, story_id)
+    writer = get_task_writer()
+    record = TaskRecord(
+        task_id=task_id,
+        user_id=user_id,
+        story_id=story_id,
+        type=TaskType.CREATE_FRAME,
+        started_at=datetime.now(UTC),
+    )
+    await writer.started(record)
+
     Session = sessionmaker_for()
     async with Session() as session:
         story = await _load_story_with_frames(session, story_id)
         if story is None:
             logger.error("task %s: story %s vanished", task_id, story_id)
+            await writer.failed(task_id, f"story {story_id} not found")
             return
         last_frame = max(story.frames, key=lambda f: f.number) if story.frames else None
         next_number = (last_frame.number + 1) if last_frame else 1
@@ -66,14 +94,16 @@ async def generate_next_frame(
 
     if not storyteller_name:
         logger.error("task %s: story %s has no storyteller_name", task_id, story_id)
+        await writer.failed(task_id, "story has no storyteller_name")
         return
 
     try:
         output = await run_storyteller(storyteller_name, threaded)
         await _persist_frame(story_id, frame_number=next_number, output=output)
-        logger.info("task %s: complete", task_id)
-    except Exception:
+        await writer.completed(task_id)
+    except Exception as e:
         logger.exception("task %s: failed", task_id)
+        await writer.failed(task_id, str(e))
         raise
 
 

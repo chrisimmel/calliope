@@ -46,7 +46,7 @@ async def create_story(
 
     task_id = new_task_id()
     background.add_task(
-        generate_first_frame, task_id, story.id, body.storyteller, body.inputs
+        generate_first_frame, task_id, story.id, user.id, body.storyteller, body.inputs
     )
     return StoryCreateResponse(story_id=story.id, task_id=task_id)
 
@@ -106,7 +106,7 @@ async def create_frame(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="story not found")
 
     task_id = new_task_id()
-    background.add_task(generate_next_frame, task_id, story.id, body.inputs)
+    background.add_task(generate_next_frame, task_id, story.id, user.id, body.inputs)
     return FrameCreateResponse(task_id=task_id)
 
 
