@@ -58,6 +58,12 @@ module.exports = (env, argv) => {
             env.FIREBASE_DATABASE_ID ||
             databaseId
         ),
+        // API_BASE_URL is empty by default — Clio uses relative paths, since
+        // the FastAPI app serves it from the same origin via the static mount.
+        // Override only if Clio is deployed to a different host than the API.
+        'process.env.API_BASE_URL': JSON.stringify(
+          process.env.API_BASE_URL || env.API_BASE_URL || ''
+        ),
       }),
     ],
     devServer: {
