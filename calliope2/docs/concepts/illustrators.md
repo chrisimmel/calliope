@@ -1,7 +1,7 @@
 # Illustrators — design doc
 
 Status: proposed (no code yet)
-Sibling to: [Storytellers](../apps/api/calliope2/storytellers/) (existing, Phase 3)
+Sibling to: [Storytellers](../../apps/api/calliope2/storytellers/) (existing, Phase 3)
 Motivates: Phase 10 in the modernization plan
 
 ## Why
