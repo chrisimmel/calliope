@@ -160,6 +160,12 @@ the same Settings / DB session machinery.
 
 ## Running the frontends
 
+Both SPAs (Clio and Admin) build into directories the FastAPI app mounts
+as static files. **The built bundles are git-ignored** — you'll need to
+`npm install && npm run build` once after a fresh checkout (and rebuild
+after any frontend edit). Without a build, `/clio/` and `/admin/` return
+404. The API itself runs fine without either SPA.
+
 ### Clio v3
 
 ```bash
