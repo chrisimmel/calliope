@@ -1,18 +1,33 @@
 name: narcissus
 description: |
-  Image-only mirror. Observes a `source_image` and regenerates it in a new
-  aesthetic — no narrative text. Requires a `source_image` input.
+  Image-only mirror. Observes a `source_image`, then reimagines it via the
+  default `period_photo` illustrator (grainy 1910s B&W). No narrative text.
+  Requires a `source_image` input.
+
+  Pair with a different illustrator at request time for different aesthetics:
+    POST /v3/stories
+      {storyteller: "narcissus", illustrator: "film_noir",
+       inputs: {source_image_url: "..."}}
+
+illustrator: period_photo
+
 steps:
   - analyze_image:
       provider: openai
-      model: gpt-4o-mini
+      model: gpt-4o
       input: source_image
-      prompt: prompts/narcissus/observe.j2
+      prompt: |
+        Look closely at this image. Describe it for an artist who will paint
+        a new work inspired by it. Capture composition, palette, light, and
+        mood. Name the visible objects, the dominant colors, the quality of
+        the light, the time of day if visible. 4–6 sentences. Return only
+        the description.
       out: scene
-  - generate_image:
-      provider: openai
-      model: gpt-image-1
-      prompt: prompts/narcissus/reimagine.j2
+
+  - use_illustrator:
+      inputs:
+        source: "{{ scene }}"
       out: frame_image
+
 output:
   image: frame_image

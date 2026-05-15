@@ -3,6 +3,6 @@ async def test_list_storytellers(client):
     assert response.status_code == 200
     body = response.json()
     names = sorted(s["name"] for s in body)
-    assert names == ["continuous_v1", "fern", "literal", "narcissus", "simple_one_frame"]
+    assert names == ["fern", "lavender", "literal", "narcissus", "simple_one_frame"]
     for entry in body:
         assert entry["description"]  # every storyteller has a description

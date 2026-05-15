@@ -11,17 +11,19 @@ from calliope2.storytellers import (
 )
 
 
-def test_list_storytellers_returns_all_five_canonical_names():
+def test_list_storytellers_returns_canonical_names():
+    # Phase 10: continuous_v1 was the precursor to fern and is dropped;
+    # lavender is added as a separate text-model variant.
     assert list_storytellers() == [
-        "continuous_v1",
         "fern",
+        "lavender",
         "literal",
         "narcissus",
         "simple_one_frame",
     ]
 
 
-@pytest.mark.parametrize("name", ["literal", "simple_one_frame", "narcissus", "fern", "continuous_v1"])
+@pytest.mark.parametrize("name", ["literal", "simple_one_frame", "narcissus", "fern", "lavender"])
 def test_each_storyteller_loads(name):
     s = Storyteller.load(name)
     assert s.name == name

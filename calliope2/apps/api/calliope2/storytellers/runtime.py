@@ -1,16 +1,21 @@
-"""YAML-driven story-storyteller runtime.
+"""YAML-driven Storyteller runtime.
 
 A ``Storyteller`` is declared in ``defs/<name>.yaml`` as a list of steps.
-Each step is a single-key dict whose key is the step type (``generate_text``,
-``generate_image``, ``generate_video``, ``analyze_image``, ``set``) and whose
-value is a parameter map. Each step writes its result to ``out: <var>`` and
-subsequent steps can reference any variable in the context via Jinja2 in
-their ``prompt`` field (templates can be inline or ``.j2`` file paths
-rooted at the storyteller package).
+Each step is a single-key dict whose key is the step type
+(``generate_text``, ``generate_image``, ``generate_video``,
+``analyze_image``, ``set``, ``use_illustrator``) and whose value is a
+parameter map. Each step writes its result to ``out: <var>`` and
+subsequent steps can reference any variable in the context via Jinja2
+in their ``prompt`` field (templates can be inline or ``.j2`` file
+paths rooted at the storyteller package).
 
-The runtime is purely functional: ``run_storyteller(name, inputs)`` returns a
-``FrameOutput`` and never touches the database, GCS, or Firestore — the
-caller is responsible for persistence.
+The ``use_illustrator`` step invokes an Illustrator
+(``calliope2.illustrators``) with a request-time-overridable name and
+typed inputs; see ``docs/concepts/illustrators.md``.
+
+The runtime is purely functional: ``run_storyteller(name, inputs)``
+returns a ``FrameOutput`` and never touches the database, GCS, or
+Firestore — the caller is responsible for persistence.
 """
 
 from __future__ import annotations
@@ -19,10 +24,15 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-import yaml
-from jinja2 import ChainableUndefined, Environment, FileSystemLoader, TemplateNotFound
-
-from calliope2.inference import ImageBlob, VideoBlob, get_client
+from calliope2.pipeline import (
+    BASE_STEP_TYPES,
+    execute_base_step,
+    jinja_env_for,
+    load_yaml_def,
+    render_prompt,
+    require_param,
+    validate_steps_schema,
+)
 from calliope2.storytellers.errors import (
     MissingVariable,
     StorytellerSchemaError,
@@ -33,14 +43,15 @@ from calliope2.storytellers.errors import (
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
-    from jinja2 import Template
+    from jinja2 import Environment
+
+    from calliope2.inference import ImageBlob, VideoBlob
 
 STORYTELLERS_ROOT = Path(__file__).parent
 DEFS_DIR = STORYTELLERS_ROOT / "defs"
 
-KNOWN_STEP_TYPES = frozenset(
-    {"generate_text", "generate_image", "generate_video", "analyze_image", "set"}
-)
+# Storytellers extend the base set with use_illustrator.
+KNOWN_STEP_TYPES = BASE_STEP_TYPES | {"use_illustrator"}
 
 
 @dataclass(slots=True)
@@ -56,23 +67,15 @@ class Storyteller:
     description: str
     steps: list[dict[str, Any]]
     output: dict[str, str]
+    illustrator: str | None = None
     _env: Environment = field(init=False, repr=False)
 
     def __post_init__(self) -> None:
-        self._env = Environment(
-            loader=FileSystemLoader(str(STORYTELLERS_ROOT)),
-            undefined=ChainableUndefined,
-            keep_trailing_newline=False,
-            autoescape=False,
-        )
+        self._env = jinja_env_for(STORYTELLERS_ROOT)
 
     @classmethod
     def load(cls, name: str) -> Storyteller:
-        path = DEFS_DIR / f"{name}.yaml"
-        if not path.exists():
-            raise UnknownStoryteller(f"no storyteller definition for {name!r} at {path}")
-        with path.open() as f:
-            data = yaml.safe_load(f) or {}
+        data = load_yaml_def(name, DEFS_DIR, UnknownStoryteller, kind="storyteller definition")
         return cls._from_dict(data)
 
     @classmethod
@@ -80,89 +83,91 @@ class Storyteller:
         if "name" not in data:
             raise StorytellerSchemaError("storyteller YAML missing required field 'name'")
         steps = data.get("steps") or []
-        if not isinstance(steps, list):
-            raise StorytellerSchemaError("'steps' must be a list")
-        for i, step in enumerate(steps):
-            if not isinstance(step, dict) or len(step) != 1:
-                raise StorytellerSchemaError(
-                    f"step {i} must be a single-key dict (got {step!r})"
-                )
-            (step_type,) = step.keys()
-            if step_type not in KNOWN_STEP_TYPES:
-                raise UnknownStepType(
-                    f"step {i}: unknown step type {step_type!r}; "
-                    f"expected one of {sorted(KNOWN_STEP_TYPES)}"
-                )
+        validate_steps_schema(
+            steps,
+            KNOWN_STEP_TYPES,
+            schema_error_cls=StorytellerSchemaError,
+            unknown_step_type_cls=UnknownStepType,
+        )
         return cls(
             name=str(data["name"]),
             description=str(data.get("description", "")),
             steps=steps,
             output=dict(data.get("output") or {}),
+            illustrator=data.get("illustrator"),
         )
 
-    async def run(self, inputs: Mapping[str, Any] | None = None) -> FrameOutput:
+    async def run(
+        self,
+        inputs: Mapping[str, Any] | None = None,
+        *,
+        illustrator_override: str | None = None,
+    ) -> FrameOutput:
         ctx: dict[str, Any] = dict(inputs or {})
         for i, step in enumerate(self.steps):
             (step_type, params) = next(iter(step.items()))
+            params = params or {}
             try:
-                result = await self._execute_step(step_type, params or {}, ctx)
-            except MissingVariable:
-                raise
-            except StorytellerSchemaError:
+                if step_type == "use_illustrator":
+                    result = await self._execute_use_illustrator(
+                        params, ctx, illustrator_override
+                    )
+                else:
+                    result = await execute_base_step(
+                        step_type,
+                        params,
+                        ctx,
+                        render=lambda p: render_prompt(
+                            self._env, p, ctx, schema_error_cls=StorytellerSchemaError
+                        ),
+                        schema_error_cls=StorytellerSchemaError,
+                    )
+            except (MissingVariable, StorytellerSchemaError):
                 raise
             except Exception as e:  # pragma: no cover — pass through with step context
                 raise type(e)(f"step {i} ({step_type}): {e}") from e
-            if "out" in (params or {}):
+            if "out" in params:
                 ctx[params["out"]] = result
         return self._build_output(ctx)
 
-    async def _execute_step(
-        self, step_type: str, params: Mapping[str, Any], ctx: dict[str, Any]
+    async def _execute_use_illustrator(
+        self,
+        params: Mapping[str, Any],
+        ctx: dict[str, Any],
+        illustrator_override: str | None,
     ) -> Any:
-        if step_type == "set":
-            return self._render(params["value"], ctx)
+        """Dispatch to a named Illustrator with rendered inputs.
 
-        client = get_client(_require(params, "provider", step_type))
-        model = _require(params, "model", step_type)
+        Resolution order for which Illustrator runs:
+          1. ``params['name']`` if present (pins the illustrator regardless of override)
+          2. ``illustrator_override`` (the request-time override)
+          3. ``self.illustrator`` (the storyteller's default)
+        """
+        # Local import to break the storyteller ↔ illustrator import cycle.
+        from calliope2.illustrators import Illustrator, UnknownIllustrator
 
-        if step_type == "generate_text":
-            prompt = self._render(_require(params, "prompt", step_type), ctx)
-            return await client.text(prompt, model=model)
-        if step_type == "generate_image":
-            prompt = self._render(_require(params, "prompt", step_type), ctx)
-            return await client.image(prompt, model=model)
-        if step_type == "generate_video":
-            prompt = self._render(_require(params, "prompt", step_type), ctx)
-            return await client.video(prompt, model=model)
-        if step_type == "analyze_image":
-            input_var = _require(params, "input", step_type)
-            if input_var not in ctx:
-                raise MissingVariable(
-                    f"analyze_image input {input_var!r} not in context "
-                    f"(available: {sorted(ctx.keys())})"
-                )
-            image = ctx[input_var]
-            if not isinstance(image, ImageBlob):
-                raise StorytellerSchemaError(
-                    f"analyze_image input {input_var!r} must be an ImageBlob, "
-                    f"got {type(image).__name__}"
-                )
-            prompt = self._render(_require(params, "prompt", step_type), ctx)
-            return await client.analyze_image(image, prompt, model=model)
-
-        raise UnknownStepType(step_type)  # pragma: no cover — guarded by load()
-
-    def _render(self, prompt: str, ctx: Mapping[str, Any]) -> str:
-        template = self._resolve_template(prompt)
-        return template.render(**ctx)
-
-    def _resolve_template(self, prompt: str) -> Template:
-        if prompt.endswith(".j2"):
-            try:
-                return self._env.get_template(prompt)
-            except TemplateNotFound as e:
-                raise StorytellerSchemaError(f"prompt template not found: {prompt}") from e
-        return self._env.from_string(prompt)
+        name = params.get("name") or illustrator_override or self.illustrator
+        if not name:
+            raise StorytellerSchemaError(
+                "use_illustrator: no illustrator name supplied, no request override, "
+                "and the storyteller has no default `illustrator:`"
+            )
+        try:
+            illustrator = Illustrator.load(name)
+        except UnknownIllustrator:
+            raise
+        raw_inputs = params.get("inputs") or {}
+        if not isinstance(raw_inputs, dict):
+            raise StorytellerSchemaError(
+                f"use_illustrator: `inputs` must be a dict, got {type(raw_inputs).__name__}"
+            )
+        rendered_inputs = {
+            k: render_prompt(self._env, str(v), ctx, schema_error_cls=StorytellerSchemaError)
+            if isinstance(v, str)
+            else v
+            for k, v in raw_inputs.items()
+        }
+        return await illustrator.run(rendered_inputs)
 
     def _build_output(self, ctx: dict[str, Any]) -> FrameOutput:
         out = FrameOutput()
@@ -175,19 +180,22 @@ class Storyteller:
         return out
 
 
-def _require(params: Mapping[str, Any], field_name: str, step_type: str) -> Any:
-    if field_name not in params:
-        raise StorytellerSchemaError(
-            f"step {step_type!r} requires field {field_name!r}"
-        )
-    return params[field_name]
-
-
 async def run_storyteller(
-    name: str, inputs: Mapping[str, Any] | None = None
+    name: str,
+    inputs: Mapping[str, Any] | None = None,
+    *,
+    illustrator_override: str | None = None,
 ) -> FrameOutput:
     """Load and execute a named storyteller. Pure async function."""
-    return await Storyteller.load(name).run(inputs)
+    return await Storyteller.load(name).run(
+        inputs, illustrator_override=illustrator_override
+    )
 
 
-__all__ = ["FrameOutput", "Storyteller", "run_storyteller"]
+# Re-export for callers that previously imported from this module directly.
+__all__ = [
+    "FrameOutput",
+    "Storyteller",
+    "require_param",  # used by tests that hand-build YAML dicts
+    "run_storyteller",
+]

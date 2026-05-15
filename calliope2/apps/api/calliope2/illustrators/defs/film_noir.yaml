@@ -1,0 +1,17 @@
+name: film_noir
+description: |
+  Black-and-white film-noir photography. Default illustrator for lavender.
+  Adapted from the legacy lavender strategy_config's output_image_style.
+outputs: image
+inputs:
+  required: [source]
+style: |
+  A black and white photograph in a film noir style. As much detail as
+  possible from this scene:
+steps:
+  - generate_image:
+      provider: replicate
+      model: black-forest-labs/flux-1.1-pro
+      prompt: "{{ style }} {{ source }}"
+      out: result
+output: result

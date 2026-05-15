@@ -127,7 +127,7 @@ async def test_create_frame_404_when_story_missing(client):
 
 async def test_create_frame_returns_task_id(client):
     create = await client.post(
-        "/v3/stories", json={"storyteller": "continuous_v1", "title": "C"}
+        "/v3/stories", json={"storyteller": "lavender", "title": "C"}
     )
     story_id = create.json()["story_id"]
 

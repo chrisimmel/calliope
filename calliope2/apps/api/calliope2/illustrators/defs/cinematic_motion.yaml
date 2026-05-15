@@ -1,0 +1,16 @@
+name: cinematic_motion
+description: |
+  Short cinematic video for a frame. Runway Gen-4 turbo, ~10 seconds.
+  Pair with the cinematic_photo illustrator on the same frame for a
+  still+motion combo. Adapted from the legacy fern strategy_config's
+  video_model_config (runway gen4_turbo, duration 10).
+outputs: video
+inputs:
+  required: [source]
+steps:
+  - generate_video:
+      provider: runway
+      model: gen4_turbo
+      prompt: "{{ source }}"
+      out: result
+output: result

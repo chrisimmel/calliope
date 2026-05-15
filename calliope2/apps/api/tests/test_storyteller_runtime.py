@@ -27,9 +27,10 @@ def mock_client() -> MagicMock:
 
 @pytest.fixture
 def patch_get_client(monkeypatch, mock_client):
-    """Patch get_client at the runtime import site so every step uses our mock."""
+    """Patch get_client at the shared dispatch site (calliope2.pipeline) so every
+    step in both Storyteller and Illustrator runtimes uses our mock."""
     monkeypatch.setattr(
-        "calliope2.storytellers.runtime.get_client", lambda _name: mock_client
+        "calliope2.pipeline.get_client", lambda _name: mock_client
     )
     return mock_client
 
@@ -41,7 +42,7 @@ async def test_literal_storyteller_runs_without_inference(patch_get_client):
     patch_get_client.image.assert_not_called()
 
 
-async def test_simple_one_frame_calls_text_then_image(patch_get_client):
+async def test_simple_one_frame_calls_text_then_illustrator(patch_get_client):
     patch_get_client.text.return_value = "the heat hangs"
     patch_get_client.image.return_value = ImageBlob(data=b"\x89PNG", format="png")
 
@@ -53,30 +54,60 @@ async def test_simple_one_frame_calls_text_then_image(patch_get_client):
 
     patch_get_client.text.assert_awaited_once()
     text_kwargs = patch_get_client.text.await_args.kwargs
-    assert text_kwargs["model"] == "gpt-4o-mini"
+    assert text_kwargs["model"] == "gpt-4o"
     text_prompt = patch_get_client.text.await_args.args[0]
     assert "summer" in text_prompt
 
+    # simple_one_frame's default illustrator is cinematic_photo; the rendered
+    # image prompt is "<style> <source>" where source is the frame text.
     patch_get_client.image.assert_awaited_once()
     image_prompt = patch_get_client.image.await_args.args[0]
-    assert image_prompt == "the heat hangs"
+    assert "the heat hangs" in image_prompt
+    assert "cinematic photo" in image_prompt  # the cinematic_photo style
 
 
-async def test_fern_threads_scene_into_narration(patch_get_client):
-    patch_get_client.analyze_image.return_value = "a quiet kitchen, late afternoon"
+async def test_fern_threads_previous_text_into_narration(patch_get_client):
     patch_get_client.text.return_value = "Sun on the linoleum."
     patch_get_client.image.return_value = ImageBlob(url="https://x.com/i.png")
 
     out = await run_storyteller(
-        "fern", {"source_image": ImageBlob(url="https://x.com/src.png")}
+        "fern",
+        {"previous_text": "She set the kettle on.", "situation": "Late autumn."},
     )
 
     assert out.text == "Sun on the linoleum."
     narrate_prompt = patch_get_client.text.await_args.args[0]
-    assert "a quiet kitchen, late afternoon" in narrate_prompt
+    assert "She set the kettle on." in narrate_prompt
+    assert "Late autumn." in narrate_prompt
 
     illustrate_prompt = patch_get_client.image.await_args.args[0]
     assert "Sun on the linoleum." in illustrate_prompt
+
+
+async def test_lavender_uses_gpt_4o_and_film_noir_by_default(patch_get_client):
+    patch_get_client.text.return_value = "the room held its breath"
+    patch_get_client.image.return_value = ImageBlob(url="https://x.com/i.png")
+
+    await run_storyteller("lavender", {"previous_text": "She set the kettle."})
+
+    assert patch_get_client.text.await_args.kwargs["model"] == "gpt-4o"
+    image_prompt = patch_get_client.image.await_args.args[0]
+    # film_noir style is prepended to the source (frame_text)
+    assert "film noir" in image_prompt
+    assert "the room held its breath" in image_prompt
+
+
+async def test_lavender_with_charcoal_override_recreates_tamarisk(patch_get_client):
+    patch_get_client.text.return_value = "wind off the marsh"
+    patch_get_client.image.return_value = ImageBlob(url="https://x.com/i.png")
+
+    await run_storyteller(
+        "lavender",
+        {"previous_text": "earlier"},
+        illustrator_override="charcoal_abstract",
+    )
+    image_prompt = patch_get_client.image.await_args.args[0]
+    assert "watercolor" in image_prompt or "charcoal" in image_prompt.lower()
 
 
 async def test_narcissus_returns_image_only(patch_get_client):
@@ -89,21 +120,9 @@ async def test_narcissus_returns_image_only(patch_get_client):
 
     assert out.text is None
     assert out.image is not None
-
-
-async def test_continuous_v1_branches_on_previous_text(patch_get_client):
-    patch_get_client.text.return_value = "next paragraph"
-    patch_get_client.image.return_value = ImageBlob(url="https://x.com/i.png")
-
-    await run_storyteller("continuous_v1", {"previous_text": "earlier paragraph"})
-    continue_prompt = patch_get_client.text.await_args.args[0]
-    assert "continuing a multi-frame narrative" in continue_prompt
-    assert "earlier paragraph" in continue_prompt
-
-    patch_get_client.text.reset_mock()
-    await run_storyteller("continuous_v1", {"previous_text": ""})
-    new_prompt = patch_get_client.text.await_args.args[0]
-    assert "Begin a new multi-frame narrative" in new_prompt
+    # Narcissus's period_photo illustrator received the analyze_image output
+    image_prompt = patch_get_client.image.await_args.args[0]
+    assert "blue light, single chair" in image_prompt
 
 
 async def test_generate_video_dispatches_to_client(patch_get_client):
@@ -132,13 +151,15 @@ async def test_generate_video_dispatches_to_client(patch_get_client):
 
 
 async def test_analyze_image_missing_input_raises(patch_get_client):
+    # Narcissus is the in-tree storyteller with an analyze_image step;
+    # source_image is required.
     with pytest.raises(MissingVariable, match="source_image"):
-        await run_storyteller("fern", inputs={})
+        await run_storyteller("narcissus", inputs={})
 
 
 async def test_analyze_image_input_must_be_image_blob(patch_get_client):
     with pytest.raises(StorytellerSchemaError, match="must be an ImageBlob"):
-        await run_storyteller("fern", {"source_image": "not an image"})
+        await run_storyteller("narcissus", {"source_image": "not an image"})
 
 
 async def test_missing_required_step_field_raises(patch_get_client):
