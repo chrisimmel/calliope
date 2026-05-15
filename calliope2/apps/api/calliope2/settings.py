@@ -1,13 +1,24 @@
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Resolve the calliope2 workspace root ``.env`` based on the location of this
+# file, so it's found no matter where the process was launched from. Layout:
+#   calliope2/apps/api/calliope2/settings.py  ← __file__
+#   calliope2/.env                            ← parents[3] / ".env"
+#
+# pydantic-settings loads ``env_file`` in order; later files override earlier
+# ones — so a ``.env`` in the current working directory (e.g. when running
+# ``calliope2-cli`` from elsewhere) takes precedence over the workspace root.
+_WORKSPACE_ROOT_ENV = Path(__file__).resolve().parents[3] / ".env"
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="CALLIOPE2_",
-        env_file=".env",
+        env_file=(str(_WORKSPACE_ROOT_ENV), ".env"),
         extra="ignore",
     )
 

@@ -51,9 +51,24 @@ curl http://localhost:8000/v3/health
 
 ### Environment variables
 
-Settings come from env vars (prefixed `CALLIOPE2_`) or a `.env` file in
-the working directory. Defaults are in
+Settings come from env vars (prefixed `CALLIOPE2_`) or a `.env` file.
+Defaults are in
 [`apps/api/calliope2/settings.py`](../../apps/api/calliope2/settings.py).
+
+**Where to put `.env`** — the recommended location is the workspace
+root:
+
+```
+calliope2/.env          ← always found, regardless of cwd
+```
+
+`Settings` resolves this path from `__file__`, so a single
+`calliope2/.env` is picked up by `uvicorn` (run from `calliope2/`),
+`alembic` (run from `calliope2/apps/api/`), `calliope2-cli` (anywhere),
+and the test suite — no shell `export` needed.
+
+A `.env` in the current working directory takes precedence if both
+exist. An explicit `CALLIOPE2_*` env var in the shell beats both.
 
 Minimum for local dev (sane defaults, no external services):
 
