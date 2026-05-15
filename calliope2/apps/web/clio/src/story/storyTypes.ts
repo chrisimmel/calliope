@@ -40,10 +40,19 @@ export type StoryDetail = Story & {
 export type Storyteller = {
   name: string;
   description: string;
+  illustrator?: string | null;   // default illustrator, if any
+};
+
+export type Illustrator = {
+  name: string;
+  description: string;
+  outputs: 'image' | 'video';
+  experimental: boolean;
 };
 
 export type CreateStoryRequest = {
   storyteller: string;
+  illustrator?: string | null;
   inputs?: Record<string, unknown>;
   title?: string | null;
 };
@@ -54,6 +63,7 @@ export type CreateStoryResponse = {
 };
 
 export type FrameCreateRequest = {
+  illustrator?: string | null;
   inputs?: Record<string, unknown>;
 };
 

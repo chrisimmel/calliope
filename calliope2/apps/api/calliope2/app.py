@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from calliope2 import __version__
-from calliope2.api.v3 import bookmarks, search, stories, storytellers
+from calliope2.api.v3 import bookmarks, illustrators, search, stories, storytellers
 from calliope2.api.v3.admin import actions as admin_actions
 from calliope2.api.v3.admin import resources as admin_resources
 from calliope2.api.v3.admin import search as admin_search
@@ -35,6 +35,7 @@ def create_app() -> FastAPI:
     app.include_router(stories.router)
     app.include_router(bookmarks.router)
     app.include_router(storytellers.router)
+    app.include_router(illustrators.router)
     app.include_router(search.router)
 
     # /v3/admin/* — admin-only; gated by is_admin in the dependency chain.

@@ -15,6 +15,7 @@ import {
   CreateStoryResponse,
   FrameCreateRequest,
   FrameCreateResponse,
+  Illustrator,
   SearchResponse,
   Story,
   StoryDetail,
@@ -60,6 +61,12 @@ async function del(url: string): Promise<void> {
 
 export async function listStorytellers(): Promise<Storyteller[]> {
   return get('/v3/storytellers');
+}
+
+// ----- Illustrators -----
+
+export async function listIllustrators(): Promise<Illustrator[]> {
+  return get('/v3/illustrators');
 }
 
 // ----- Stories -----

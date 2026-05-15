@@ -177,6 +177,9 @@ function StoryDetailPage() {
       <p className="muted">
         Owner: {story.owner_email ?? `#${story.owner_id}`} · Storyteller:{' '}
         {story.storyteller_name ?? '—'}
+        {story.metadata && typeof story.metadata.illustrator === 'string' && (
+          <> · Illustrator: {story.metadata.illustrator}</>
+        )}
       </p>
       <ol className="frames">
         {story.frames.map(f => (

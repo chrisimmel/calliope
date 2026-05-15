@@ -13,7 +13,14 @@ router = APIRouter(prefix="/v3/storytellers", tags=["storytellers"])
 
 @router.get("", response_model=list[StorytellerOut])
 async def list_all(user: CurrentUser) -> list[StorytellerOut]:
-    return [
-        StorytellerOut(name=name, description=Storyteller.load(name).description.strip())
-        for name in list_storytellers()
-    ]
+    items: list[StorytellerOut] = []
+    for name in list_storytellers():
+        s = Storyteller.load(name)
+        items.append(
+            StorytellerOut(
+                name=name,
+                description=s.description.strip(),
+                illustrator=s.illustrator,
+            )
+        )
+    return items

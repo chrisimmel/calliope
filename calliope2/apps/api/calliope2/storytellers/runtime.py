@@ -97,6 +97,12 @@ class Storyteller:
             illustrator=data.get("illustrator"),
         )
 
+    @property
+    def uses_illustrator(self) -> bool:
+        """True if any step is ``use_illustrator``. Used by the API to decide
+        whether to pre-validate that an illustrator is resolvable."""
+        return any("use_illustrator" in step for step in self.steps)
+
     async def run(
         self,
         inputs: Mapping[str, Any] | None = None,

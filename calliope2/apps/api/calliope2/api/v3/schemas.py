@@ -17,10 +17,19 @@ class _Out(BaseModel):
 class StorytellerOut(BaseModel):
     name: str
     description: str
+    illustrator: str | None = None  # default illustrator; may be None
+
+
+class IllustratorOut(BaseModel):
+    name: str
+    description: str
+    outputs: str               # "image" | "video"
+    experimental: bool = False
 
 
 class StoryCreateRequest(BaseModel):
     storyteller: str
+    illustrator: str | None = None  # override the storyteller's default
     inputs: dict[str, Any] = Field(default_factory=dict)
     title: str | None = None
 
@@ -31,6 +40,7 @@ class StoryCreateResponse(BaseModel):
 
 
 class FrameCreateRequest(BaseModel):
+    illustrator: str | None = None  # override the story's chosen illustrator
     inputs: dict[str, Any] = Field(default_factory=dict)
 
 

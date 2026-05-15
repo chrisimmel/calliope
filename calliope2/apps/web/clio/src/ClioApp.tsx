@@ -27,10 +27,12 @@ import {
 import {
   createStory,
   getStory,
+  listIllustrators,
   listStories,
   listStorytellers,
 } from './services/v3Api';
 import {
+  Illustrator,
   Story,
   StoryDetail,
   Storyteller,
@@ -89,12 +91,16 @@ function SignInScreen({ onError }: { onError: (msg: string) => void }) {
 
 function CreateStoryPanel({
   storytellers,
+  illustrators,
   onCreated,
 }: {
   storytellers: Storyteller[];
+  illustrators: Illustrator[];
   onCreated: (storyId: number) => void;
 }) {
   const [storyteller, setStoryteller] = useState(storytellers[0]?.name ?? '');
+  // null/'' = use the storyteller's default; otherwise override
+  const [illustrator, setIllustrator] = useState<string>('');
   const [title, setTitle] = useState('');
   const [pending, setPending] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -105,6 +111,17 @@ function CreateStoryPanel({
     }
   }, [storytellers, storyteller]);
 
+  // Reset illustrator override when the storyteller changes — its default differs.
+  useEffect(() => {
+    setIllustrator('');
+  }, [storyteller]);
+
+  const selectedStoryteller = storytellers.find(s => s.name === storyteller);
+  const defaultIllustrator = selectedStoryteller?.illustrator ?? null;
+  // Only image illustrators in the picker for now; cinematic_motion / video
+  // is a future composition path.
+  const imageIllustrators = illustrators.filter(i => i.outputs === 'image');
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!storyteller) return;
@@ -113,6 +130,7 @@ function CreateStoryPanel({
     try {
       const res = await createStory({
         storyteller,
+        illustrator: illustrator || null,
         title: title || null,
         inputs: {},
       });
@@ -136,6 +154,23 @@ function CreateStoryPanel({
           {storytellers.map(s => (
             <option key={s.name} value={s.name}>
               {s.name}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        Illustrator
+        <select
+          value={illustrator}
+          onChange={e => setIllustrator(e.target.value)}
+        >
+          <option value="">
+            (default
+            {defaultIllustrator ? `: ${defaultIllustrator}` : ''})
+          </option>
+          {imageIllustrators.map(i => (
+            <option key={i.name} value={i.name}>
+              {i.name}
             </option>
           ))}
         </select>
@@ -187,16 +222,19 @@ function HomeView({ userId }: { userId: string }) {
   const navigate = useNavigate();
   const [stories, setStories] = useState<Story[]>([]);
   const [storytellers, setStorytellers] = useState<Storyteller[]>([]);
+  const [illustrators, setIllustrators] = useState<Illustrator[]>([]);
   const [err, setErr] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     try {
-      const [list, tellers] = await Promise.all([
+      const [list, tellers, illus] = await Promise.all([
         listStories(),
         listStorytellers(),
+        listIllustrators(),
       ]);
       setStories(list);
       setStorytellers(tellers);
+      setIllustrators(illus);
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'failed to load');
     }
@@ -210,6 +248,7 @@ function HomeView({ userId }: { userId: string }) {
     <div className="clio-home">
       <CreateStoryPanel
         storytellers={storytellers}
+        illustrators={illustrators}
         onCreated={id => navigate(`/clio/stories/${id}`)}
       />
       <h2>Your stories</h2>

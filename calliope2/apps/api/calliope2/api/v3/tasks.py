@@ -42,10 +42,11 @@ async def generate_first_frame(
     user_id: int,
     storyteller_name: str,
     inputs: dict[str, Any],
+    illustrator_override: str | None = None,
 ) -> None:
     logger.info(
-        "task %s: generating first frame for story %s (storyteller=%s)",
-        task_id, story_id, storyteller_name,
+        "task %s: generating first frame for story %s (storyteller=%s, illustrator=%s)",
+        task_id, story_id, storyteller_name, illustrator_override,
     )
     writer = get_task_writer()
     record = TaskRecord(
@@ -57,7 +58,11 @@ async def generate_first_frame(
     )
     await writer.started(record)
     try:
-        output = await run_storyteller(storyteller_name, _prepare_inputs(inputs))
+        output = await run_storyteller(
+            storyteller_name,
+            _prepare_inputs(inputs),
+            illustrator_override=illustrator_override,
+        )
         await _persist_frame(story_id, frame_number=1, output=output)
         await writer.completed(task_id)
     except Exception as e:
@@ -67,7 +72,11 @@ async def generate_first_frame(
 
 
 async def generate_next_frame(
-    task_id: str, story_id: int, user_id: int, inputs: dict[str, Any]
+    task_id: str,
+    story_id: int,
+    user_id: int,
+    inputs: dict[str, Any],
+    illustrator_override: str | None = None,
 ) -> None:
     """Continue a story: load the latest frame, thread previous_text/previous_image, persist a new frame."""
     logger.info("task %s: generating next frame for story %s", task_id, story_id)
@@ -99,7 +108,9 @@ async def generate_next_frame(
         return
 
     try:
-        output = await run_storyteller(storyteller_name, threaded)
+        output = await run_storyteller(
+            storyteller_name, threaded, illustrator_override=illustrator_override
+        )
         await _persist_frame(story_id, frame_number=next_number, output=output)
         await writer.completed(task_id)
     except Exception as e:
