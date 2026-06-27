@@ -31,7 +31,27 @@ const audioConstraints = {
   suppressLocalAudioPlayback: true,
   noiseSuppression: true,
 };
-const thisBrowserID = browserID();
+// Resolve this client's Sparrow ID. A `?client_id=` (or `?sparrow_id=`) URL
+// param lets you adopt an existing Sparrow ID — e.g. to recover the stories
+// tied to a previous install/device, or move them to a new one. When present
+// it's persisted into the same localStorage slot browser-id uses, so it sticks
+// on subsequent loads even without the param.
+const getThisBrowserID = (): string => {
+  const params = new URLSearchParams(window.location.search);
+  const override = params.get('client_id') || params.get('sparrow_id');
+  if (override) {
+    try {
+      // Mirror browser-id's versioned-storage layout (name "browser_id", v1).
+      localStorage.setItem('browser_id', '1');
+      localStorage.setItem('browser_id:1', JSON.stringify(override));
+    } catch {
+      // localStorage unavailable; fall through to using the override in-memory.
+    }
+    return override;
+  }
+  return browserID();
+};
+const thisBrowserID = getThisBrowserID();
 
 const getDefaultStrategy: () => string | null = () => {
   const queryParameters = new URLSearchParams(window.location.search);
@@ -139,6 +159,17 @@ const renderFrame = (frame: Frame, index: number, currentIndex: number) => {
                     alt={`Frame ${index + 1}`}
                     style={mediaStyles}
                     loading={isPriority ? 'eager' : 'lazy'}
+                    ref={el => {
+                      // Cached images (e.g. preloaded as story thumbnails) can
+                      // finish loading before React attaches onLoad, so the load
+                      // event never fires and the image stays at opacity:0. Reveal
+                      // it immediately if it's already complete. (Notably affects
+                      // iOS Safari and in-app navigation, where the image is
+                      // usually already cached.)
+                      if (el && el.complete && el.naturalWidth > 0) {
+                        el.style.opacity = '1';
+                      }
+                    }}
                     onLoad={e => {
                       // When image is loaded, fade it in
                       e.currentTarget.style.opacity = '1';
@@ -1164,7 +1195,11 @@ export default function ClioApp() {
 
         console.log('Getting bookmarks...');
         const response = await axios.get<BookmarksResponse>(
-          '/v1/bookmarks/frame/',
+          // No trailing slash: the route is "/v1/bookmarks/frame", and a
+          // trailing slash triggers a 307 redirect whose Location is built as
+          // http:// behind Cloud Run's TLS proxy, which browsers block as mixed
+          // content on the https page.
+          '/v1/bookmarks/frame',
           {
             headers: {
               'X-Api-Key': 'xyzzy',

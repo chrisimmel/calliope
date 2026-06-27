@@ -270,10 +270,16 @@ async def clio_root_redirect():
     return RedirectResponse("/clio/")
 
 
+# index.html references the content-hashed main.js (main.js?<hash>). It must
+# never be cached, or clients (notably iOS Safari / home-screen web apps) keep
+# loading a stale bundle across restarts and never pick up new deploys.
+INDEX_HTML_HEADERS = {"Cache-Control": "no-cache, must-revalidate"}
+
+
 # Root Clio route
 @app.get("/clio/", include_in_schema=False)
 async def serve_clio_root():
-    return FileResponse("static/clio/index.html")
+    return FileResponse("static/clio/index.html", headers=INDEX_HTML_HEADERS)
 
 
 # Define Clio routes more explicitly
@@ -296,5 +302,12 @@ async def serve_clio(path: str = ""):
     if os.path.isfile(static_path):
         return FileResponse(static_path)
 
+    # Don't fall back to index.html for asset-like paths (e.g. a relative media
+    # URL such as /clio/story/<slug>/media/foo.png). Returning index.html with a
+    # 200 makes a broken <img> "succeed" with HTML content, hiding the error;
+    # a 404 surfaces it instead.
+    if "." in path.rsplit("/", 1)[-1]:
+        raise HTTPException(status_code=404, detail="Not found")
+
     # For all other routes, serve index.html for client-side routing
-    return FileResponse("static/clio/index.html")
+    return FileResponse("static/clio/index.html", headers=INDEX_HTML_HEADERS)

@@ -35,7 +35,7 @@
     "typescript": "^5.1.6",
     "webpack": "^5.88.0",
     "webpack-cli": "^4.10.0",
-    "webpack-dev-server": "^4.11.1"
+    "webpack-dev-server": "^5.2.5"
   },
   "dependencies": {
     "@emotion/react": "^11.11.3",
@@ -49,9 +49,9 @@
     "@types/node": "^20.4.7",
     "@types/react": "^18.2.18",
     "@types/react-dom": "^18.2.18",
-    "axios": "^1.2.1",
+    "axios": "^1.16.0",
     "browser-id": "^2.0.16",
-    "firebase": "^10.14.1",
+    "firebase": "^12.15.0",
     "react": "^18.2.0",
     "react-audio-visualize": "^1.2.0",
     "react-dom": "^18.2.0",
@@ -60,5 +60,10 @@
     "react-webcam": "^7.0.1",
     "style-loader": "^3.3.4",
     "styled-components": "^6.1.8"
+  },
+  "overrides": {
+    "sockjs": {
+      "uuid": "^11.1.1"
+    }
   }
 }
