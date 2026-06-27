@@ -69,9 +69,15 @@ def get_task_queue() -> TaskQueue:
                 service_url=service_url,
             )
         except ImportError as e:
+            # This fallback has previously hidden genuine production
+            # misconfigurations (a broken import in gcp_queue silently routed
+            # all work to the in-process LocalTaskQueue, with no durability,
+            # retries, or distribution). Log loudly so it is not missed.
             logger.error(f"Failed to import GCPTaskQueue: {e!s}")
-            logger.warning(
-                "Falling back to LocalTaskQueue despite production environment"
+            logger.error(
+                "Falling back to LocalTaskQueue despite production environment. "
+                "Cloud Tasks is NOT running; frame generation will execute "
+                "in-process with no durability, retries, or distribution."
             )
             return LocalTaskQueue()
     else:

@@ -5,13 +5,13 @@ This implementation uses Google Cloud Tasks for reliable and scalable
 background processing in production environments.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import json
 import logging
 from typing import Any, Dict, List, Optional
 import uuid
 
-from protobuf import timestamp_pb2
+from google.protobuf import timestamp_pb2
 
 from calliope.storage.firebase import get_firebase_manager
 
@@ -97,9 +97,7 @@ class GCPTaskQueue(TaskQueue):
         # Add scheduling time if delay is specified
         if delay_seconds > 0:
             # The schedule time can't be in the past
-            schedule_time = datetime.now(datetime.timezone.utc) + timedelta(
-                seconds=delay_seconds
-            )
+            schedule_time = datetime.now(timezone.utc) + timedelta(seconds=delay_seconds)
             timestamp = schedule_time.timestamp()
 
             # Convert the timestamp to a Protobuf Timestamp
