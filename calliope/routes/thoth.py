@@ -1,15 +1,14 @@
 from datetime import datetime
-from typing import cast, Optional, Sequence
+from typing import Optional, Sequence, cast
 
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from markupsafe import Markup
 
-from calliope.tables import Story, StoryFrame
 from calliope.storage.vector_manager import semantic_search
+from calliope.tables import Story, StoryFrame
 from calliope.utils.pagination import Pagination
-
 
 router = APIRouter()
 templates = Jinja2Templates(directory="calliope/templates")
@@ -51,7 +50,7 @@ async def thoth_root(
         "show_metadata": meta,
         "pagination": pagination,
     }
-    return cast(HTMLResponse, templates.TemplateResponse("thoth.html", context))
+    return cast(HTMLResponse, templates.TemplateResponse(request, "thoth.html", context))
 
 
 @router.get("/thoth/story/{story_cuid}", response_class=HTMLResponse)
@@ -92,7 +91,9 @@ async def thoth_story(
         "show_metadata": meta,
         "pagination": pagination,
     }
-    return cast(HTMLResponse, templates.TemplateResponse("thoth_story.html", context))
+    return cast(
+        HTMLResponse, templates.TemplateResponse(request, "thoth_story.html", context)
+    )
 
 
 @router.get("/thoth/search/", response_class=HTMLResponse)
@@ -142,4 +143,6 @@ async def thoth_search(
         "show_metadata": meta,
         "story_page_size": PAGE_SIZE,
     }
-    return cast(HTMLResponse, templates.TemplateResponse("thoth_search.html", context))
+    return cast(
+        HTMLResponse, templates.TemplateResponse(request, "thoth_search.html", context)
+    )
