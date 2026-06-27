@@ -139,6 +139,17 @@ const renderFrame = (frame: Frame, index: number, currentIndex: number) => {
                     alt={`Frame ${index + 1}`}
                     style={mediaStyles}
                     loading={isPriority ? 'eager' : 'lazy'}
+                    ref={el => {
+                      // Cached images (e.g. preloaded as story thumbnails) can
+                      // finish loading before React attaches onLoad, so the load
+                      // event never fires and the image stays at opacity:0. Reveal
+                      // it immediately if it's already complete. (Notably affects
+                      // iOS Safari and in-app navigation, where the image is
+                      // usually already cached.)
+                      if (el && el.complete && el.naturalWidth > 0) {
+                        el.style.opacity = '1';
+                      }
+                    }}
                     onLoad={e => {
                       // When image is loaded, fade it in
                       e.currentTarget.style.opacity = '1';
