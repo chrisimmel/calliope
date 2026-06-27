@@ -15,6 +15,19 @@ module.exports = (env, argv) => {
 
   console.log(`Webpack building for: ${argv.mode}, Firebase DB: ${databaseId}`);
 
+  // Firebase config is baked into the bundle at build time (dotenv loads
+  // clio/.env into process.env). Fail loudly if it's missing for a production
+  // build — otherwise the bundle ships with an empty config and Firebase init
+  // throws "configuration is incomplete" at runtime. (This bit us when a build
+  // ran from a directory without clio/.env, e.g. a git worktree.)
+  const firebaseApiKey = process.env.FIREBASE_API_KEY || env.FIREBASE_API_KEY;
+  if (isProduction && !firebaseApiKey) {
+    throw new Error(
+      'FIREBASE_API_KEY is not set for a production build. Provide the Firebase ' +
+        'config via clio/.env (or exported FIREBASE_* env vars) before building.'
+    );
+  }
+
   return {
     entry: './src/index.tsx',
     output: {
