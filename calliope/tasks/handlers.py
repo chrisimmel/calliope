@@ -288,6 +288,21 @@ def is_development_environment() -> bool:
     return not is_production
 
 
+# Single source of truth mapping task type -> handler coroutine. Used both to
+# register handlers on the LocalTaskQueue and to dispatch Cloud Tasks callbacks
+# in the /v2/tasks/{task_type} route. (The route previously looked the handler
+# up by attribute name, which silently 404'd because the type "add_frame" does
+# not match the function name "add_frame_task".)
+TASK_HANDLERS: Dict[str, Any] = {
+    "add_frame": add_frame_task,
+}
+
+
+def get_task_handler(task_type: str) -> Any:
+    """Return the handler coroutine for a task type, or None if unknown."""
+    return TASK_HANDLERS.get(task_type)
+
+
 def register_handlers(task_queue: LocalTaskQueue):
     """
     Register all task handlers with the queue.
@@ -295,6 +310,7 @@ def register_handlers(task_queue: LocalTaskQueue):
     Args:
         task_queue: The LocalTaskQueue instance to register handlers with
     """
-    task_queue.register_handler("add_frame", add_frame_task)
+    for task_type, handler in TASK_HANDLERS.items():
+        task_queue.register_handler(task_type, handler)
 
     logger.info("Registered task handlers with the queue")

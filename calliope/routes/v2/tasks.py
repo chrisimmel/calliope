@@ -5,10 +5,11 @@ These endpoints receive HTTP requests from Google Cloud Tasks and
 execute the appropriate task handlers.
 """
 
-from fastapi import APIRouter, Request, HTTPException, Header, Depends
-import logging
 import json
-from typing import Optional, Dict, Any
+import logging
+from typing import Any, Dict, Optional
+
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 
 from calliope.tasks import handlers
 from calliope.tasks.factory import configure_task_queue
@@ -83,15 +84,17 @@ async def process_task(
     # Get the payload from the request
     try:
         payload = await request.json()
-    except json.JSONDecodeError:
+    except json.JSONDecodeError as e:
         logger.error("Invalid JSON payload in task request")
-        raise HTTPException(status_code=400, detail="Invalid JSON payload")
+        raise HTTPException(status_code=400, detail="Invalid JSON payload") from e
 
     # Log task information
     logger.info(f"Processing task of type '{task_type}' with metadata: {task_metadata}")
 
-    # Check if the task handler exists
-    handler_func = getattr(handlers, task_type, None)
+    # Check if the task handler exists. Resolve via the task-type registry
+    # rather than by attribute name, since the type ("add_frame") does not match
+    # the handler function name ("add_frame_task").
+    handler_func = handlers.get_task_handler(task_type)
     if not handler_func:
         logger.error(f"Unknown task type: {task_type}")
         raise HTTPException(status_code=404, detail=f"Unknown task type: {task_type}")
@@ -107,7 +110,7 @@ async def process_task(
         # Return the result
         return {"status": "success", "task_type": task_type, "result": result}
     except Exception as e:
-        logger.exception(f"Error processing task '{task_type}': {str(e)}")
+        logger.exception(f"Error processing task '{task_type}': {e!s}")
 
         # Determine if this is a retryable error
         # You could implement specific error types for different retry behaviors
@@ -119,13 +122,13 @@ async def process_task(
             # Set status code to trigger a retry in Cloud Tasks
             # 429 Too Many Requests or 503 Service Unavailable are typically used
             status_code = 503
-            detail = f"Retryable error processing task: {str(e)}"
+            detail = f"Retryable error processing task: {e!s}"
         else:
             # Non-retryable error
             status_code = 400
-            detail = f"Non-retryable error processing task: {str(e)}"
+            detail = f"Non-retryable error processing task: {e!s}"
 
-        raise HTTPException(status_code=status_code, detail=detail)
+        raise HTTPException(status_code=status_code, detail=detail) from e
 
 
 @router.get("/status/{task_id}")
