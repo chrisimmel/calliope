@@ -48,4 +48,10 @@ ENV PYTHONPATH="$APP_HOME:${PYTHONPATH}"
 ENV PATH="$APP_HOME/.venv/bin:$PATH"
 
 # Use uv to run the application (removed --reload for production)
-CMD ["uv", "run", "--", "uvicorn", "calliope.app:app", "--host", "0.0.0.0", "--proxy-headers", "--port", "8080"]
+# --forwarded-allow-ips="*" is required in addition to --proxy-headers: without
+# it uvicorn only trusts X-Forwarded-* from 127.0.0.1, so behind Cloud Run's
+# TLS-terminating proxy it ignores X-Forwarded-Proto and treats requests as
+# http. That made generated redirects (e.g. trailing-slash 307s) use http://,
+# which browsers block as mixed content on the https page. Trusting "*" is safe
+# here because only the Cloud Run front end can reach the container.
+CMD ["uv", "run", "--", "uvicorn", "calliope.app:app", "--host", "0.0.0.0", "--proxy-headers", "--forwarded-allow-ips", "*", "--port", "8080"]
