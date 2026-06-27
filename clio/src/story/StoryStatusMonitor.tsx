@@ -163,7 +163,6 @@ const StoryStatusMonitor: React.FC<StoryStatusMonitorProps> = ({
     // Set up Firebase listeners
     let statusUnsubscribe: (() => void) | null = null;
     let updatesUnsubscribe: (() => void) | null = null;
-    let backupPollCleanup: (() => void) | null = null;
 
     const setupListeners = async () => {
       try {
@@ -224,15 +223,6 @@ const StoryStatusMonitor: React.FC<StoryStatusMonitorProps> = ({
           updatesUnsubscribe();
         } catch (error) {
           console.error('Error cleaning up updates monitor:', error);
-        }
-      }
-
-      // Clean up backup polling
-      if (backupPollCleanup) {
-        try {
-          backupPollCleanup();
-        } catch (error) {
-          console.error('Error cleaning up backup polling:', error);
         }
       }
     };
