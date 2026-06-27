@@ -61,12 +61,18 @@ def get_task_queue() -> TaskQueue:
         # Import GCP task queue implementation
         try:
             from .gcp_queue import GCPTaskQueue
+            from .resilient_queue import ResilientTaskQueue
 
-            return GCPTaskQueue(
-                project=gcp_project_id,
-                location=gcp_region,
-                queue_name=gcp_queue_name,
-                service_url=service_url,
+            # Wrap Cloud Tasks so that if it's unreachable or misconfigured
+            # (API disabled, missing queue, IAM, etc.) enqueueing degrades to
+            # in-process execution instead of failing the request with a 500.
+            return ResilientTaskQueue(
+                GCPTaskQueue(
+                    project=gcp_project_id,
+                    location=gcp_region,
+                    queue_name=gcp_queue_name,
+                    service_url=service_url,
+                )
             )
         except ImportError as e:
             # This fallback has previously hidden genuine production
