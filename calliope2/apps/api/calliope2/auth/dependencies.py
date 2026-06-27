@@ -5,6 +5,7 @@ from typing import Annotated, Any
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from calliope2.auth.firebase import verify_id_token
@@ -36,14 +37,19 @@ async def get_current_user(
     uid = claims["uid"]
     user = await session.scalar(select(User).where(User.firebase_uid == uid))
     if user is None:
-        user = User(
-            firebase_uid=uid,
-            email=claims.get("email"),
-            display_name=claims.get("name") or claims.get("display_name"),
-        )
-        session.add(user)
-        await session.commit()
-        await session.refresh(user)
+        try:
+            user = User(
+                firebase_uid=uid,
+                email=claims.get("email"),
+                display_name=claims.get("name") or claims.get("display_name"),
+            )
+            session.add(user)
+            await session.commit()
+            await session.refresh(user)
+        except IntegrityError:
+            # Concurrent first request won the race — roll back and re-fetch.
+            await session.rollback()
+            user = await session.scalar(select(User).where(User.firebase_uid == uid))
     return user
 
 

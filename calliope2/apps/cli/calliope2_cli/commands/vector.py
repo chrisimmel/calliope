@@ -36,39 +36,50 @@ async def _reindex(*, batch_size: int, limit: int | None, dry_run: bool) -> dict
     Session = sessionmaker_for()
     counts = {"candidates": 0, "embedded": 0, "skipped_no_text": 0, "failed": 0}
     async with Session() as session:
-        candidates = await _load_candidates(session, limit=limit)
-        counts["candidates"] = len(candidates)
-        if dry_run:
-            return counts
-
+        after_id = 0
         pending = 0
-        for frame in candidates:
-            if not frame.text:
-                counts["skipped_no_text"] += 1
+        while True:
+            remaining = (limit - counts["candidates"]) if limit is not None else batch_size
+            if remaining <= 0:
+                break
+            page = await _load_candidate_page(
+                session, after_id=after_id, page_size=min(batch_size, remaining)
+            )
+            if not page:
+                break
+            counts["candidates"] += len(page)
+            after_id = page[-1].id
+
+            if dry_run:
                 continue
-            try:
-                frame.embedding = await embed_text(frame.text)
-                counts["embedded"] += 1
-                pending += 1
-            except Exception:
-                counts["failed"] += 1
-                continue
-            if pending >= batch_size:
-                await session.commit()
-                pending = 0
+
+            for frame in page:
+                if not frame.text:
+                    counts["skipped_no_text"] += 1
+                    continue
+                try:
+                    frame.embedding = await embed_text(frame.text)
+                    counts["embedded"] += 1
+                    pending += 1
+                except Exception:
+                    counts["failed"] += 1
+                    continue
+                if pending >= batch_size:
+                    await session.commit()
+                    pending = 0
+
         if pending:
             await session.commit()
     return counts
 
 
-async def _load_candidates(
-    session: AsyncSession, *, limit: int | None
+async def _load_candidate_page(
+    session: AsyncSession, *, after_id: int, page_size: int
 ) -> list[StoryFrame]:
     stmt = (
         select(StoryFrame)
-        .where(StoryFrame.embedding.is_(None))
+        .where(StoryFrame.embedding.is_(None), StoryFrame.id > after_id)
         .order_by(StoryFrame.id)
+        .limit(page_size)
     )
-    if limit is not None:
-        stmt = stmt.limit(limit)
     return list((await session.execute(stmt)).scalars().all())

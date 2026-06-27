@@ -18,7 +18,13 @@ async def embed_text(text: str) -> list[float]:
     """Return an embedding for ``text`` using the configured provider/model."""
     settings = get_settings()
     client = get_client(settings.embedding_provider)
-    return await client.embed(text, model=settings.embedding_model)
+    result = await client.embed(text, model=settings.embedding_model)
+    if len(result) != settings.embedding_dim:
+        raise ValueError(
+            f"embedding dimension mismatch: expected {settings.embedding_dim}, "
+            f"got {len(result)} — check CALLIOPE2_EMBEDDING_MODEL / CALLIOPE2_EMBEDDING_DIM"
+        )
+    return result
 
 
 async def try_embed_text(text: str) -> list[float] | None:

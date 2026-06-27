@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+import logging
+
 from fastapi import APIRouter, HTTPException, Query, status
+
+logger = logging.getLogger(__name__)
 
 from calliope2.api.v3.schemas import SearchHitOut, SearchResponse
 from calliope2.auth.dependencies import CurrentUser, SessionDep
@@ -21,9 +25,10 @@ async def search(
     try:
         embedding = await embed_text(q)
     except Exception as e:
+        logger.exception("embedding failed for search query")
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"embedding service failed: {e}",
+            detail="embedding service unavailable",
         ) from e
 
     hits = await search_frames(session, embedding, owner_id=user.id, limit=limit)

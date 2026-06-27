@@ -40,6 +40,7 @@ async def generate_first_frame(
     task_id: str,
     story_id: int,
     user_id: int,
+    firebase_uid: str,
     storyteller_name: str,
     inputs: dict[str, Any],
     illustrator_override: str | None = None,
@@ -52,12 +53,13 @@ async def generate_first_frame(
     record = TaskRecord(
         task_id=task_id,
         user_id=user_id,
+        firebase_uid=firebase_uid,
         story_id=story_id,
         type=TaskType.CREATE_STORY,
         started_at=datetime.now(UTC),
     )
-    await writer.started(record)
     try:
+        await writer.started(record)
         output = await run_storyteller(
             storyteller_name,
             _prepare_inputs(inputs),
@@ -75,6 +77,7 @@ async def generate_next_frame(
     task_id: str,
     story_id: int,
     user_id: int,
+    firebase_uid: str,
     inputs: dict[str, Any],
     illustrator_override: str | None = None,
 ) -> None:
@@ -84,6 +87,7 @@ async def generate_next_frame(
     record = TaskRecord(
         task_id=task_id,
         user_id=user_id,
+        firebase_uid=firebase_uid,
         story_id=story_id,
         type=TaskType.CREATE_FRAME,
         started_at=datetime.now(UTC),

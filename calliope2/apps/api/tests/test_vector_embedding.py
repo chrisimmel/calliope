@@ -19,7 +19,7 @@ async def test_embed_text_calls_configured_provider(monkeypatch):
 
     monkeypatch.setattr(
         "calliope2.vector.embedding.get_settings",
-        lambda: Settings(embedding_provider="openai", embedding_model="m"),
+        lambda: Settings(embedding_provider="openai", embedding_model="m", embedding_dim=3),
     )
     monkeypatch.setattr("calliope2.vector.embedding.get_client", fake_get_client)
     get_settings.cache_clear()

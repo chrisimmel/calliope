@@ -35,6 +35,7 @@ from calliope2.pipeline import (
 )
 from calliope2.storytellers.errors import (
     MissingVariable,
+    StorytellerError,
     StorytellerSchemaError,
     UnknownStepType,
     UnknownStoryteller,
@@ -128,10 +129,13 @@ class Storyteller:
                         ),
                         schema_error_cls=StorytellerSchemaError,
                     )
-            except (MissingVariable, StorytellerSchemaError):
+            except (MissingVariable, StorytellerSchemaError, StorytellerError):
                 raise
-            except Exception as e:  # pragma: no cover — pass through with step context
-                raise type(e)(f"step {i} ({step_type}): {e}") from e
+            except Exception as e:
+                from calliope2.illustrators.errors import IllustratorError
+                if isinstance(e, IllustratorError):
+                    raise
+                raise StorytellerError(f"step {i} ({step_type}): {e}") from e  # pragma: no cover
             if "out" in params:
                 ctx[params["out"]] = result
         return self._build_output(ctx)
@@ -158,10 +162,7 @@ class Storyteller:
                 "use_illustrator: no illustrator name supplied, no request override, "
                 "and the storyteller has no default `illustrator:`"
             )
-        try:
-            illustrator = Illustrator.load(name)
-        except UnknownIllustrator:
-            raise
+        illustrator = Illustrator.load(name)
         raw_inputs = params.get("inputs") or {}
         if not isinstance(raw_inputs, dict):
             raise StorytellerSchemaError(

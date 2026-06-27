@@ -4,8 +4,9 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const webpack = require('webpack');
 const dotenv = require('dotenv');
 
-// Load env vars from .env file
-const env = dotenv.config().parsed || {};
+// Load env vars from .env file (named dotenvVars to avoid shadowing the
+// webpack CLI `env` argument received in the module.exports function below).
+const dotenvVars = dotenv.config().parsed || {};
 
 module.exports = (env, argv) => {
   const isProduction = argv.mode === 'production';
@@ -32,37 +33,37 @@ module.exports = (env, argv) => {
           isProduction ? 'production' : 'development'
         ),
         'process.env.FIREBASE_API_KEY': JSON.stringify(
-          process.env.FIREBASE_API_KEY || env.FIREBASE_API_KEY
+          process.env.FIREBASE_API_KEY || dotenvVars.FIREBASE_API_KEY
         ),
         'process.env.FIREBASE_AUTH_DOMAIN': JSON.stringify(
-          process.env.FIREBASE_AUTH_DOMAIN || env.FIREBASE_AUTH_DOMAIN
+          process.env.FIREBASE_AUTH_DOMAIN || dotenvVars.FIREBASE_AUTH_DOMAIN
         ),
         'process.env.FIREBASE_PROJECT_ID': JSON.stringify(
-          process.env.FIREBASE_PROJECT_ID || env.FIREBASE_PROJECT_ID
+          process.env.FIREBASE_PROJECT_ID || dotenvVars.FIREBASE_PROJECT_ID
         ),
         'process.env.FIREBASE_STORAGE_BUCKET': JSON.stringify(
-          process.env.FIREBASE_STORAGE_BUCKET || env.FIREBASE_STORAGE_BUCKET
+          process.env.FIREBASE_STORAGE_BUCKET || dotenvVars.FIREBASE_STORAGE_BUCKET
         ),
         'process.env.FIREBASE_MESSAGING_SENDER_ID': JSON.stringify(
           process.env.FIREBASE_MESSAGING_SENDER_ID ||
-            env.FIREBASE_MESSAGING_SENDER_ID
+            dotenvVars.FIREBASE_MESSAGING_SENDER_ID
         ),
         'process.env.FIREBASE_APP_ID': JSON.stringify(
-          process.env.FIREBASE_APP_ID || env.FIREBASE_APP_ID
+          process.env.FIREBASE_APP_ID || dotenvVars.FIREBASE_APP_ID
         ),
         'process.env.FIREBASE_MEASUREMENT_ID': JSON.stringify(
-          process.env.FIREBASE_MEASUREMENT_ID || env.FIREBASE_MEASUREMENT_ID
+          process.env.FIREBASE_MEASUREMENT_ID || dotenvVars.FIREBASE_MEASUREMENT_ID
         ),
         'process.env.FIREBASE_DATABASE_ID': JSON.stringify(
           process.env.FIREBASE_DATABASE_ID ||
-            env.FIREBASE_DATABASE_ID ||
+            dotenvVars.FIREBASE_DATABASE_ID ||
             databaseId
         ),
         // API_BASE_URL is empty by default — Clio uses relative paths, since
         // the FastAPI app serves it from the same origin via the static mount.
         // Override only if Clio is deployed to a different host than the API.
         'process.env.API_BASE_URL': JSON.stringify(
-          process.env.API_BASE_URL || env.API_BASE_URL || ''
+          process.env.API_BASE_URL || dotenvVars.API_BASE_URL || ''
         ),
       }),
     ],

@@ -38,7 +38,7 @@ def _stub_persistence(monkeypatch):
 
 async def test_generate_first_frame_writes_started_then_completed(recorder):
     await task_module.generate_first_frame(
-        task_id="t1", story_id=42, user_id=7,
+        task_id="t1", story_id=42, user_id=7, firebase_uid="uid-7",
         storyteller_name="literal", inputs={"source_text": "hi"},
     )
     first_call_args = next(c.args for c in recorder.started.await_args_list)
@@ -57,7 +57,7 @@ async def test_generate_first_frame_writes_failed_on_storyteller_error(monkeypat
     )
     with pytest.raises(RuntimeError):
         await task_module.generate_first_frame(
-            task_id="t2", story_id=1, user_id=1,
+            task_id="t2", story_id=1, user_id=1, firebase_uid="uid-1",
             storyteller_name="literal", inputs={},
         )
     recorder.completed.assert_not_awaited()
@@ -70,7 +70,7 @@ async def test_generate_next_frame_marks_failed_when_story_vanished(monkeypatch,
     monkeypatch.setattr(task_module, "_load_story_with_frames", AsyncMock(return_value=None))
 
     await task_module.generate_next_frame(
-        task_id="t3", story_id=999, user_id=1, inputs={}
+        task_id="t3", story_id=999, user_id=1, firebase_uid="uid-1", inputs={}
     )
     recorder.failed.assert_awaited_once()
     msg = recorder.failed.await_args.args[1]

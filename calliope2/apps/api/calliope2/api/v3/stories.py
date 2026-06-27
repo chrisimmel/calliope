@@ -58,7 +58,7 @@ async def create_story(
     task_id = new_task_id()
     background.add_task(
         generate_first_frame,
-        task_id, story.id, user.id, body.storyteller, body.inputs,
+        task_id, story.id, user.id, user.firebase_uid, body.storyteller, body.inputs,
         illustrator_name,
     )
     return StoryCreateResponse(story_id=story.id, task_id=task_id)
@@ -138,7 +138,7 @@ async def create_frame(
 
     task_id = new_task_id()
     background.add_task(
-        generate_next_frame, task_id, story.id, user.id, body.inputs, illustrator_name,
+        generate_next_frame, task_id, story.id, user.id, user.firebase_uid, body.inputs, illustrator_name,
     )
     return FrameCreateResponse(task_id=task_id)
 

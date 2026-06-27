@@ -37,6 +37,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from calliope2.illustrators.errors import (
+    IllustratorError,
     IllustratorSchemaError,
     MissingVariable,
     UnknownIllustrator,
@@ -160,10 +161,10 @@ class Illustrator:
                     ),
                     schema_error_cls=IllustratorSchemaError,
                 )
-            except (MissingVariable, IllustratorSchemaError):
+            except (MissingVariable, IllustratorSchemaError, IllustratorError):
                 raise
             except Exception as e:  # pragma: no cover — pass through with step context
-                raise type(e)(f"illustrator {self.name!r} step {i} ({step_type}): {e}") from e
+                raise IllustratorError(f"illustrator {self.name!r} step {i} ({step_type}): {e}") from e
             if "out" in params:
                 ctx[params["out"]] = result
 

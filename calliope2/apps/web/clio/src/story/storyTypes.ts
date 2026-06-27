@@ -111,6 +111,7 @@ export type SearchResponse = {
 export type TaskStatus = {
   task_id?: string;
   user_id: number;
+  firebase_uid: string;
   story_id: number;
   type: 'create_story' | 'create_frame';
   status: 'pending' | 'running' | 'completed' | 'failed';

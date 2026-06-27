@@ -31,6 +31,7 @@ def record() -> TaskRecord:
     return TaskRecord(
         task_id="t-abc",
         user_id=7,
+        firebase_uid="uid-7",
         story_id=42,
         type=TaskType.CREATE_STORY,
         started_at=datetime(2026, 5, 13, tzinfo=UTC),
@@ -86,8 +87,8 @@ async def test_progress_updates_running_status_and_value(record):
 
     await w.progress("t-abc", 0.4)
 
-    doc.update.assert_awaited_once()
-    payload = doc.update.await_args.args[0]
+    doc.set.assert_awaited_once()
+    payload = doc.set.await_args.args[0]
     assert payload == {"status": "running", "progress": 0.4}
 
 
@@ -97,7 +98,7 @@ async def test_completed_writes_completed_status_and_timestamp():
 
     await w.completed("t-abc")
 
-    payload = doc.update.await_args.args[0]
+    payload = doc.set.await_args.args[0]
     assert payload["status"] == "completed"
     assert payload["progress"] == 1.0
     assert isinstance(payload["completed_at"], datetime)
@@ -109,7 +110,7 @@ async def test_failed_writes_error_and_completed_at():
 
     await w.failed("t-abc", "inference timeout")
 
-    payload = doc.update.await_args.args[0]
+    payload = doc.set.await_args.args[0]
     assert payload["status"] == "failed"
     assert payload["error"] == "inference timeout"
     assert isinstance(payload["completed_at"], datetime)
@@ -158,7 +159,7 @@ def test_get_task_writer_constructs_firestore_when_project_set(monkeypatch):
 
 def test_task_record_defaults():
     t = TaskRecord(
-        task_id="x", user_id=1, story_id=2,
+        task_id="x", user_id=1, firebase_uid="uid-1", story_id=2,
         type=TaskType.CREATE_FRAME, started_at=datetime.now(UTC),
     )
     assert t.status == TaskStatus.PENDING
@@ -170,7 +171,7 @@ def test_task_record_defaults():
 def test_task_record_progress_bounded():
     with pytest.raises(ValueError):
         TaskRecord(
-            task_id="x", user_id=1, story_id=2,
+            task_id="x", user_id=1, firebase_uid="uid-1", story_id=2,
             type=TaskType.CREATE_FRAME, started_at=datetime.now(UTC),
             progress=1.5,
         )

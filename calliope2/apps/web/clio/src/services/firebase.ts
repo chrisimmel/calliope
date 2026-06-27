@@ -137,9 +137,14 @@ export function watchTask(
   );
 }
 
-/** Watch all tasks for a (user, story) pair. Useful for the story-detail view. */
+/** Watch all tasks for a (user, story) pair. Useful for the story-detail view.
+ *
+ * ``firebaseUid`` is the Firebase Auth UID string (``user.uid``), which the
+ * backend writes to Firestore as ``firebase_uid``. This keeps the query
+ * type-correct — Firestore equality is type-sensitive and the DB user id
+ * (an integer) would never match. */
 export function watchTasksForStory(
-  userId: string,
+  firebaseUid: string,
   storyId: number,
   callback: (tasks: TaskStatus[]) => void
 ): Unsubscribe {
@@ -152,7 +157,7 @@ export function watchTasksForStory(
   }
   const q = query(
     collection(firestore, TASKS_COLLECTION),
-    where('user_id', '==', userId),
+    where('firebase_uid', '==', firebaseUid),
     where('story_id', '==', storyId)
   );
   return onSnapshot(

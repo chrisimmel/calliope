@@ -23,9 +23,11 @@ GCS URIs are reused verbatim — no blob copy.
 from __future__ import annotations
 
 import logging
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 
 from calliope2.db.models import Bookmark, Image, Story, StoryFrame, User, Video
 from calliope2.migration.legacy_schema import (
@@ -185,24 +187,46 @@ async def migrate_all(
                     stats.stories_created += 1
                 continue
             async with new_sessionmaker() as s:
-                new_story = Story(
-                    owner_id=owner_user_id,
-                    slug=st["slug"] or st["cuid"],
-                    title=st["title"],
-                    thumbnail_image_id=legacy_image_id_to_new_id.get(st["thumbnail_image"])
-                    if st["thumbnail_image"]
-                    else None,
-                    storyteller_name=st["strategy_name"],
-                    metadata_={
-                        "legacy_id": st["id"],
-                        "legacy_cuid": st["cuid"],
-                        "state_props": st["state_props"],
-                    },
-                    created_at=st["date_created"],
-                    updated_at=st["date_updated"],
-                )
+                slug = st["slug"] or st["cuid"]
+                now = datetime.now(UTC)
+                created_at = st["date_created"] or now
+                updated_at = st["date_updated"] or created_at
+
+                def _make_story(slug_val: str) -> Story:
+                    return Story(
+                        owner_id=owner_user_id,
+                        slug=slug_val,
+                        title=st["title"],
+                        thumbnail_image_id=legacy_image_id_to_new_id.get(st["thumbnail_image"])
+                        if st["thumbnail_image"]
+                        else None,
+                        storyteller_name=st["strategy_name"],
+                        metadata_={
+                            "legacy_id": st["id"],
+                            "legacy_cuid": st["cuid"],
+                            "state_props": st["state_props"],
+                        },
+                        created_at=created_at,
+                        updated_at=updated_at,
+                    )
+
+                new_story = _make_story(slug)
                 s.add(new_story)
-                await s.commit()
+                try:
+                    await s.commit()
+                except IntegrityError:
+                    # Slug collision — disambiguate with the legacy id.
+                    await s.rollback()
+                    new_story = _make_story(f"{slug}-{st['id']}")
+                    s.add(new_story)
+                    try:
+                        await s.commit()
+                    except IntegrityError as exc:
+                        await s.rollback()
+                        msg = f"story {st['id']} (slug={slug!r}): {exc}"
+                        logger.warning("migration error: %s", msg)
+                        stats.errors.append(msg)
+                        continue
                 await s.refresh(new_story)
                 legacy_story_id_to_new_id[st["id"]] = new_story.id
                 story_by_legacy_id[st["id"]] = new_story.id

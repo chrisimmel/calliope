@@ -37,6 +37,7 @@ class TaskRecord(BaseModel):
 
     task_id: str
     user_id: int
+    firebase_uid: str
     story_id: int
     type: TaskType
     status: TaskStatus = TaskStatus.PENDING

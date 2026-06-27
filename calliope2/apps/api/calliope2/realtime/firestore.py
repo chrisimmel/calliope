@@ -47,6 +47,7 @@ class FirestoreTaskWriter:
     async def started(self, task: TaskRecord) -> None:
         payload = {
             "user_id": task.user_id,
+            "firebase_uid": task.firebase_uid,
             "story_id": task.story_id,
             "type": task.type.value,
             "status": TaskStatus.RUNNING.value,
@@ -56,34 +57,38 @@ class FirestoreTaskWriter:
         await self._safe_write("set", task.task_id, lambda: self._doc(task.task_id).set(payload))
 
     async def progress(self, task_id: str, progress: float) -> None:
+        # Use set(merge=True) so a dropped started() doesn't leave orphan updates.
         await self._safe_write(
-            "update", task_id,
-            lambda: self._doc(task_id).update(
-                {"status": TaskStatus.RUNNING.value, "progress": progress}
+            "set", task_id,
+            lambda: self._doc(task_id).set(
+                {"status": TaskStatus.RUNNING.value, "progress": progress},
+                merge=True,
             ),
         )
 
     async def completed(self, task_id: str) -> None:
         await self._safe_write(
-            "update", task_id,
-            lambda: self._doc(task_id).update(
+            "set", task_id,
+            lambda: self._doc(task_id).set(
                 {
                     "status": TaskStatus.COMPLETED.value,
                     "progress": 1.0,
                     "completed_at": datetime.now(UTC),
-                }
+                },
+                merge=True,
             ),
         )
 
     async def failed(self, task_id: str, error: str) -> None:
         await self._safe_write(
-            "update", task_id,
-            lambda: self._doc(task_id).update(
+            "set", task_id,
+            lambda: self._doc(task_id).set(
                 {
                     "status": TaskStatus.FAILED.value,
                     "error": error,
                     "completed_at": datetime.now(UTC),
-                }
+                },
+                merge=True,
             ),
         )
 

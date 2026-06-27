@@ -49,7 +49,7 @@ async def test_search_502_when_embedding_fails(client, monkeypatch):
     monkeypatch.setattr("calliope2.api.v3.search.embed_text", boom)
     response = await client.get("/v3/search", params={"q": "x"})
     assert response.status_code == 502
-    assert "openai down" in response.json()["detail"]
+    assert response.json()["detail"] == "embedding service unavailable"
 
 
 async def test_search_rejects_empty_query(client):

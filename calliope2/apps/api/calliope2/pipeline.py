@@ -18,6 +18,7 @@ test, no LSP gymnastics around per-subclass step dispatch.
 
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING, Any
 
 import yaml
@@ -30,6 +31,8 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from jinja2 import Template
+
+_NAME_RE = re.compile(r"^[a-z0-9_-]+$")
 
 
 # ----- Errors -----
@@ -74,7 +77,13 @@ def load_yaml_def(
     ``kind`` flavors the error message: e.g. ``kind="storyteller definition"``
     produces ``no storyteller definition for 'fern' at ...``.
     """
-    path = defs_dir / f"{name}.yaml"
+    if not _NAME_RE.match(name):
+        raise unknown_error_cls(
+            f"invalid {kind} name {name!r}: names must match [a-z0-9_-]+"
+        )
+    path = (defs_dir / f"{name}.yaml").resolve()
+    if not path.is_relative_to(defs_dir.resolve()):
+        raise unknown_error_cls(f"invalid {kind} name {name!r}")
     if not path.exists():
         raise unknown_error_cls(f"no {kind} for {name!r} at {path}")
     with path.open() as f:
@@ -166,7 +175,7 @@ async def execute_base_step(
     the return value to ``ctx[params['out']]``.
     """
     if step_type == "set":
-        return render(params["value"])
+        return render(require_param(params, "value", "set", schema_error_cls=schema_error_cls))
 
     provider = require_param(params, "provider", step_type, schema_error_cls=schema_error_cls)
     model = require_param(params, "model", step_type, schema_error_cls=schema_error_cls)
