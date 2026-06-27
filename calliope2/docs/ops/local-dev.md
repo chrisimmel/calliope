@@ -287,6 +287,66 @@ endpoints until you have Firebase configured.
 **Likely cause:** No `OPENAI_API_KEY`; the request goes out and hangs
 on the retry loop. Set the key, or use a mocked client in tests.
 
+## Building and deploying the Docker image
+
+The `calliope2/Dockerfile` is a two-stage build:
+
+1. **Stage 1 (node-builder)** — builds the Clio and Admin SPAs with
+   `npm ci && webpack/vite`.
+2. **Stage 2 (runtime)** — installs Python deps via uv, copies the SPA
+   bundles from Stage 1, and runs uvicorn.
+
+The Firebase client config must be baked into the webpack bundle at
+build time (it is not secret — Firebase uses security rules, not API
+keys). Pass it via `--build-arg`:
+
+```bash
+cd calliope  # repo root
+docker build \
+  --build-arg FIREBASE_API_KEY=AIza... \
+  --build-arg FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com \
+  --build-arg FIREBASE_PROJECT_ID=your-project \
+  --build-arg FIREBASE_STORAGE_BUCKET=your-project.appspot.com \
+  --build-arg FIREBASE_MESSAGING_SENDER_ID=123456789 \
+  --build-arg FIREBASE_APP_ID=1:123:web:abc \
+  -t calliope2 \
+  -f calliope2/Dockerfile \
+  calliope2/
+```
+
+Run the built image locally (supply runtime env vars; DB must be
+accessible from the container):
+
+```bash
+docker run --rm -p 8080:8080 \
+  -e CALLIOPE2_DATABASE_URL=postgresql+asyncpg://calliope:calliope@host.docker.internal:5432/calliope2 \
+  -e CALLIOPE2_OPENAI_API_KEY=sk-... \
+  -e CALLIOPE2_REPLICATE_API_TOKEN=r8_... \
+  -e CALLIOPE2_FIREBASE_PROJECT_ID=your-project \
+  -e GOOGLE_APPLICATION_CREDENTIALS=/secrets/sa.json \
+  -v /path/to/service-account.json:/secrets/sa.json:ro \
+  calliope2
+```
+
+### Deploy to Cloud Run
+
+```bash
+gcloud run deploy calliope-v3 \
+  --source calliope2/ \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --set-env-vars CALLIOPE2_DATABASE_URL=...,CALLIOPE2_OPENAI_API_KEY=... \
+  --build-env-vars FIREBASE_API_KEY=...,FIREBASE_PROJECT_ID=...
+```
+
+`--source` triggers Cloud Build, which builds the Dockerfile and pushes
+the image to Artifact Registry before deploying. The `--build-env-vars`
+flag passes the Firebase config through as Docker `--build-arg` values.
+
+See [`ops/migration.md`](migration.md) for the full cutover playbook
+(standing up v3 alongside the live v1 service, migrating data, and
+switching DNS).
+
 ## Related
 
 - [`ops/migration.md`](migration.md) — the legacy → v3 cutover playbook.

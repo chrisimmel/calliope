@@ -1,0 +1,35 @@
+# Python
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/.venv
+**/.mypy_cache
+**/.ruff_cache
+**/.pytest_cache
+**/*.egg-info
+
+# Node
+**/node_modules
+**/build
+**/dist
+
+# Static SPA output (built inside the container by Stage 1)
+apps/api/calliope2/static/clio/
+apps/api/calliope2/static/admin/
+
+# Local dev / test artifacts
+**/.env
+**/.env.*
+**/tests
+**/test_*
+**/*_test.py
+
+# Docs and tooling
+docs/
+scripts/
+*.md
+
+# Git
+.git
+.gitignore
+.gitattributes
