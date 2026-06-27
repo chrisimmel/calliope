@@ -1,0 +1,21 @@
+name: charcoal_abstract
+description: |
+  Charcoal on paper with watercolor washes; contemporary abstraction with a
+  few bold incongruous ink lines. Adapted from the legacy tamarisk
+  strategy_config's output_image_style; pair with the lavender storyteller
+  for a "tamarisk"-like result.
+outputs: image
+inputs:
+  required: [source]
+style: |
+  A watercolor painting with contemporary abstraction and hints of geometry.
+  A few bold, incongruous lines in ink. No frame. No signature. Do not sign
+  the image. Less literal and more abstract. Capture the essence from this
+  scene:
+steps:
+  - generate_image:
+      provider: replicate
+      model: black-forest-labs/flux-1.1-pro
+      prompt: "{{ style }} {{ source }}"
+      out: result
+output: result

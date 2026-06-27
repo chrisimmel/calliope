@@ -1,0 +1,30 @@
+name: fern
+description: |
+  Atmospheric literary continuation with optional `situation` context
+  (location, weather, time). Uses GPT-4.1 for narration; pairs by default
+  with the cinematic_photo illustrator (flux-pro).
+
+  Multi-frame: the API layer threads `previous_text` from the most recent
+  frame. The first frame gets an empty previous_text and the LLM opens a
+  new story.
+
+  Ported from the legacy fern strategy_config (id=19) — text via gpt-4.1
+  + lavender-1 prompt; image via flux-pro with "cinematic photo" style.
+
+illustrator: cinematic_photo
+
+steps:
+  - generate_text:
+      provider: openai
+      model: gpt-4.1
+      prompt: prompts/fern/narrate.j2
+      out: frame_text
+
+  - use_illustrator:
+      inputs:
+        source: "{{ frame_text }}"
+      out: frame_image
+
+output:
+  text: frame_text
+  image: frame_image

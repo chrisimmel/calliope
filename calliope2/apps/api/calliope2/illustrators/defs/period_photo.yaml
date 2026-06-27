@@ -1,0 +1,18 @@
+name: period_photo
+description: |
+  Grainy 1910s black-and-white photo, slightly damaged by age. Chiaroscuro
+  shadows, Art Deco hint. Default illustrator for narcissus. Adapted from
+  the legacy narcissus strategy_config's output_image_style.
+outputs: image
+inputs:
+  required: [source]
+style: |
+  A moody, atmospheric, grainy, 1910's black and white photo, slightly
+  damaged by age. Chiaroscuro. Grain. Shadows. Art Deco setting. Hazy.
+steps:
+  - generate_image:
+      provider: replicate
+      model: black-forest-labs/flux-1.1-pro
+      prompt: "{{ style }} {{ source }}"
+      out: result
+output: result

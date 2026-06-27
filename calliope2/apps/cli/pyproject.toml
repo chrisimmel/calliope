@@ -1,0 +1,23 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "calliope2-cli"
+version = "0.1.0"
+description = "Operational CLI for Calliope v2 (migrate, seed, reindex, run-storyteller)."
+requires-python = ">=3.11"
+dependencies = [
+    "calliope2",
+    "typer>=0.13",
+    "rich>=13.9",
+]
+
+[project.scripts]
+calliope2-cli = "calliope2_cli.__main__:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["calliope2_cli"]
+
+[tool.uv.sources]
+calliope2 = { workspace = true }

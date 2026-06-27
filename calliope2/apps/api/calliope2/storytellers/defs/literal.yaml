@@ -1,0 +1,10 @@
+name: literal
+description: |
+  Echoes the caller-provided source_text as the frame text. No inference.
+  Useful as a smoke test and as a baseline for comparing other storytellers.
+steps:
+  - set:
+      value: "{{ source_text }}"
+      out: frame_text
+output:
+  text: frame_text

@@ -1,0 +1,17 @@
+name: cinematic_photo
+description: |
+  Detailed, hyper-realistic, atmospheric, cinematic photo. Default
+  illustrator for fern. Adapted from the legacy fern strategy_config's
+  output_image_style.
+outputs: image
+inputs:
+  required: [source]
+style: |
+  A detailed, hyper-realistic, atmospheric, cinematic photo of this scene:
+steps:
+  - generate_image:
+      provider: replicate
+      model: black-forest-labs/flux-1.1-pro
+      prompt: "{{ style }} {{ source }}"
+      out: result
+output: result

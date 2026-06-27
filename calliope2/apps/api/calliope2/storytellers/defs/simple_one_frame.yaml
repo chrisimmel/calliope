@@ -1,0 +1,29 @@
+name: simple_one_frame
+description: |
+  Minimal text+image baseline: generate one short narrative paragraph,
+  then illustrate it. Single frame, no continuation. Takes an optional
+  `theme` input. Default illustrator is cinematic_photo; override at
+  request time for other looks.
+
+illustrator: cinematic_photo
+
+steps:
+  - generate_text:
+      provider: openai
+      model: gpt-4o
+      prompt: |
+        Write a single short paragraph (3–5 sentences) of evocative prose.
+        {% if theme %}The piece should center on the theme: {{ theme }}.
+        {% else %}Choose any vivid subject — a place, a small event, a mood.
+        {% endif %}
+        Return only the prose. No title, no preamble, no commentary.
+      out: frame_text
+
+  - use_illustrator:
+      inputs:
+        source: "{{ frame_text }}"
+      out: frame_image
+
+output:
+  text: frame_text
+  image: frame_image

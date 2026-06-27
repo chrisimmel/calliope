@@ -1,0 +1,30 @@
+name: lavender
+description: |
+  Same narrative shape as fern (lavender-1 continuation prompt) but with
+  GPT-4o instead of GPT-4.1 — a less expensive text model with a slightly
+  different voice. Pairs by default with the film_noir illustrator.
+
+  To get the legacy "tamarisk" experience, pair this storyteller with the
+  charcoal_abstract illustrator at request time:
+    POST /v3/stories {storyteller: "lavender", illustrator: "charcoal_abstract"}
+
+  Ported from the legacy lavender strategy_config (id=12) — text via gpt-4o
+  + lavender-1 prompt; image via flux-pro with "film noir" style.
+
+illustrator: film_noir
+
+steps:
+  - generate_text:
+      provider: openai
+      model: gpt-4o
+      prompt: prompts/lavender/narrate.j2
+      out: frame_text
+
+  - use_illustrator:
+      inputs:
+        source: "{{ frame_text }}"
+      out: frame_image
+
+output:
+  text: frame_text
+  image: frame_image
