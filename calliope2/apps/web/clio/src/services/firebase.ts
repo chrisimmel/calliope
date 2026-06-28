@@ -48,7 +48,7 @@ const firebaseConfig = {
 const databaseId =
   process.env.FIREBASE_DATABASE_ID ||
   (process.env.NODE_ENV === 'production'
-    ? 'calliope-production'
+    ? 'calliope2-production'
     : 'calliope-development');
 
 const TASKS_COLLECTION = 'tasks';
@@ -80,7 +80,9 @@ export function isFirebaseReady(): boolean {
 export async function signInWithGoogle(): Promise<User> {
   if (!auth) {
     initializeFirebaseApp();
-    if (!auth) throw new Error('Firebase auth not configured');
+    // User-facing: don't surface "Firebase" (the auth provider is an
+    // implementation detail). The console warning above keeps the dev signal.
+    if (!auth) throw new Error('Google auth not configured');
   }
   const provider = new GoogleAuthProvider();
   const result = await signInWithPopup(auth, provider);
@@ -93,7 +95,9 @@ export async function signOut(): Promise<void> {
 }
 
 /** Subscribe to auth-state changes. ``user`` is null when signed out. */
-export function onAuthChange(callback: (user: User | null) => void): Unsubscribe {
+export function onAuthChange(
+  callback: (user: User | null) => void
+): Unsubscribe {
   if (!auth) {
     initializeFirebaseApp();
     if (!auth) {

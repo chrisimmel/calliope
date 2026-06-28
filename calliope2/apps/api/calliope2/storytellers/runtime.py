@@ -69,6 +69,7 @@ class Storyteller:
     steps: list[dict[str, Any]]
     output: dict[str, str]
     illustrator: str | None = None
+    experimental: bool = False
     _env: Environment = field(init=False, repr=False)
 
     def __post_init__(self) -> None:
@@ -96,6 +97,7 @@ class Storyteller:
             steps=steps,
             output=dict(data.get("output") or {}),
             illustrator=data.get("illustrator"),
+            experimental=bool(data.get("experimental", False)),
         )
 
     @property
@@ -116,9 +118,7 @@ class Storyteller:
             params = params or {}
             try:
                 if step_type == "use_illustrator":
-                    result = await self._execute_use_illustrator(
-                        params, ctx, illustrator_override
-                    )
+                    result = await self._execute_use_illustrator(params, ctx, illustrator_override)
                 else:
                     result = await execute_base_step(
                         step_type,
@@ -133,6 +133,7 @@ class Storyteller:
                 raise
             except Exception as e:
                 from calliope2.illustrators.errors import IllustratorError
+
                 if isinstance(e, IllustratorError):
                     raise
                 raise StorytellerError(f"step {i} ({step_type}): {e}") from e  # pragma: no cover
@@ -154,7 +155,7 @@ class Storyteller:
           3. ``self.illustrator`` (the storyteller's default)
         """
         # Local import to break the storyteller ↔ illustrator import cycle.
-        from calliope2.illustrators import Illustrator, UnknownIllustrator
+        from calliope2.illustrators import Illustrator
 
         name = params.get("name") or illustrator_override or self.illustrator
         if not name:
@@ -194,9 +195,7 @@ async def run_storyteller(
     illustrator_override: str | None = None,
 ) -> FrameOutput:
     """Load and execute a named storyteller. Pure async function."""
-    return await Storyteller.load(name).run(
-        inputs, illustrator_override=illustrator_override
-    )
+    return await Storyteller.load(name).run(inputs, illustrator_override=illustrator_override)
 
 
 # Re-export for callers that previously imported from this module directly.

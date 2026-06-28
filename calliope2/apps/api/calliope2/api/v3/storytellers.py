@@ -21,6 +21,7 @@ async def list_all(user: CurrentUser) -> list[StorytellerOut]:
                 name=name,
                 description=s.description.strip(),
                 illustrator=s.illustrator,
+                experimental=s.experimental,
             )
         )
     return items

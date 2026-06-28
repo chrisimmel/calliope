@@ -1,0 +1,86 @@
+/* Chrome toolbar. Landscape: vertical 60px left rail. Portrait: bottom bar.
+   Colors are all `--cal-*` (+ the hairline divider from the story surface). */
+
+.toolbar {
+  position: fixed;
+  display: flex;
+  align-items: center;
+  background: var(--cal-overlay);
+  backdrop-filter: blur(var(--cal-overlay-blur));
+  -webkit-backdrop-filter: blur(var(--cal-overlay-blur));
+  z-index: var(--z-toolbar);
+}
+
+/* Landscape — left rail. */
+@media (orientation: landscape) {
+  .toolbar {
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: var(--toolbar-size);
+    flex-direction: column;
+    border-right: 1px solid var(--story-hairline);
+    padding: var(--sp-3) 0;
+    gap: var(--sp-1);
+  }
+  .toolbar__btn--menu {
+    margin-top: auto; /* pin menu to the bottom of the rail */
+  }
+  .toolbar__divider {
+    width: 24px;
+    height: 1px;
+    background: var(--story-hairline);
+    margin: var(--sp-2) 0;
+  }
+}
+
+/* Portrait — bottom bar inside the safe area. */
+@media (orientation: portrait) {
+  .toolbar {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: var(--toolbar-size);
+    flex-direction: row;
+    justify-content: center;
+    gap: var(--sp-2);
+    border-top: 1px solid var(--story-hairline);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .toolbar__btn--menu {
+    margin-left: auto;
+    margin-right: var(--sp-2);
+  }
+  .toolbar__divider {
+    width: 1px;
+    height: 24px;
+    background: var(--story-hairline);
+    margin: 0 var(--sp-2);
+  }
+}
+
+.toolbar__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: transparent;
+  color: var(--cal-on-overlay);
+  border-radius: var(--cal-radius-pill);
+  font-size: 20px; /* icon glyph size (icons are 1em) */
+  transition:
+    color var(--t-fast) var(--ease),
+    background var(--t-fast) var(--ease);
+}
+.toolbar__btn:hover {
+  color: var(--cal-accent);
+}
+
+/* Active (immersive on) — brass fill. */
+.toolbar__btn--active,
+.toolbar__btn--active:hover {
+  background: var(--cal-accent);
+  color: var(--cal-accent-ink);
+}

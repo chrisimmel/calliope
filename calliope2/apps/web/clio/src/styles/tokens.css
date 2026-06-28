@@ -1,0 +1,88 @@
+/**
+ * Layer A — Calliope chrome tokens (`--cal-*`), constant across every story
+ * theme. Buttons, toolbar, menus, modals, toasts, nav controls, the focus ring,
+ * and the brass accent read ONLY from these. They never change with
+ * `data-story-theme`.
+ *
+ * Chrome-owned non-color scales (spacing, radius, elevation, motion, z-index)
+ * live here too — they're theme-independent.
+ *
+ * Story-surface tokens (`--story-*`) live in `theme.css` and are the only thing
+ * a future light/Folio theme touches.
+ */
+
+:root {
+  /* --- Color: Calliope chrome (constant) --- */
+  --cal-accent: #c9a86a; /* brass — primary action, active, focus, selection */
+  --cal-accent-ink: #161310; /* text/icon on brass */
+  --cal-accent-light: #9c6b22; /* brass for light surfaces (Folio-ready) */
+  --cal-overlay: rgba(
+    20,
+    20,
+    22,
+    0.55
+  ); /* floating control / nav backdrop (+ blur 8px) */
+  --cal-overlay-blur: 8px;
+  --cal-on-overlay: #cfcabd; /* icon color on overlay controls */
+  --cal-danger: #cf6a4a; /* errors / destructive */
+  --cal-focus: var(--cal-accent);
+
+  /* --- Typography families --- */
+  --font-serif: 'Newsreader', Georgia, 'Times New Roman', serif;
+  --font-sans: 'Hanken Grotesk', system-ui, -apple-system, sans-serif;
+  --font-mono: 'Space Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* --- Spacing scale (px) --- */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-7: 32px;
+  --sp-8: 40px;
+  --sp-9: 48px;
+  --sp-10: 64px;
+
+  /* --- Radius --- */
+  --cal-radius-sm: 8px;
+  --cal-radius-md: 11px;
+  --cal-radius-lg: 14px;
+  --cal-radius-pill: 999px;
+
+  /* --- Elevation --- */
+  --e1: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --e2: 0 20px 50px -12px rgba(0, 0, 0, 0.45);
+
+  /* --- Motion --- */
+  --t-fast: 150ms;
+  --t-base: 200ms;
+  --t-frame: 300ms; /* frame cross-fade */
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --overlay-hide: 2000ms; /* idle delay before chrome auto-hides */
+
+  /* --- Z-index --- */
+  --z-image: 1;
+  --z-text: 5;
+  --z-toolbar: 50;
+  --z-nav: 100;
+  --z-drawer: 1000;
+  --z-modal: 1100;
+  --z-toast: 1200;
+
+  /* --- Layout --- */
+  --toolbar-size: 60px;
+
+  /* --vp-height is also set dynamically from JS (mobile URL-bar jump). */
+  --vp-height: 100vh;
+  --vp-height: -webkit-fill-available;
+}
+
+/* Reduced-motion users: collapse all timed transitions to instant. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --t-fast: 0ms;
+    --t-base: 0ms;
+    --t-frame: 0ms;
+  }
+}

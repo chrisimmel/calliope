@@ -21,7 +21,7 @@ from pydantic import BaseModel
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from calliope2.inference.errors import InferenceError, UnsupportedOperation
-from calliope2.inference.types import ImageBlob, VideoBlob
+from calliope2.inference.types import AudioBlob, ImageBlob, VideoBlob
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -79,9 +79,7 @@ class OpenAICompatibleClient:
             kwargs["temperature"] = temperature
 
         if schema is not None:
-            response = await self._client.chat.completions.parse(
-                **kwargs, response_format=schema
-            )
+            response = await self._client.chat.completions.parse(**kwargs, response_format=schema)
             parsed = response.choices[0].message.parsed
             if parsed is None:
                 raise InferenceError("structured-output response did not parse")
@@ -155,6 +153,32 @@ class OpenAICompatibleClient:
         if content is None:
             raise InferenceError("analyze_image response had no content")
         return content
+
+    @_retry
+    async def transcribe(
+        self,
+        audio: AudioBlob,
+        *,
+        model: str,
+        prompt: str | None = None,
+    ) -> str:
+        if audio.data is None:
+            # The transcription API needs the bytes; in-browser captures arrive
+            # as data URLs (decoded to bytes upstream), so a bytes-less blob is
+            # a misconfiguration rather than something to fetch here.
+            raise InferenceError("transcribe requires audio bytes (AudioBlob.data)")
+        filename = f"audio.{audio.format or 'webm'}"
+        kwargs: dict[str, object] = {
+            "model": model,
+            "file": (filename, audio.data),
+        }
+        if prompt:
+            kwargs["prompt"] = prompt
+        response = await self._client.audio.transcriptions.create(**kwargs)
+        text = getattr(response, "text", None)
+        if not text:
+            raise InferenceError("transcribe response had no text")
+        return text
 
 
 def _data_uri(image: ImageBlob) -> str:

@@ -4,8 +4,8 @@
   "description": "Calliope v3 reader (Clio). Forked from the v1/v2 Clio at /clio/; the original stays in maintenance until Phase 9 cutover.",
   "main": "index.js",
   "scripts": {
-    "build": "webpack --mode production && mkdir -p ../../api/calliope2/static/clio && cp build/* ../../api/calliope2/static/clio/",
-    "build-dev": "webpack --mode development && mkdir -p ../../api/calliope2/static/clio && cp build/* ../../api/calliope2/static/clio/",
+    "build": "webpack --mode production && mkdir -p ../../api/calliope2/static/clio && cp -R build/. ../../api/calliope2/static/clio/",
+    "build-dev": "webpack --mode development && mkdir -p ../../api/calliope2/static/clio && cp -R build/. ../../api/calliope2/static/clio/",
     "start": "webpack serve --mode development",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
@@ -27,6 +27,7 @@
     "@babel/preset-react": "^7.18.6",
     "@types/styled-components": "^5.1.34",
     "babel-loader": "^8.3.0",
+    "copy-webpack-plugin": "^11.0.0",
     "css-loader": "^6.7.2",
     "dotenv": "^16.5.0",
     "html-webpack-plugin": "^5.5.0",
@@ -40,7 +41,10 @@
   "dependencies": {
     "@emotion/react": "^11.11.3",
     "@emotion/styled": "^11.11.0",
+    "@fontsource/hanken-grotesk": "^5.0.18",
+    "@fontsource/newsreader": "^5.0.18",
     "@fontsource/roboto": "^5.0.12",
+    "@fontsource/space-mono": "^5.0.18",
     "@mui/icons-material": "^5.15.13",
     "@mui/material": "^5.15.9",
     "@paralleldrive/cuid2": "^2.2.2",

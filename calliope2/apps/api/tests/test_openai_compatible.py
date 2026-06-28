@@ -5,7 +5,13 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from pydantic import BaseModel
 
-from calliope2.inference import ImageBlob, OpenAICompatibleClient, UnsupportedOperation
+from calliope2.inference import (
+    AudioBlob,
+    ImageBlob,
+    InferenceError,
+    OpenAICompatibleClient,
+    UnsupportedOperation,
+)
 
 
 def _stub_openai_client() -> MagicMock:
@@ -15,6 +21,7 @@ def _stub_openai_client() -> MagicMock:
     client.chat.completions.parse = AsyncMock()
     client.embeddings.create = AsyncMock()
     client.images.generate = AsyncMock()
+    client.audio.transcriptions.create = AsyncMock()
     return client
 
 
@@ -119,3 +126,29 @@ async def test_analyze_image_passes_through_url(client, stub):
     await client.analyze_image(blob, "describe", model="m")
     msg = stub.chat.completions.create.await_args.kwargs["messages"][0]
     assert msg["content"][1]["image_url"]["url"] == "https://example.com/x.png"
+
+
+async def test_transcribe_sends_bytes_and_returns_text(client, stub):
+    stub.audio.transcriptions.create.return_value = SimpleNamespace(text="a remembered afternoon")
+    audio = AudioBlob(data=b"OggS bytes", format="webm")
+    result = await client.transcribe(audio, model="whisper-1")
+    assert result == "a remembered afternoon"
+    kwargs = stub.audio.transcriptions.create.await_args.kwargs
+    assert kwargs["model"] == "whisper-1"
+    filename, payload = kwargs["file"]
+    assert filename == "audio.webm"
+    assert payload == b"OggS bytes"
+    assert "prompt" not in kwargs  # omitted when not provided
+
+
+async def test_transcribe_forwards_prompt_when_given(client, stub):
+    stub.audio.transcriptions.create.return_value = SimpleNamespace(text="ok")
+    await client.transcribe(
+        AudioBlob(data=b"x", format="mp4"), model="whisper-1", prompt="names: Abigail"
+    )
+    assert stub.audio.transcriptions.create.await_args.kwargs["prompt"] == "names: Abigail"
+
+
+async def test_transcribe_requires_bytes(client):
+    with pytest.raises(InferenceError, match="audio bytes"):
+        await client.transcribe(AudioBlob(url="https://x/clip.mp3"), model="whisper-1")

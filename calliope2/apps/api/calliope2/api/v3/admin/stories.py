@@ -17,6 +17,7 @@ from calliope2.api.v3.admin.schemas import (
     PageMeta,
     PaginatedStoriesOut,
 )
+from calliope2.api.v3.media_urls import to_media_url
 from calliope2.auth.dependencies import AdminUser, SessionDep
 from calliope2.db.models import Story, StoryFrame, User
 
@@ -69,9 +70,7 @@ async def list_stories(
 
 
 @router.get("/{story_id}", response_model=AdminStoryDetailOut)
-async def get_story(
-    story_id: int, user: AdminUser, session: SessionDep
-) -> AdminStoryDetailOut:
+async def get_story(story_id: int, user: AdminUser, session: SessionDep) -> AdminStoryDetailOut:
     stmt = (
         select(Story, User.email.label("owner_email"))
         .join(User, Story.owner_id == User.id)
@@ -106,10 +105,10 @@ def _serialize_frame(frame: StoryFrame) -> AdminFrameOut:
         story_id=frame.story_id,
         number=frame.number,
         text=frame.text,
-        image_url=frame.image.gcs_uri if frame.image is not None else None,
-        video_url=frame.video.gcs_uri if frame.video is not None else None,
+        image_url=to_media_url(frame.image.gcs_uri) if frame.image is not None else None,
+        video_url=to_media_url(frame.video.gcs_uri) if frame.video is not None else None,
         source_image_url=(
-            frame.source_image.gcs_uri if frame.source_image is not None else None
+            to_media_url(frame.source_image.gcs_uri) if frame.source_image is not None else None
         ),
         has_embedding=frame.embedding is not None,
         created_at=frame.created_at,

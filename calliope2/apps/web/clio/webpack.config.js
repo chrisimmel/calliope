@@ -1,6 +1,7 @@
 const cuid2 = require('@paralleldrive/cuid2');
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 const webpack = require('webpack');
 const dotenv = require('dotenv');
 
@@ -27,6 +28,18 @@ module.exports = (env, argv) => {
       new HtmlWebpackPlugin({
         template: path.join(__dirname, 'public', 'index.html'),
       }),
+      // Copy static PWA assets (manifest, icons, service worker) into build/.
+      // index.html is emitted by HtmlWebpackPlugin, so skip it here.
+      new CopyWebpackPlugin({
+        patterns: [
+          {
+            from: path.join(__dirname, 'public'),
+            to: path.resolve(__dirname, 'build'),
+            globOptions: { ignore: ['**/index.html'] },
+            noErrorOnMissing: true,
+          },
+        ],
+      }),
       // Inject environment variables into the client app
       new webpack.DefinePlugin({
         'process.env.NODE_ENV': JSON.stringify(
@@ -42,7 +55,8 @@ module.exports = (env, argv) => {
           process.env.FIREBASE_PROJECT_ID || dotenvVars.FIREBASE_PROJECT_ID
         ),
         'process.env.FIREBASE_STORAGE_BUCKET': JSON.stringify(
-          process.env.FIREBASE_STORAGE_BUCKET || dotenvVars.FIREBASE_STORAGE_BUCKET
+          process.env.FIREBASE_STORAGE_BUCKET ||
+            dotenvVars.FIREBASE_STORAGE_BUCKET
         ),
         'process.env.FIREBASE_MESSAGING_SENDER_ID': JSON.stringify(
           process.env.FIREBASE_MESSAGING_SENDER_ID ||
@@ -52,7 +66,8 @@ module.exports = (env, argv) => {
           process.env.FIREBASE_APP_ID || dotenvVars.FIREBASE_APP_ID
         ),
         'process.env.FIREBASE_MEASUREMENT_ID': JSON.stringify(
-          process.env.FIREBASE_MEASUREMENT_ID || dotenvVars.FIREBASE_MEASUREMENT_ID
+          process.env.FIREBASE_MEASUREMENT_ID ||
+            dotenvVars.FIREBASE_MEASUREMENT_ID
         ),
         'process.env.FIREBASE_DATABASE_ID': JSON.stringify(
           process.env.FIREBASE_DATABASE_ID ||

@@ -1,0 +1,73 @@
+/* Three-ring 3D loader. Ring color is a chrome accent so it reads on the
+   reading surface; sizing is driven by the `--loader-size` set per variant. */
+
+.loader {
+  position: relative;
+  border-radius: 50%;
+  perspective: 800px;
+  background: transparent;
+}
+.loader--page {
+  --loader-size: 64px;
+}
+.loader--inline {
+  --loader-size: 32px;
+}
+.loader,
+.loader .inner {
+  width: var(--loader-size);
+  height: var(--loader-size);
+}
+
+.loader .inner {
+  position: absolute;
+  box-sizing: border-box;
+  border-radius: 50%;
+  background: transparent;
+  left: 0;
+  top: 0;
+}
+
+.loader .inner.one {
+  animation: loader-rotate-one 2s linear infinite;
+  border-bottom: 3px solid var(--cal-on-overlay);
+}
+.loader .inner.two {
+  animation: loader-rotate-two 2s linear infinite;
+  border-right: 3px solid var(--cal-on-overlay);
+}
+.loader .inner.three {
+  animation: loader-rotate-three 2s linear infinite;
+  border-top: 3px solid var(--cal-on-overlay);
+}
+
+@keyframes loader-rotate-one {
+  0% {
+    transform: rotateX(35deg) rotateY(-45deg) rotateZ(0deg);
+  }
+  100% {
+    transform: rotateX(35deg) rotateY(-45deg) rotateZ(360deg);
+  }
+}
+@keyframes loader-rotate-two {
+  0% {
+    transform: rotateX(50deg) rotateY(10deg) rotateZ(0deg);
+  }
+  100% {
+    transform: rotateX(50deg) rotateY(10deg) rotateZ(360deg);
+  }
+}
+@keyframes loader-rotate-three {
+  0% {
+    transform: rotateX(35deg) rotateY(55deg) rotateZ(0deg);
+  }
+  100% {
+    transform: rotateX(35deg) rotateY(55deg) rotateZ(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loader .inner {
+    animation-duration: 0s;
+  }
+}

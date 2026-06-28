@@ -79,6 +79,11 @@ export async function getStory(id: number): Promise<StoryDetail> {
   return get(`/v3/stories/${id}`);
 }
 
+/** Resolve a shared/deep-linked story by slug. Non-owners get is_read_only. */
+export async function getStoryBySlug(slug: string): Promise<StoryDetail> {
+  return get(`/v3/stories/slug/${encodeURIComponent(slug)}`);
+}
+
 export async function createStory(
   body: CreateStoryRequest
 ): Promise<CreateStoryResponse> {

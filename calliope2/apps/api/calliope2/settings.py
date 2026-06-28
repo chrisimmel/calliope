@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     )
     gcs_bucket: str = Field(default="")
     firebase_project_id: str = Field(default="")
+    # Named Firestore database the backend writes task status to. Must match
+    # the database the web client listens on. Empty → the "(default)" database.
+    firebase_database_id: str = Field(default="")
 
     openai_api_key: SecretStr = Field(default=SecretStr(""))
     openai_base_url: str | None = Field(default=None)

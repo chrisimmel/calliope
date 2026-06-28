@@ -1,0 +1,34 @@
+/**
+ * Layer B — story-surface tokens (`--story-*`), supplied per-theme by the
+ * active story theme via `data-story-theme` on the story container. Only
+ * story-surface elements (reading background, prose, titles, scrim, kicker,
+ * cards, sheets) read these — never chrome.
+ *
+ * v1 ships `atelier` (dark). `folio` (light) is stubbed for later; when it
+ * lands, only this file changes — no chrome token, no button, is touched.
+ */
+
+[data-story-theme='atelier'] {
+  --story-bg: #0a0a0b; /* reading background; viewport, immersive */
+  --story-raised: #131316; /* cards, sheets, list rows, seed options */
+  --story-title: #f6f3ec; /* titles / headings on dark */
+  --story-text: #e7e3d9; /* frame body prose */
+  --story-muted: #8b877d; /* meta, counters, secondary labels */
+  --story-hairline: rgba(
+    255,
+    255,
+    255,
+    0.08
+  ); /* dividers, toolbar top border */
+  --story-kicker: #c9a86a; /* kicker / storyteller accent */
+  --story-scrim: linear-gradient(
+    to top,
+    rgba(8, 8, 9, 0.94),
+    transparent 52%
+  ); /* behind overlaid text */
+}
+
+/* Folio (light) — shipped later. Intentionally empty stub. */
+[data-story-theme='folio'] {
+  /* --story-bg: #faf8f2; … */
+}

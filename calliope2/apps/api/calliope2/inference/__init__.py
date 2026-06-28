@@ -10,9 +10,10 @@ from calliope2.inference.openai_compatible import OpenAICompatibleClient
 from calliope2.inference.protocol import InferenceClient
 from calliope2.inference.registry import get_client
 from calliope2.inference.replicate_client import ReplicateClient
-from calliope2.inference.types import ImageBlob, VideoBlob
+from calliope2.inference.types import AudioBlob, ImageBlob, VideoBlob
 
 __all__ = [
+    "AudioBlob",
     "ImageBlob",
     "InferenceClient",
     "InferenceError",

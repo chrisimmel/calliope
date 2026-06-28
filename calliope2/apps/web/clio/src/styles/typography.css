@@ -1,0 +1,70 @@
+/**
+ * Semantic type roles from the Atelier spec §05. Three families:
+ *   - Newsreader (serif)     — the story's voice (titles, prose).
+ *   - Hanken Grotesk (sans)  — Calliope UI labels and buttons.
+ *   - Space Mono             — system facts (kicker, counters, meta).
+ *
+ * Sizes are responsive: the mobile (≤480px) overrides shrink story type.
+ */
+
+.type-story-title {
+  font-family: var(--font-serif);
+  font-size: 26px;
+  line-height: 1.12;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.type-story-body {
+  font-family: var(--font-serif);
+  font-size: 21px;
+  line-height: 1.6;
+  font-weight: 400;
+}
+
+.type-section-title {
+  font-family: var(--font-serif);
+  font-size: 25px;
+  line-height: 1.12;
+  font-weight: 500;
+}
+
+.type-kicker {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.2;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.type-ui-label {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.3;
+  font-weight: 600;
+}
+
+.type-button {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.type-meta,
+.type-counter {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.4;
+  letter-spacing: 0.05em;
+}
+
+@media (max-width: 480px) {
+  .type-story-title {
+    font-size: 22px;
+  }
+  .type-story-body {
+    font-size: 16px;
+  }
+}

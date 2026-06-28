@@ -1,0 +1,70 @@
+/* Full-height tap zones flanking the reading area. The button is a wide,
+   transparent hit target; the chevron circle only shows on hover / desktop. */
+
+.nav-zone {
+  position: absolute;
+  top: 0;
+  bottom: var(--toolbar-size);
+  width: 22%;
+  max-width: 120px;
+  z-index: var(--z-nav);
+  display: flex;
+  align-items: center;
+}
+.nav-zone--left {
+  left: 0;
+  justify-content: flex-start;
+}
+.nav-zone--right {
+  right: 0;
+  justify-content: flex-end;
+}
+
+.nav-zone__button {
+  height: 100%;
+  width: 100%;
+  min-width: 44px;
+  background: transparent;
+  border: none;
+  display: flex;
+  align-items: center;
+  padding: 0 var(--sp-3);
+  color: var(--cal-on-overlay);
+}
+.nav-zone--right .nav-zone__button {
+  justify-content: flex-end;
+}
+
+/* Chevron circle: hidden by default, revealed on pointer devices. */
+.nav-zone__chevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--cal-radius-pill);
+  background: var(--cal-overlay);
+  backdrop-filter: blur(var(--cal-overlay-blur));
+  -webkit-backdrop-filter: blur(var(--cal-overlay-blur));
+  color: var(--cal-on-overlay);
+  font-size: 20px;
+  opacity: 0;
+  transition: opacity var(--t-base) var(--ease);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .nav-zone__button:hover .nav-zone__chevron,
+  .nav-zone__button:focus-visible .nav-zone__chevron {
+    opacity: 1;
+  }
+}
+
+/* In portrait the zones only cover the media band (top square). The viewer
+   sets --media-band to the media height so zones don't sit over the text. */
+@media (orientation: portrait) {
+  .nav-zone {
+    bottom: auto;
+    top: 0;
+    height: var(--media-band, 100vw);
+  }
+}

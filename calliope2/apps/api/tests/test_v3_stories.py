@@ -52,9 +52,7 @@ async def test_create_story_rejects_unknown_storyteller(client):
 
 
 async def test_list_stories_returns_only_owner_stories(client, session, db_sessionmaker):
-    response = await client.post(
-        "/v3/stories", json={"storyteller": "literal", "title": "Mine"}
-    )
+    response = await client.post("/v3/stories", json={"storyteller": "literal", "title": "Mine"})
     assert response.status_code == 202
 
     async with db_sessionmaker() as setup:
@@ -85,12 +83,8 @@ async def test_get_story_404_when_not_owner(client, db_sessionmaker):
     assert response.status_code == 404
 
 
-async def test_get_story_returns_frames_with_image_and_video_urls(
-    client, session, db_sessionmaker
-):
-    create = await client.post(
-        "/v3/stories", json={"storyteller": "fern", "title": "S"}
-    )
+async def test_get_story_returns_frames_with_image_and_video_urls(client, session, db_sessionmaker):
+    create = await client.post("/v3/stories", json={"storyteller": "fern", "title": "S"})
     story_id = create.json()["story_id"]
 
     async with db_sessionmaker() as setup:
@@ -98,10 +92,12 @@ async def test_get_story_returns_frames_with_image_and_video_urls(
         vid = Video(gcs_uri="gs://b/v.mp4", format="mp4", duration_seconds=4.0)
         setup.add_all([img, vid])
         await setup.flush()
-        setup.add_all([
-            StoryFrame(story_id=story_id, number=1, text="frame one", image_id=img.id),
-            StoryFrame(story_id=story_id, number=2, text="frame two", video_id=vid.id),
-        ])
+        setup.add_all(
+            [
+                StoryFrame(story_id=story_id, number=1, text="frame one", image_id=img.id),
+                StoryFrame(story_id=story_id, number=2, text="frame two", video_id=vid.id),
+            ]
+        )
         await setup.commit()
 
     response = await client.get(f"/v3/stories/{story_id}")
@@ -113,10 +109,11 @@ async def test_get_story_returns_frames_with_image_and_video_urls(
     f1, f2 = body["frames"]
     assert f1["number"] == 1
     assert f1["text"] == "frame one"
-    assert f1["image_url"] == "gs://b/img.png"
+    # gs:// URIs are normalized to their public HTTPS form for the browser.
+    assert f1["image_url"] == "https://storage.googleapis.com/b/img.png"
     assert f1["video_url"] is None
     assert f2["number"] == 2
-    assert f2["video_url"] == "gs://b/v.mp4"
+    assert f2["video_url"] == "https://storage.googleapis.com/b/v.mp4"
     assert f2["image_url"] is None
 
 
@@ -126,9 +123,7 @@ async def test_create_frame_404_when_story_missing(client):
 
 
 async def test_create_frame_returns_task_id(client):
-    create = await client.post(
-        "/v3/stories", json={"storyteller": "lavender", "title": "C"}
-    )
+    create = await client.post("/v3/stories", json={"storyteller": "lavender", "title": "C"})
     story_id = create.json()["story_id"]
 
     response = await client.post(
@@ -137,3 +132,48 @@ async def test_create_frame_returns_task_id(client):
     )
     assert response.status_code == 202
     assert response.json()["task_id"]
+
+
+async def test_list_stories_includes_derived_metadata(client, db_sessionmaker):
+    create = await client.post("/v3/stories", json={"storyteller": "fern", "title": "Meta"})
+    story_id = create.json()["story_id"]
+
+    async with db_sessionmaker() as setup:
+        from calliope2.db.models import Bookmark
+
+        setup.add(StoryFrame(story_id=story_id, number=1, text="one"))
+        setup.add(StoryFrame(story_id=story_id, number=2, text="two"))
+        user = (await setup.execute(select(User))).scalars().first()
+        setup.add(Bookmark(owner_id=user.id, story_id=story_id))
+        await setup.commit()
+
+    body = (await client.get("/v3/stories")).json()
+    story = next(s for s in body if s["id"] == story_id)
+    assert story["frame_count"] == 2
+    assert story["is_bookmarked"] is True
+    assert story["is_read_only"] is False
+
+
+async def test_get_story_by_slug_marks_non_owner_read_only(client, db_sessionmaker):
+    async with db_sessionmaker() as setup:
+        other = User(firebase_uid="someone-else", email="o@x")
+        setup.add(other)
+        await setup.flush()
+        s = Story(
+            owner_id=other.id,
+            storyteller_name="literal",
+            title="Shared",
+            slug="shared-tale",
+        )
+        setup.add(s)
+        await setup.commit()
+
+    response = await client.get("/v3/stories/slug/shared-tale")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["title"] == "Shared"
+    assert body["is_read_only"] is True
+
+
+async def test_get_story_by_slug_404_when_missing(client):
+    assert (await client.get("/v3/stories/slug/nope")).status_code == 404

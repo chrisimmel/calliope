@@ -59,7 +59,8 @@ class FirestoreTaskWriter:
     async def progress(self, task_id: str, progress: float) -> None:
         # Use set(merge=True) so a dropped started() doesn't leave orphan updates.
         await self._safe_write(
-            "set", task_id,
+            "set",
+            task_id,
             lambda: self._doc(task_id).set(
                 {"status": TaskStatus.RUNNING.value, "progress": progress},
                 merge=True,
@@ -68,7 +69,8 @@ class FirestoreTaskWriter:
 
     async def completed(self, task_id: str) -> None:
         await self._safe_write(
-            "set", task_id,
+            "set",
+            task_id,
             lambda: self._doc(task_id).set(
                 {
                     "status": TaskStatus.COMPLETED.value,
@@ -81,7 +83,8 @@ class FirestoreTaskWriter:
 
     async def failed(self, task_id: str, error: str) -> None:
         await self._safe_write(
-            "set", task_id,
+            "set",
+            task_id,
             lambda: self._doc(task_id).set(
                 {
                     "status": TaskStatus.FAILED.value,
@@ -107,7 +110,13 @@ def get_task_writer() -> TaskWriter:
         return LoggingTaskWriter()
     from google.cloud.firestore import AsyncClient  # imported lazily; needs GCP creds
 
-    client = AsyncClient(project=settings.firebase_project_id)
+    # Target the named database the client listens on (e.g. calliope2-production).
+    # Without database=, this writes to "(default)", which the web client never
+    # reads — so realtime status would silently never arrive.
+    client = AsyncClient(
+        project=settings.firebase_project_id,
+        database=settings.firebase_database_id or "(default)",
+    )
     return FirestoreTaskWriter(client)
 
 

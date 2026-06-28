@@ -1,0 +1,25 @@
+.status-monitor {
+  position: fixed;
+  right: var(--sp-4);
+  bottom: calc(var(--toolbar-size) + var(--sp-4));
+  z-index: var(--z-toast);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-4);
+  background: var(--cal-overlay);
+  backdrop-filter: blur(var(--cal-overlay-blur));
+  -webkit-backdrop-filter: blur(var(--cal-overlay-blur));
+  border-radius: var(--cal-radius-pill);
+  color: var(--cal-on-overlay);
+}
+
+@media (orientation: landscape) {
+  .status-monitor {
+    bottom: var(--sp-4);
+  }
+}
+
+.status-monitor__label {
+  color: var(--cal-on-overlay);
+}

@@ -18,12 +18,13 @@ class StorytellerOut(BaseModel):
     name: str
     description: str
     illustrator: str | None = None  # default illustrator; may be None
+    experimental: bool = False  # hidden from the picker unless ?x=1
 
 
 class IllustratorOut(BaseModel):
     name: str
     description: str
-    outputs: str               # "image" | "video"
+    outputs: str  # "image" | "video"
     experimental: bool = False
 
 
@@ -54,6 +55,7 @@ class FrameOut(BaseModel):
     text: str | None = None
     image_url: str | None = None
     video_url: str | None = None
+    situation: str | None = None  # from frame metadata; used as image alt text
     created_at: datetime
 
 
@@ -64,6 +66,14 @@ class StoryOut(_Out):
     storyteller_name: str | None = None
     created_at: datetime
     updated_at: datetime
+    # Derived fields for the library/viewer UI.
+    frame_count: int = 0
+    thumbnail_url: str | None = None
+    is_read_only: bool = False  # true when the requester isn't the owner
+    is_bookmarked: bool = False  # the requester has bookmarked this story
+    # Latest generation status, when known. Usually left None: the client
+    # derives live status from the Firestore task docs instead.
+    status: str | None = None
 
 
 class StoryDetailOut(StoryOut):

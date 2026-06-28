@@ -1,0 +1,45 @@
+# Build the calliope2 image with the Firebase *web* config baked into the Clio
+# bundle. webpack reads these as build ARGs (see Dockerfile); Cloud Run's
+# --build-env-vars do NOT reach a Dockerfile build, so the bundle would ship
+# config-less (sign-in disabled) without this. Submit from calliope2/:
+#
+#   gcloud builds submit --config cloudbuild.yaml \
+#     --substitutions=_FIREBASE_API_KEY=...,_FIREBASE_AUTH_DOMAIN=...,_FIREBASE_PROJECT_ID=...,\
+# _FIREBASE_STORAGE_BUCKET=...,_FIREBASE_MESSAGING_SENDER_ID=...,_FIREBASE_APP_ID=...,\
+# _FIREBASE_MEASUREMENT_ID=...,_FIREBASE_DATABASE_ID=...
+#
+# Then roll the new revision:
+#   gcloud run deploy calliope-v3 --image <_IMAGE> --region us-central1
+#
+# The Firebase web config is NOT secret (it ships in every browser bundle).
+steps:
+  - name: "gcr.io/cloud-builders/docker"
+    entrypoint: "bash"
+    args:
+      - "-c"
+      - |
+        docker build \
+          --build-arg FIREBASE_API_KEY="$_FIREBASE_API_KEY" \
+          --build-arg FIREBASE_AUTH_DOMAIN="$_FIREBASE_AUTH_DOMAIN" \
+          --build-arg FIREBASE_PROJECT_ID="$_FIREBASE_PROJECT_ID" \
+          --build-arg FIREBASE_STORAGE_BUCKET="$_FIREBASE_STORAGE_BUCKET" \
+          --build-arg FIREBASE_MESSAGING_SENDER_ID="$_FIREBASE_MESSAGING_SENDER_ID" \
+          --build-arg FIREBASE_APP_ID="$_FIREBASE_APP_ID" \
+          --build-arg FIREBASE_MEASUREMENT_ID="$_FIREBASE_MEASUREMENT_ID" \
+          --build-arg FIREBASE_DATABASE_ID="$_FIREBASE_DATABASE_ID" \
+          -t "$_IMAGE" .
+images:
+  - "$_IMAGE"
+options:
+  machineType: "E2_HIGHCPU_8"
+timeout: "1800s"
+substitutions:
+  _IMAGE: "us-central1-docker.pkg.dev/ardent-course-370411/cloud-run-source-deploy/calliope-v3:firebase"
+  _FIREBASE_API_KEY: ""
+  _FIREBASE_AUTH_DOMAIN: ""
+  _FIREBASE_PROJECT_ID: ""
+  _FIREBASE_STORAGE_BUCKET: ""
+  _FIREBASE_MESSAGING_SENDER_ID: ""
+  _FIREBASE_APP_ID: ""
+  _FIREBASE_MEASUREMENT_ID: ""
+  _FIREBASE_DATABASE_ID: ""

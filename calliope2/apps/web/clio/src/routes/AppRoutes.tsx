@@ -4,17 +4,22 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import ClioApp from '../ClioApp';
 
 /**
- * v3 Clio routes — numeric story IDs (the v1 slug-based URLs are gone since
- * /v3 doesn't expose slugs). The plan keeps the ``/clio/`` URL prefix so the
- * load-balancer cutover after Phase 9 is a clean DNS/path swap.
+ * Clio routes. The viewer is the single signed-in surface; the path tells it
+ * which story + frame to show. `:frame` is 1-based.
  *
- *   /clio/                       — home: sign-in + current user's stories
- *   /clio/stories/:storyId       — story detail view
+ *   /clio/                              — resume the most-recent story
+ *   /clio/story/:slug/:frame            — canonical deep link
+ *   /clio/story/:slug                   — slug, default to frame 1
+ *   /clio/stories/:storyId/:frame       — transitional id form (no slug yet)
+ *   /clio/stories/:storyId              — id form, default to frame 1
  */
 const AppRoutes: React.FC = () => (
   <BrowserRouter>
     <Routes>
       <Route path="/clio/" element={<ClioApp />} />
+      <Route path="/clio/story/:slug/:frame" element={<ClioApp />} />
+      <Route path="/clio/story/:slug" element={<ClioApp />} />
+      <Route path="/clio/stories/:storyId/:frame" element={<ClioApp />} />
       <Route path="/clio/stories/:storyId" element={<ClioApp />} />
       <Route path="*" element={<Navigate to="/clio/" replace />} />
     </Routes>
