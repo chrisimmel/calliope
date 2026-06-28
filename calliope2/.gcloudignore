@@ -1,0 +1,22 @@
+# Upload filter for `gcloud builds submit` / `gcloud run deploy --source`.
+# The Docker build installs deps (npm ci / uv sync) and rebuilds the SPA
+# bundles itself, so none of the following need to ship in the build context.
+.git
+**/node_modules/
+**/.venv/
+.venv/
+**/__pycache__/
+**/*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+**/.DS_Store
+
+# Built SPA output (rebuilt in the image).
+apps/web/clio/build/
+apps/web/admin/dist/
+apps/api/calliope2/static/clio/
+apps/api/calliope2/static/admin/
+
+# Local-only.
+**/.env
