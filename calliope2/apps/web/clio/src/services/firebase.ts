@@ -48,7 +48,7 @@ const firebaseConfig = {
 const databaseId =
   process.env.FIREBASE_DATABASE_ID ||
   (process.env.NODE_ENV === 'production'
-    ? 'calliope-production'
+    ? 'calliope2-production'
     : 'calliope-development');
 
 const TASKS_COLLECTION = 'tasks';
