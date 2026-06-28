@@ -1,20 +1,20 @@
 import React, { Suspense, useEffect, useState } from 'react';
 
-import "./audio-recorder.css";
+import './audio-recorder.css';
+import '../photo/capture.css';
 import IconClose from '../icons/IconClose';
 import IconSend from '../icons/IconSend';
 import useAudioRecorder from '../audio/useAudioRecorder';
 
-
 const LiveAudioVisualizer = React.lazy(async () => {
-  const { LiveAudioVisualizer } = await import("react-audio-visualize");
+  const { LiveAudioVisualizer } = await import('react-audio-visualize');
   return { default: LiveAudioVisualizer };
 });
 
 type AudioCaptureProps = {
-  setIsOpen: (open: boolean) => void,
-  sendAudio: (audio: string) => void,
-}
+  setIsOpen: (open: boolean) => void;
+  sendAudio: (audio: string) => void;
+};
 
 export default function AudioCapture({
   setIsOpen,
@@ -55,42 +55,45 @@ export default function AudioCapture({
     if (recordingBlob != null && sendAudio != null) {
       if (shouldSave) {
         var reader = new FileReader();
-        reader.onloadend = function() {
-          const base64data = reader.result || "";
+        reader.onloadend = function () {
+          const base64data = reader.result || '';
           sendAudio(base64data as string);
-        }
+        };
         reader.readAsDataURL(recordingBlob);
       }
       setIsOpen(false);
     }
-}, [recordingBlob]);
+  }, [recordingBlob]);
 
   return (
-    <div className={`audioCapture audio-recorder ${isRecording ? "recording" : ""}`}>
-      {
-        canRecord &&
+    <div
+      className={`audioCapture audio-recorder ${
+        isRecording ? 'recording' : ''
+      }`}
+    >
+      {canRecord && (
         <>
           <button
-              className="captureButton send"
-              onClick={() => {
-                setShouldSave(true);
-                stopRecording();
-              }}
+            className="captureButton send"
+            onClick={() => {
+              setShouldSave(true);
+              stopRecording();
+            }}
           >
-              <IconSend/>
+            <IconSend />
           </button>
           <span
             className={`audio-recorder-timer ${
-              !isRecording ? "display-none" : ""
+              !isRecording ? 'display-none' : ''
             }`}
             data-testid="ar_timer"
           >
             {Math.floor(recordingTime / 60)}:
-            {String(recordingTime % 60).padStart(2, "0")}
+            {String(recordingTime % 60).padStart(2, '0')}
           </span>
           <span
             className={`audio-recorder-visualizer ${
-              !isRecording ? "display-none" : ""
+              !isRecording ? 'display-none' : ''
             }`}
           >
             {mediaRecorder && (
@@ -110,23 +113,20 @@ export default function AudioCapture({
             )}
           </span>
         </>
-      }
-      {
-        !canRecord &&
-        <span>Cannot record audio</span>
-      }
+      )}
+      {!canRecord && <span>Cannot record audio</span>}
 
       <button
-          className="captureButton close"
-          onClick={() => {
-            setShouldSave(false);
-            stopRecording();
-            if (!canRecord) {
-              setIsOpen(false);
-            }
-          }}
+        className="captureButton close"
+        onClick={() => {
+          setShouldSave(false);
+          stopRecording();
+          if (!canRecord) {
+            setIsOpen(false);
+          }
+        }}
       >
-          <IconClose/>
+        <IconClose />
       </button>
     </div>
   );

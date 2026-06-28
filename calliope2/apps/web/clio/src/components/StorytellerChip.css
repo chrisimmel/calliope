@@ -1,0 +1,44 @@
+.storyteller-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  color: var(--story-muted);
+}
+
+.storyteller-chip__monogram {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  border-radius: var(--cal-radius-sm);
+  flex: 0 0 auto;
+}
+
+.storyteller-chip--sm .storyteller-chip__monogram {
+  width: 20px;
+  height: 20px;
+  font-size: 11px;
+}
+
+.storyteller-chip--md .storyteller-chip__monogram {
+  width: 28px;
+  height: 28px;
+  font-size: 14px;
+  border-radius: var(--cal-radius-md);
+}
+
+.storyteller-chip__name {
+  font-family: var(--font-sans);
+  font-weight: 600;
+}
+
+.storyteller-chip--sm .storyteller-chip__name {
+  font-size: 13px;
+}
+
+.storyteller-chip--md .storyteller-chip__name {
+  font-size: 15px;
+  color: var(--story-title);
+}

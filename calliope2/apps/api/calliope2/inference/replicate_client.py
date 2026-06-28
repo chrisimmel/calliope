@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 from typing import TYPE_CHECKING, Any
 
 import replicate
@@ -38,6 +39,9 @@ class ReplicateClient:
     async def analyze_image(self, *args: Any, **kwargs: Any) -> str:
         raise UnsupportedOperation("use OpenAICompatibleClient for image analysis")
 
+    async def transcribe(self, *args: Any, **kwargs: Any) -> str:
+        raise UnsupportedOperation("use OpenAICompatibleClient for audio transcription")
+
     @_retry
     async def image(
         self,
@@ -51,10 +55,7 @@ class ReplicateClient:
         if size is not None:
             inputs["size"] = size
         if refs:
-            ref = refs[0]
-            if ref.url is None:
-                raise InferenceError("replicate refs must be URL-addressable")
-            inputs["image"] = ref.url
+            inputs["image"] = _image_ref_input(refs[0])
 
         output = await self._client.async_run(model, input=inputs, use_file_output=True)
         return ImageBlob(**await _file_output_to_blob_kwargs(output, default_format="png"))
@@ -72,14 +73,24 @@ class ReplicateClient:
         if duration_seconds is not None:
             inputs["duration"] = duration_seconds
         if refs:
-            ref = refs[0]
-            if ref.url is None:
-                raise InferenceError("replicate refs must be URL-addressable")
-            inputs["image"] = ref.url
+            inputs["image"] = _image_ref_input(refs[0])
 
         output = await self._client.async_run(model, input=inputs, use_file_output=True)
         kwargs = await _file_output_to_blob_kwargs(output, default_format="mp4")
         return VideoBlob(**kwargs, duration_seconds=duration_seconds)
+
+
+def _image_ref_input(ref: ImageBlob) -> str:
+    """Turn a reference image into a Replicate ``image`` input. Replicate accepts
+    both ``http(s)`` URLs and ``data:`` URIs, so a bytes-only blob (e.g. a
+    captured photo ingested from a data URL) is encoded inline rather than
+    requiring a hosted URL."""
+    if ref.url is not None:
+        return ref.url
+    if ref.data is not None:
+        mime = f"image/{ref.format or 'png'}"
+        return f"data:{mime};base64,{base64.b64encode(ref.data).decode('ascii')}"
+    raise InferenceError("replicate image ref has neither url nor data")
 
 
 async def _file_output_to_blob_kwargs(output: Any, *, default_format: str) -> dict[str, Any]:

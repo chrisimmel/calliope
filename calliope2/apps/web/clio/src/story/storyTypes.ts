@@ -21,6 +21,7 @@ export type Frame = {
   text?: string | null;
   image_url?: string | null;
   video_url?: string | null;
+  situation?: string | null; // alt text for the frame image
   created_at: string;
 };
 
@@ -31,6 +32,12 @@ export type Story = {
   storyteller_name?: string | null;
   created_at: string;
   updated_at: string;
+  // Derived fields from the v3 API for the library/viewer UI.
+  frame_count?: number;
+  thumbnail_url?: string | null;
+  is_read_only?: boolean;
+  is_bookmarked?: boolean;
+  status?: string | null;
 };
 
 export type StoryDetail = Story & {
@@ -40,7 +47,8 @@ export type StoryDetail = Story & {
 export type Storyteller = {
   name: string;
   description: string;
-  illustrator?: string | null;   // default illustrator, if any
+  illustrator?: string | null; // default illustrator, if any
+  experimental?: boolean; // hidden from the picker unless ?x=1
 };
 
 export type Illustrator = {

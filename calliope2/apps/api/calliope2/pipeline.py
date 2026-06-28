@@ -24,7 +24,7 @@ from typing import TYPE_CHECKING, Any
 import yaml
 from jinja2 import ChainableUndefined, Environment, FileSystemLoader, TemplateNotFound
 
-from calliope2.inference import ImageBlob, get_client
+from calliope2.inference import AudioBlob, ImageBlob, get_client
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Mapping
@@ -58,7 +58,14 @@ class MissingVariable(PipelineError):
 
 
 BASE_STEP_TYPES: frozenset[str] = frozenset(
-    {"generate_text", "generate_image", "generate_video", "analyze_image", "set"}
+    {
+        "generate_text",
+        "generate_image",
+        "generate_video",
+        "analyze_image",
+        "transcribe",
+        "set",
+    }
 )
 
 
@@ -78,9 +85,7 @@ def load_yaml_def(
     produces ``no storyteller definition for 'fern' at ...``.
     """
     if not _NAME_RE.match(name):
-        raise unknown_error_cls(
-            f"invalid {kind} name {name!r}: names must match [a-z0-9_-]+"
-        )
+        raise unknown_error_cls(f"invalid {kind} name {name!r}: names must match [a-z0-9_-]+")
     path = (defs_dir / f"{name}.yaml").resolve()
     if not path.is_relative_to(defs_dir.resolve()):
         raise unknown_error_cls(f"invalid {kind} name {name!r}")
@@ -182,13 +187,19 @@ async def execute_base_step(
     client = get_client(provider)
 
     if step_type == "generate_text":
-        prompt = render(require_param(params, "prompt", step_type, schema_error_cls=schema_error_cls))
+        prompt = render(
+            require_param(params, "prompt", step_type, schema_error_cls=schema_error_cls)
+        )
         return await client.text(prompt, model=model)
     if step_type == "generate_image":
-        prompt = render(require_param(params, "prompt", step_type, schema_error_cls=schema_error_cls))
+        prompt = render(
+            require_param(params, "prompt", step_type, schema_error_cls=schema_error_cls)
+        )
         return await client.image(prompt, model=model)
     if step_type == "generate_video":
-        prompt = render(require_param(params, "prompt", step_type, schema_error_cls=schema_error_cls))
+        prompt = render(
+            require_param(params, "prompt", step_type, schema_error_cls=schema_error_cls)
+        )
         return await client.video(prompt, model=model)
     if step_type == "analyze_image":
         input_var = require_param(params, "input", step_type, schema_error_cls=schema_error_cls)
@@ -203,7 +214,24 @@ async def execute_base_step(
                 f"analyze_image input {input_var!r} must be an ImageBlob, "
                 f"got {type(image).__name__}"
             )
-        prompt = render(require_param(params, "prompt", step_type, schema_error_cls=schema_error_cls))
+        prompt = render(
+            require_param(params, "prompt", step_type, schema_error_cls=schema_error_cls)
+        )
         return await client.analyze_image(image, prompt, model=model)
+    if step_type == "transcribe":
+        input_var = require_param(params, "input", step_type, schema_error_cls=schema_error_cls)
+        if input_var not in ctx:
+            raise MissingVariable(
+                f"transcribe input {input_var!r} not in context (available: {sorted(ctx.keys())})"
+            )
+        audio = ctx[input_var]
+        if not isinstance(audio, AudioBlob):
+            raise schema_error_cls(
+                f"transcribe input {input_var!r} must be an AudioBlob, got {type(audio).__name__}"
+            )
+        # Optional `prompt` biases transcription (vocabulary/spelling hints).
+        prompt_param = params.get("prompt")
+        prompt = render(prompt_param) if isinstance(prompt_param, str) else None
+        return await client.transcribe(audio, model=model, prompt=prompt)
 
     raise UnknownStepType(step_type)  # pragma: no cover — guarded by validate_steps_schema

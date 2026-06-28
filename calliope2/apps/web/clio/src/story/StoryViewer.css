@@ -1,0 +1,148 @@
+/**
+ * Story viewer layout. Landscape: media | text split with the 60px toolbar
+ * rail. Portrait: media on top (square), text below, toolbar as a bottom bar.
+ * Immersive collapses to full-bleed media and fades all chrome.
+ *
+ * Reading-surface elements read `--story-*`; the only chrome here is the
+ * fade behavior of the toolbar/nav, which is driven by class state.
+ */
+
+.story-viewer {
+  position: relative;
+  width: 100%;
+  height: var(--vp-height);
+  background-color: var(--story-bg);
+  color: var(--story-text);
+  overflow: hidden;
+}
+
+.story-viewer--center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Empty / generating / begin placeholder centered over the full surface. */
+.story-viewer__placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-4);
+  text-align: center;
+  padding: var(--sp-6);
+}
+
+.story-viewer__media {
+  position: relative;
+  background-color: var(--story-bg);
+}
+
+.story-viewer__text {
+  background-color: var(--story-bg);
+  overflow-y: auto;
+}
+
+.story-viewer__text-inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.story-viewer__kicker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.story-viewer__kicker .frame-counter {
+  color: var(--story-muted);
+}
+
+.story-viewer__body {
+  color: var(--story-text);
+  white-space: pre-wrap;
+}
+
+/* --- Landscape: media | text split, toolbar rail on the left --- */
+@media (orientation: landscape) {
+  .story-viewer {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    padding-left: var(--toolbar-size);
+    transition: padding-left var(--t-base) var(--ease);
+  }
+  .story-viewer__media {
+    grid-column: 1;
+    height: var(--vp-height);
+  }
+  .story-viewer__text {
+    grid-column: 2;
+    height: var(--vp-height);
+    display: flex;
+    align-items: center;
+    padding: var(--sp-7) var(--sp-9) var(--sp-7) var(--sp-6);
+  }
+}
+
+/* --- Portrait: media on top, text below, toolbar bottom bar --- */
+@media (orientation: portrait) {
+  .story-viewer {
+    --media-band: 100vw;
+    display: flex;
+    flex-direction: column;
+  }
+  .story-viewer__media {
+    width: 100vw;
+    height: 100vw;
+    flex: 0 0 auto;
+  }
+  .story-viewer__text {
+    flex: 1 1 auto;
+    position: relative;
+    padding: var(--sp-5);
+    padding-bottom: calc(var(--toolbar-size) + var(--sp-5));
+  }
+  /* Scrim for visual continuity between media and text. */
+  .story-viewer__text::before {
+    content: '';
+    position: absolute;
+    inset: -64px 0 auto 0;
+    height: 64px;
+    background: var(--story-scrim);
+    pointer-events: none;
+  }
+}
+
+/* --- Immersive: full-bleed media, chrome fades out --- */
+.story-viewer.is-immersive {
+  padding-left: 0;
+  grid-template-columns: 1fr;
+}
+.story-viewer.is-immersive .story-viewer__media {
+  grid-column: 1 / -1;
+  width: 100%;
+  height: var(--vp-height);
+}
+.story-viewer.is-immersive .story-viewer__text {
+  display: none;
+}
+
+/* Toolbar + nav fade with chrome visibility. */
+.story-viewer .toolbar,
+.story-viewer .nav-zone {
+  transition: opacity var(--t-base) var(--ease);
+}
+.story-viewer.is-immersive .toolbar,
+.story-viewer.is-immersive .nav-zone {
+  opacity: 0;
+  pointer-events: none;
+}
+.story-viewer.is-immersive.show-overlays .toolbar,
+.story-viewer.is-immersive.show-overlays .nav-zone {
+  opacity: 1;
+  pointer-events: auto;
+}

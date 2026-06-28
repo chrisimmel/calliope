@@ -14,6 +14,7 @@ for now, `ImageBlob.url` (a remote URL) is persisted verbatim and
 
 from __future__ import annotations
 
+import base64
 import logging
 import uuid
 from datetime import UTC, datetime
@@ -24,7 +25,7 @@ from sqlalchemy.orm import selectinload
 
 from calliope2.db.models import Image, Story, StoryFrame, Video
 from calliope2.db.session import sessionmaker_for
-from calliope2.inference import ImageBlob
+from calliope2.inference import AudioBlob, ImageBlob
 from calliope2.realtime import TaskRecord, TaskType, get_task_writer
 from calliope2.storytellers import FrameOutput, run_storyteller
 from calliope2.vector import try_embed_text
@@ -47,7 +48,10 @@ async def generate_first_frame(
 ) -> None:
     logger.info(
         "task %s: generating first frame for story %s (storyteller=%s, illustrator=%s)",
-        task_id, story_id, storyteller_name, illustrator_override,
+        task_id,
+        story_id,
+        storyteller_name,
+        illustrator_override,
     )
     writer = get_task_writer()
     record = TaskRecord(
@@ -126,13 +130,44 @@ async def generate_next_frame(
 def _prepare_inputs(inputs: dict[str, Any]) -> dict[str, Any]:
     """Coerce caller-supplied API inputs into storyteller-ready shapes.
 
-    Today: ``source_image_url`` (str) → ``source_image`` (ImageBlob). Extend
-    here when richer input types arrive (uploaded blobs, multi-image refs).
+    ``source_image_url`` (str) → ``source_image`` (ImageBlob). The value may be
+    a fetchable ``http(s)`` URL **or** a ``data:`` URL — the web client captures
+    photos in-browser and submits them as base64 data URLs (parity with v2), so
+    a data URL is decoded to bytes here rather than requiring a hosted URL.
     """
     prepared = dict(inputs)
     if "source_image_url" in prepared:
-        prepared["source_image"] = ImageBlob(url=prepared.pop("source_image_url"))
+        prepared["source_image"] = _image_blob_from_input(prepared.pop("source_image_url"))
+    if "source_audio_url" in prepared:
+        prepared["source_audio"] = _audio_blob_from_input(prepared.pop("source_audio_url"))
     return prepared
+
+
+def _image_blob_from_input(value: str) -> ImageBlob:
+    """Build an ImageBlob from a ``data:`` URL (→ bytes) or a plain URL."""
+    data, fmt, url = _decode_media_input(value, default_format="png")
+    return ImageBlob(data=data, url=url, format=fmt)
+
+
+def _audio_blob_from_input(value: str) -> AudioBlob:
+    """Build an AudioBlob from a ``data:`` URL (→ bytes) or a plain URL. The web
+    client's "Spoken words" capture arrives as a base64 ``data:audio/...`` URL."""
+    data, fmt, url = _decode_media_input(value, default_format="webm")
+    return AudioBlob(data=data, url=url, format=fmt)
+
+
+def _decode_media_input(
+    value: str, *, default_format: str
+) -> tuple[bytes | None, str | None, str | None]:
+    """Return ``(data, format, url)`` for a media input that is either a
+    ``data:<mime>;base64,<payload>`` URL (decoded to bytes) or a plain URL."""
+    if value.startswith("data:"):
+        header, _, encoded = value.partition(",")
+        # header looks like ``data:image/png;base64`` or ``data:audio/webm;base64``
+        mime = header[len("data:") :].split(";")[0]
+        fmt = (mime.split("/")[-1] if "/" in mime else "") or default_format
+        return base64.b64decode(encoded), fmt, None
+    return None, None, value
 
 
 def _previous_frame_inputs(frame: StoryFrame | None) -> dict[str, Any]:
@@ -153,9 +188,7 @@ async def _load_story_with_frames(session, story_id: int) -> Story | None:
     return await session.scalar(stmt)
 
 
-async def _persist_frame(
-    story_id: int, frame_number: int, output: FrameOutput
-) -> StoryFrame:
+async def _persist_frame(story_id: int, frame_number: int, output: FrameOutput) -> StoryFrame:
     embedding = await try_embed_text(output.text) if output.text else None
     Session = sessionmaker_for()
     async with Session() as session:

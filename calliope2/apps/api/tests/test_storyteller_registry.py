@@ -13,8 +13,10 @@ from calliope2.storytellers import (
 
 def test_list_storytellers_returns_canonical_names():
     # Phase 10: continuous_v1 was the precursor to fern and is dropped;
-    # lavender is added as a separate text-model variant.
+    # lavender is added as a separate text-model variant. echo is the
+    # spoken-word (audio-seed) storyteller.
     assert list_storytellers() == [
+        "echo",
         "fern",
         "lavender",
         "literal",
@@ -23,7 +25,9 @@ def test_list_storytellers_returns_canonical_names():
     ]
 
 
-@pytest.mark.parametrize("name", ["literal", "simple_one_frame", "narcissus", "fern", "lavender"])
+@pytest.mark.parametrize(
+    "name", ["literal", "simple_one_frame", "narcissus", "fern", "lavender", "echo"]
+)
 def test_each_storyteller_loads(name):
     s = Storyteller.load(name)
     assert s.name == name
@@ -49,6 +53,4 @@ def test_unknown_step_type_raises():
 
 def test_multi_key_step_raises():
     with pytest.raises(StorytellerSchemaError, match="single-key dict"):
-        Storyteller._from_dict(
-            {"name": "x", "steps": [{"generate_text": {}, "set": {}}]}
-        )
+        Storyteller._from_dict({"name": "x", "steps": [{"generate_text": {}, "set": {}}]})

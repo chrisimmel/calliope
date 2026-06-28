@@ -21,6 +21,24 @@ class ImageBlob:
 
 
 @dataclass(slots=True)
+class AudioBlob:
+    """A referenced audio clip, by bytes and/or URL.
+
+    At least one of `data` or `url` must be set. Used as a storyteller input
+    (e.g. a "spoken words" seed captured in-browser) and transcribed to text.
+    """
+
+    data: bytes | None = None
+    url: str | None = None
+    format: str | None = None
+    duration_seconds: float | None = None
+
+    def __post_init__(self) -> None:
+        if self.data is None and self.url is None:
+            raise ValueError("AudioBlob requires either `data` or `url`")
+
+
+@dataclass(slots=True)
 class VideoBlob:
     """A generated video, by bytes and/or URL."""
 

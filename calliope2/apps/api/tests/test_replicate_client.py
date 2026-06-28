@@ -1,3 +1,4 @@
+import base64
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
@@ -52,16 +53,18 @@ async def test_image_accepts_plain_string_url(client, stub):
 
 async def test_image_passes_ref_url_as_image_input(client, stub):
     stub.async_run.return_value = _file_output("https://r2.example.com/out.png")
-    await client.image(
-        "a continuation", model="m", refs=[ImageBlob(url="https://x.com/ref.png")]
-    )
+    await client.image("a continuation", model="m", refs=[ImageBlob(url="https://x.com/ref.png")])
     inputs = stub.async_run.await_args.kwargs["input"]
     assert inputs["image"] == "https://x.com/ref.png"
 
 
-async def test_image_ref_without_url_raises(client):
-    with pytest.raises(InferenceError, match="URL-addressable"):
-        await client.image("a cat", model="m", refs=[ImageBlob(data=b"raw")])
+async def test_image_ref_with_bytes_is_sent_as_data_uri(client, stub):
+    # A captured photo (ingested from a data URL) reaches Replicate as a data
+    # URI rather than requiring a hosted URL.
+    stub.async_run.return_value = _file_output("https://r2.example.com/out.png")
+    await client.image("a continuation", model="m", refs=[ImageBlob(data=b"raw", format="jpeg")])
+    inputs = stub.async_run.await_args.kwargs["input"]
+    assert inputs["image"] == ("data:image/jpeg;base64," + base64.b64encode(b"raw").decode("ascii"))
 
 
 async def test_video_returns_blob_with_duration(client, stub):

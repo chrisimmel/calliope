@@ -13,9 +13,7 @@ async def admin_client(client, db_sessionmaker):
     """Flip the auto-created test user to is_admin=True."""
     await client.get("/v3/storytellers")  # trigger auto-create
     async with db_sessionmaker() as s:
-        await s.execute(
-            update(User).where(User.firebase_uid == "test-uid-1").values(is_admin=True)
-        )
+        await s.execute(update(User).where(User.firebase_uid == "test-uid-1").values(is_admin=True))
         await s.commit()
     return client
 
@@ -64,32 +62,22 @@ async def test_list_stories_cursor_paginates(admin_client, seeded):
     assert body["page"]["next_cursor"] is not None
 
     next_cursor = body["page"]["next_cursor"]
-    r2 = await admin_client.get(
-        "/v3/admin/stories", params={"limit": 2, "cursor": next_cursor}
-    )
+    r2 = await admin_client.get("/v3/admin/stories", params={"limit": 2, "cursor": next_cursor})
     body2 = r2.json()
     assert len(body2["items"]) == 1
     assert body2["page"]["next_cursor"] is None
 
 
-async def test_get_story_includes_frames_and_owner_email(
-    admin_client, db_sessionmaker, seeded
-):
+async def test_get_story_includes_frames_and_owner_email(admin_client, db_sessionmaker, seeded):
     # Add a frame with media to one of the seeded stories
     async with db_sessionmaker() as s:
         story_id = (
-            await s.execute(
-                Story.__table__.select().where(Story.title == "Alice One")
-            )
-        ).first().id
+            (await s.execute(Story.__table__.select().where(Story.title == "Alice One"))).first().id
+        )
         img = Image(gcs_uri="gs://b/a.png", format="png", width=512, height=512)
         s.add(img)
         await s.flush()
-        s.add(
-            StoryFrame(
-                story_id=story_id, number=1, text="hello", image_id=img.id
-            )
-        )
+        s.add(StoryFrame(story_id=story_id, number=1, text="hello", image_id=img.id))
         await s.commit()
 
     r = await admin_client.get(f"/v3/admin/stories/{story_id}")
@@ -98,7 +86,7 @@ async def test_get_story_includes_frames_and_owner_email(
     assert body["title"] == "Alice One"
     assert body["owner_email"] == "alice@x"
     assert len(body["frames"]) == 1
-    assert body["frames"][0]["image_url"] == "gs://b/a.png"
+    assert body["frames"][0]["image_url"] == "https://storage.googleapis.com/b/a.png"
     assert body["frames"][0]["has_embedding"] is False
 
 

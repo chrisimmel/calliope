@@ -3,7 +3,7 @@ from typing import Protocol, TypeVar, runtime_checkable
 
 from pydantic import BaseModel
 
-from calliope2.inference.types import ImageBlob, VideoBlob
+from calliope2.inference.types import AudioBlob, ImageBlob, VideoBlob
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -57,4 +57,12 @@ class InferenceClient(Protocol):
         prompt: str,
         *,
         model: str,
+    ) -> str: ...
+
+    async def transcribe(
+        self,
+        audio: AudioBlob,
+        *,
+        model: str,
+        prompt: str | None = None,
     ) -> str: ...

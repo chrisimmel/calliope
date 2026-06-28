@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from calliope2.inference import ImageBlob, VideoBlob
+from calliope2.inference import AudioBlob, ImageBlob, VideoBlob
 from calliope2.storytellers import (
     FrameOutput,
     MissingVariable,
@@ -21,6 +21,7 @@ def mock_client() -> MagicMock:
     c.image = AsyncMock()
     c.video = AsyncMock()
     c.analyze_image = AsyncMock()
+    c.transcribe = AsyncMock()
     c.embed = AsyncMock()
     return c
 
@@ -29,9 +30,7 @@ def mock_client() -> MagicMock:
 def patch_get_client(monkeypatch, mock_client):
     """Patch get_client at the shared dispatch site (calliope2.pipeline) so every
     step in both Storyteller and Illustrator runtimes uses our mock."""
-    monkeypatch.setattr(
-        "calliope2.pipeline.get_client", lambda _name: mock_client
-    )
+    monkeypatch.setattr("calliope2.pipeline.get_client", lambda _name: mock_client)
     return mock_client
 
 
@@ -125,10 +124,33 @@ async def test_narcissus_returns_image_only(patch_get_client):
     assert "blue light, single chair" in image_prompt
 
 
+async def test_echo_transcribes_audio_then_narrates(patch_get_client):
+    patch_get_client.transcribe.return_value = "I left the door open for the rain."
+    patch_get_client.text.return_value = "Mara watched the water cross the sill."
+    patch_get_client.image.return_value = ImageBlob(url="https://x.com/i.png")
+
+    out = await run_storyteller("echo", {"source_audio": AudioBlob(data=b"OggS", format="webm")})
+
+    assert out.text == "Mara watched the water cross the sill."
+    assert out.image is not None
+    patch_get_client.transcribe.assert_awaited_once()
+    # The transcript reaches the narration prompt.
+    narrate_prompt = patch_get_client.text.await_args.args[0]
+    assert "I left the door open for the rain." in narrate_prompt
+
+
+async def test_transcribe_missing_input_raises(patch_get_client):
+    with pytest.raises(MissingVariable, match="source_audio"):
+        await run_storyteller("echo", inputs={})
+
+
+async def test_transcribe_input_must_be_audio_blob(patch_get_client):
+    with pytest.raises(StorytellerSchemaError, match="must be an AudioBlob"):
+        await run_storyteller("echo", {"source_audio": "not audio"})
+
+
 async def test_generate_video_dispatches_to_client(patch_get_client):
-    patch_get_client.video.return_value = VideoBlob(
-        url="https://x.com/v.mp4", duration_seconds=4.0
-    )
+    patch_get_client.video.return_value = VideoBlob(url="https://x.com/v.mp4", duration_seconds=4.0)
     yaml_dict = {
         "name": "video_demo",
         "steps": [

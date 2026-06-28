@@ -1,0 +1,111 @@
+/**
+ * Capture chrome (camera + audio), Atelier-styled. The positioning classes
+ * (`.photoCapture`, `.captureButton`, `.audioCapture`) used to live in
+ * ClioApp.css; they're re-homed here and recolored to `--cal-*`.
+ *
+ * Camera: full-bleed viewfinder with a faint framing reticle, a 68px brass
+ * shutter (the "send" button captures + submits), camera-reverse and close in
+ * overlay circles. Audio: a bottom-center pill.
+ */
+
+.photoCapture {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  width: 100vw;
+  height: var(--vp-height);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--story-bg);
+}
+
+.photoCaptureInner {
+  position: relative;
+  background-color: var(--story-bg);
+  max-width: 100%;
+  max-height: 100%;
+}
+
+@media (orientation: landscape) {
+  .photoCaptureInner {
+    height: var(--vp-height);
+    width: var(--vp-height);
+  }
+}
+@media (orientation: portrait) {
+  .photoCaptureInner {
+    width: 100vw;
+    height: 100vw;
+  }
+}
+
+/* Faint framing reticle. */
+.photoCaptureInner::after {
+  content: '';
+  position: absolute;
+  inset: 12%;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: var(--cal-radius-sm);
+  pointer-events: none;
+}
+
+.captureButton {
+  position: absolute;
+  margin: 0;
+  border: none;
+  background: var(--cal-overlay);
+  backdrop-filter: blur(var(--cal-overlay-blur));
+  -webkit-backdrop-filter: blur(var(--cal-overlay-blur));
+  color: var(--cal-on-overlay);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--cal-radius-pill);
+  font-size: 22px;
+}
+
+.photoCapture .captureButton.close {
+  top: var(--sp-4);
+  right: var(--sp-4);
+}
+.photoCapture .captureButton.reverseCamera {
+  bottom: var(--sp-6);
+  right: var(--sp-4);
+}
+/* The 68px brass shutter — bottom center. */
+.photoCapture .captureButton.send {
+  bottom: var(--sp-6);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 68px;
+  height: 68px;
+  background: var(--cal-accent);
+  color: var(--cal-accent-ink);
+  font-size: 26px;
+  box-shadow: var(--e1);
+}
+
+/* --- Audio capture pill --- */
+.audioCapture {
+  position: fixed;
+  bottom: calc(var(--toolbar-size) + var(--sp-4));
+  left: 50%;
+  transform: translate(-50%, 0);
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: center;
+}
+.audioCapture .captureButton {
+  position: static;
+  width: 40px;
+  height: 40px;
+  font-size: 18px;
+  background: transparent;
+  color: var(--cal-accent-ink);
+}
+.audioCapture .captureButton.send {
+  background: var(--cal-accent);
+}
