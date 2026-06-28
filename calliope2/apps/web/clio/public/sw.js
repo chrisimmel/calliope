@@ -41,10 +41,13 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Static assets: stale-while-revalidate.
+  // Static assets: stale-while-revalidate. Match on the full URL (search
+  // included) so the `main.js?<cuid>` cache-buster works — a new build's query
+  // misses the cache and is fetched fresh. Hashed CSS/font filenames have no
+  // query, so they still hit on exact match.
   event.respondWith(
     caches.open(CACHE).then(async cache => {
-      const cached = await cache.match(req, { ignoreSearch: true });
+      const cached = await cache.match(req);
       const network = fetch(req)
         .then(res => {
           if (res && res.ok) cache.put(req, res.clone());

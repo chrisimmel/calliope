@@ -4,6 +4,13 @@
  * refetches + advances) and `onFailed` on error. While a task runs it shows an
  * inline corner spinner + one-line status — it never blocks reading existing
  * frames.
+ *
+ * The subscription depends only on `userId`/`storyId`. The callbacks are read
+ * through refs so that a parent re-render (e.g. `onCompleted` → `setStory` →
+ * a new `onCompleted` identity) does NOT tear down and re-create the
+ * subscription. Re-subscribing would reset the dedup set and, because Firestore
+ * re-delivers the current snapshot on subscribe and the completed task doc
+ * persists in the query, would re-fire `onCompleted` in an unbounded loop.
  */
 
 import React, { useEffect, useRef, useState } from 'react';
@@ -27,8 +34,14 @@ export default function StoryStatusMonitor({
 }) {
   const [active, setActive] = useState(false);
   const [label, setLabel] = useState('Imagining…');
-  // Fire each terminal transition exactly once.
+  // Fire each terminal transition exactly once (per story subscription).
   const handled = useRef<Set<string>>(new Set());
+
+  // Latest callbacks, read inside the snapshot handler without re-subscribing.
+  const onCompletedRef = useRef(onCompleted);
+  const onFailedRef = useRef(onFailed);
+  onCompletedRef.current = onCompleted;
+  onFailedRef.current = onFailed;
 
   useEffect(() => {
     handled.current = new Set();
@@ -50,15 +63,15 @@ export default function StoryStatusMonitor({
         if (handled.current.has(key)) continue;
         if (t.status === 'completed') {
           handled.current.add(key);
-          onCompleted();
+          onCompletedRef.current();
         } else if (t.status === 'failed') {
           handled.current.add(key);
-          onFailed(t.error || 'Generation failed.');
+          onFailedRef.current(t.error || 'Generation failed.');
         }
       }
     });
     return () => unsub();
-  }, [userId, storyId, onCompleted, onFailed]);
+  }, [userId, storyId]);
 
   if (!active) return null;
   return (

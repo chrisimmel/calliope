@@ -2,6 +2,8 @@
 
 import base64
 
+import pytest
+
 from calliope2.api.v3.tasks import (
     _audio_blob_from_input,
     _image_blob_from_input,
@@ -59,3 +61,10 @@ def test_prepare_inputs_coerces_source_audio_url():
     assert "source_audio_url" not in prepared
     assert prepared["source_audio"].data == b"z"
     assert prepared["source_audio"].format == "mp4"
+
+
+def test_non_base64_data_url_raises():
+    # Browser captures are always base64; a non-base64 data URL is rejected
+    # rather than silently mis-decoded.
+    with pytest.raises(ValueError, match="base64"):
+        _image_blob_from_input("data:image/png,not-base64-data")

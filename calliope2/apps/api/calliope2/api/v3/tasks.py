@@ -163,7 +163,11 @@ def _decode_media_input(
     ``data:<mime>;base64,<payload>`` URL (decoded to bytes) or a plain URL."""
     if value.startswith("data:"):
         header, _, encoded = value.partition(",")
-        # header looks like ``data:image/png;base64`` or ``data:audio/webm;base64``
+        # header looks like ``data:image/png;base64`` or ``data:audio/webm;base64``.
+        # Browser captures are always base64; reject other encodings explicitly
+        # rather than silently mis-decoding a non-base64 payload.
+        if ";base64" not in header:
+            raise ValueError("only base64-encoded data: URLs are supported")
         mime = header[len("data:") :].split(";")[0]
         fmt = (mime.split("/")[-1] if "/" in mime else "") or default_format
         return base64.b64decode(encoded), fmt, None
