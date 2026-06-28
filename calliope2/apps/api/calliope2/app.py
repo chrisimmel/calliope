@@ -1,8 +1,10 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Any
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from calliope2 import __version__
 from calliope2.api.v3 import bookmarks, illustrators, search, stories, storytellers
@@ -13,6 +15,21 @@ from calliope2.api.v3.admin import stories as admin_stories
 from calliope2.settings import get_settings
 
 STATIC_ROOT = Path(__file__).parent / "static"
+
+
+class SPAStaticFiles(StaticFiles):
+    """StaticFiles that falls back to ``index.html`` for unmatched paths, so a
+    client-side deep link (e.g. ``/clio/story/<slug>/3``) refreshed in the
+    browser serves the SPA shell instead of 404ing. Real asset 404s also fall
+    back to the shell — standard SPA behavior."""
+
+    async def get_response(self, path: str, scope: Any):
+        try:
+            return await super().get_response(path, scope)
+        except StarletteHTTPException as exc:
+            if exc.status_code == 404:
+                return await super().get_response("index.html", scope)
+            raise
 
 
 @asynccontextmanager
@@ -49,11 +66,11 @@ def create_app() -> FastAPI:
     # build the frontends.
     clio_dir = STATIC_ROOT / "clio"
     if clio_dir.exists():
-        app.mount("/clio", StaticFiles(directory=clio_dir, html=True), name="clio")
+        app.mount("/clio", SPAStaticFiles(directory=clio_dir, html=True), name="clio")
 
     admin_dir = STATIC_ROOT / "admin"
     if admin_dir.exists():
-        app.mount("/admin", StaticFiles(directory=admin_dir, html=True), name="admin")
+        app.mount("/admin", SPAStaticFiles(directory=admin_dir, html=True), name="admin")
 
     return app
 

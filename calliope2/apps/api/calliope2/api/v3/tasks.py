@@ -7,9 +7,10 @@ storyteller, writes any produced Image/Video rows + StoryFrame, and
 emits status updates to the realtime writer (Firestore in prod, logging
 in dev).
 
-GCS upload of generated-bytes images is wired up in the storage phase;
-for now, `ImageBlob.url` (a remote URL) is persisted verbatim and
-`ImageBlob.data` (raw bytes) is logged as a TODO and skipped.
+Generated media is copied into our durable GCS bucket via
+``calliope2.storage.media_store`` (provider delivery URLs like Replicate's
+expire); persistence falls back to the provider URL if storage is
+unconfigured or fails.
 """
 
 from __future__ import annotations
@@ -27,6 +28,7 @@ from calliope2.db.models import Image, Story, StoryFrame, Video
 from calliope2.db.session import sessionmaker_for
 from calliope2.inference import AudioBlob, ImageBlob
 from calliope2.realtime import TaskRecord, TaskType, get_task_writer
+from calliope2.storage.media_store import persist_media
 from calliope2.storytellers import FrameOutput, run_storyteller
 from calliope2.vector import try_embed_text
 
@@ -213,22 +215,30 @@ async def _persist_frame(story_id: int, frame_number: int, output: FrameOutput) 
 
 
 async def _persist_image(session, blob: ImageBlob) -> int | None:
-    if blob.url is None:
-        # TODO(phase-storage): upload blob.data to GCS, get back a URI.
-        logger.warning("generated image has bytes-only payload; skipping persistence")
+    # Copy into our durable bucket; fall back to the provider URL if storage is
+    # unconfigured (dev) or fails. Provider URLs (e.g. Replicate) expire, so the
+    # durable copy is what keeps images loading long-term.
+    gcs_uri = (
+        await persist_media(data=blob.data, url=blob.url, kind="image", fmt=blob.format) or blob.url
+    )
+    if gcs_uri is None:
+        logger.warning("generated image has neither stored bytes nor a URL; skipping")
         return None
-    row = Image(gcs_uri=blob.url, width=blob.width, height=blob.height, format=blob.format)
+    row = Image(gcs_uri=gcs_uri, width=blob.width, height=blob.height, format=blob.format)
     session.add(row)
     await session.flush()
     return row.id
 
 
 async def _persist_video(session, blob) -> int | None:
-    if blob.url is None:
-        logger.warning("generated video has bytes-only payload; skipping persistence")
+    gcs_uri = (
+        await persist_media(data=blob.data, url=blob.url, kind="video", fmt=blob.format) or blob.url
+    )
+    if gcs_uri is None:
+        logger.warning("generated video has neither stored bytes nor a URL; skipping")
         return None
     row = Video(
-        gcs_uri=blob.url,
+        gcs_uri=gcs_uri,
         width=blob.width,
         height=blob.height,
         format=blob.format,

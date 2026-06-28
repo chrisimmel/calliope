@@ -1,0 +1,21 @@
+rules_version = '2';
+
+// Security rules for the calliope2-production Firestore database.
+//
+// The only collection the web client reads is `tasks` — generation status docs
+// the backend writes via the Admin SDK (which bypasses these rules). A
+// signed-in user may read their own task docs; nobody writes from the client.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /tasks/{taskId} {
+      allow read: if request.auth != null
+        && resource.data.firebase_uid == request.auth.uid;
+      allow write: if false;
+    }
+
+    // Everything else is closed to clients (the Admin SDK still has full access).
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
