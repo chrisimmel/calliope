@@ -62,10 +62,24 @@ def _post_with_origin(client: TestClient, origin: str):
 
 
 def test_settings_expose_the_hosts_that_serve_the_admin():
+    """
+    Every hostname the admin answers on must be listed, or login 403s there.
+
+    Cloud Run reports only the modern run.app URL via `gcloud run services
+    list`, so the custom domains and the legacy run.app form are easy to miss.
+    These were all confirmed serving Piccolo Admin in production.
+    """
     hosts = settings.admin_allowed_hosts
 
-    assert PROD_HOST in hosts
-    assert "calliope-59295831264.us-central1.run.app" in hosts
+    for host in (
+        "calliope.chrisimmel.com",
+        "calliope.luminifera.com",
+        "calliope.luminifera.org",
+        "calliope-ugaidvq5sa-uc.a.run.app",
+        "calliope-59295831264.us-central1.run.app",
+    ):
+        assert host in hosts, f"{host} serves the admin but is not allowed"
+
     # Local development must keep working.
     assert "localhost" in hosts
     assert "127.0.0.1" in hosts
