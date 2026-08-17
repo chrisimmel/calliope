@@ -17,7 +17,6 @@ from calliope.forms.add_story_thumbnails import (
     AddStoryThumbnailsFormModel,
     add_story_thumbnails_endpoint,
 )
-from calliope.forms.run_command import RunCommandFormModel, run_command_endpoint
 from calliope.routes import media as media_routes
 from calliope.routes import meta as meta_routes
 from calliope.routes import thoth as thoth_routes
@@ -149,19 +148,26 @@ def create_app() -> FastAPI:
         admin_app = create_admin(
             tables=config_piccolo_tables(),
             site_name="Calliope Admin",
-            # Required when running under HTTPS:
-            # allowed_hosts=["my_site.com"],
+            # Required when running under HTTPS. Piccolo's CSRF middleware only
+            # checks the Origin/Referer header when request.base_url.is_secure
+            # is true, and rejects every host absent from allowed_hosts. Behind
+            # Cloud Run, is_secure only became true once uvicorn began honoring
+            # X-Forwarded-Proto (--forwarded-allow-ips, added in #86), which
+            # turned the empty default into a blanket 403 on admin login.
+            allowed_hosts=settings.admin_allowed_hosts,
             forms=[
                 # FormConfig(
                 #     name="Migrate from Pydantic to Piccolo",
                 #     pydantic_model=MigrateFromPydanticFormModel,
                 #     endpoint=migrate_from_pydantic_endpoint,
                 # ),
-                FormConfig(
-                    name="Run Command",
-                    pydantic_model=RunCommandFormModel,
-                    endpoint=run_command_endpoint,
-                ),
+                # No "Run Command" form. It passed its input straight to
+                # subprocess.run() with no allowlist, so anyone reaching the
+                # admin had code execution in the container -- alongside the
+                # API keys in the environment and a service account holding
+                # roles/editor. calliope2 already stubs its port as 501
+                # ("legacy form was unsafe by design"); see
+                # calliope2/apps/api/calliope2/api/v3/admin/actions.py.
                 FormConfig(
                     name="Add Story Thumbnails",
                     pydantic_model=AddStoryThumbnailsFormModel,
