@@ -149,8 +149,13 @@ def create_app() -> FastAPI:
         admin_app = create_admin(
             tables=config_piccolo_tables(),
             site_name="Calliope Admin",
-            # Required when running under HTTPS:
-            # allowed_hosts=["my_site.com"],
+            # Required when running under HTTPS. Piccolo's CSRF middleware only
+            # checks the Origin/Referer header when request.base_url.is_secure
+            # is true, and rejects every host absent from allowed_hosts. Behind
+            # Cloud Run, is_secure only became true once uvicorn began honoring
+            # X-Forwarded-Proto (--forwarded-allow-ips, added in #86), which
+            # turned the empty default into a blanket 403 on admin login.
+            allowed_hosts=settings.admin_allowed_hosts,
             forms=[
                 # FormConfig(
                 #     name="Migrate from Pydantic to Piccolo",
