@@ -26,7 +26,14 @@ class Settings(BaseSettings):
     # request whose Origin/Referer host is absent from this list, but only when
     # the request is served over HTTPS. See create_admin() in calliope/app.py.
     ADMIN_ALLOWED_HOSTS: str = (
+        # Custom domains. All three serve the admin.
         "calliope.chrisimmel.com,"
+        "calliope.luminifera.com,"
+        "calliope.luminifera.org,"
+        # Cloud Run URLs. The service answers on both the legacy
+        # <service>-<hash>-<region>.a.run.app form and the modern
+        # <service>-<project-number>.<region>.run.app form.
+        "calliope-ugaidvq5sa-uc.a.run.app,"
         "calliope-59295831264.us-central1.run.app,"
         "calliope-59295831264.us-east4.run.app,"
         # Local development. The CSRF referer check is skipped over plain HTTP,
