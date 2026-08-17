@@ -176,6 +176,7 @@ dev = [
 [dependency-groups]
 dev = [
     "pre-commit>=4.2.0",
+    "pytest>=9.1.1",
     "ruff>=0.11.13",
 ]
 
