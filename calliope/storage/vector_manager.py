@@ -1,9 +1,9 @@
 from typing import cast, List, Optional, Sequence, Tuple
 
-from langchain.docstore.document import Document
+from langchain_core.documents import Document
 
-from langchain_community.embeddings import OpenAIEmbeddings
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_openai import OpenAIEmbeddings
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_pinecone.vectorstores import PineconeVectorStore
 
 from calliope.models import KeysModel
