@@ -12,6 +12,18 @@ README.md
 # IDEs, dev tools
 .vscode/
 .mypy_cache
+.ruff_cache/
+.pytest_cache/
+
+# JS dependencies. Never needed at runtime: the image serves the prebuilt
+# static/ bundle and never runs npm. Left out, these dominate the upload
+# (~1.4 GB across clio/, calliope2/apps/web/*, and agent worktrees).
+node_modules/
+**/node_modules/
+
+# Agent worktrees are full copies of the repo.
+.claude/
+scratch/
 
 # Mac doodads
 .DS_Store
