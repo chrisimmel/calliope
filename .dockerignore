@@ -37,6 +37,12 @@ scratch/
 clio-elm/
 client/
 
+# JS dependencies. The image serves the prebuilt static/ bundle and never runs
+# npm, so `COPY . .` would otherwise bake ~1.4 GB of these into the layer.
+node_modules/
+**/node_modules/
+.pytest_cache/
+
 # Temporary files
 tmp/
 *.log
