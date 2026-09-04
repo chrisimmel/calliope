@@ -14,12 +14,9 @@ WORKDIR $APP_HOME
 # Install system dependencies
 RUN apt update -y && apt upgrade -y
 RUN apt install -y \
-    libgl1-mesa-glx \
     jq \
     curl \
     ffmpeg \
-    libsm6 \
-    libxext6 \
     tzdata
 
 # Copy dependency files first for better Docker layer caching
